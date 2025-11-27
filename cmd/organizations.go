@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
@@ -70,10 +71,19 @@ var organizationsListCmd = &cobra.Command{
 			return fmt.Errorf("failed to decode response: %w", err)
 		}
 
-		headers := []string{"ID", "NAME", "PROJECTS", "ROLE"}
+		selectedOrg, err := internal.GetSelectedOrganization(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		headers := []string{"NAME", "PROJECTS", "ROLE"}
 		rows := make([][]string, len(result.Organizations))
 		for i, org := range result.Organizations {
-			rows[i] = []string{org.ID, org.Name, fmt.Sprintf("%d", org.ProjectCount), org.Role}
+			displayName := org.Name
+			if selectedOrg != "" && strings.EqualFold(org.Name, selectedOrg) {
+				displayName = displayName + " *"
+			}
+			rows[i] = []string{displayName, fmt.Sprintf("%d", org.ProjectCount), org.Role}
 		}
 
 		if err := internal.PrintTable(out, headers, rows); err != nil {
@@ -84,7 +94,30 @@ var organizationsListCmd = &cobra.Command{
 	},
 }
 
+var organizationsSelectCmd = &cobra.Command{
+	Use:   "select [organization_name]",
+	Short: "Select an organization for subsequent commands",
+	Long:  `Select an organization by name and store it in the local CLI configuration so other commands can use it without specifying the organization each time.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		orgName := args[0]
+
+		if _, err := internal.ResolveOrganizationIDByName(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout); err != nil {
+			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
+		}
+
+		if err := internal.SetSelectedOrganization(cfgDirName, orgName); err != nil {
+			return fmt.Errorf("failed to store selected organization: %w", err)
+		}
+
+		fmt.Fprintf(out, "Selected organization %s\n", orgName)
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(organizationsCmd)
 	organizationsCmd.AddCommand(organizationsListCmd)
+	organizationsCmd.AddCommand(organizationsSelectCmd)
 }

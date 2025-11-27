@@ -40,6 +40,7 @@ type DeleteServiceRequest struct {
 
 var (
 	serviceProject         string
+	serviceOrganization    string
 	serviceName            string
 	serviceVersion         string
 	servicePort            int
@@ -99,9 +100,25 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
+		selectedOrg, err := internal.GetSelectedOrganization(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if serviceOrganization == "" {
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
+			}
+			serviceOrganization = selectedOrg
+		}
+
+		_, projectID, err := internal.ResolveProjectIDByName(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:     serviceName,
-			Namespace:       serviceProject,
+			Namespace:       projectID,
 			Version:         serviceVersion,
 			ServicePort:     servicePort,
 			ImageRepository: serviceImageRepository,
@@ -130,10 +147,6 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
 		u.Path = "/service"
-
-		q := u.Query()
-		q.Set("project", serviceProject)
-		u.RawQuery = q.Encode()
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -212,9 +225,25 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
+		selectedOrg, err := internal.GetSelectedOrganization(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if serviceOrganization == "" {
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
+			}
+			serviceOrganization = selectedOrg
+		}
+
+		_, projectID, err := internal.ResolveProjectIDByName(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:     serviceName,
-			Namespace:       serviceProject,
+			Namespace:       projectID,
 			Version:         serviceVersion,
 			ServicePort:     servicePort,
 			ImageRepository: serviceImageRepository,
@@ -243,10 +272,6 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
 		u.Path = "/service"
-
-		q := u.Query()
-		q.Set("project", serviceProject)
-		u.RawQuery = q.Encode()
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -310,9 +335,25 @@ The project is selected with --project.`,
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
+		selectedOrg, err := internal.GetSelectedOrganization(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if serviceOrganization == "" {
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
+			}
+			serviceOrganization = selectedOrg
+		}
+
+		_, projectID, err := internal.ResolveProjectIDByName(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+		}
+
 		reqBody := DeleteServiceRequest{
 			ServiceName: serviceName,
-			Namespace:   serviceProject,
+			Namespace:   projectID,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -325,10 +366,6 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
 		u.Path = "/service"
-
-		q := u.Query()
-		q.Set("project", serviceProject)
-		u.RawQuery = q.Encode()
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodDelete, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -371,6 +408,7 @@ func init() {
 
 	// Flags for "services create"
 	servCCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to create the service in")
+	servCCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
 	servCCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to create")
 	servCCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
 	servCCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
@@ -385,6 +423,7 @@ func init() {
 
 	// Flags for "services update" (reuse the same variables)
 	servUCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to update the service in")
+	servUCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
 	servUCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to update")
 	servUCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
 	servUCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
@@ -397,8 +436,9 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 
-	// Flags for "services delete" (only project and service-name are needed)
+	// Flags for "services delete" (organization, project and service-name are needed)
 	servDCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to delete the service from")
+	servDCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
 	servDCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to delete")
 
 	// Register commands

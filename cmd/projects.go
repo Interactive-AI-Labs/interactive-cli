@@ -29,13 +29,26 @@ var projectsCmd = &cobra.Command{
 }
 
 var projectsListCmd = &cobra.Command{
-	Use:   "list [organization_id]",
+	Use:   "list [organization_name]",
 	Short: "List projects in an organization",
-	Long:  `List all projects within a specific organization.`,
-	Args:  cobra.ExactArgs(1),
+	Long:  `List all projects within a specific organization. The organization name will be resolved to its ID before making API calls.`,
+	Args:  cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		orgID := args[0]
 		out := cmd.OutOrStdout()
+
+		var orgName string
+		if len(args) > 0 {
+			orgName = args[0]
+		} else {
+			selectedOrg, err := internal.GetSelectedOrganization(cfgDirName)
+			if err != nil {
+				return fmt.Errorf("failed to load config: %w", err)
+			}
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide a name or run '%s organizations select <name>'", rootCmd.Use)
+			}
+			orgName = selectedOrg
+		}
 
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
@@ -43,6 +56,11 @@ var projectsListCmd = &cobra.Command{
 		}
 		if len(cookies) == 0 {
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+		}
+
+		orgID, err := internal.ResolveOrganizationIDByName(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 
 		url := fmt.Sprintf("%s/api/v1/session/organizations/%s/projects", hostname, orgID)
@@ -74,13 +92,12 @@ var projectsListCmd = &cobra.Command{
 			return fmt.Errorf("failed to decode response: %w", err)
 		}
 
-		fmt.Fprintf(out, "Organization: %s (%s)\n", result.OrganizationName, result.OrganizationID)
 		fmt.Fprintln(out)
 
-		headers := []string{"ID", "NAME", "ROLE"}
+		headers := []string{"NAME", "ROLE"}
 		rows := make([][]string, len(result.Projects))
 		for i, proj := range result.Projects {
-			rows[i] = []string{proj.ID, proj.Name, proj.Role}
+			rows[i] = []string{proj.Name, proj.Role}
 		}
 
 		if err := internal.PrintTable(out, headers, rows); err != nil {
