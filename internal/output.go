@@ -8,7 +8,6 @@ import (
 )
 
 // PrintTable prints data in a tabular format using text/tabwriter.
-// It takes an io.Writer to write to, a slice of headers, and a slice of slice of strings for the rows.
 func PrintTable(out io.Writer, headers []string, rows [][]string) error {
 	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
 

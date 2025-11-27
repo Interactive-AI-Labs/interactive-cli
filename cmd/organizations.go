@@ -9,8 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const organizationsURL = "https://dev.interactive.ai/api/v1/session/organizations"
-
 type Organization struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
@@ -43,7 +41,8 @@ var organizationsListCmd = &cobra.Command{
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, organizationsURL, nil)
+		url := fmt.Sprintf("%s/api/v1/session/organizations", hostname)
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, url, nil)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}

@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// sessionCookie represents a single cookie persisted to disk.
 type sessionCookie struct {
 	Name     string    `json:"name"`
 	Value    string    `json:"value"`
@@ -20,7 +19,6 @@ type sessionCookie struct {
 	HTTPOnly bool      `json:"http_only,omitempty"`
 }
 
-// sessionCookieFile is the on-disk representation of stored cookies.
 type sessionCookieFile struct {
 	Cookies []sessionCookie `json:"cookies"`
 	SavedAt time.Time       `json:"saved_at"`
@@ -130,4 +128,20 @@ func LoadSessionCookies(cfgDirName, sessionFileName string) ([]*http.Cookie, err
 	}
 
 	return cookies, nil
+}
+
+func DeleteSessionCookies(cfgDirName, sessionFileName string) error {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return fmt.Errorf("cannot determine home directory: %w", err)
+	}
+
+	path := filepath.Join(home, cfgDirName, sessionFileName)
+	if err := os.Remove(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil // Already deleted
+		}
+		return fmt.Errorf("failed to delete session file %q: %w", path, err)
+	}
+	return nil
 }

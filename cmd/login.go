@@ -13,10 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	signInURL = "https://dev.interactive.ai/api/v1/auth/signin"
-)
-
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Log in to InteractiveAI with a email and password",
@@ -57,7 +53,8 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("failed to encode request body: %w", err)
 		}
 
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodPost, signInURL, bytes.NewReader(bodyBytes))
+		url := fmt.Sprintf("%s/api/v1/auth/signin", hostname)
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodPost, url, bytes.NewReader(bodyBytes))
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
