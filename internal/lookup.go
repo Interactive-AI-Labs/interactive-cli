@@ -12,7 +12,7 @@ import (
 
 // getOrgId looks up an organization by name using the
 // /api/v1/session/organizations endpoint and returns its ID.
-func getOrgId(
+func GetOrgId(
 	ctx context.Context,
 	apiHostname string,
 	cfgDirName string,
@@ -135,7 +135,7 @@ func GetProjectId(
 		ctx = context.Background()
 	}
 
-	orgID, err := getOrgId(ctx, apiHostname, cfgDirName, sessionFileName, orgName, timeout)
+	orgID, err := GetOrgId(ctx, apiHostname, cfgDirName, sessionFileName, orgName, timeout)
 	if err != nil {
 		return "", "", err
 	}
