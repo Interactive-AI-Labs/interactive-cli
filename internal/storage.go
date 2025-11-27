@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// sessionCookie represents a single cookie persisted to disk.
 type sessionCookie struct {
 	Name     string    `json:"name"`
 	Value    string    `json:"value"`
@@ -20,7 +19,6 @@ type sessionCookie struct {
 	HTTPOnly bool      `json:"http_only,omitempty"`
 }
 
-// sessionCookieFile is the on-disk representation of stored cookies.
 type sessionCookieFile struct {
 	Cookies []sessionCookie `json:"cookies"`
 	SavedAt time.Time       `json:"saved_at"`
