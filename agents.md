@@ -1,233 +1,136 @@
 # Agents guidelines for `interactive-cli`
 
-This file defines how **AI coding agents** should work on the
-`github.com/Interactive-AI-Labs/interactive-cli` Go/Cobra CLI.
+This repo is a **Go CLI** using **Cobra**. It is a **thin client** for the Interactive AI platform:
 
-The goal is to keep changes:
-- Small and easy to review.
-- Consistent with existing patterns.
-- Safe to run in all environments.
+- Authenticates the user.
+- Collects flags / args / env.
+- Calls HTTP APIs.
+- Prints results (tables, text, errors).
 
----
-
-## 1. Project context
-
-- Language: **Go** (see `go.mod` for version; use that toolchain).
-- Entry point: `main.go` → `cmd.Execute()`.
-- CLI framework: **Cobra**.
-- Responsibilities of this repo:
-  - Authenticate to the Interactive AI platform.
-  - Collect flags / arguments / environment.
-  - Call HTTP APIs.
-  - Render results (tables, messages, errors).
-- **Do not** implement business logic or “agent brains” here. The platform is the source of truth; the CLI is a thin, reliable client.
-
-When in doubt, prefer:
-- “Forward input to the backend and print its response”
-over
-- “Rebuild backend behavior locally.”
+The platform is the source of truth. The CLI should not implement “agent brains” or complex business logic.
 
 ---
 
-## 2. How to work in this repo (as an AI coding agent)
+## 1. Where things live
 
-When you receive a task:
-
-1. **Understand the user request**
-   - Identify which command(s) or feature(s) are affected.
-   - Check existing commands in `cmd/` and helpers in `internal/` before adding new files.
-
-2. **Locate relevant code**
-   - Look for matching Cobra commands in `cmd/`.
-   - Look for HTTP calls and shared helpers in `internal/`.
-   - Prefer reusing existing patterns over inventing new ones.
-
-3. **Plan a minimal change**
-   - Avoid large refactors unless explicitly requested.
-   - Keep each change focused (one feature or bugfix at a time).
-   - Preserve existing public behavior unless the task explicitly says otherwise.
-
-4. **Implement**
-   - For new user-facing behavior:
-     - Add or extend a Cobra command under `cmd/`.
-     - Use small, testable functions in `internal/` to perform HTTP or formatting work.
-   - Avoid unnecessary abstraction: one constructor and a few clear functions are usually enough.
-
-5. **Validate**
-   - Always ensure the code **compiles** and **tests pass** logically:
-     - `go test ./...`
-   - Where applicable, consider:
-     - `go vet ./...` for basic static checks.
-     - Running only affected packages (e.g. `go test ./cmd/...`).
-
-6. **Document minimally**
-   - Update comments or README-like docs only when they add real value.
-   - Prefer clear names and self-explanatory code instead of verbose commentary.
-
----
-
-## 3. Code structure rules
-
-### 3.1 Cobra commands vs internal logic
-
-- `cmd/` package:
-  - Contains Cobra commands and CLI wiring only.
+- `cmd/`  
+  - Cobra commands and CLI wiring only.  
   - Responsibilities:
-    - Command usage strings, descriptions, and flags.
-    - Input parsing (arguments and flags).
-    - High-level user messaging.
-    - Delegation into `internal/` for actual work.
-- `internal/` package:
-  - Contains reusable helpers for HTTP calls, formatting, storage, and other utilities.
+    - Command usage/flags.
+    - Parsing args/env.
+    - User-facing messages.
+    - Delegating to `internal/`.
+
+- `internal/`  
+  - Shared helpers for HTTP, storage, output formatting, config, lookups, etc.  
   - Responsibilities:
-    - Constructing URLs and HTTP requests.
-    - Handling responses and errors.
-    - Data formatting (tables, text).
+    - Build URLs and requests.
+    - Handle responses and errors.
+    - Render tables / text.
+    - Load/store session and config.
 
-**Guideline for AI agents:**
-- Do not put complex logic inside `Run` / `RunE` bodies.
-- Put that logic into small functions or structs in `internal/` and call them from the command.
-
-### 3.2 Locality of behavior
-
-- Keep related behavior together:
-  - HTTP client helpers and their data types should live in the same file or package.
-  - A Cobra command should either:
-    - Call `internal` functions directly, or
-    - Use a small helper in the same `internal` package that hides HTTP details.
-- Avoid spreading one logical workflow across many packages unless there is a strong reason.
+**Rule:** Keep `RunE` bodies small. Put real work in `internal/` functions and call them from `cmd/`.
 
 ---
 
-## 4. Go coding conventions
+## 2. How to work in this repo
 
-These adapt general Python guidelines to Go for this repo.
+1. **Locate existing code**
+   - Find the closest command in `cmd/`.
+   - Look for reusable helpers in `internal/`.
+   - Prefer extending existing patterns over new ones.
 
-### 4.1 Never commit commented-out code
+2. **Plan a small change**
+   - One feature or bugfix per change.
+   - Avoid broad refactors unless explicitly requested.
+   - Preserve public behavior unless the task says otherwise.
 
-- Do **not** leave old implementations as comments.
-- If code is unused, **delete it**.
-- If you may need it later, rely on Git history, not comments.
+3. **Implement**
+   - New CLI behavior → new/updated command in `cmd/`.
+   - HTTP / formatting / config logic → helpers in `internal/`.
+   - Keep functions short and focused; avoid deep abstraction layers.
 
-### 4.2 Only commit comments that are strictly necessary
-
-- Prefer expressive names for:
-  - Types, functions, methods.
-  - Variables and fields.
-- Comments should:
-  - Explain **why**, not **what**.
-  - Document non-obvious contracts, edge cases, or constraints.
-  - Describe interactions with external APIs when behavior is surprising.
-- Avoid doc comments that merely restate function signatures.
-
-### 4.3 Don’t keep unused code or imports
-
-- Remove functions, types, and helpers when they are no longer used.
-- Keep import lists minimal and free of unused entries.
-- Avoid hacks like `_ = someName` just to silence “unused” warnings.
-
-### 4.4 Dependencies must be fixed
-
-- Use the `go.mod` file; depend on explicit versions.
-- Avoid “floating” or ambiguous versions.
-- When adding or updating a dependency:
-  - Keep changes minimal.
-  - Prefer libraries already in use in the org, if applicable.
-  - Only add a new dependency when the standard library and existing deps are clearly insufficient.
-
-### 4.5 Avoid heavy work at import time
-
-- Keep `init()` functions light and predictable.
-- Do **not**:
-  - Start goroutines.
-  - Open files.
-  - Create network clients that make requests.
-- Prefer constructors and explicit wiring in Cobra commands.
-
-### 4.6 Environment variables
-
-- Read core environment variables in a **small number of central places** (usually near the root command or main).
-- Pass configuration into helpers explicitly (e.g. via structs or parameters).
-- Avoid sprinkling `os.Getenv` throughout deep call chains for the same variable.
-- Prefer explicit configuration for testability and clarity.
-
-### 4.7 Avoid unnecessary boilerplate
-
-- Do not introduce extra wrapper functions that:
-  - Only pass parameters through without adding behavior or clarity.
-  - Force extra layers of indirection to understand what the code does.
-- If a constructor or helper is simple and used in one place, keep it simple and local.
-- Introduce abstractions **only** when:
-  - They remove real duplication, or
-  - They clearly improve readability / testability.
+4. **Validate**
+   - Ensure it compiles.
+   - Conceptually run:
+     - `go test ./...` or at least affected packages.
+   - Keep logic simple and predictable.
 
 ---
 
-## 5. Error handling and UX
+## 3. Coding rules (concise)
 
-- All public commands:
-  - Should return `error` from `RunE` so Cobra can handle failure exit codes cleanly.
-  - Should provide clear, actionable error messages for the user.
+### Structure and logic
+
+- **No complex logic in `Run`/`RunE`.**
+  - Do argument/flag handling and basic validation there.
+  - Call small helpers in `internal/` for the rest.
+
+- **Keep related code together.**
+  - HTTP client + types in the same package/file when practical.
+  - A command should either call `internal` directly or via a small local helper.
+
+### Comments and dead code
+
+- **No commented-out code.** Delete unused code; rely on git history.
+- **Comments only when needed.**
+  - Explain *why*, not *what*.
+  - Document tricky behavior or external API quirks.
+- Remove unused functions, types, and imports. No `_ = someName` hacks.
+
+### Dependencies and init
+
+- Use versions pinned in `go.mod`.
+- Add new dependencies only when the stdlib + existing deps are insufficient.
+- Keep `init()` light:
+  - No goroutines, network calls, or heavy work at import time.
+  - Prefer explicit wiring from commands.
+
+### Environment and config
+
+- Read env/config in a small number of central places (e.g., near `rootCmd` or dedicated helpers).
+- Pass configuration explicitly (structs/params) instead of calling `os.Getenv` deep in call chains.
+- Use `internal` helpers for session and config files (e.g., cookies, YAML config).
+
+### Error handling and UX
+
+- Commands should use `RunE` and return `error`.
 - Wrap errors with context:
-  - Use `fmt.Errorf("failed to <action>: %w", err)` patterns.
-  - Make it obvious what the CLI was trying to do when the failure happened.
-- Avoid panics in normal control flow.
-- Prefer:
-  - Simple, consistent messaging.
-  - Helpful hints (e.g. “Please run `<cli> login` first” when session is missing).
+  - `fmt.Errorf("failed to <action>: %w", err)`.
+- No panics in normal flow.
+- Error messages should be direct and helpful (e.g., hint to run `interactiveai login` or `organizations select` when needed).
+- When the server returns JSON with a `message` field, surface that string directly to the user.
+
+### Testing and formatting
+
+- Code must compile; add or update tests when behavior changes.
+- Assume `go test ./...` should conceptually pass.
+- All code must be `gofmt`-style; imports should follow Go conventions.
 
 ---
 
-## 6. Testing and formatting
+## 4. PR / change expectations
 
-- Before considering a change “done”, AI coding agents should:
-  - Ensure the code **compiles**.
-  - Add or update **tests** in affected packages when behavior changes.
-- Typical commands to consider (conceptually):
-  - `go test ./...` – run all tests.
-  - `go test ./cmd/...` – focus on CLI wiring tests (if present).
-  - `go test ./internal/...` – focus on helpers and HTTP logic.
-- Formatting:
-  - All Go code should be formatted with `gofmt` style (most editors / tools do this automatically).
-  - Keep import groupings consistent with standard Go conventions.
-
----
-
-## 7. PR and change guidelines (for AI agents)
-
-When generating changes that will become a PR:
-
-1. **Scope**
-   - Keep the change focused on a single feature, bugfix, or refactor.
-   - Avoid mixing unrelated edits.
-
-2. **Title and description**
-   - Use a concise, descriptive title (e.g. `[interactive-cli] Add projects list command`).
-   - In the description:
-     - Name the commands and packages touched.
-     - Summarize behavior changes.
-     - Mention any new environment variables or configuration expectations.
-
-3. **Quality checks**
-   - Code is compiled and logically passes tests.
-   - No unused code or imports.
-   - Comments, if present, are minimal and necessary.
-   - New code follows existing patterns in `cmd/` and `internal/`.
+- Scope: one focused change (feature, bugfix, or small refactor).
+- Description:
+  - Mention commands and packages touched.
+  - Summarize behavior changes.
+  - Note any new flags, env vars, or config fields.
+- Quality:
+  - No unused code/imports.
+  - Follows existing `cmd/` + `internal/` patterns.
+  - Clear, minimal comments where truly necessary.
 
 ---
 
-## 8. Summary for AI coding agents
+## 5. Summary for agents
 
-When you work on `interactive-cli`:
-
-- Treat this repo as a **thin client** to the Interactive AI platform.
-- Keep commands small and delegate real work to `internal/` helpers.
-- Respect the coding rules:
-  - No commented-out code.
+- Treat `interactive-cli` as a **thin, reliable client**:
+  - Parse input → call backend → print response.
+- Keep command code minimal; move real work to `internal/`.
+- Follow the compact rules:
+  - No commented-out code or unused imports.
   - Minimal, meaningful comments.
-  - No unused code or imports.
-  - Fixed dependencies and light `init()` behavior.
-- Add tests for new behavior.
-- Keep changes scoped, readable, and aligned with existing code.
-
-Following these rules will keep the CLI maintainable and predictable for humans and AI agents alike.
+  - Light `init()`, fixed dependencies.
+  - Clean error messages, no panics.
+- Keep every change small, readable, and consistent with the existing style.
