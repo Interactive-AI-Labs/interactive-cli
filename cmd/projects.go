@@ -58,7 +58,7 @@ var projectsListCmd = &cobra.Command{
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
-		orgID, err := internal.getOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		orgID, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}

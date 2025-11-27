@@ -103,7 +103,7 @@ var organizationsSelectCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 		orgName := args[0]
 
-		if _, err := internal.getOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout); err != nil {
+		if _, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout); err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 
