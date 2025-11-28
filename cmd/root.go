@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	hostname           string = "https://app.interactive.ai"
+	hostname           string = "https://dev.interactive.ai"
 	deploymentHostname string = "https://deployment.dev.interactive.ai"
 	rootCmd                   = &cobra.Command{
 		Use:          "interactiveai",
