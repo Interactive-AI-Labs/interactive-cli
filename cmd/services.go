@@ -22,8 +22,8 @@ type Resources struct {
 }
 
 type CreateServiceRequest struct {
-	ServiceName     string    `json:"ServiceName"`
-	Namespace       string    `json:"namespace"`
+	ServiceName     string    `json:"serviceName"`
+	ProjectId       string    `json:"projectId"`
 	Version         string    `json:"version"`
 	ServicePort     int       `json:"servicePort"`
 	ImageRepository string    `json:"imageRepository"`
@@ -34,8 +34,8 @@ type CreateServiceRequest struct {
 }
 
 type DeleteServiceRequest struct {
-	ServiceName string `json:"ServiceName"`
-	Namespace   string `json:"namespace"`
+	ServiceName string `json:"serviceName"`
+	ProjectId   string `json:"projectId"`
 }
 
 var (
@@ -111,14 +111,14 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceOrganization = selectedOrg
 		}
 
-		_, projectID, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
 		reqBody := CreateServiceRequest{
 			ServiceName:     serviceName,
-			Namespace:       projectID,
+			ProjectId:       projectId,
 			Version:         serviceVersion,
 			ServicePort:     servicePort,
 			ImageRepository: serviceImageRepository,
@@ -236,14 +236,14 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceOrganization = selectedOrg
 		}
 
-		_, projectID, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
 		reqBody := CreateServiceRequest{
 			ServiceName:     serviceName,
-			Namespace:       projectID,
+			ProjectId:       projectId,
 			Version:         serviceVersion,
 			ServicePort:     servicePort,
 			ImageRepository: serviceImageRepository,
@@ -310,6 +310,115 @@ All configuration is provided via flags. The project is selected with --project.
 	},
 }
 
+type ListServicesResponse struct {
+	Services []ServiceOutput `json:"services"`
+}
+
+type ServiceOutput struct {
+	Name      string `json:"name"`
+	ProjectId string `json:"projectId"`
+	Revision  int    `json:"revision"`
+	Status    string `json:"status"`
+	Updated   string `json:"updated,omitempty"`
+}
+
+var servListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List services in a project",
+	Long: `List services in a specific project using the deployment service.
+
+The project is selected with --project.`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		if serviceProject == "" {
+			return fmt.Errorf("project is required; please provide --project")
+		}
+
+		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+		if len(cookies) == 0 {
+			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+		}
+
+		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if serviceOrganization == "" {
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
+			}
+			serviceOrganization = selectedOrg
+		}
+
+		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+		}
+
+		u, err := url.Parse(deploymentHostname)
+		if err != nil {
+			return fmt.Errorf("failed to parse deployment service URL: %w", err)
+		}
+		u.Path = "/service"
+
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String()+"?project-id="+projectId, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+
+		for _, cookie := range cookies {
+			req.AddCookie(cookie)
+		}
+
+		client := &http.Client{
+			Timeout: defaultHTTPTimeout,
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("service list request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			msg := internal.ExtractServerMessage(respBody)
+			if msg != "" {
+				return fmt.Errorf("%s", msg)
+			}
+			return fmt.Errorf("service listing failed with status %s", resp.Status)
+		}
+
+		var result ListServicesResponse
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return fmt.Errorf("failed to decode services response: %w", err)
+		}
+
+		headers := []string{"NAME", "REVISION", "STATUS", "UPDATED"}
+		rows := make([][]string, len(result.Services))
+		for i, svc := range result.Services {
+			rows[i] = []string{
+				svc.Name,
+				fmt.Sprintf("%d", svc.Revision),
+				svc.Status,
+				svc.Updated,
+			}
+		}
+
+		if err := internal.PrintTable(out, headers, rows); err != nil {
+			return fmt.Errorf("failed to print table: %w", err)
+		}
+
+		return nil
+	},
+}
+
 var servDCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete a service from a project",
@@ -346,14 +455,14 @@ The project is selected with --project.`,
 			serviceOrganization = selectedOrg
 		}
 
-		_, projectID, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
 		reqBody := DeleteServiceRequest{
 			ServiceName: serviceName,
-			Namespace:   projectID,
+			ProjectId:   projectId,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -421,7 +530,7 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servCCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 
-	// Flags for "services update" (reuse the same variables)
+	// Flags for "services update"
 	servUCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to update the service in")
 	servUCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
 	servUCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to update")
@@ -436,7 +545,11 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 
-	// Flags for "services delete" (organization, project and service-name are needed)
+	// Flags for "services list"
+	servListCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to list services from")
+	servListCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
+
+	// Flags for "services delete"
 	servDCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to delete the service from")
 	servDCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
 	servDCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to delete")
@@ -445,5 +558,6 @@ func init() {
 	rootCmd.AddCommand(servicesCmd)
 	servicesCmd.AddCommand(servCCmd)
 	servicesCmd.AddCommand(servUCmd)
+	servicesCmd.AddCommand(servListCmd)
 	servicesCmd.AddCommand(servDCmd)
 }
