@@ -24,9 +24,10 @@ var (
 )
 
 var imageCmd = &cobra.Command{
-	Use:   "images",
-	Short: "Build and manage container images",
-	Long:  `Manage container images used by services.`,
+	Use:     "images",
+	Aliases: []string{"image"},
+	Short:   "Build and manage container images",
+	Long:    `Manage container images used by services.`,
 }
 
 var imageListCmd = &cobra.Command{
