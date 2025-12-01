@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
@@ -312,7 +313,24 @@ var imagePushCmd = &cobra.Command{
 			Timeout: defaultHTTPTimeout,
 		}
 
+		fmt.Fprint(out, "Uploading image")
+		done := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-done:
+					return
+				case <-ticker.C:
+					fmt.Fprint(out, ".")
+				}
+			}
+		}()
+
 		resp, err := client.Do(req)
+		close(done)
+		fmt.Fprintln(out)
 		if err != nil {
 			return fmt.Errorf("request failed: %w", err)
 		}
