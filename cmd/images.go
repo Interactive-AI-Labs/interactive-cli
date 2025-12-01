@@ -310,7 +310,7 @@ var imagePushCmd = &cobra.Command{
 		req.Header.Set("x-user-id", "interactive-cli")
 
 		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
+			Timeout: 5 * time.Minute,
 		}
 
 		fmt.Fprint(out, "Uploading image")
