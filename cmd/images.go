@@ -9,12 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
 )
-
-const imageRegistry = "europe-west4-docker.pkg.dev/packages-3317e3ad/apps"
 
 var (
 	imageBuildTag     string
@@ -22,32 +21,34 @@ var (
 	imageBuildContext string
 	imageName         string
 	imagePushTag      string
+	imageOrganization string
 )
 
 var imageCmd = &cobra.Command{
-	Use:   "images",
-	Short: "Build and manage container images",
-	Long:  `Manage container images used by services.`,
+	Use:     "images",
+	Aliases: []string{"image"},
+	Short:   "Build and manage container images",
+	Long:    `Manage container images used by services.`,
 }
 
 var imageListCmd = &cobra.Command{
-	Use:   "list [organization_name]",
+	Use:   "list",
 	Short: "List images for an organization",
 	Long:  `List container images in the deployment registry for a specific organization.`,
-	Args:  cobra.RangeArgs(0, 1),
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
 		var orgName string
-		if len(args) > 0 {
-			orgName = args[0]
+		if imageOrganization != "" {
+			orgName = imageOrganization
 		} else {
 			selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide a name or run '%s organizations select <name>'", rootCmd.Use)
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
 			}
 			orgName = selectedOrg
 		}
@@ -140,16 +141,20 @@ var imageListCmd = &cobra.Command{
 }
 
 var imageBuildCmd = &cobra.Command{
-	Use:   "build",
+	Use:   "build [image_name]",
 	Short: "Build a container image with Docker",
 	Long: `Build a container image using the local Docker CLI.
 
 This is a thin wrapper around 'docker build' that requires an explicit tag,
 Dockerfile, and build context.`,
-	Args: cobra.NoArgs,
+	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		in := cmd.InOrStdin()
+
+		if len(args) > 0 && imageName == "" {
+			imageName = args[0]
+		}
 
 		if imageBuildTag == "" {
 			return fmt.Errorf("tag is required; please provide --tag")
@@ -192,13 +197,17 @@ Dockerfile, and build context.`,
 }
 
 var imagePushCmd = &cobra.Command{
-	Use:   "push [organization_name]",
+	Use:   "push [image_name]",
 	Short: "Push an image for an organization",
 	Long:  `Create a Docker image tarball and push it to the deployment images endpoint for a specific organization.`,
 	Args:  cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		in := cmd.InOrStdin()
+
+		if len(args) > 0 && imageName == "" {
+			imageName = args[0]
+		}
 
 		if imagePushTag == "" {
 			return fmt.Errorf("tag is required; please provide --tag")
@@ -207,16 +216,17 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("image name is required; please provide --image-name")
 		}
 
+		// Resolve organization name.
 		var orgName string
-		if len(args) > 0 {
-			orgName = args[0]
+		if imageOrganization != "" {
+			orgName = imageOrganization
 		} else {
 			selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide a name or run '%s organizations select <name>'", rootCmd.Use)
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
 			}
 			orgName = selectedOrg
 		}
@@ -303,7 +313,24 @@ var imagePushCmd = &cobra.Command{
 			Timeout: defaultHTTPTimeout,
 		}
 
+		fmt.Fprint(out, "Uploading image")
+		done := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-done:
+					return
+				case <-ticker.C:
+					fmt.Fprint(out, ".")
+				}
+			}
+		}()
+
 		resp, err := client.Do(req)
+		close(done)
+		fmt.Fprintln(out)
 		if err != nil {
 			return fmt.Errorf("request failed: %w", err)
 		}
@@ -342,8 +369,11 @@ func init() {
 	_ = imageBuildCmd.MarkFlagRequired("file")
 	_ = imageBuildCmd.MarkFlagRequired("context")
 
+	imageListCmd.Flags().StringVar(&imageOrganization, "organization", "", "Organization name to list images for")
+
 	imagePushCmd.Flags().StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
 	imagePushCmd.Flags().StringVar(&imageName, "image-name", "", "Image name to append to the fixed registry path")
+	imagePushCmd.Flags().StringVar(&imageOrganization, "organization", "", "Organization name the image belongs to")
 	_ = imagePushCmd.MarkFlagRequired("tag")
 	_ = imagePushCmd.MarkFlagRequired("image-name")
 

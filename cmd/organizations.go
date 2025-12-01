@@ -22,9 +22,10 @@ type OrganizationsResponse struct {
 }
 
 var organizationsCmd = &cobra.Command{
-	Use:   "organizations",
-	Short: "Manage organizations",
-	Long:  `Manage organizations associated with your account.`,
+	Use:     "organizations",
+	Aliases: []string{"organization"},
+	Short:   "Manage organizations",
+	Long:    `Manage organizations associated with your account.`,
 }
 
 var organizationsListCmd = &cobra.Command{
