@@ -23,9 +23,10 @@ type ProjectsResponse struct {
 }
 
 var projectsCmd = &cobra.Command{
-	Use:   "projects",
-	Short: "Manage projects",
-	Long:  `Manage projects associated with an organization.`,
+	Use:     "projects",
+	Aliases: []string{"project"},
+	Short:   "Manage projects",
+	Long:    `Manage projects associated with an organization.`,
 }
 
 var projectsListCmd = &cobra.Command{
