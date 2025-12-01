@@ -70,14 +70,18 @@ var servicesCmd = &cobra.Command{
 }
 
 var servCCmd = &cobra.Command{
-	Use:   "create",
+	Use:   "create [service_name]",
 	Short: "Create a service in a project",
 	Long: `Create a service in a specific project using the deployment service.
 
 All configuration is provided via flags. The project is selected with --project.`,
-	Args: cobra.NoArgs,
+	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
+
+		if len(args) > 0 && serviceName == "" {
+			serviceName = args[0]
+		}
 
 		// Validate required flags.
 		if serviceProject == "" {
@@ -209,14 +213,18 @@ All configuration is provided via flags. The project is selected with --project.
 }
 
 var servUCmd = &cobra.Command{
-	Use:   "update",
+	Use:   "update [service_name]",
 	Short: "Update a service in a project",
 	Long: `Update a service in a specific project using the deployment service.
 
 All configuration is provided via flags. The project is selected with --project.`,
-	Args: cobra.NoArgs,
+	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
+
+		if len(args) > 0 && serviceName == "" {
+			serviceName = args[0]
+		}
 
 		// Validate required flags.
 		if serviceProject == "" {
@@ -457,14 +465,18 @@ The project is selected with --project.`,
 }
 
 var servDCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete [service_name]",
 	Short: "Delete a service from a project",
 	Long: `Delete a service from a specific project using the deployment service.
 
 The project is selected with --project.`,
-	Args: cobra.NoArgs,
+	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
+
+		if len(args) > 0 && serviceName == "" {
+			serviceName = args[0]
+		}
 
 		if serviceProject == "" {
 			return fmt.Errorf("project is required; please provide --project")
