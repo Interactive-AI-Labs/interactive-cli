@@ -21,16 +21,23 @@ type Resources struct {
 	Limits   ResourceRequirements `json:"limits"`
 }
 
+type ImageSpec struct {
+	Type       string `json:"type"`
+	Repository string `json:"repository,omitempty"`
+	Name       string `json:"name"`
+	Tag        string `json:"tag"`
+}
+
 type CreateServiceRequest struct {
-	ServiceName     string    `json:"serviceName"`
-	ProjectId       string    `json:"projectId"`
-	Version         string    `json:"version"`
-	ServicePort     int       `json:"servicePort"`
-	ImageRepository string    `json:"imageRepository"`
-	ImageTag        string    `json:"imageTag"`
-	Resources       Resources `json:"resources"`
-	Hostname        string    `json:"hostname,omitempty"`
-	Replicas        int       `json:"replicas"`
+	ServiceName    string    `json:"serviceName"`
+	ProjectId      string    `json:"projectId"`
+	OrganizationId string    `json:"organizationId"`
+	Version        string    `json:"version"`
+	ServicePort    int       `json:"servicePort"`
+	Image          ImageSpec `json:"image"`
+	Resources      Resources `json:"resources"`
+	Hostname       string    `json:"hostname,omitempty"`
+	Replicas       int       `json:"replicas"`
 }
 
 type DeleteServiceRequest struct {
@@ -44,7 +51,9 @@ var (
 	serviceName            string
 	serviceVersion         string
 	servicePort            int
+	serviceImageType       string
 	serviceImageRepository string
+	serviceImageName       string
 	serviceImageTag        string
 	serviceHostname        string
 	serviceReplicas        int
@@ -84,11 +93,20 @@ All configuration is provided via flags. The project is selected with --project.
 		if servicePort <= 0 {
 			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
 		}
-		if serviceImageRepository == "" {
-			return fmt.Errorf("image repository is required; please provide --image-repository")
+		if serviceImageName == "" {
+			return fmt.Errorf("image name is required; please provide --image-name")
 		}
 		if serviceImageTag == "" {
 			return fmt.Errorf("image tag is required; please provide --image-tag")
+		}
+		if serviceImageType == "" {
+			return fmt.Errorf("image type is required; please provide --image-type")
+		}
+		if serviceImageType != "internal" && serviceImageType != "external" {
+			return fmt.Errorf("image type must be either 'internal' or 'external'; please provide --image-type")
+		}
+		if serviceImageType == "external" && serviceImageRepository == "" {
+			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
 		// Ensure the user is logged in and load session cookies.
@@ -111,18 +129,23 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceOrganization = selectedOrg
 		}
 
-		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
 		reqBody := CreateServiceRequest{
-			ServiceName:     serviceName,
-			ProjectId:       projectId,
-			Version:         serviceVersion,
-			ServicePort:     servicePort,
-			ImageRepository: serviceImageRepository,
-			ImageTag:        serviceImageTag,
+			ServiceName:    serviceName,
+			ProjectId:      projectId,
+			OrganizationId: orgId,
+			Version:        serviceVersion,
+			ServicePort:    servicePort,
+			Image: ImageSpec{
+				Type:       serviceImageType,
+				Repository: serviceImageRepository,
+				Name:       serviceImageName,
+				Tag:        serviceImageTag,
+			},
 			Resources: Resources{
 				Requests: ResourceRequirements{
 					Memory: serviceReqMemory,
@@ -146,7 +169,7 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/service"
+		u.Path = "/services"
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -209,11 +232,20 @@ All configuration is provided via flags. The project is selected with --project.
 		if servicePort <= 0 {
 			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
 		}
-		if serviceImageRepository == "" {
-			return fmt.Errorf("image repository is required; please provide --image-repository")
+		if serviceImageName == "" {
+			return fmt.Errorf("image name is required; please provide --image-name")
 		}
 		if serviceImageTag == "" {
 			return fmt.Errorf("image tag is required; please provide --image-tag")
+		}
+		if serviceImageType == "" {
+			return fmt.Errorf("image type is required; please provide --image-type")
+		}
+		if serviceImageType != "internal" && serviceImageType != "external" {
+			return fmt.Errorf("image type must be either 'internal' or 'external'; please provide --image-type")
+		}
+		if serviceImageType == "external" && serviceImageRepository == "" {
+			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
 		// Ensure the user is logged in and load session cookies.
@@ -236,18 +268,23 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceOrganization = selectedOrg
 		}
 
-		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
 		reqBody := CreateServiceRequest{
-			ServiceName:     serviceName,
-			ProjectId:       projectId,
-			Version:         serviceVersion,
-			ServicePort:     servicePort,
-			ImageRepository: serviceImageRepository,
-			ImageTag:        serviceImageTag,
+			ServiceName:    serviceName,
+			ProjectId:      projectId,
+			OrganizationId: orgId,
+			Version:        serviceVersion,
+			ServicePort:    servicePort,
+			Image: ImageSpec{
+				Type:       serviceImageType,
+				Repository: serviceImageRepository,
+				Name:       serviceImageName,
+				Tag:        serviceImageTag,
+			},
 			Resources: Resources{
 				Requests: ResourceRequirements{
 					Memory: serviceReqMemory,
@@ -271,7 +308,7 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/service"
+		u.Path = "/services"
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -364,7 +401,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/service"
+		u.Path = "/services"
 
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String()+"?project-id="+projectId, nil)
 		if err != nil {
@@ -474,7 +511,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/service"
+		u.Path = "/services"
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodDelete, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -521,7 +558,9 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to create")
 	servCCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
 	servCCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
-	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository")
+	servCCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
+	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
+	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 	servCCmd.Flags().StringVar(&serviceHostname, "service-hostname", "", "Optional hostname for the service")
 	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
@@ -536,7 +575,9 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to update")
 	servUCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
 	servUCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
-	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository")
+	servUCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
+	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
+	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 	servUCmd.Flags().StringVar(&serviceHostname, "service-hostname", "", "Optional hostname for the service")
 	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
