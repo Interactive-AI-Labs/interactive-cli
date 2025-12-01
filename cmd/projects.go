@@ -22,6 +22,8 @@ type ProjectsResponse struct {
 	Projects         []Project `json:"projects"`
 }
 
+var projectsOrganization string
+
 var projectsCmd = &cobra.Command{
 	Use:     "projects",
 	Aliases: []string{"project"},
@@ -30,23 +32,23 @@ var projectsCmd = &cobra.Command{
 }
 
 var projectsListCmd = &cobra.Command{
-	Use:   "list [organization_name]",
+	Use:   "list",
 	Short: "List projects in an organization",
 	Long:  `List all projects within a specific organization. The organization name will be resolved to its ID before making API calls.`,
-	Args:  cobra.RangeArgs(0, 1),
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
 		var orgName string
-		if len(args) > 0 {
-			orgName = args[0]
+		if projectsOrganization != "" {
+			orgName = projectsOrganization
 		} else {
 			selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide a name or run '%s organizations select <name>'", rootCmd.Use)
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
 			}
 			orgName = selectedOrg
 		}
@@ -111,5 +113,8 @@ var projectsListCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(projectsCmd)
+
+	projectsListCmd.Flags().StringVar(&projectsOrganization, "organization", "", "Organization name that owns the projects")
+
 	projectsCmd.AddCommand(projectsListCmd)
 }

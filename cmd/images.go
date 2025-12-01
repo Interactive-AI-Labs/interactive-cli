@@ -31,23 +31,23 @@ var imageCmd = &cobra.Command{
 }
 
 var imageListCmd = &cobra.Command{
-	Use:   "list [organization_name]",
+	Use:   "list",
 	Short: "List images for an organization",
 	Long:  `List container images in the deployment registry for a specific organization.`,
-	Args:  cobra.RangeArgs(0, 1),
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
 		var orgName string
-		if len(args) > 0 {
-			orgName = args[0]
+		if imageOrganization != "" {
+			orgName = imageOrganization
 		} else {
 			selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide a name or run '%s organizations select <name>'", rootCmd.Use)
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
 			}
 			orgName = selectedOrg
 		}
@@ -350,6 +350,8 @@ func init() {
 	_ = imageBuildCmd.MarkFlagRequired("image-name")
 	_ = imageBuildCmd.MarkFlagRequired("file")
 	_ = imageBuildCmd.MarkFlagRequired("context")
+
+	imageListCmd.Flags().StringVar(&imageOrganization, "organization", "", "Organization name to list images for")
 
 	imagePushCmd.Flags().StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
 	imagePushCmd.Flags().StringVar(&imageName, "image-name", "", "Image name to append to the fixed registry path")
