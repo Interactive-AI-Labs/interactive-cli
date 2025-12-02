@@ -30,7 +30,6 @@ type ImageSpec struct {
 
 type CreateServiceRequest struct {
 	ServiceName    string    `json:"serviceName"`
-	ProjectId      string    `json:"projectId"`
 	OrganizationId string    `json:"organizationId"`
 	Version        string    `json:"version"`
 	ServicePort    int       `json:"servicePort"`
@@ -42,7 +41,6 @@ type CreateServiceRequest struct {
 
 type DeleteServiceRequest struct {
 	ServiceName string `json:"serviceName"`
-	ProjectId   string `json:"projectId"`
 }
 
 var (
@@ -141,7 +139,6 @@ All configuration is provided via flags. The project is selected with --project.
 
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
-			ProjectId:      projectId,
 			OrganizationId: orgId,
 			Version:        serviceVersion,
 			ServicePort:    servicePort,
@@ -174,7 +171,7 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/projects/%s/services", projectId)
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -284,7 +281,6 @@ All configuration is provided via flags. The project is selected with --project.
 
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
-			ProjectId:      projectId,
 			OrganizationId: orgId,
 			Version:        serviceVersion,
 			ServicePort:    servicePort,
@@ -317,7 +313,7 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/projects/%s/services", projectId)
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -410,9 +406,9 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/projects/%s/services", projectId)
 
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String()+"?project-id="+projectId, nil)
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
@@ -512,7 +508,6 @@ The project is selected with --project.`,
 
 		reqBody := DeleteServiceRequest{
 			ServiceName: serviceName,
-			ProjectId:   projectId,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -524,7 +519,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/projects/%s/services", projectId)
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodDelete, u.String(), bodyBytes, cookies)
 		if err != nil {
