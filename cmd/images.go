@@ -307,7 +307,6 @@ var imagePushCmd = &cobra.Command{
 		}
 
 		req.Header.Set("Content-Type", "application/x-tar")
-		req.Header.Set("x-user-id", "interactive-cli")
 
 		client := &http.Client{
 			Timeout: 5 * time.Minute,
