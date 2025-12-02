@@ -70,6 +70,9 @@ var (
 
 	serviceEndpoint bool
 	serviceEnvVars  []string
+
+	serviceReplicaName string
+	serviceLogsFollow  bool
 )
 
 var servicesCmd = &cobra.Command{
@@ -625,6 +628,91 @@ The project is selected with --project.`,
 	},
 }
 
+var servLogsCmd = &cobra.Command{
+	Use:   "logs [replica_name]",
+	Short: "Show logs for a specific replica",
+	Long: `Show logs for a specific replica (pod) in a project.
+
+The project is selected with --project.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		if serviceProject == "" {
+			return fmt.Errorf("project is required; please provide --project")
+		}
+
+		serviceReplicaName = args[0]
+
+		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+		if len(cookies) == 0 {
+			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+		}
+
+		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if serviceOrganization == "" {
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
+			}
+			serviceOrganization = selectedOrg
+		}
+
+		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+		}
+
+		u, err := url.Parse(deploymentHostname)
+		if err != nil {
+			return fmt.Errorf("failed to parse deployment service URL: %w", err)
+		}
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, serviceReplicaName)
+
+		q := u.Query()
+		if serviceLogsFollow {
+			q.Set("follow", "true")
+		}
+		u.RawQuery = q.Encode()
+
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+
+		for _, cookie := range cookies {
+			req.AddCookie(cookie)
+		}
+
+		client := &http.Client{
+			Timeout: defaultHTTPTimeout,
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("logs request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+			msg := internal.ExtractServerMessage(respBody)
+			if msg != "" {
+				return fmt.Errorf("%s", msg)
+			}
+			return fmt.Errorf("logs request failed with status %s", resp.Status)
+		}
+
+		_, err = io.Copy(out, resp.Body)
+		return err
+	},
+}
+
 var servDCmd = &cobra.Command{
 	Use:   "delete [service_name]",
 	Short: "Delete a service from a project",
@@ -771,6 +859,11 @@ func init() {
 	servReplicasCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
 	servReplicasCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to inspect")
 
+	// Flags for "services logs"
+	servLogsCmd.Flags().StringVar(&serviceProject, "project", "", "Project name that owns the service")
+	servLogsCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
+	servLogsCmd.Flags().BoolVar(&serviceLogsFollow, "follow", false, "Follow log output")
+
 	// Flags for "services delete"
 	servDCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to delete the service from")
 	servDCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
@@ -778,9 +871,10 @@ func init() {
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)
+	rootCmd.AddCommand(servReplicasCmd)
+	rootCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servCCmd)
 	servicesCmd.AddCommand(servUCmd)
 	servicesCmd.AddCommand(servListCmd)
-	servicesCmd.AddCommand(servReplicasCmd)
 	servicesCmd.AddCommand(servDCmd)
 }
