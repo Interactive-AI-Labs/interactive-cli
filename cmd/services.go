@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
@@ -28,6 +29,11 @@ type ImageSpec struct {
 	Tag        string `json:"tag"`
 }
 
+type EnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type CreateServiceRequest struct {
 	ServiceName    string    `json:"serviceName"`
 	OrganizationId string    `json:"organizationId"`
@@ -35,6 +41,7 @@ type CreateServiceRequest struct {
 	ServicePort    int       `json:"servicePort"`
 	Image          ImageSpec `json:"image"`
 	Resources      Resources `json:"resources"`
+	Env            []EnvVar  `json:"env,omitempty"`
 	Hostname       string    `json:"hostname,omitempty"`
 	Replicas       int       `json:"replicas"`
 }
@@ -59,6 +66,9 @@ var (
 	serviceReqCPU          string
 	serviceLimitMemory     string
 	serviceLimitCPU        string
+
+	serviceEndpoint bool
+	serviceEnvVars  []string
 )
 
 var servicesCmd = &cobra.Command{
@@ -134,6 +144,24 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
+		// Build env vars from repeated --env flags (NAME=VALUE).
+		var env []EnvVar
+		for _, e := range serviceEnvVars {
+			parts := strings.SplitN(e, "=", 2)
+			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
+				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
+			}
+			env = append(env, EnvVar{
+				Name:  strings.TrimSpace(parts[0]),
+				Value: parts[1],
+			})
+		}
+
+		hostname := serviceHostname
+		if serviceEndpoint && hostname == "" {
+			hostname = fmt.Sprintf("%s.%s.dev.interactive.ai", serviceName, projectId)
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
 			OrganizationId: orgId,
@@ -155,7 +183,8 @@ All configuration is provided via flags. The project is selected with --project.
 					CPU:    serviceLimitCPU,
 				},
 			},
-			Hostname: serviceHostname,
+			Env:      env,
+			Hostname: hostname,
 			Replicas: serviceReplicas,
 		}
 
@@ -273,6 +302,24 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
+		// Build env vars from repeated --env flags (NAME=VALUE).
+		var env []EnvVar
+		for _, e := range serviceEnvVars {
+			parts := strings.SplitN(e, "=", 2)
+			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
+				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
+			}
+			env = append(env, EnvVar{
+				Name:  strings.TrimSpace(parts[0]),
+				Value: parts[1],
+			})
+		}
+
+		hostname := serviceHostname
+		if serviceEndpoint && hostname == "" {
+			hostname = fmt.Sprintf("%s.%s.dev.interactive.ai", serviceName, projectId)
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
 			OrganizationId: orgId,
@@ -294,7 +341,8 @@ All configuration is provided via flags. The project is selected with --project.
 					CPU:    serviceLimitCPU,
 				},
 			},
-			Hostname: serviceHostname,
+			Env:      env,
+			Hostname: hostname,
 			Replicas: serviceReplicas,
 		}
 
@@ -689,6 +737,8 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
 	servCCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servCCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
+	servCCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>.<project-id>.dev.interactive.ai")
 
 	// Flags for "services update"
 	servUCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to update the service in")
@@ -706,6 +756,8 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
 	servUCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
+	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>.<project-id>.dev.interactive.ai")
 
 	// Flags for "services list"
 	servListCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to list services from")
