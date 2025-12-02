@@ -90,9 +90,6 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("service name is required; please provide --service-name")
 		}
 
-		if serviceVersion == "" {
-			return fmt.Errorf("version is required; please provide --version")
-		}
 		if servicePort <= 0 {
 			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
 		}
@@ -232,9 +229,6 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("service name is required; please provide --service-name")
 		}
 
-		if serviceVersion == "" {
-			return fmt.Errorf("version is required; please provide --version")
-		}
 		if servicePort <= 0 {
 			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
 		}
@@ -367,6 +361,8 @@ type ServiceOutput struct {
 type ServiceReplica struct {
 	Name      string `json:"name"`
 	Phase     string `json:"phase"`
+	Status    string `json:"status"`
+	Ready     bool   `json:"ready"`
 	StartTime string `json:"startTime,omitempty"`
 }
 
@@ -558,12 +554,14 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to decode replicas response: %w", err)
 		}
 
-		headers := []string{"NAME", "PHASE", "STARTED"}
+		headers := []string{"NAME", "PHASE", "STATUS", "READY", "STARTED"}
 		rows := make([][]string, len(result.Replicas))
 		for i, r := range result.Replicas {
 			rows[i] = []string{
 				r.Name,
 				r.Phase,
+				r.Status,
+				fmt.Sprintf("%t", r.Ready),
 				r.StartTime,
 			}
 		}
