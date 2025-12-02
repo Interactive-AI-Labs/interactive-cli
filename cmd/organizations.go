@@ -11,7 +11,7 @@ import (
 )
 
 type Organization struct {
-	ID           string `json:"id"`
+	Id           string `json:"id"`
 	Name         string `json:"name"`
 	ProjectCount int    `json:"project_count"`
 	Role         string `json:"role"`

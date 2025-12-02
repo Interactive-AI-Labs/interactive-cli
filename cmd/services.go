@@ -42,6 +42,7 @@ type CreateServiceRequest struct {
 	Image          ImageSpec `json:"image"`
 	Resources      Resources `json:"resources"`
 	Env            []EnvVar  `json:"env,omitempty"`
+	Endpoint       bool      `json:"endpoint,omitempty"`
 	Hostname       string    `json:"hostname,omitempty"`
 	Replicas       int       `json:"replicas"`
 }
@@ -184,6 +185,7 @@ All configuration is provided via flags. The project is selected with --project.
 				},
 			},
 			Env:      env,
+			Endpoint: serviceEndpoint,
 			Hostname: hostname,
 			Replicas: serviceReplicas,
 		}
@@ -342,6 +344,7 @@ All configuration is provided via flags. The project is selected with --project.
 				},
 			},
 			Env:      env,
+			Endpoint: serviceEndpoint,
 			Hostname: hostname,
 			Replicas: serviceReplicas,
 		}
