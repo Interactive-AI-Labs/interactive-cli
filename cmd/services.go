@@ -82,8 +82,9 @@ var servicesCmd = &cobra.Command{
 }
 
 var servCCmd = &cobra.Command{
-	Use:   "create [service_name]",
-	Short: "Create a service in a project",
+	Use:     "create [service_name]",
+	Aliases: []string{"new"},
+	Short:   "Create a service in a project",
 	Long: `Create a service in a specific project using the deployment service.
 
 All configuration is provided via flags. The project is selected with --project.`,
@@ -415,8 +416,9 @@ type ListServiceReplicasResponse struct {
 }
 
 var servListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List services in a project",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List services in a project",
 	Long: `List services in a specific project using the deployment service.
 
 The project is selected with --project.`,
@@ -802,11 +804,11 @@ The project is selected with --project.`,
 func init() {
 
 	// Flags for "services create"
-	servCCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to create the service in")
-	servCCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servCCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to create")
+	servCCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to create the service in")
+	servCCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servCCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to create")
 	servCCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
-	servCCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
+	servCCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servCCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
 	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
@@ -821,11 +823,11 @@ func init() {
 	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services update"
-	servUCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to update the service in")
-	servUCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servUCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to update")
+	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
+	servUCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servUCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to update")
 	servUCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
-	servUCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
+	servUCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servUCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
 	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
@@ -840,23 +842,23 @@ func init() {
 	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services list"
-	servListCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to list services from")
-	servListCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
+	servListCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
+	servListCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Flags for "services replicas"
-	servReplicasCmd.Flags().StringVar(&serviceProject, "project", "", "Project name that owns the service")
-	servReplicasCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servReplicasCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to inspect")
+	servReplicasCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name that owns the service")
+	servReplicasCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servReplicasCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to inspect")
 
 	// Flags for "services logs"
-	servLogsCmd.Flags().StringVar(&serviceProject, "project", "", "Project name that owns the service")
-	servLogsCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
+	servLogsCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name that owns the service")
+	servLogsCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servLogsCmd.Flags().BoolVar(&serviceLogsFollow, "follow", false, "Follow log output")
 
 	// Flags for "services delete"
-	servDCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to delete the service from")
-	servDCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servDCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to delete")
+	servDCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to delete the service from")
+	servDCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servDCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to delete")
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)

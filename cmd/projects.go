@@ -32,10 +32,11 @@ var projectsCmd = &cobra.Command{
 }
 
 var projectsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List projects in an organization",
-	Long:  `List all projects within a specific organization. The organization name will be resolved to its Id before making API calls.`,
-	Args:  cobra.NoArgs,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List projects in an organization",
+	Long:    `List all projects within a specific organization. The organization name will be resolved to its Id before making API calls.`,
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -114,7 +115,7 @@ var projectsListCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(projectsCmd)
 
-	projectsListCmd.Flags().StringVar(&projectsOrganization, "organization", "", "Organization name that owns the projects")
+	projectsListCmd.Flags().StringVarP(&projectsOrganization, "organization", "o", "", "Organization name that owns the projects")
 
 	projectsCmd.AddCommand(projectsListCmd)
 }

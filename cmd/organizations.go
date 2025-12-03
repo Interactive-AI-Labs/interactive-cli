@@ -29,9 +29,10 @@ var organizationsCmd = &cobra.Command{
 }
 
 var organizationsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List organizations",
-	Long:  `List all organizations you are a member of.`,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List organizations",
+	Long:    `List all organizations you are a member of.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -96,10 +97,11 @@ var organizationsListCmd = &cobra.Command{
 }
 
 var organizationsSelectCmd = &cobra.Command{
-	Use:   "select [organization_name]",
-	Short: "Select an organization for subsequent commands",
-	Long:  `Select an organization by name and store it in the local CLI configuration so other commands can use it without specifying the organization each time.`,
-	Args:  cobra.ExactArgs(1),
+	Use:     "select [organization_name]",
+	Aliases: []string{"set"},
+	Short:   "Select an organization for subsequent commands",
+	Long:    `Select an organization by name and store it in the local CLI configuration so other commands can use it without specifying the organization each time.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		orgName := args[0]
