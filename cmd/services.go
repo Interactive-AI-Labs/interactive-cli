@@ -82,8 +82,9 @@ var servicesCmd = &cobra.Command{
 }
 
 var servCCmd = &cobra.Command{
-	Use:   "create [service_name]",
-	Short: "Create a service in a project",
+	Use:     "create [service_name]",
+	Aliases: []string{"new"},
+	Short:   "Create a service in a project",
 	Long: `Create a service in a specific project using the deployment service.
 
 All configuration is provided via flags. The project is selected with --project.`,
@@ -415,8 +416,9 @@ type ListServiceReplicasResponse struct {
 }
 
 var servListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List services in a project",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List services in a project",
 	Long: `List services in a specific project using the deployment service.
 
 The project is selected with --project.`,
@@ -512,195 +514,9 @@ The project is selected with --project.`,
 	},
 }
 
-var servReplicasCmd = &cobra.Command{
-	Use:   "replicas [service_name]",
-	Short: "List replicas for a service",
-	Long: `List pods backing a service in a specific project.
+// servReplicasCmd has been moved to its own file/command.
 
-The project is selected with --project.`,
-	Args: cobra.RangeArgs(0, 1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-
-		if len(args) > 0 && serviceName == "" {
-			serviceName = args[0]
-		}
-
-		if serviceProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
-		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide --service-name")
-		}
-
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
-		}
-
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-		if serviceOrganization == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
-			}
-			serviceOrganization = selectedOrg
-		}
-
-		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
-		}
-
-		u, err := url.Parse(deploymentHostname)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
-		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s/replicas", orgId, projectId, serviceName)
-
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		for _, cookie := range cookies {
-			req.AddCookie(cookie)
-		}
-
-		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("replicas request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			msg := internal.ExtractServerMessage(respBody)
-			if msg != "" {
-				return fmt.Errorf("%s", msg)
-			}
-			return fmt.Errorf("replicas request failed with status %s", resp.Status)
-		}
-
-		var result ListServiceReplicasResponse
-		if err := json.Unmarshal(respBody, &result); err != nil {
-			return fmt.Errorf("failed to decode replicas response: %w", err)
-		}
-
-		headers := []string{"NAME", "PHASE", "STATUS", "READY", "STARTED"}
-		rows := make([][]string, len(result.Replicas))
-		for i, r := range result.Replicas {
-			rows[i] = []string{
-				r.Name,
-				r.Phase,
-				r.Status,
-				fmt.Sprintf("%t", r.Ready),
-				r.StartTime,
-			}
-		}
-
-		if err := internal.PrintTable(out, headers, rows); err != nil {
-			return fmt.Errorf("failed to print table: %w", err)
-		}
-
-		return nil
-	},
-}
-
-var servLogsCmd = &cobra.Command{
-	Use:   "logs [replica_name]",
-	Short: "Show logs for a specific replica",
-	Long: `Show logs for a specific replica (pod) in a project.
-
-The project is selected with --project.`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-
-		if serviceProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
-
-		serviceReplicaName = args[0]
-
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
-		}
-
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-		if serviceOrganization == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
-			}
-			serviceOrganization = selectedOrg
-		}
-
-		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
-		}
-
-		u, err := url.Parse(deploymentHostname)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
-		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, serviceReplicaName)
-
-		q := u.Query()
-		if serviceLogsFollow {
-			q.Set("follow", "true")
-		}
-		u.RawQuery = q.Encode()
-
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		for _, cookie := range cookies {
-			req.AddCookie(cookie)
-		}
-
-		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("logs request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-			msg := internal.ExtractServerMessage(respBody)
-			if msg != "" {
-				return fmt.Errorf("%s", msg)
-			}
-			return fmt.Errorf("logs request failed with status %s", resp.Status)
-		}
-
-		_, err = io.Copy(out, resp.Body)
-		return err
-	},
-}
+// servLogsCmd has been moved to its own file/command.
 
 var servDCmd = &cobra.Command{
 	Use:   "delete [service_name]",
@@ -802,11 +618,11 @@ The project is selected with --project.`,
 func init() {
 
 	// Flags for "services create"
-	servCCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to create the service in")
-	servCCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servCCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to create")
+	servCCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to create the service in")
+	servCCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servCCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to create")
 	servCCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
-	servCCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
+	servCCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servCCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
 	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
@@ -821,11 +637,11 @@ func init() {
 	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services update"
-	servUCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to update the service in")
-	servUCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servUCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to update")
+	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
+	servUCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servUCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to update")
 	servUCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
-	servUCmd.Flags().IntVar(&servicePort, "service-port", 0, "Service port to expose")
+	servUCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servUCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
 	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
@@ -840,28 +656,16 @@ func init() {
 	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services list"
-	servListCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to list services from")
-	servListCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-
-	// Flags for "services replicas"
-	servReplicasCmd.Flags().StringVar(&serviceProject, "project", "", "Project name that owns the service")
-	servReplicasCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servReplicasCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to inspect")
-
-	// Flags for "services logs"
-	servLogsCmd.Flags().StringVar(&serviceProject, "project", "", "Project name that owns the service")
-	servLogsCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servLogsCmd.Flags().BoolVar(&serviceLogsFollow, "follow", false, "Follow log output")
+	servListCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
+	servListCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Flags for "services delete"
-	servDCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to delete the service from")
-	servDCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
-	servDCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to delete")
+	servDCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to delete the service from")
+	servDCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servDCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to delete")
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)
-	rootCmd.AddCommand(servReplicasCmd)
-	rootCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servCCmd)
 	servicesCmd.AddCommand(servUCmd)
 	servicesCmd.AddCommand(servListCmd)

@@ -32,10 +32,11 @@ var imageCmd = &cobra.Command{
 }
 
 var imageListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List images for an organization",
-	Long:  `List container images in the deployment registry for a specific organization.`,
-	Args:  cobra.NoArgs,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List images for an organization",
+	Long:    `List container images in the deployment registry for a specific organization.`,
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -137,26 +138,22 @@ var imageListCmd = &cobra.Command{
 }
 
 var imageBuildCmd = &cobra.Command{
-	Use:   "build [image_name]",
-	Short: "Build a container image with Docker",
+	Use:     "build [image_name]",
+	Aliases: []string{"b"},
+	Short:   "Build a container image with Docker",
 	Long: `Build a container image using the local Docker CLI.
 
 This is a thin wrapper around 'docker build' that requires an explicit tag,
 Dockerfile, and build context.`,
-	Args: cobra.RangeArgs(0, 1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		in := cmd.InOrStdin()
 
-		if len(args) > 0 && imageName == "" {
-			imageName = args[0]
-		}
+		imageName := strings.TrimSpace(args[0])
 
 		if imageBuildTag == "" {
 			return fmt.Errorf("tag is required; please provide --tag")
-		}
-		if imageName == "" {
-			return fmt.Errorf("image name is required; please provide --image-name")
 		}
 		if imageBuildFile == "" {
 			return fmt.Errorf("file is required; please provide --file")
@@ -193,23 +190,19 @@ Dockerfile, and build context.`,
 }
 
 var imagePushCmd = &cobra.Command{
-	Use:   "push [image_name]",
-	Short: "Push an image for an organization",
-	Long:  `Create a Docker image tarball and push it to the deployment images endpoint for a specific organization.`,
-	Args:  cobra.RangeArgs(0, 1),
+	Use:     "push [image_name]",
+	Aliases: []string{"p"},
+	Short:   "Push an image for an organization",
+	Long:    `Create a Docker image tarball and push it to the deployment images endpoint for a specific organization.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		in := cmd.InOrStdin()
 
-		if len(args) > 0 && imageName == "" {
-			imageName = args[0]
-		}
+		imageName := strings.TrimSpace(args[0])
 
 		if imagePushTag == "" {
 			return fmt.Errorf("tag is required; please provide --tag")
-		}
-		if imageName == "" {
-			return fmt.Errorf("image name is required; please provide --image-name")
 		}
 
 		// Resolve organization name.
@@ -354,22 +347,16 @@ var imagePushCmd = &cobra.Command{
 
 func init() {
 	imageBuildCmd.Flags().StringVarP(&imageBuildTag, "tag", "t", "", "Tag suffix to append to the fixed registry (e.g. 1.2.3)")
-	imageBuildCmd.Flags().StringVar(&imageName, "image-name", "", "Image name to append to the fixed registry path")
-	imageBuildCmd.Flags().StringVarP(&imageBuildFile, "file", "f", "", "Path to the Dockerfile")
-	imageBuildCmd.Flags().StringVar(&imageBuildContext, "context", "", "Build context directory")
+	imageBuildCmd.Flags().StringVarP(&imageBuildFile, "file", "f", "Dockerfile", "Path to the Dockerfile (default: ./Dockerfile)")
+	imageBuildCmd.Flags().StringVarP(&imageBuildContext, "context", "c", ".", "Build context directory (default: current directory)")
 
 	_ = imageBuildCmd.MarkFlagRequired("tag")
-	_ = imageBuildCmd.MarkFlagRequired("image-name")
-	_ = imageBuildCmd.MarkFlagRequired("file")
-	_ = imageBuildCmd.MarkFlagRequired("context")
 
-	imageListCmd.Flags().StringVar(&imageOrganization, "organization", "", "Organization name to list images for")
+	imageListCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name to list images for")
 
 	imagePushCmd.Flags().StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
-	imagePushCmd.Flags().StringVar(&imageName, "image-name", "", "Image name to append to the fixed registry path")
-	imagePushCmd.Flags().StringVar(&imageOrganization, "organization", "", "Organization name the image belongs to")
+	imagePushCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name the image belongs to")
 	_ = imagePushCmd.MarkFlagRequired("tag")
-	_ = imagePushCmd.MarkFlagRequired("image-name")
 
 	rootCmd.AddCommand(imageCmd)
 	imageCmd.AddCommand(imageBuildCmd)
