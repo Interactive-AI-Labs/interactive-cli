@@ -92,7 +92,7 @@ All configuration is provided via flags. The project is selected with --project.
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if len(args) > 0 && serviceName == "" {
+		if len(args) > 0 {
 			serviceName = args[0]
 		}
 
@@ -101,7 +101,7 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("project is required; please provide --project")
 		}
 		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide --service-name")
+			return fmt.Errorf("service name is required; please provide it as a positional argument")
 		}
 
 		if servicePort <= 0 {
@@ -245,7 +245,7 @@ All configuration is provided via flags. The project is selected with --project.
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if len(args) > 0 && serviceName == "" {
+		if len(args) > 0 {
 			serviceName = args[0]
 		}
 
@@ -254,7 +254,7 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("project is required; please provide --project")
 		}
 		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide --service-name")
+			return fmt.Errorf("service name is required; please provide [service_name] as the first positional argument")
 		}
 
 		if servicePort <= 0 {
@@ -528,7 +528,8 @@ The project is selected with --project.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if len(args) > 0 && serviceName == "" {
+		var serviceName string
+		if len(args) > 0 {
 			serviceName = args[0]
 		}
 
@@ -536,7 +537,7 @@ The project is selected with --project.`,
 			return fmt.Errorf("project is required; please provide --project")
 		}
 		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide --service-name")
+			return fmt.Errorf("service name is required; please provide the service name as an argument")
 		}
 
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -620,7 +621,6 @@ func init() {
 	// Flags for "services create"
 	servCCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to create the service in")
 	servCCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
-	servCCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to create")
 	servCCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
 	servCCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servCCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
@@ -639,7 +639,6 @@ func init() {
 	// Flags for "services update"
 	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
 	servUCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
-	servUCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to update")
 	servUCmd.Flags().StringVar(&serviceVersion, "version", "", "Version identifier for this service")
 	servUCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servUCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
@@ -662,7 +661,6 @@ func init() {
 	// Flags for "services delete"
 	servDCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to delete the service from")
 	servDCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
-	servDCmd.Flags().StringVarP(&serviceName, "service-name", "s", "", "Name of the service to delete")
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)

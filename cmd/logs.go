@@ -43,7 +43,6 @@ is used.`,
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
-		// Resolve organization name (flag or selected org).
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
@@ -55,7 +54,6 @@ is used.`,
 			logsOrganization = selectedOrg
 		}
 
-		// Resolve org and project IDs.
 		orgId, projectId, err := internal.GetProjectId(
 			cmd.Context(),
 			hostname,

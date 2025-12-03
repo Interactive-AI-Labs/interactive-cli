@@ -15,7 +15,6 @@ import (
 var (
 	replicasProject      string
 	replicasOrganization string
-	replicasServiceName  string
 )
 
 var replicasCmd = &cobra.Command{
@@ -31,19 +30,17 @@ var replicasListCmd = &cobra.Command{
 	Long: `List pods backing a service in a specific project.
 
 The project is selected with --project.`,
-	Args: cobra.RangeArgs(0, 1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if len(args) > 0 && strings.TrimSpace(replicasServiceName) == "" {
-			replicasServiceName = args[0]
-		}
+		serviceName := strings.TrimSpace(args[0])
 
 		if strings.TrimSpace(replicasProject) == "" {
 			return fmt.Errorf("project is required; please provide --project")
 		}
-		if strings.TrimSpace(replicasServiceName) == "" {
-			return fmt.Errorf("service name is required; please provide --service-name")
+		if serviceName == "" {
+			return fmt.Errorf("service name is required")
 		}
 
 		// Ensure the user is logged in and load session cookies.
@@ -84,7 +81,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s/replicas", orgID, projectID, replicasServiceName)
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s/replicas", orgID, projectID, serviceName)
 
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
 		if err != nil {
@@ -146,7 +143,6 @@ func init() {
 	// Flags for "replicas list"
 	replicasListCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
 	replicasListCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
-	replicasListCmd.Flags().StringVarP(&replicasServiceName, "service-name", "s", "", "Name of the service to inspect")
 
 	replicasCmd.AddCommand(replicasListCmd)
 	rootCmd.AddCommand(replicasCmd)
