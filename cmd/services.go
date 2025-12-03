@@ -61,7 +61,6 @@ var (
 	serviceImageRepository string
 	serviceImageName       string
 	serviceImageTag        string
-	serviceHostname        string
 	serviceReplicas        int
 	serviceReqMemory       string
 	serviceReqCPU          string
@@ -161,11 +160,6 @@ All configuration is provided via flags. The project is selected with --project.
 			})
 		}
 
-		hostname := serviceHostname
-		if serviceEndpoint && hostname == "" {
-			hostname = fmt.Sprintf("%s.%s.dev.interactive.ai", serviceName, projectId)
-		}
-
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
 			OrganizationId: orgId,
@@ -189,7 +183,6 @@ All configuration is provided via flags. The project is selected with --project.
 			},
 			Env:      env,
 			Endpoint: serviceEndpoint,
-			Hostname: hostname,
 			Replicas: serviceReplicas,
 		}
 
@@ -320,11 +313,6 @@ All configuration is provided via flags. The project is selected with --project.
 			})
 		}
 
-		hostname := serviceHostname
-		if serviceEndpoint && hostname == "" {
-			hostname = fmt.Sprintf("%s.%s.dev.interactive.ai", serviceName, projectId)
-		}
-
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
 			OrganizationId: orgId,
@@ -348,7 +336,6 @@ All configuration is provided via flags. The project is selected with --project.
 			},
 			Env:      env,
 			Endpoint: serviceEndpoint,
-			Hostname: hostname,
 			Replicas: serviceReplicas,
 		}
 
@@ -822,7 +809,7 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
-	servCCmd.Flags().StringVar(&serviceHostname, "service-hostname", "", "Optional hostname for the service")
+
 	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
 	servCCmd.Flags().StringVar(&serviceReqMemory, "requests-memory", "512Mi", "Requested memory (e.g. 512Mi)")
 	servCCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
@@ -841,7 +828,7 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
-	servUCmd.Flags().StringVar(&serviceHostname, "service-hostname", "", "Optional hostname for the service")
+
 	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
 	servUCmd.Flags().StringVar(&serviceReqMemory, "requests-memory", "512Mi", "Requested memory (e.g. 512Mi)")
 	servUCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
