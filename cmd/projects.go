@@ -10,13 +10,13 @@ import (
 )
 
 type Project struct {
-	ID   string `json:"id"`
+	Id   string `json:"id"`
 	Name string `json:"name"`
 	Role string `json:"role"`
 }
 
 type ProjectsResponse struct {
-	OrganizationID   string    `json:"organization_id"`
+	OrganizationId   string    `json:"organization_id"`
 	OrganizationName string    `json:"organization_name"`
 	UserRole         string    `json:"user_role"`
 	Projects         []Project `json:"projects"`
@@ -34,7 +34,7 @@ var projectsCmd = &cobra.Command{
 var projectsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List projects in an organization",
-	Long:  `List all projects within a specific organization. The organization name will be resolved to its ID before making API calls.`,
+	Long:  `List all projects within a specific organization. The organization name will be resolved to its Id before making API calls.`,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -61,12 +61,12 @@ var projectsListCmd = &cobra.Command{
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
-		orgID, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		orgId, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 
-		url := fmt.Sprintf("%s/api/v1/session/organizations/%s/projects", hostname, orgID)
+		url := fmt.Sprintf("%s/api/v1/session/organizations/%s/projects", hostname, orgId)
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, url, nil)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)

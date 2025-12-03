@@ -11,7 +11,7 @@ import (
 )
 
 // getOrgId looks up an organization by name using the
-// /api/v1/session/organizations endpoint and returns its ID.
+// /api/v1/session/organizations endpoint and returns its Id.
 func GetOrgId(
 	ctx context.Context,
 	apiHostname string,
@@ -70,7 +70,7 @@ func GetOrgId(
 
 	var payload struct {
 		Organizations []struct {
-			ID   string `json:"id"`
+			Id   string `json:"id"`
 			Name string `json:"name"`
 		} `json:"organizations"`
 	}
@@ -85,16 +85,16 @@ func GetOrgId(
 
 	// Case-insensitive match on name.
 	var matched []struct {
-		ID   string
+		Id   string
 		Name string
 	}
 	for _, org := range payload.Organizations {
 		if strings.EqualFold(org.Name, orgName) {
 			matched = append(matched, struct {
-				ID   string
+				Id   string
 				Name string
 			}{
-				ID:   org.ID,
+				Id:   org.Id,
 				Name: org.Name,
 			})
 		}
@@ -107,7 +107,7 @@ func GetOrgId(
 		return "", fmt.Errorf("organization name %q is ambiguous; please use a unique name", orgName)
 	}
 
-	return matched[0].ID, nil
+	return matched[0].Id, nil
 }
 
 // GetProjectId looks up a project by name within an organization,
@@ -135,7 +135,7 @@ func GetProjectId(
 		ctx = context.Background()
 	}
 
-	orgID, err := GetOrgId(ctx, apiHostname, cfgDirName, sessionFileName, orgName, timeout)
+	orgId, err := GetOrgId(ctx, apiHostname, cfgDirName, sessionFileName, orgName, timeout)
 	if err != nil {
 		return "", "", err
 	}
@@ -149,7 +149,7 @@ func GetProjectId(
 	}
 
 	base := strings.TrimRight(apiHostname, "/")
-	url := fmt.Sprintf("%s/api/v1/session/organizations/%s/projects", base, orgID)
+	url := fmt.Sprintf("%s/api/v1/session/organizations/%s/projects", base, orgId)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -181,7 +181,7 @@ func GetProjectId(
 
 	var payload struct {
 		Projects []struct {
-			ID   string `json:"id"`
+			Id   string `json:"id"`
 			Name string `json:"name"`
 		} `json:"projects"`
 	}
@@ -195,16 +195,16 @@ func GetProjectId(
 	}
 
 	var matched []struct {
-		ID   string
+		Id   string
 		Name string
 	}
 	for _, proj := range payload.Projects {
 		if strings.EqualFold(proj.Name, projectName) {
 			matched = append(matched, struct {
-				ID   string
+				Id   string
 				Name string
 			}{
-				ID:   proj.ID,
+				Id:   proj.Id,
 				Name: proj.Name,
 			})
 		}
@@ -217,5 +217,5 @@ func GetProjectId(
 		return "", "", fmt.Errorf("project name %q is ambiguous in organization %q; please use a unique name", projectName, orgName)
 	}
 
-	return orgID, matched[0].ID, nil
+	return orgId, matched[0].Id, nil
 }

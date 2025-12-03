@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
@@ -28,21 +29,26 @@ type ImageSpec struct {
 	Tag        string `json:"tag"`
 }
 
+type EnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type CreateServiceRequest struct {
 	ServiceName    string    `json:"serviceName"`
-	ProjectId      string    `json:"projectId"`
 	OrganizationId string    `json:"organizationId"`
 	Version        string    `json:"version"`
 	ServicePort    int       `json:"servicePort"`
 	Image          ImageSpec `json:"image"`
 	Resources      Resources `json:"resources"`
+	Env            []EnvVar  `json:"env,omitempty"`
+	Endpoint       bool      `json:"endpoint,omitempty"`
 	Hostname       string    `json:"hostname,omitempty"`
 	Replicas       int       `json:"replicas"`
 }
 
 type DeleteServiceRequest struct {
 	ServiceName string `json:"serviceName"`
-	ProjectId   string `json:"projectId"`
 }
 
 var (
@@ -55,12 +61,17 @@ var (
 	serviceImageRepository string
 	serviceImageName       string
 	serviceImageTag        string
-	serviceHostname        string
 	serviceReplicas        int
 	serviceReqMemory       string
 	serviceReqCPU          string
 	serviceLimitMemory     string
 	serviceLimitCPU        string
+
+	serviceEndpoint bool
+	serviceEnvVars  []string
+
+	serviceReplicaName string
+	serviceLogsFollow  bool
 )
 
 var servicesCmd = &cobra.Command{
@@ -92,9 +103,6 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("service name is required; please provide --service-name")
 		}
 
-		if serviceVersion == "" {
-			return fmt.Errorf("version is required; please provide --version")
-		}
 		if servicePort <= 0 {
 			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
 		}
@@ -139,9 +147,21 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
+		// Build env vars from repeated --env flags (NAME=VALUE).
+		var env []EnvVar
+		for _, e := range serviceEnvVars {
+			parts := strings.SplitN(e, "=", 2)
+			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
+				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
+			}
+			env = append(env, EnvVar{
+				Name:  strings.TrimSpace(parts[0]),
+				Value: parts[1],
+			})
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
-			ProjectId:      projectId,
 			OrganizationId: orgId,
 			Version:        serviceVersion,
 			ServicePort:    servicePort,
@@ -161,7 +181,8 @@ All configuration is provided via flags. The project is selected with --project.
 					CPU:    serviceLimitCPU,
 				},
 			},
-			Hostname: serviceHostname,
+			Env:      env,
+			Endpoint: serviceEndpoint,
 			Replicas: serviceReplicas,
 		}
 
@@ -174,7 +195,7 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgId, projectId)
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -235,9 +256,6 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("service name is required; please provide --service-name")
 		}
 
-		if serviceVersion == "" {
-			return fmt.Errorf("version is required; please provide --version")
-		}
 		if servicePort <= 0 {
 			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
 		}
@@ -282,9 +300,21 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
+		// Build env vars from repeated --env flags (NAME=VALUE).
+		var env []EnvVar
+		for _, e := range serviceEnvVars {
+			parts := strings.SplitN(e, "=", 2)
+			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
+				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
+			}
+			env = append(env, EnvVar{
+				Name:  strings.TrimSpace(parts[0]),
+				Value: parts[1],
+			})
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
-			ProjectId:      projectId,
 			OrganizationId: orgId,
 			Version:        serviceVersion,
 			ServicePort:    servicePort,
@@ -304,7 +334,8 @@ All configuration is provided via flags. The project is selected with --project.
 					CPU:    serviceLimitCPU,
 				},
 			},
-			Hostname: serviceHostname,
+			Env:      env,
+			Endpoint: serviceEndpoint,
 			Replicas: serviceReplicas,
 		}
 
@@ -317,7 +348,7 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgId, projectId)
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -368,6 +399,20 @@ type ServiceOutput struct {
 	Updated   string `json:"updated,omitempty"`
 }
 
+type ServiceReplica struct {
+	Name      string `json:"name"`
+	Phase     string `json:"phase"`
+	Status    string `json:"status"`
+	Ready     bool   `json:"ready"`
+	StartTime string `json:"startTime,omitempty"`
+}
+
+type ListServiceReplicasResponse struct {
+	ServiceName string           `json:"serviceName"`
+	ProjectId   string           `json:"projectId"`
+	Replicas    []ServiceReplica `json:"replicas"`
+}
+
 var servListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List services in a project",
@@ -401,7 +446,7 @@ The project is selected with --project.`,
 			serviceOrganization = selectedOrg
 		}
 
-		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
@@ -410,9 +455,9 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgId, projectId)
 
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String()+"?project-id="+projectId, nil)
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
@@ -465,6 +510,196 @@ The project is selected with --project.`,
 	},
 }
 
+var servReplicasCmd = &cobra.Command{
+	Use:   "replicas [service_name]",
+	Short: "List replicas for a service",
+	Long: `List pods backing a service in a specific project.
+
+The project is selected with --project.`,
+	Args: cobra.RangeArgs(0, 1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		if len(args) > 0 && serviceName == "" {
+			serviceName = args[0]
+		}
+
+		if serviceProject == "" {
+			return fmt.Errorf("project is required; please provide --project")
+		}
+		if serviceName == "" {
+			return fmt.Errorf("service name is required; please provide --service-name")
+		}
+
+		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+		if len(cookies) == 0 {
+			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+		}
+
+		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if serviceOrganization == "" {
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
+			}
+			serviceOrganization = selectedOrg
+		}
+
+		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+		}
+
+		u, err := url.Parse(deploymentHostname)
+		if err != nil {
+			return fmt.Errorf("failed to parse deployment service URL: %w", err)
+		}
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s/replicas", orgId, projectId, serviceName)
+
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+
+		for _, cookie := range cookies {
+			req.AddCookie(cookie)
+		}
+
+		client := &http.Client{
+			Timeout: defaultHTTPTimeout,
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("replicas request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			msg := internal.ExtractServerMessage(respBody)
+			if msg != "" {
+				return fmt.Errorf("%s", msg)
+			}
+			return fmt.Errorf("replicas request failed with status %s", resp.Status)
+		}
+
+		var result ListServiceReplicasResponse
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return fmt.Errorf("failed to decode replicas response: %w", err)
+		}
+
+		headers := []string{"NAME", "PHASE", "STATUS", "READY", "STARTED"}
+		rows := make([][]string, len(result.Replicas))
+		for i, r := range result.Replicas {
+			rows[i] = []string{
+				r.Name,
+				r.Phase,
+				r.Status,
+				fmt.Sprintf("%t", r.Ready),
+				r.StartTime,
+			}
+		}
+
+		if err := internal.PrintTable(out, headers, rows); err != nil {
+			return fmt.Errorf("failed to print table: %w", err)
+		}
+
+		return nil
+	},
+}
+
+var servLogsCmd = &cobra.Command{
+	Use:   "logs [replica_name]",
+	Short: "Show logs for a specific replica",
+	Long: `Show logs for a specific replica (pod) in a project.
+
+The project is selected with --project.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		if serviceProject == "" {
+			return fmt.Errorf("project is required; please provide --project")
+		}
+
+		serviceReplicaName = args[0]
+
+		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+		if len(cookies) == 0 {
+			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+		}
+
+		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if serviceOrganization == "" {
+			if selectedOrg == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
+			}
+			serviceOrganization = selectedOrg
+		}
+
+		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+		}
+
+		u, err := url.Parse(deploymentHostname)
+		if err != nil {
+			return fmt.Errorf("failed to parse deployment service URL: %w", err)
+		}
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, serviceReplicaName)
+
+		q := u.Query()
+		if serviceLogsFollow {
+			q.Set("follow", "true")
+		}
+		u.RawQuery = q.Encode()
+
+		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+
+		for _, cookie := range cookies {
+			req.AddCookie(cookie)
+		}
+
+		client := &http.Client{
+			Timeout: defaultHTTPTimeout,
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("logs request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+			msg := internal.ExtractServerMessage(respBody)
+			if msg != "" {
+				return fmt.Errorf("%s", msg)
+			}
+			return fmt.Errorf("logs request failed with status %s", resp.Status)
+		}
+
+		_, err = io.Copy(out, resp.Body)
+		return err
+	},
+}
+
 var servDCmd = &cobra.Command{
 	Use:   "delete [service_name]",
 	Short: "Delete a service from a project",
@@ -505,14 +740,13 @@ The project is selected with --project.`,
 			serviceOrganization = selectedOrg
 		}
 
-		_, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
 		reqBody := DeleteServiceRequest{
 			ServiceName: serviceName,
-			ProjectId:   projectId,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -524,7 +758,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = "/services"
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgId, projectId)
 
 		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodDelete, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -575,12 +809,14 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
-	servCCmd.Flags().StringVar(&serviceHostname, "service-hostname", "", "Optional hostname for the service")
+
 	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
 	servCCmd.Flags().StringVar(&serviceReqMemory, "requests-memory", "512Mi", "Requested memory (e.g. 512Mi)")
 	servCCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
 	servCCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servCCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
+	servCCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>.<project-id>.dev.interactive.ai")
 
 	// Flags for "services update"
 	servUCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to update the service in")
@@ -592,16 +828,28 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
-	servUCmd.Flags().StringVar(&serviceHostname, "service-hostname", "", "Optional hostname for the service")
+
 	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
 	servUCmd.Flags().StringVar(&serviceReqMemory, "requests-memory", "512Mi", "Requested memory (e.g. 512Mi)")
 	servUCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
 	servUCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
+	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>.<project-id>.dev.interactive.ai")
 
 	// Flags for "services list"
 	servListCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to list services from")
 	servListCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
+
+	// Flags for "services replicas"
+	servReplicasCmd.Flags().StringVar(&serviceProject, "project", "", "Project name that owns the service")
+	servReplicasCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
+	servReplicasCmd.Flags().StringVar(&serviceName, "service-name", "", "Name of the service to inspect")
+
+	// Flags for "services logs"
+	servLogsCmd.Flags().StringVar(&serviceProject, "project", "", "Project name that owns the service")
+	servLogsCmd.Flags().StringVar(&serviceOrganization, "organization", "", "Organization name that owns the project")
+	servLogsCmd.Flags().BoolVar(&serviceLogsFollow, "follow", false, "Follow log output")
 
 	// Flags for "services delete"
 	servDCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to delete the service from")
@@ -610,6 +858,8 @@ func init() {
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)
+	rootCmd.AddCommand(servReplicasCmd)
+	rootCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servCCmd)
 	servicesCmd.AddCommand(servUCmd)
 	servicesCmd.AddCommand(servListCmd)

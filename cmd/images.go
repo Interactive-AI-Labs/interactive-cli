@@ -62,7 +62,7 @@ var imageListCmd = &cobra.Command{
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
-		orgID, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		orgId, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
@@ -74,7 +74,7 @@ var imageListCmd = &cobra.Command{
 		u.Path = "/images"
 
 		q := u.Query()
-		q.Set("organizationId", orgID)
+		q.Set("organizationId", orgId)
 		u.RawQuery = q.Encode()
 
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
@@ -240,7 +240,7 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
 		}
 
-		orgID, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		orgId, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
@@ -290,7 +290,7 @@ var imagePushCmd = &cobra.Command{
 		u.Path = "/images"
 
 		q := u.Query()
-		q.Set("organizationId", orgID)
+		q.Set("organizationId", orgId)
 		q.Set("imageName", imageName)
 		q.Set("tag", imagePushTag)
 		u.RawQuery = q.Encode()
@@ -307,7 +307,6 @@ var imagePushCmd = &cobra.Command{
 		}
 
 		req.Header.Set("Content-Type", "application/x-tar")
-		req.Header.Set("x-user-id", "interactive-cli")
 
 		client := &http.Client{
 			Timeout: 5 * time.Minute,
