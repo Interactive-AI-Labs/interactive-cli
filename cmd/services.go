@@ -397,6 +397,7 @@ type ServiceOutput struct {
 	Revision  int    `json:"revision"`
 	Status    string `json:"status"`
 	Updated   string `json:"updated,omitempty"`
+	Endpoint  string `json:"endpoint,omitempty"`
 }
 
 type ServiceReplica struct {
@@ -491,13 +492,14 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to decode services response: %w", err)
 		}
 
-		headers := []string{"NAME", "REVISION", "STATUS", "UPDATED"}
+		headers := []string{"NAME", "REVISION", "STATUS", "ENDPOINT", "UPDATED"}
 		rows := make([][]string, len(result.Services))
 		for i, svc := range result.Services {
 			rows[i] = []string{
 				svc.Name,
 				fmt.Sprintf("%d", svc.Revision),
 				svc.Status,
+				svc.Endpoint,
 				svc.Updated,
 			}
 		}
@@ -816,7 +818,7 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servCCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 	servCCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
-	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>.<project-id>.dev.interactive.ai")
+	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services update"
 	servUCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to update the service in")
@@ -835,7 +837,7 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
-	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>.<project-id>.dev.interactive.ai")
+	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services list"
 	servListCmd.Flags().StringVar(&serviceProject, "project", "", "Project name to list services from")
