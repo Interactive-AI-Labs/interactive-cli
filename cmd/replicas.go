@@ -19,8 +19,15 @@ var (
 )
 
 var replicasCmd = &cobra.Command{
-	Use:   "replicas [service_name]",
-	Short: "List replicas for a service",
+	Use:   "replicas",
+	Short: "Manage service replicas",
+	Long:  `Manage pods backing services in a specific project.`,
+}
+
+var replicasListCmd = &cobra.Command{
+	Use:     "list [service_name]",
+	Aliases: []string{"ls"},
+	Short:   "List replicas for a service",
 	Long: `List pods backing a service in a specific project.
 
 The project is selected with --project.`,
@@ -136,10 +143,11 @@ The project is selected with --project.`,
 }
 
 func init() {
-	// Flags for "replicas"
-	replicasCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
-	replicasCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
-	replicasCmd.Flags().StringVarP(&replicasServiceName, "service-name", "s", "", "Name of the service to inspect")
+	// Flags for "replicas list"
+	replicasListCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+	replicasListCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+	replicasListCmd.Flags().StringVarP(&replicasServiceName, "service-name", "s", "", "Name of the service to inspect")
 
+	replicasCmd.AddCommand(replicasListCmd)
 	rootCmd.AddCommand(replicasCmd)
 }
