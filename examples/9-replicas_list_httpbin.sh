@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
-
-interactiveai replicas httpbin \
+interactiveai replicas list httpbin \
   --project betsson-poc

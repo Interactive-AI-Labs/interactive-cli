@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 interactiveai services create httpbin \
   --project betsson-poc \
   --port 80 \
