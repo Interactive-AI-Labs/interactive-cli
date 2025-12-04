@@ -119,14 +119,29 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to decode replicas response: %w", err)
 		}
 
-		headers := []string{"NAME", "PHASE", "STATUS", "READY", "STARTED"}
+		headers := []string{"NAME", "STATUS", "CPU", "MEMORY", "STARTED"}
 		rows := make([][]string, len(result.Replicas))
 		for i, r := range result.Replicas {
+			readinessLabel := "Not Ready"
+			if r.Ready {
+				readinessLabel = "Ready"
+			}
+
+			combinedStatus := strings.TrimSpace(r.Status)
+			if combinedStatus == "" {
+				combinedStatus = strings.TrimSpace(r.Phase)
+			}
+			if combinedStatus == "" {
+				combinedStatus = "Unknown"
+			}
+
+			combinedStatus = fmt.Sprintf("%s [%s]", combinedStatus, readinessLabel)
+
 			rows[i] = []string{
 				r.Name,
-				r.Phase,
-				r.Status,
-				fmt.Sprintf("%t", r.Ready),
+				combinedStatus,
+				r.CPU,
+				r.Memory,
 				r.StartTime,
 			}
 		}
