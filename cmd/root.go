@@ -18,7 +18,7 @@ var (
 	hostname           string = "https://dev.interactive.ai"
 	deploymentHostname string = "https://deployment.dev.interactive.ai"
 	rootCmd                   = &cobra.Command{
-		Use:          "interactiveai",
+		Use:          "iai",
 		Short:        "InteractiveAI's CLI",
 		Long:         `InteractiveAI's CLI to interact with its platform`,
 		SilenceUsage: true,
