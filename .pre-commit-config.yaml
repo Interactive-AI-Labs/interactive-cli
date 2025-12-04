@@ -8,7 +8,7 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
-        
+
       - id: check-go-mod-tidy
         name: Check go.mod is tidy
         entry: go mod tidy
