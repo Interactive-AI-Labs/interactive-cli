@@ -1,0 +1,19 @@
+repos:
+  - repo: local
+    hooks:
+      - id: make-docs
+        name: Generate CLI documentation
+        entry: make docs
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+        
+      - id: check-go-mod-tidy
+        name: Check go.mod is tidy
+        entry: go mod tidy
+        language: system
+        pass_filenames: false
+        always_run: false
+        stages: [pre-commit]
+        files: ^go\.mod$

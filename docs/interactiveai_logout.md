@@ -19,7 +19,7 @@ interactiveai logout [flags]
 ### Options inherited from parent commands
 
 ```
-      --deployment-hostname string   Hostname for the deployment API (default "https://deployment.dev.interactive.ai")
+      --deployment-hostname string   Hostname for the deployment API (default "http://localhost:8000")
       --hostname string              Hostname for the API (default "https://dev.interactive.ai")
 ```
 
