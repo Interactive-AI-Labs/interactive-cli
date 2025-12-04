@@ -69,9 +69,6 @@ var (
 
 	serviceEndpoint bool
 	serviceEnvVars  []string
-
-	serviceReplicaName string
-	serviceLogsFollow  bool
 )
 
 var servicesCmd = &cobra.Command{
@@ -407,6 +404,8 @@ type ServiceReplica struct {
 	Status    string `json:"status"`
 	Ready     bool   `json:"ready"`
 	StartTime string `json:"startTime,omitempty"`
+	CPU       string `json:"cpu,omitempty"`
+	Memory    string `json:"memory,omitempty"`
 }
 
 type ListServiceReplicasResponse struct {
@@ -513,10 +512,6 @@ The project is selected with --project.`,
 		return nil
 	},
 }
-
-// servReplicasCmd has been moved to its own file/command.
-
-// servLogsCmd has been moved to its own file/command.
 
 var servDCmd = &cobra.Command{
 	Use:   "delete [service_name]",
