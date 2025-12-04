@@ -23,8 +23,8 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install pre-commit
-        run: pip install pre-commit
+      - name: Install pre-commit and bump-my-version
+        run: pip install pre-commit bump-my-version
 
       - name: Run pre-commit
         run: pre-commit run --all-files
