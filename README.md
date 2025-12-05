@@ -53,7 +53,7 @@ You can install the CLI directly from this repository using `go install`.
 From any directory, run:
 
 ```bash
-go install github.com/Interactive-AI-Labs/interactive-cli/cmd/interactiveai@latest
+go install github.com/Interactive-AI-Labs/interactive-cli/cmd/iai@latest
 ```
 
 This will:
@@ -94,7 +94,7 @@ source ~/.zshrc
 After updating your `PATH`, you should be able to run the CLI directly:
 
 ```bash
-interactiveai --help
+iai --help
 ```
 
 You should see the CLI usage information.
@@ -102,9 +102,9 @@ You should see the CLI usage information.
 Common commands to get started:
 
 ```bash
-interactiveai login
-interactiveai organizations list
-interactiveai projects list
+iai login
+iai organizations list
+iai projects list
 ```
 
 (Depending on the CLI version, some commands may require you to have selected an organization or to be logged in first.)
@@ -116,7 +116,7 @@ interactiveai projects list
 To update to the latest version, simply run:
 
 ```bash
-go install github.com/Interactive-AI-Labs/interactive-cli/cmd/interactiveai@latest
+go install github.com/Interactive-AI-Labs/interactive-cli/cmd/iai@latest
 ```
 
 This will rebuild and reinstall the latest version over your existing binary.
@@ -125,7 +125,7 @@ This will rebuild and reinstall the latest version over your existing binary.
 
 ## 7. Troubleshooting
 
-- **Command not found (`interactiveai`):**
+- **Command not found (`iai`):**
   - Ensure `$(go env GOPATH)/bin` is in your `PATH`.
   - Open a new terminal session after updating your shell config.
 
