@@ -34,17 +34,22 @@ type EnvVar struct {
 	Value string `json:"value"`
 }
 
+type SecretRef struct {
+	SecretName string `json:"secretName"`
+}
+
 type CreateServiceRequest struct {
-	ServiceName    string    `json:"serviceName"`
-	OrganizationId string    `json:"organizationId"`
-	Version        string    `json:"version"`
-	ServicePort    int       `json:"servicePort"`
-	Image          ImageSpec `json:"image"`
-	Resources      Resources `json:"resources"`
-	Env            []EnvVar  `json:"env,omitempty"`
-	Endpoint       bool      `json:"endpoint,omitempty"`
-	Hostname       string    `json:"hostname,omitempty"`
-	Replicas       int       `json:"replicas"`
+	ServiceName    string      `json:"serviceName"`
+	OrganizationId string      `json:"organizationId"`
+	Version        string      `json:"version"`
+	ServicePort    int         `json:"servicePort"`
+	Image          ImageSpec   `json:"image"`
+	Resources      Resources   `json:"resources"`
+	Env            []EnvVar    `json:"env,omitempty"`
+	SecretRefs     []SecretRef `json:"secretRefs,omitempty"`
+	Endpoint       bool        `json:"endpoint,omitempty"`
+	Hostname       string      `json:"hostname,omitempty"`
+	Replicas       int         `json:"replicas"`
 }
 
 type DeleteServiceRequest struct {
@@ -67,8 +72,9 @@ var (
 	serviceLimitMemory     string
 	serviceLimitCPU        string
 
-	serviceEndpoint bool
-	serviceEnvVars  []string
+	serviceEndpoint   bool
+	serviceEnvVars    []string
+	serviceSecretRefs []string
 )
 
 var servicesCmd = &cobra.Command{
@@ -158,6 +164,16 @@ All configuration is provided via flags. The project is selected with --project.
 			})
 		}
 
+		// Build secret references from repeated --secret flags (secret names).
+		var secretRefs []SecretRef
+		for _, name := range serviceSecretRefs {
+			trimmed := strings.TrimSpace(name)
+			if trimmed == "" {
+				return fmt.Errorf("invalid --secret value %q; name must not be empty", name)
+			}
+			secretRefs = append(secretRefs, SecretRef{SecretName: trimmed})
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
 			OrganizationId: orgId,
@@ -179,9 +195,10 @@ All configuration is provided via flags. The project is selected with --project.
 					CPU:    serviceLimitCPU,
 				},
 			},
-			Env:      env,
-			Endpoint: serviceEndpoint,
-			Replicas: serviceReplicas,
+			Env:        env,
+			SecretRefs: secretRefs,
+			Endpoint:   serviceEndpoint,
+			Replicas:   serviceReplicas,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -311,6 +328,16 @@ All configuration is provided via flags. The project is selected with --project.
 			})
 		}
 
+		// Build secret references from repeated --secret flags (secret names).
+		var secretRefs []SecretRef
+		for _, name := range serviceSecretRefs {
+			trimmed := strings.TrimSpace(name)
+			if trimmed == "" {
+				return fmt.Errorf("invalid --secret value %q; name must not be empty", name)
+			}
+			secretRefs = append(secretRefs, SecretRef{SecretName: trimmed})
+		}
+
 		reqBody := CreateServiceRequest{
 			ServiceName:    serviceName,
 			OrganizationId: orgId,
@@ -332,9 +359,10 @@ All configuration is provided via flags. The project is selected with --project.
 					CPU:    serviceLimitCPU,
 				},
 			},
-			Env:      env,
-			Endpoint: serviceEndpoint,
-			Replicas: serviceReplicas,
+			Env:        env,
+			SecretRefs: secretRefs,
+			Endpoint:   serviceEndpoint,
+			Replicas:   serviceReplicas,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -629,6 +657,7 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servCCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 	servCCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servCCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services update"
@@ -647,6 +676,7 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
 	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servUCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
 
 	// Flags for "services list"
