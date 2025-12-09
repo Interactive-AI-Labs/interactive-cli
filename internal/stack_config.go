@@ -84,18 +84,16 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	return &cfg, nil
 }
 
-func (s ServiceConfig) ToCreateRequest(serviceName, orgID, projectID, stackID string) CreateServiceBody {
+func (s ServiceConfig) ToCreateRequest(stackID string) CreateServiceBody {
 	req := CreateServiceBody{
-		ServiceName:    serviceName,
-		OrganizationId: orgID,
-		ServicePort:    s.ServicePort,
-		Image:          s.Image,
-		Resources:      s.Resources,
-		Env:            s.Env,
-		SecretRefs:     s.SecretRefs,
-		Endpoint:       s.Endpoint,
-		Replicas:       s.Replicas,
-		Labels:         make(map[string]string),
+		ServicePort: s.ServicePort,
+		Image:       s.Image,
+		Resources:   s.Resources,
+		Env:         s.Env,
+		SecretRefs:  s.SecretRefs,
+		Endpoint:    s.Endpoint,
+		Replicas:    s.Replicas,
+		Labels:      make(map[string]string),
 	}
 
 	if stackID != "" {

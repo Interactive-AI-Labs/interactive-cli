@@ -134,9 +134,7 @@ All configuration is provided via flags. The project is selected with --project.
 		}
 
 		reqBody := internal.CreateServiceBody{
-			ServiceName:    serviceName,
-			OrganizationId: orgId,
-			ServicePort:    servicePort,
+			ServicePort: servicePort,
 			Image: internal.ImageSpec{
 				Type:       serviceImageType,
 				Repository: serviceImageRepository,
@@ -169,6 +167,7 @@ All configuration is provided via flags. The project is selected with --project.
 			cookies,
 			orgId,
 			projectId,
+			serviceName,
 			reqBody,
 		)
 		if err != nil {
@@ -273,9 +272,7 @@ All configuration is provided via flags. The project is selected with --project.
 		}
 
 		reqBody := internal.CreateServiceBody{
-			ServiceName:    serviceName,
-			OrganizationId: orgId,
-			ServicePort:    servicePort,
+			ServicePort: servicePort,
 			Image: internal.ImageSpec{
 				Type:       serviceImageType,
 				Repository: serviceImageRepository,
@@ -308,6 +305,7 @@ All configuration is provided via flags. The project is selected with --project.
 			cookies,
 			orgId,
 			projectId,
+			serviceName,
 			reqBody,
 		)
 		if err != nil {

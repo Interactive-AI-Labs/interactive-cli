@@ -24,12 +24,7 @@ type ListSecretsResponse struct {
 }
 
 type CreateSecretRequest struct {
-	SecretName string            `json:"secretName"`
-	Data       map[string]string `json:"data"`
-}
-
-type DeleteSecretRequest struct {
-	SecretName string `json:"secretName"`
+	Data map[string]string `json:"data"`
 }
 
 var (
@@ -219,8 +214,7 @@ The project is selected with --project.`,
 		}
 
 		reqBody := CreateSecretRequest{
-			SecretName: secretName,
-			Data:       data,
+			Data: data,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -232,7 +226,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets", orgID, projectID)
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretName)
 
 		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -331,8 +325,7 @@ The project is selected with --project.`,
 		}
 
 		reqBody := CreateSecretRequest{
-			SecretName: secretName,
-			Data:       data,
+			Data: data,
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
@@ -344,7 +337,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets", orgID, projectID)
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretName)
 
 		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -432,22 +425,13 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
 		}
 
-		reqBody := DeleteSecretRequest{
-			SecretName: secretToDelete,
-		}
-
-		bodyBytes, err := json.Marshal(reqBody)
-		if err != nil {
-			return fmt.Errorf("failed to encode request body: %w", err)
-		}
-
 		u, err := url.Parse(deploymentHostname)
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets", orgID, projectID)
+		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretToDelete)
 
-		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodDelete, u.String(), bodyBytes, cookies)
+		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodDelete, u.String(), nil, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}

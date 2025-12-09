@@ -37,17 +37,15 @@ type SecretRef struct {
 }
 
 type CreateServiceBody struct {
-	ServiceName    string            `json:"serviceName"`
-	OrganizationId string            `json:"organizationId"`
-	ServicePort    int               `json:"servicePort"`
-	Image          ImageSpec         `json:"image"`
-	Resources      Resources         `json:"resources"`
-	Env            []EnvVar          `json:"env,omitempty"`
-	SecretRefs     []SecretRef       `json:"secretRefs,omitempty"`
-	Endpoint       bool              `json:"endpoint,omitempty"`
-	Hostname       string            `json:"hostname,omitempty"`
-	Replicas       int               `json:"replicas"`
-	Labels         map[string]string `json:"labels,omitempty"`
+	ServicePort int               `json:"servicePort"`
+	Image       ImageSpec         `json:"image"`
+	Resources   Resources         `json:"resources"`
+	Env         []EnvVar          `json:"env,omitempty"`
+	SecretRefs  []SecretRef       `json:"secretRefs,omitempty"`
+	Endpoint    bool              `json:"endpoint,omitempty"`
+	Hostname    string            `json:"hostname,omitempty"`
+	Replicas    int               `json:"replicas"`
+	Labels      map[string]string `json:"labels,omitempty"`
 }
 
 func CreateService(
@@ -57,6 +55,7 @@ func CreateService(
 	cookies []*http.Cookie,
 	orgID,
 	projectID string,
+	serviceName string,
 	req CreateServiceBody,
 ) (string, error) {
 	bodyBytes, err := json.Marshal(req)
@@ -68,7 +67,7 @@ func CreateService(
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgID, projectID)
+	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPost, u.String(), bodyBytes, cookies)
 	if err != nil {
@@ -104,6 +103,7 @@ func UpdateService(
 	cookies []*http.Cookie,
 	orgID,
 	projectID string,
+	serviceName string,
 	req CreateServiceBody,
 ) (string, error) {
 	bodyBytes, err := json.Marshal(req)
@@ -115,7 +115,7 @@ func UpdateService(
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgID, projectID)
+	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPut, u.String(), bodyBytes, cookies)
 	if err != nil {
@@ -144,10 +144,6 @@ func UpdateService(
 	return serverMessage, nil
 }
 
-type DeleteServiceRequest struct {
-	ServiceName string `json:"serviceName"`
-}
-
 func DeleteService(
 	ctx context.Context,
 	hostname string,
@@ -157,18 +153,13 @@ func DeleteService(
 	projectID string,
 	serviceName string,
 ) (string, error) {
-	bodyBytes, err := json.Marshal(DeleteServiceRequest{ServiceName: serviceName})
-	if err != nil {
-		return "", fmt.Errorf("failed to encode request body: %w", err)
-	}
-
 	u, err := url.Parse(hostname)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgID, projectID)
+	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
 
-	reqHTTP, err := NewRequestWCookies(ctx, http.MethodDelete, u.String(), bodyBytes, cookies)
+	reqHTTP, err := NewRequestWCookies(ctx, http.MethodDelete, u.String(), nil, cookies)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -298,16 +289,16 @@ func SyncServices(
 	}
 
 	for name, svcCfg := range cfg.Services {
-		req := svcCfg.ToCreateRequest(name, orgID, projectID, cfg.StackID)
+		req := svcCfg.ToCreateRequest(cfg.StackID)
 
 		if _, exists := existingByName[name]; !exists {
-			_, err := CreateService(ctx, hostname, timeout, cookies, orgID, projectID, req)
+			_, err := CreateService(ctx, hostname, timeout, cookies, orgID, projectID, name, req)
 			if err != nil {
 				return nil, err
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			_, err := UpdateService(ctx, hostname, timeout, cookies, orgID, projectID, req)
+			_, err := UpdateService(ctx, hostname, timeout, cookies, orgID, projectID, name, req)
 			if err != nil {
 				return nil, err
 			}
