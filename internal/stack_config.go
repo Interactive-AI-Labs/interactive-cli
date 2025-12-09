@@ -8,7 +8,7 @@ import (
 )
 
 type StackConfig struct {
-	StackID  string                   `yaml:"stack-id"`
+	StackId  string                   `yaml:"stack-id"`
 	Services map[string]ServiceConfig `yaml:"services"`
 }
 
@@ -34,7 +34,7 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	if cfg.StackID == "" {
+	if cfg.StackId == "" {
 		return nil, fmt.Errorf("stack-id is required in config file")
 	}
 
@@ -85,7 +85,7 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 }
 
 func (s ServiceConfig) ToCreateRequest(stackId string) CreateServiceBody {
-	req := CreateServiceBody{
+	return CreateServiceBody{
 		ServicePort: s.ServicePort,
 		Image:       s.Image,
 		Resources:   s.Resources,
@@ -93,12 +93,6 @@ func (s ServiceConfig) ToCreateRequest(stackId string) CreateServiceBody {
 		SecretRefs:  s.SecretRefs,
 		Endpoint:    s.Endpoint,
 		Replicas:    s.Replicas,
-		Labels:      make(map[string]string),
+		StackId:     stackId,
 	}
-
-	if stackId != "" {
-		req.Labels["stack-id"] = stackId
-	}
-
-	return req
 }

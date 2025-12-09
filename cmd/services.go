@@ -531,7 +531,7 @@ The project is selected with --project and the config file with --file.`,
 			orgName = selectedOrg
 		}
 
-		orgID, projectID, err := internal.GetProjectId(
+		orgId, projectId, err := internal.GetProjectId(
 			cmd.Context(),
 			hostname,
 			cfgDirName,
@@ -553,16 +553,16 @@ The project is selected with --project and the config file with --file.`,
 			deploymentHostname,
 			defaultHTTPTimeout,
 			cookies,
-			orgID,
-			projectID,
+			orgId,
+			projectId,
 			cfg,
 		)
+		fmt.Fprintln(out)
 		close(done)
 		if err != nil {
 			return err
 		}
 
-		fmt.Fprintln(out)
 		if len(result.Created) > 0 {
 			fmt.Fprintf(out, "Created services: %s\n", strings.Join(result.Created, ", "))
 		}

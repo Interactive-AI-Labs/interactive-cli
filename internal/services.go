@@ -37,15 +37,15 @@ type SecretRef struct {
 }
 
 type CreateServiceBody struct {
-	ServicePort int               `json:"servicePort"`
-	Image       ImageSpec         `json:"image"`
-	Resources   Resources         `json:"resources"`
-	Env         []EnvVar          `json:"env,omitempty"`
-	SecretRefs  []SecretRef       `json:"secretRefs,omitempty"`
-	Endpoint    bool              `json:"endpoint,omitempty"`
-	Hostname    string            `json:"hostname,omitempty"`
-	Replicas    int               `json:"replicas"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	ServicePort int         `json:"servicePort"`
+	Image       ImageSpec   `json:"image"`
+	Resources   Resources   `json:"resources"`
+	Env         []EnvVar    `json:"env,omitempty"`
+	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
+	Endpoint    bool        `json:"endpoint,omitempty"`
+	Hostname    string      `json:"hostname,omitempty"`
+	Replicas    int         `json:"replicas"`
+	StackId     string      `json:"stackId,omitempty"`
 }
 
 func CreateService(
@@ -53,8 +53,8 @@ func CreateService(
 	hostname string,
 	timeout time.Duration,
 	cookies []*http.Cookie,
-	orgID,
-	projectID string,
+	orgId,
+	projectId string,
 	serviceName string,
 	req CreateServiceBody,
 ) (string, error) {
@@ -67,7 +67,7 @@ func CreateService(
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPost, u.String(), bodyBytes, cookies)
 	if err != nil {
@@ -101,8 +101,8 @@ func UpdateService(
 	hostname string,
 	timeout time.Duration,
 	cookies []*http.Cookie,
-	orgID,
-	projectID string,
+	orgId,
+	projectId string,
 	serviceName string,
 	req CreateServiceBody,
 ) (string, error) {
@@ -115,7 +115,7 @@ func UpdateService(
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPut, u.String(), bodyBytes, cookies)
 	if err != nil {
@@ -149,15 +149,15 @@ func DeleteService(
 	hostname string,
 	timeout time.Duration,
 	cookies []*http.Cookie,
-	orgID,
-	projectID string,
+	orgId,
+	projectId string,
 	serviceName string,
 ) (string, error) {
 	u, err := url.Parse(hostname)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodDelete, u.String(), nil, cookies)
 	if err != nil {
@@ -204,15 +204,15 @@ func ListServices(
 	hostname string,
 	timeout time.Duration,
 	cookies []*http.Cookie,
-	orgID,
-	projectID string,
+	orgId,
+	projectId string,
 	stackId string,
 ) ([]ServiceOutput, error) {
 	u, err := url.Parse(hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services", orgID, projectID)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services", orgId, projectId)
 
 	if stackId != "" {
 		q := u.Query()
@@ -268,11 +268,11 @@ func SyncServices(
 	hostname string,
 	timeout time.Duration,
 	cookies []*http.Cookie,
-	orgID,
-	projectID string,
+	orgId,
+	projectId string,
 	cfg *StackConfig,
 ) (*SyncResult, error) {
-	existing, err := ListServices(ctx, hostname, timeout, cookies, orgID, projectID, cfg.StackID)
+	existing, err := ListServices(ctx, hostname, timeout, cookies, orgId, projectId, cfg.StackId)
 	if err != nil {
 		return nil, err
 	}
@@ -289,16 +289,16 @@ func SyncServices(
 	}
 
 	for name, svcCfg := range cfg.Services {
-		req := svcCfg.ToCreateRequest(cfg.StackID)
+		req := svcCfg.ToCreateRequest(cfg.StackId)
 
 		if _, exists := existingByName[name]; !exists {
-			_, err := CreateService(ctx, hostname, timeout, cookies, orgID, projectID, name, req)
+			_, err := CreateService(ctx, hostname, timeout, cookies, orgId, projectId, name, req)
 			if err != nil {
 				return nil, err
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			_, err := UpdateService(ctx, hostname, timeout, cookies, orgID, projectID, name, req)
+			_, err := UpdateService(ctx, hostname, timeout, cookies, orgId, projectId, name, req)
 			if err != nil {
 				return nil, err
 			}
@@ -308,7 +308,7 @@ func SyncServices(
 
 	for name := range existingByName {
 		if _, desired := cfg.Services[name]; !desired {
-			_, err := DeleteService(ctx, hostname, timeout, cookies, orgID, projectID, name)
+			_, err := DeleteService(ctx, hostname, timeout, cookies, orgId, projectId, name)
 			if err != nil {
 				return nil, err
 			}

@@ -64,7 +64,7 @@ The project is selected with --project.`,
 			replicasOrganization = selectedOrg
 		}
 
-		orgID, projectID, err := internal.GetProjectId(
+		orgId, projectId, err := internal.GetProjectId(
 			cmd.Context(),
 			hostname,
 			cfgDirName,
@@ -81,7 +81,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/replicas", orgID, projectID, serviceName)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/replicas", orgId, projectId, serviceName)
 
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
 		if err != nil {
