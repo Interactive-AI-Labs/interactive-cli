@@ -31,7 +31,6 @@ iai services update [service_name] [flags]
       --requests-cpu string       Requested CPU (e.g. 250m) (default "250m")
       --requests-memory string    Requested memory (e.g. 512Mi) (default "512Mi")
       --secret stringArray        Secrets to be loaded as env vars; can be repeated
-      --version string            Version identifier for this service
 ```
 
 ### Options inherited from parent commands
