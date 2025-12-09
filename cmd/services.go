@@ -544,6 +544,10 @@ The project is selected with --project and the config file with --file.`,
 			return fmt.Errorf("failed to resolve project %q: %w", syncProject, err)
 		}
 
+		fmt.Fprintln(out)
+		fmt.Fprint(out, "Syncing services")
+		done := internal.PrintLoadingDots(out)
+
 		result, err := internal.SyncServices(
 			cmd.Context(),
 			deploymentHostname,
@@ -553,6 +557,7 @@ The project is selected with --project and the config file with --file.`,
 			projectID,
 			cfg,
 		)
+		close(done)
 		if err != nil {
 			return err
 		}

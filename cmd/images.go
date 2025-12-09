@@ -299,20 +299,9 @@ var imagePushCmd = &cobra.Command{
 			Timeout: 5 * time.Minute,
 		}
 
+		fmt.Fprintln(out)
 		fmt.Fprint(out, "Uploading image")
-		done := make(chan struct{})
-		go func() {
-			ticker := time.NewTicker(1 * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-done:
-					return
-				case <-ticker.C:
-					fmt.Fprint(out, ".")
-				}
-			}
-		}()
+		done := internal.PrintLoadingDots(out)
 
 		resp, err := client.Do(req)
 		close(done)

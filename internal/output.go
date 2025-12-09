@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
 
 // PrintTable prints data in a tabular format using text/tabwriter.
@@ -20,4 +21,22 @@ func PrintTable(out io.Writer, headers []string, rows [][]string) error {
 	}
 
 	return w.Flush()
+}
+
+func PrintLoadingDots(out io.Writer) chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				fmt.Fprint(out, ".")
+			}
+		}
+	}()
+
+	return done
 }
