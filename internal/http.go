@@ -32,9 +32,9 @@ func ExtractServerMessage(body []byte) string {
 	return ""
 }
 
-// NewJSONRequestWithCookies constructs an *http.Request with a JSON body
+// NewRequestWCookies constructs an *http.Request with a JSON body
 // and attaches the provided cookies.
-func NewJSONRequestWithCookies(ctx context.Context, method, url string, body []byte, cookies []*http.Cookie) (*http.Request, error) {
+func NewRequestWCookies(ctx context.Context, method, url string, body []byte, cookies []*http.Cookie) (*http.Request, error) {
 	var reader io.Reader
 	if body != nil {
 		reader = bytes.NewReader(body)

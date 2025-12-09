@@ -70,7 +70,7 @@ func CreateService(
 	}
 	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgID, projectID)
 
-	reqHTTP, err := NewJSONRequestWithCookies(ctx, http.MethodPost, u.String(), bodyBytes, cookies)
+	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPost, u.String(), bodyBytes, cookies)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -117,7 +117,7 @@ func UpdateService(
 	}
 	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgID, projectID)
 
-	reqHTTP, err := NewJSONRequestWithCookies(ctx, http.MethodPut, u.String(), bodyBytes, cookies)
+	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPut, u.String(), bodyBytes, cookies)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -168,7 +168,7 @@ func DeleteService(
 	}
 	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgID, projectID)
 
-	reqHTTP, err := NewJSONRequestWithCookies(ctx, http.MethodDelete, u.String(), bodyBytes, cookies)
+	reqHTTP, err := NewRequestWCookies(ctx, http.MethodDelete, u.String(), bodyBytes, cookies)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

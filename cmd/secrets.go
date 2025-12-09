@@ -234,7 +234,7 @@ The project is selected with --project.`,
 		}
 		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets", orgID, projectID)
 
-		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
+		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
@@ -346,7 +346,7 @@ The project is selected with --project.`,
 		}
 		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets", orgID, projectID)
 
-		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
+		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
@@ -447,7 +447,7 @@ The project is selected with --project.`,
 		}
 		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets", orgID, projectID)
 
-		req, err := internal.NewJSONRequestWithCookies(cmd.Context(), http.MethodDelete, u.String(), bodyBytes, cookies)
+		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodDelete, u.String(), bodyBytes, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
