@@ -9,7 +9,7 @@ InteractiveAI's CLI to interact with its platform
 ### Options
 
 ```
-      --deployment-hostname string   Hostname for the deployment API (default "http://localhost:8000")
+      --deployment-hostname string   Hostname for the deployment API (default "https://deployment.dev.interactive.ai")
   -h, --help                         help for iai
       --hostname string              Hostname for the API (default "https://dev.interactive.ai")
 ```
