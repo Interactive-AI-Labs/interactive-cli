@@ -92,7 +92,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets", orgID, projectID)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets", orgID, projectID)
 
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
 		if err != nil {
@@ -226,7 +226,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretName)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretName)
 
 		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -337,7 +337,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretName)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretName)
 
 		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
 		if err != nil {
@@ -429,7 +429,7 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretToDelete)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgID, projectID, secretToDelete)
 
 		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodDelete, u.String(), nil, cookies)
 		if err != nil {

@@ -84,7 +84,7 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	return &cfg, nil
 }
 
-func (s ServiceConfig) ToCreateRequest(stackID string) CreateServiceBody {
+func (s ServiceConfig) ToCreateRequest(stackId string) CreateServiceBody {
 	req := CreateServiceBody{
 		ServicePort: s.ServicePort,
 		Image:       s.Image,
@@ -96,8 +96,8 @@ func (s ServiceConfig) ToCreateRequest(stackID string) CreateServiceBody {
 		Labels:      make(map[string]string),
 	}
 
-	if stackID != "" {
-		req.Labels["stack-id"] = stackID
+	if stackId != "" {
+		req.Labels["stack-id"] = stackId
 	}
 
 	return req

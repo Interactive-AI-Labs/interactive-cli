@@ -67,7 +67,7 @@ func CreateService(
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPost, u.String(), bodyBytes, cookies)
 	if err != nil {
@@ -115,7 +115,7 @@ func UpdateService(
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodPut, u.String(), bodyBytes, cookies)
 	if err != nil {
@@ -157,7 +157,7 @@ func DeleteService(
 	if err != nil {
 		return "", fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgID, projectID, serviceName)
 
 	reqHTTP, err := NewRequestWCookies(ctx, http.MethodDelete, u.String(), nil, cookies)
 	if err != nil {
@@ -206,17 +206,17 @@ func ListServices(
 	cookies []*http.Cookie,
 	orgID,
 	projectID string,
-	stackID string,
+	stackId string,
 ) ([]ServiceOutput, error) {
 	u, err := url.Parse(hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse deployment service URL: %w", err)
 	}
-	u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services", orgID, projectID)
+	u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services", orgID, projectID)
 
-	if stackID != "" {
+	if stackId != "" {
 		q := u.Query()
-		q.Set("stackId", stackID)
+		q.Set("stackId", stackId)
 		u.RawQuery = q.Encode()
 	}
 
