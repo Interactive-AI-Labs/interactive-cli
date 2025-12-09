@@ -6,8 +6,9 @@ repos:
         entry: make docs
         language: system
         pass_filenames: false
-        always_run: true
+        always_run: false
         stages: [pre-commit]
+        files: '\.go$'
 
       - id: check-go-mod-tidy
         name: Check go.mod is tidy
