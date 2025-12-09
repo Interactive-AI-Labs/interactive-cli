@@ -72,7 +72,7 @@ is used.`,
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment service URL: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, replicaName)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, replicaName)
 
 		q := u.Query()
 		if logsFollow {

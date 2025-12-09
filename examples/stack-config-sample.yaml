@@ -1,0 +1,63 @@
+# Sample stack configuration file for 'iai services sync'
+#
+# Usage: iai services sync --project my-project --file stack-config-sample.yaml
+#
+# This file defines a stack of services to be deployed together.
+# The sync command will ensure that the services in the project match this configuration.
+#
+# Note: The stack-id is used to group services together. Services with the same stack-id
+# are managed as a unit. When syncing, the command will:
+# - Create services that exist in the config but not in the project
+# - Update services that exist in both
+# - Delete services (with the same stack-id) that exist in the project but not in the config
+
+stack-id: my-stack-v1
+
+services:
+  api-service:
+    servicePort: 8080
+    image:
+      type: external
+      repository: kennethreitz
+      name: httpbin
+      tag: latest
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+    env:
+      - name: DATABASE_URL
+        value: "postgres://db:5432/mydb"
+      - name: LOG_LEVEL
+        value: "info"
+    secretRefs:
+      - secretName: my-secret
+    endpoint: true
+    replicas: 2
+
+  api-service-2:
+    servicePort: 8080
+    image:
+      type: external
+      repository: kennethreitz
+      name: httpbin
+      tag: latest
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+    env:
+      - name: DATABASE_URL
+        value: "postgres://db:5432/mydb"
+      - name: LOG_LEVEL
+        value: "info"
+    secretRefs:
+      - secretName: my-secret
+    endpoint: true
+    replicas: 2

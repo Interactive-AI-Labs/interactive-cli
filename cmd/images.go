@@ -19,7 +19,6 @@ var (
 	imageBuildTag     string
 	imageBuildFile    string
 	imageBuildContext string
-	imageName         string
 	imagePushTag      string
 	imageOrganization string
 )
@@ -72,7 +71,7 @@ var imageListCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment hostname: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/images", orgId)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/images", orgId)
 
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
 		if err != nil {
@@ -276,7 +275,7 @@ var imagePushCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment hostname: %w", err)
 		}
-		u.Path = fmt.Sprintf("/organizations/%s/images", orgId)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/images", orgId)
 
 		q := u.Query()
 		q.Set("imageName", imageName)
@@ -300,20 +299,9 @@ var imagePushCmd = &cobra.Command{
 			Timeout: 5 * time.Minute,
 		}
 
+		fmt.Fprintln(out)
 		fmt.Fprint(out, "Uploading image")
-		done := make(chan struct{})
-		go func() {
-			ticker := time.NewTicker(1 * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-done:
-					return
-				case <-ticker.C:
-					fmt.Fprint(out, ".")
-				}
-			}
-		}()
+		done := internal.PrintLoadingDots(out)
 
 		resp, err := client.Do(req)
 		close(done)
