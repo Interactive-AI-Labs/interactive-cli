@@ -19,7 +19,6 @@ var (
 	imageBuildTag     string
 	imageBuildFile    string
 	imageBuildContext string
-	imageName         string
 	imagePushTag      string
 	imageOrganization string
 )
