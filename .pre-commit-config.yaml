@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: make-docs
         name: Generate CLI documentation
-        entry: make docs
+        entry: bash -c 'make docs && git diff --exit-code docs/'
         language: system
         pass_filenames: false
         always_run: false
