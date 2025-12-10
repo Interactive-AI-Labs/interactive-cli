@@ -77,7 +77,7 @@ func (c *APIClient) newRequest(ctx context.Context, method, path string) (*http.
 }
 
 func (c *APIClient) validateApiKey(ctx context.Context) error {
-	req, err := c.newRequest(ctx, http.MethodGet, "/validate-api-key")
+	req, err := c.newRequest(ctx, http.MethodGet, "/api/v1/validate-api-key")
 	if err != nil {
 		return fmt.Errorf("failed to create validation request: %w", err)
 	}
@@ -97,43 +97,12 @@ func (c *APIClient) validateApiKey(ctx context.Context) error {
 	}
 
 	c.cachedOrgId = resp.Header.Get("x-org-id")
+	c.cachedOrgName = resp.Header.Get("x-org-name")
+	c.cachedProjectName = resp.Header.Get("x-project-name")
 	c.cachedProjectId = resp.Header.Get("x-project-id")
 
-	if c.cachedOrgId == "" {
-		return fmt.Errorf("API key validation failed: missing organization ID in response")
-	}
-	if c.cachedProjectId == "" {
-		return fmt.Errorf("API key validation failed: missing project ID in response")
-	}
-
-	orgReq, err := c.newRequest(ctx, http.MethodGet, fmt.Sprintf("/api/v1/session/organizations/%s", c.cachedOrgId))
-	if err == nil {
-		orgResp, err := c.do(orgReq)
-		if err == nil {
-			defer orgResp.Body.Close()
-			if orgResp.StatusCode >= 200 && orgResp.StatusCode < 300 {
-				body, _ := io.ReadAll(io.LimitReader(orgResp.Body, 4096))
-				var org Organization
-				if json.Unmarshal(body, &org) == nil {
-					c.cachedOrgName = org.Name
-				}
-			}
-		}
-	}
-
-	projReq, err := c.newRequest(ctx, http.MethodGet, fmt.Sprintf("/api/v1/session/organizations/%s/projects/%s", c.cachedOrgId, c.cachedProjectId))
-	if err == nil {
-		projResp, err := c.do(projReq)
-		if err == nil {
-			defer projResp.Body.Close()
-			if projResp.StatusCode >= 200 && projResp.StatusCode < 300 {
-				body, _ := io.ReadAll(io.LimitReader(projResp.Body, 4096))
-				var proj Project
-				if json.Unmarshal(body, &proj) == nil {
-					c.cachedProjectName = proj.Name
-				}
-			}
-		}
+	if c.cachedOrgId == "" || c.cachedOrgName == "" || c.cachedProjectId == "" || c.cachedProjectName == "" {
+		return fmt.Errorf("API key validation failed")
 	}
 
 	return nil
@@ -178,7 +147,7 @@ func (c *APIClient) ListOrganizations(ctx context.Context) ([]Organization, erro
 	return payload.Organizations, nil
 }
 
-func (c *APIClient) GetOrganizationByName(ctx context.Context, name string) (string, error) {
+func (c *APIClient) GetOrgIdByName(ctx context.Context, name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return "", fmt.Errorf("organization name cannot be empty")
@@ -353,7 +322,7 @@ func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName strin
 		return c.cachedOrgId, c.cachedProjectId, nil
 	}
 
-	orgId, err := c.GetOrganizationByName(ctx, orgName)
+	orgId, err := c.GetOrgIdByName(ctx, orgName)
 	if err != nil {
 		return "", "", err
 	}

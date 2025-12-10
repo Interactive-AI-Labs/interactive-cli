@@ -53,7 +53,7 @@ var projectsListCmd = &cobra.Command{
 			return err
 		}
 
-		orgId, err := apiClient.GetOrganizationByName(cmd.Context(), orgName)
+		orgId, err := apiClient.GetOrgIdByName(cmd.Context(), orgName)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}

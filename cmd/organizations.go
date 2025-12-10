@@ -89,7 +89,7 @@ var organizationsSelectCmd = &cobra.Command{
 			return err
 		}
 
-		if _, err := apiClient.GetOrganizationByName(cmd.Context(), orgName); err != nil {
+		if _, err := apiClient.GetOrgIdByName(cmd.Context(), orgName); err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 
