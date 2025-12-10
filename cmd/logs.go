@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
@@ -39,8 +37,15 @@ is used.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -54,61 +59,18 @@ is used.`,
 			logsOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			logsOrganization,
-			logsProject,
-			defaultHTTPTimeout,
-		)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), logsOrganization, logsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", logsProject, err)
 		}
 
-		// Build request URL to deployment-operator.
-		u, err := url.Parse(deploymentHostname)
+		logReader, err := deployClient.GetLogs(cmd.Context(), orgId, projectId, replicaName, logsFollow)
 		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
+			return err
 		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, replicaName)
+		defer logReader.Close()
 
-		q := u.Query()
-		if logsFollow {
-			q.Set("follow", "true")
-		}
-		u.RawQuery = q.Encode()
-
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		for _, cookie := range cookies {
-			req.AddCookie(cookie)
-		}
-
-		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("logs request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-			msg := internal.ExtractServerMessage(respBody)
-			if msg != "" {
-				return fmt.Errorf("%s", msg)
-			}
-			return fmt.Errorf("logs request failed with status %s", resp.Status)
-		}
-
-		_, err = io.Copy(out, resp.Body)
+		_, err = io.Copy(out, logReader)
 		return err
 	},
 }

@@ -82,8 +82,15 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -97,15 +104,7 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			serviceOrganization,
-			serviceProject,
-			defaultHTTPTimeout,
-		)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
@@ -160,16 +159,7 @@ All configuration is provided via flags. The project is selected with --project.
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service creation request...")
 
-		serverMessage, err := internal.CreateService(
-			cmd.Context(),
-			deploymentHostname,
-			defaultHTTPTimeout,
-			cookies,
-			orgId,
-			projectId,
-			serviceName,
-			reqBody,
-		)
+		serverMessage, err := deployClient.CreateService(cmd.Context(), orgId, projectId, serviceName, reqBody)
 		if err != nil {
 			return err
 		}
@@ -223,13 +213,19 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
-		// Ensure the user is logged in and load session cookies.
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -243,7 +239,7 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
@@ -298,16 +294,7 @@ All configuration is provided via flags. The project is selected with --project.
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service update request...")
 
-		serverMessage, err := internal.UpdateService(
-			cmd.Context(),
-			deploymentHostname,
-			defaultHTTPTimeout,
-			cookies,
-			orgId,
-			projectId,
-			serviceName,
-			reqBody,
-		)
+		serverMessage, err := deployClient.UpdateService(cmd.Context(), orgId, projectId, serviceName, reqBody)
 		if err != nil {
 			return err
 		}
@@ -355,8 +342,15 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -370,20 +364,12 @@ The project is selected with --project.`,
 			serviceOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
 
-		services, err := internal.ListServices(
-			cmd.Context(),
-			deploymentHostname,
-			defaultHTTPTimeout,
-			cookies,
-			orgId,
-			projectId,
-			"",
-		)
+		services, err := deployClient.ListServices(cmd.Context(), orgId, projectId, "")
 		if err != nil {
 			return err
 		}
@@ -434,8 +420,15 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -449,7 +442,7 @@ The project is selected with --project.`,
 			serviceOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(cmd.Context(), hostname, cfgDirName, sessionFileName, serviceOrganization, serviceProject, defaultHTTPTimeout)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
 		}
@@ -457,15 +450,7 @@ The project is selected with --project.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service deletion request...")
 
-		serverMessage, err := internal.DeleteService(
-			cmd.Context(),
-			deploymentHostname,
-			defaultHTTPTimeout,
-			cookies,
-			orgId,
-			projectId,
-			serviceName,
-		)
+		serverMessage, err := deployClient.DeleteService(cmd.Context(), orgId, projectId, serviceName)
 		if err != nil {
 			return err
 		}
@@ -515,8 +500,15 @@ The project is selected with --project and the config file with --file.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -531,32 +523,11 @@ The project is selected with --project and the config file with --file.`,
 			orgName = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			orgName,
-			syncProject,
-			defaultHTTPTimeout,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", syncProject, err)
-		}
-
 		fmt.Fprintln(out)
 		fmt.Fprint(out, "Syncing services")
 		done := internal.PrintLoadingDots(out)
 
-		result, err := internal.SyncServices(
-			cmd.Context(),
-			deploymentHostname,
-			defaultHTTPTimeout,
-			cookies,
-			orgId,
-			projectId,
-			cfg,
-		)
+		result, err := internal.SyncServices(cmd.Context(), apiClient, deployClient, orgName, syncProject, cfg)
 		fmt.Fprintln(out)
 		close(done)
 		if err != nil {

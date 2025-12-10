@@ -53,75 +53,39 @@ var imageListCmd = &cobra.Command{
 			orgName = selectedOrg
 		}
 
-		// Ensure the user is logged in and load session cookies.
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
-		orgId, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		orgId, err := apiClient.GetOrganizationByName(cmd.Context(), orgName)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 
-		u, err := url.Parse(deploymentHostname)
+		images, err := deployClient.ListImages(cmd.Context(), orgId)
 		if err != nil {
-			return fmt.Errorf("failed to parse deployment hostname: %w", err)
-		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/images", orgId)
-
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
+			return err
 		}
 
-		for _, c := range cookies {
-			if c != nil {
-				req.AddCookie(c)
-			}
-		}
-
-		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if msg := internal.ExtractServerMessage(body); msg != "" {
-				return fmt.Errorf("%s", msg)
-			}
-			return fmt.Errorf("failed to list images: server returned %s", resp.Status)
-		}
-
-		var result struct {
-			Images []struct {
-				Name string   `json:"name"`
-				Tags []string `json:"tags"`
-			} `json:"images"`
-		}
-
-		if err := json.Unmarshal(body, &result); err != nil {
-			return fmt.Errorf("failed to decode response: %w", err)
-		}
-
-		if len(result.Images) == 0 {
+		if len(images) == 0 {
 			fmt.Fprintln(out, "No images found.")
 			return nil
 		}
 
 		headers := []string{"NAME", "TAGS"}
-		rows := make([][]string, len(result.Images))
-		for i, img := range result.Images {
+		rows := make([][]string, len(images))
+		for i, img := range images {
 			rows[i] = []string{
 				img.Name,
 				strings.Join(img.Tags, ", "),
@@ -219,16 +183,17 @@ var imagePushCmd = &cobra.Command{
 			orgName = selectedOrg
 		}
 
-		// Ensure the user is logged in and load session cookies.
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
-		orgId, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		orgId, err := apiClient.GetOrganizationByName(cmd.Context(), orgName)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
@@ -287,15 +252,13 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to create request: %w", err)
 		}
 
-		for _, c := range cookies {
-			if c != nil {
-				req.AddCookie(c)
-			}
+		if err := internal.ApplyAuth(req, apiKey, cookies); err != nil {
+			return err
 		}
 
 		req.Header.Set("Content-Type", "application/x-tar")
 
-		client := &http.Client{
+		httpClient := &http.Client{
 			Timeout: 5 * time.Minute,
 		}
 
@@ -303,7 +266,7 @@ var imagePushCmd = &cobra.Command{
 		fmt.Fprint(out, "Uploading image")
 		done := internal.PrintLoadingDots(out)
 
-		resp, err := client.Do(req)
+		resp, err := httpClient.Do(req)
 		close(done)
 		fmt.Fprintln(out)
 		if err != nil {

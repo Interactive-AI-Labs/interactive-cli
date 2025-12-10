@@ -17,7 +17,8 @@ const (
 var (
 	hostname           string = "https://dev.interactive.ai"
 	deploymentHostname string = "https://deployment.dev.interactive.ai"
-	rootCmd                   = &cobra.Command{
+	apiKey             string
+	rootCmd            = &cobra.Command{
 		Use:          "iai",
 		Short:        "InteractiveAI's CLI",
 		Long:         `InteractiveAI's CLI to interact with its platform`,
@@ -51,6 +52,12 @@ func init() {
 		deploymentHostname = envDeploymentHostname
 	}
 
+	envApiKey := os.Getenv("INTERACTIVE_API_KEY")
+	if envApiKey != "" {
+		apiKey = envApiKey
+	}
+
 	rootCmd.PersistentFlags().StringVar(&hostname, "hostname", hostname, "Hostname for the API")
 	rootCmd.PersistentFlags().StringVar(&deploymentHostname, "deployment-hostname", deploymentHostname, "Hostname for the deployment API")
+	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", apiKey, "API key for authentication")
 }
