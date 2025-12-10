@@ -1,10 +1,9 @@
 package internal
 
 import (
-	"bytes"
-	"context"
+	"encoding/base64"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -16,11 +15,20 @@ func ExtractServerMessage(body []byte) string {
 		return ""
 	}
 
-	var payload struct {
+	var deploymentPayload struct {
 		Message string `json:"message"`
 	}
-	if err := json.Unmarshal(body, &payload); err == nil {
-		if msg := strings.TrimSpace(payload.Message); msg != "" {
+	if err := json.Unmarshal(body, &deploymentPayload); err == nil {
+		if msg := strings.TrimSpace(deploymentPayload.Message); msg != "" {
+			return msg
+		}
+	}
+
+	var apiPayload struct {
+		Detail string `json:"detail"`
+	}
+	if err := json.Unmarshal(body, &apiPayload); err == nil {
+		if msg := strings.TrimSpace(apiPayload.Detail); msg != "" {
 			return msg
 		}
 	}
@@ -32,29 +40,24 @@ func ExtractServerMessage(body []byte) string {
 	return ""
 }
 
-// NewRequestWCookies constructs an *http.Request with a JSON body
-// and attaches the provided cookies.
-func NewRequestWCookies(ctx context.Context, method, url string, body []byte, cookies []*http.Cookie) (*http.Request, error) {
-	var reader io.Reader
-	if body != nil {
-		reader = bytes.NewReader(body)
+// ApplyAuth adds authentication to an HTTP request.
+// If apiKey is provided, it sets Basic Auth with the API key, if not, it adds cookies if available.
+// Returns an error if neither authentication method is available.
+func ApplyAuth(req *http.Request, apiKey string, cookies []*http.Cookie) error {
+	if apiKey != "" {
+		encoded := base64.StdEncoding.EncodeToString([]byte(apiKey))
+		req.Header.Set("Authorization", "Basic "+encoded)
+		return nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, reader)
-	if err != nil {
-		return nil, err
-	}
-
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	for _, c := range cookies {
-		if c == nil {
-			continue
+	if len(cookies) > 0 {
+		for _, c := range cookies {
+			if c != nil {
+				req.AddCookie(c)
+			}
 		}
-		req.AddCookie(c)
+		return nil
 	}
 
-	return req, nil
+	return fmt.Errorf("no authentication method available: provide an API key or log in")
 }

@@ -1,31 +1,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"strings"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
 )
-
-type SecretInfo struct {
-	Name      string   `json:"name"`
-	Type      string   `json:"type"`
-	CreatedAt string   `json:"createdAt"`
-	Keys      []string `json:"keys"`
-}
-
-type ListSecretsResponse struct {
-	Secrets []SecretInfo `json:"secrets"`
-}
-
-type CreateSecretRequest struct {
-	Data map[string]string `json:"data"`
-}
 
 var (
 	secretsProject      string
@@ -60,8 +41,15 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -75,67 +63,24 @@ The project is selected with --project.`,
 			secretsOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			secretsOrganization,
-			secretsProject,
-			defaultHTTPTimeout,
-		)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
 		}
 
-		u, err := url.Parse(deploymentHostname)
+		secrets, err := deployClient.ListSecrets(cmd.Context(), orgId, projectId)
 		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
-		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets", orgId, projectId)
-
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
+			return err
 		}
 
-		for _, c := range cookies {
-			if c != nil {
-				req.AddCookie(c)
-			}
-		}
-
-		client := &http.Client{Timeout: defaultHTTPTimeout}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("secrets request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			msg := internal.ExtractServerMessage(respBody)
-			if msg != "" {
-				return fmt.Errorf("%s", msg)
-			}
-			return fmt.Errorf("failed to list secrets: server returned %s", resp.Status)
-		}
-
-		var result ListSecretsResponse
-		if err := json.Unmarshal(respBody, &result); err != nil {
-			return fmt.Errorf("failed to decode secrets response: %w", err)
-		}
-
-		if len(result.Secrets) == 0 {
+		if len(secrets) == 0 {
 			fmt.Fprintln(out, "No secrets found.")
 			return nil
 		}
 
 		headers := []string{"NAME", "TYPE", "CREATED", "KEYS"}
-		rows := make([][]string, len(result.Secrets))
-		for i, s := range result.Secrets {
+		rows := make([][]string, len(secrets))
+		for i, s := range secrets {
 			rows[i] = []string{
 				s.Name,
 				s.Type,
@@ -180,8 +125,15 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -195,15 +147,7 @@ The project is selected with --project.`,
 			secretsOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			secretsOrganization,
-			secretsProject,
-			defaultHTTPTimeout,
-		)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
 		}
@@ -213,46 +157,12 @@ The project is selected with --project.`,
 			return err
 		}
 
-		reqBody := CreateSecretRequest{
-			Data: data,
-		}
-
-		bodyBytes, err := json.Marshal(reqBody)
-		if err != nil {
-			return fmt.Errorf("failed to encode request body: %w", err)
-		}
-
-		u, err := url.Parse(deploymentHostname)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
-		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
-
-		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPost, u.String(), bodyBytes, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		client := &http.Client{Timeout: defaultHTTPTimeout}
-
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting secret creation request...")
 
-		resp, err := client.Do(req)
+		serverMessage, err := deployClient.CreateSecret(cmd.Context(), orgId, projectId, secretName, data)
 		if err != nil {
-			return fmt.Errorf("secret creation request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
-		serverMessage := internal.ExtractServerMessage(respBody)
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if serverMessage != "" {
-				return fmt.Errorf("%s", serverMessage)
-			}
-			return fmt.Errorf("secret creation failed with status %s", resp.Status)
+			return err
 		}
 
 		if serverMessage != "" {
@@ -291,8 +201,15 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -306,15 +223,7 @@ The project is selected with --project.`,
 			secretsOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			secretsOrganization,
-			secretsProject,
-			defaultHTTPTimeout,
-		)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
 		}
@@ -324,46 +233,12 @@ The project is selected with --project.`,
 			return err
 		}
 
-		reqBody := CreateSecretRequest{
-			Data: data,
-		}
-
-		bodyBytes, err := json.Marshal(reqBody)
-		if err != nil {
-			return fmt.Errorf("failed to encode request body: %w", err)
-		}
-
-		u, err := url.Parse(deploymentHostname)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
-		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
-
-		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodPut, u.String(), bodyBytes, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		client := &http.Client{Timeout: defaultHTTPTimeout}
-
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting secret update request...")
 
-		resp, err := client.Do(req)
+		serverMessage, err := deployClient.UpdateSecret(cmd.Context(), orgId, projectId, secretName, data)
 		if err != nil {
-			return fmt.Errorf("secret update request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
-		serverMessage := internal.ExtractServerMessage(respBody)
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if serverMessage != "" {
-				return fmt.Errorf("%s", serverMessage)
-			}
-			return fmt.Errorf("secret update failed with status %s", resp.Status)
+			return err
 		}
 
 		if serverMessage != "" {
@@ -397,8 +272,15 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -412,50 +294,17 @@ The project is selected with --project.`,
 			secretsOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			secretsOrganization,
-			secretsProject,
-			defaultHTTPTimeout,
-		)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
 		}
 
-		u, err := url.Parse(deploymentHostname)
-		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
-		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretToDelete)
-
-		req, err := internal.NewRequestWCookies(cmd.Context(), http.MethodDelete, u.String(), nil, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		client := &http.Client{Timeout: defaultHTTPTimeout}
-
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting secret delete request...")
 
-		resp, err := client.Do(req)
+		serverMessage, err := deployClient.DeleteSecret(cmd.Context(), orgId, projectId, secretToDelete)
 		if err != nil {
-			return fmt.Errorf("secret delete request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
-		serverMessage := internal.ExtractServerMessage(respBody)
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if serverMessage != "" {
-				return fmt.Errorf("%s", serverMessage)
-			}
-			return fmt.Errorf("secret delete failed with status %s", resp.Status)
+			return err
 		}
 
 		if serverMessage != "" {

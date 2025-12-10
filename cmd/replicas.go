@@ -1,11 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"strings"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
@@ -43,16 +39,21 @@ The project is selected with --project.`,
 			return fmt.Errorf("service name is required")
 		}
 
-		// Ensure the user is logged in and load session cookies.
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
-		// Resolve organization name.
+		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
@@ -64,64 +65,19 @@ The project is selected with --project.`,
 			replicasOrganization = selectedOrg
 		}
 
-		orgId, projectId, err := internal.GetProjectId(
-			cmd.Context(),
-			hostname,
-			cfgDirName,
-			sessionFileName,
-			replicasOrganization,
-			replicasProject,
-			defaultHTTPTimeout,
-		)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), replicasOrganization, replicasProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", replicasProject, err)
 		}
 
-		u, err := url.Parse(deploymentHostname)
+		replicas, err := deployClient.ListReplicas(cmd.Context(), orgId, projectId, serviceName)
 		if err != nil {
-			return fmt.Errorf("failed to parse deployment service URL: %w", err)
-		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/replicas", orgId, projectId, serviceName)
-
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, u.String(), nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		for _, cookie := range cookies {
-			if cookie != nil {
-				req.AddCookie(cookie)
-			}
-		}
-
-		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("replicas request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			msg := internal.ExtractServerMessage(respBody)
-			if msg != "" {
-				return fmt.Errorf("%s", msg)
-			}
-			return fmt.Errorf("replicas request failed with status %s", resp.Status)
-		}
-
-		var result ListServiceReplicasResponse
-		if err := json.Unmarshal(respBody, &result); err != nil {
-			return fmt.Errorf("failed to decode replicas response: %w", err)
+			return err
 		}
 
 		headers := []string{"NAME", "STATUS", "CPU", "MEMORY", "STARTED"}
-		rows := make([][]string, len(result.Replicas))
-		for i, r := range result.Replicas {
+		rows := make([][]string, len(replicas))
+		for i, r := range replicas {
 			readinessLabel := "Not Ready"
 			if r.Ready {
 				readinessLabel = "Ready"

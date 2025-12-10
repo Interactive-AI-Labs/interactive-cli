@@ -1,25 +1,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
 )
-
-type Organization struct {
-	Id           string `json:"id"`
-	Name         string `json:"name"`
-	ProjectCount int    `json:"project_count"`
-	Role         string `json:"role"`
-}
-
-type OrganizationsResponse struct {
-	Organizations []Organization `json:"organizations"`
-}
 
 var organizationsCmd = &cobra.Command{
 	Use:     "organizations",
@@ -36,41 +23,23 @@ var organizationsListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
+		if apiKey != "" {
+			return fmt.Errorf("organizations list is not available when using API key authentication")
+		}
+
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
-		}
 
-		url := fmt.Sprintf("%s/api/v1/session/organizations", hostname)
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, url, nil)
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
+			return err
 		}
 
-		for _, cookie := range cookies {
-			req.AddCookie(cookie)
-		}
-
-		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
-		}
-
-		resp, err := client.Do(req)
+		orgs, err := apiClient.ListOrganizations(cmd.Context())
 		if err != nil {
-			return fmt.Errorf("request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return fmt.Errorf("failed to list organizations: server returned %s", resp.Status)
-		}
-
-		var result OrganizationsResponse
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			return fmt.Errorf("failed to decode response: %w", err)
+			return err
 		}
 
 		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
@@ -79,8 +48,8 @@ var organizationsListCmd = &cobra.Command{
 		}
 
 		headers := []string{"NAME", "PROJECTS", "ROLE"}
-		rows := make([][]string, len(result.Organizations))
-		for i, org := range result.Organizations {
+		rows := make([][]string, len(orgs))
+		for i, org := range orgs {
 			displayName := org.Name
 			if selectedOrg != "" && strings.EqualFold(org.Name, selectedOrg) {
 				displayName = displayName + " *"
@@ -106,7 +75,21 @@ var organizationsSelectCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 		orgName := args[0]
 
-		if _, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout); err != nil {
+		if apiKey != "" {
+			return fmt.Errorf("organizations select is not available when using API key authentication")
+		}
+
+		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		if _, err := apiClient.GetOrgIdByName(cmd.Context(), orgName); err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 

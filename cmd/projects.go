@@ -1,26 +1,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
 )
-
-type Project struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-	Role string `json:"role"`
-}
-
-type ProjectsResponse struct {
-	OrganizationId   string    `json:"organization_id"`
-	OrganizationName string    `json:"organization_name"`
-	UserRole         string    `json:"user_role"`
-	Projects         []Project `json:"projects"`
-}
 
 var projectsOrganization string
 
@@ -40,6 +25,10 @@ var projectsListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
+		if apiKey != "" {
+			return fmt.Errorf("projects list is not available when using API key authentication")
+		}
+
 		var orgName string
 		if projectsOrganization != "" {
 			orgName = projectsOrganization
@@ -58,49 +47,27 @@ var projectsListCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		if len(cookies) == 0 {
-			return fmt.Errorf("not logged in. Please run '%s login' first", rootCmd.Use)
+
+		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
 		}
 
-		orgId, err := internal.GetOrgId(cmd.Context(), hostname, cfgDirName, sessionFileName, orgName, defaultHTTPTimeout)
+		orgId, err := apiClient.GetOrgIdByName(cmd.Context(), orgName)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 
-		url := fmt.Sprintf("%s/api/v1/session/organizations/%s/projects", hostname, orgId)
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodGet, url, nil)
+		projects, err := apiClient.ListProjects(cmd.Context(), orgId)
 		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		for _, cookie := range cookies {
-			req.AddCookie(cookie)
-		}
-
-		client := &http.Client{
-			Timeout: defaultHTTPTimeout,
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("request failed: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return fmt.Errorf("failed to list projects: server returned %s", resp.Status)
-		}
-
-		var result ProjectsResponse
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			return fmt.Errorf("failed to decode response: %w", err)
+			return err
 		}
 
 		fmt.Fprintln(out)
 
 		headers := []string{"NAME", "ROLE"}
-		rows := make([][]string, len(result.Projects))
-		for i, proj := range result.Projects {
+		rows := make([][]string, len(projects))
+		for i, proj := range projects {
 			rows[i] = []string{proj.Name, proj.Role}
 		}
 
