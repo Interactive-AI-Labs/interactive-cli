@@ -41,9 +41,7 @@ func ExtractServerMessage(body []byte) string {
 }
 
 // ApplyAuth adds authentication to an HTTP request.
-// If apiKey is provided, it sets Basic Auth with the API key.
-// The API key should already be in the format "publicKey:secretKey".
-// Otherwise, it adds cookies if available.
+// If apiKey is provided, it sets Basic Auth with the API key, if not, it adds cookies if available.
 // Returns an error if neither authentication method is available.
 func ApplyAuth(req *http.Request, apiKey string, cookies []*http.Cookie) error {
 	if apiKey != "" {
