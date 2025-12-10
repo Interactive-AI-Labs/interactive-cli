@@ -1,10 +1,10 @@
 ## iai images list
 
-List images for an organization
+List images for a project
 
 ### Synopsis
 
-List container images in the deployment registry for a specific organization.
+List container images in the deployment registry for a specific project.
 
 ```
 iai images list [flags]
@@ -14,7 +14,8 @@ iai images list [flags]
 
 ```
   -h, --help                  help for list
-  -o, --organization string   Organization name to list images for
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name to list images for
 ```
 
 ### Options inherited from parent commands

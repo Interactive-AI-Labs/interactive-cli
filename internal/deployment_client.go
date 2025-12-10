@@ -392,9 +392,10 @@ func (c *DeploymentClient) ListSecrets(
 
 func (c *DeploymentClient) ListImages(
 	ctx context.Context,
-	orgId string,
+	orgId,
+	projectId string,
 ) ([]ImageInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/images", orgId)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/images", orgId, projectId)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

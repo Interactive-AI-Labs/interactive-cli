@@ -1,10 +1,10 @@
 ## iai images push
 
-Push an image for an organization
+Push an image for a project
 
 ### Synopsis
 
-Create a Docker image tarball and push it to the deployment images endpoint for a specific organization.
+Create a Docker image tarball and push it to the deployment images endpoint for a specific project.
 
 ```
 iai images push [image_name] [flags]
@@ -14,7 +14,8 @@ iai images push [image_name] [flags]
 
 ```
   -h, --help                  help for push
-  -o, --organization string   Organization name the image belongs to
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name the image belongs to
   -t, --tag string            Tag for the image in the fixed registry (e.g. 1.2.3)
 ```
 

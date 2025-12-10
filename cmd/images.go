@@ -21,6 +21,7 @@ var (
 	imageBuildContext string
 	imagePushTag      string
 	imageOrganization string
+	imageProject      string
 )
 
 var imageCmd = &cobra.Command{
@@ -33,24 +34,14 @@ var imageCmd = &cobra.Command{
 var imageListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "List images for an organization",
-	Long:    `List container images in the deployment registry for a specific organization.`,
+	Short:   "List images for a project",
+	Long:    `List container images in the deployment registry for a specific project.`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var orgName string
-		if imageOrganization != "" {
-			orgName = imageOrganization
-		} else {
-			selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
-			}
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			orgName = selectedOrg
+		if strings.TrimSpace(imageProject) == "" {
+			return fmt.Errorf("project is required; please provide --project")
 		}
 
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -68,12 +59,23 @@ var imageListCmd = &cobra.Command{
 			return err
 		}
 
-		orgId, err := apiClient.GetOrganizationByName(cmd.Context(), orgName)
+		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 		if err != nil {
-			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if strings.TrimSpace(imageOrganization) == "" {
+			if strings.TrimSpace(selectedOrg) == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
+			}
+			imageOrganization = selectedOrg
 		}
 
-		images, err := deployClient.ListImages(cmd.Context(), orgId)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), imageOrganization, imageProject)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", imageProject, err)
+		}
+
+		images, err := deployClient.ListImages(cmd.Context(), orgId, projectId)
 		if err != nil {
 			return err
 		}
@@ -155,8 +157,8 @@ Dockerfile, and build context.`,
 var imagePushCmd = &cobra.Command{
 	Use:     "push [image_name]",
 	Aliases: []string{"p"},
-	Short:   "Push an image for an organization",
-	Long:    `Create a Docker image tarball and push it to the deployment images endpoint for a specific organization.`,
+	Short:   "Push an image for a project",
+	Long:    `Create a Docker image tarball and push it to the deployment images endpoint for a specific project.`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -168,19 +170,8 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("tag is required; please provide --tag")
 		}
 
-		// Resolve organization name.
-		var orgName string
-		if imageOrganization != "" {
-			orgName = imageOrganization
-		} else {
-			selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
-			}
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			orgName = selectedOrg
+		if strings.TrimSpace(imageProject) == "" {
+			return fmt.Errorf("project is required; please provide --project")
 		}
 
 		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -193,9 +184,20 @@ var imagePushCmd = &cobra.Command{
 			return err
 		}
 
-		orgId, err := apiClient.GetOrganizationByName(cmd.Context(), orgName)
+		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
 		if err != nil {
-			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		if strings.TrimSpace(imageOrganization) == "" {
+			if strings.TrimSpace(selectedOrg) == "" {
+				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
+			}
+			imageOrganization = selectedOrg
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), imageOrganization, imageProject)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", imageProject, err)
 		}
 
 		// Ensure Docker CLI is available.
@@ -240,7 +242,7 @@ var imagePushCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment hostname: %w", err)
 		}
-		u.Path = fmt.Sprintf("/v1/organizations/%s/images", orgId)
+		u.Path = fmt.Sprintf("/v1/organizations/%s/projects/%s/images", orgId, projectId)
 
 		q := u.Query()
 		q.Set("imageName", imageName)
@@ -303,10 +305,12 @@ func init() {
 
 	_ = imageBuildCmd.MarkFlagRequired("tag")
 
-	imageListCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name to list images for")
+	imageListCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
+	imageListCmd.Flags().StringVarP(&imageProject, "project", "p", "", "Project name to list images for")
 
 	imagePushCmd.Flags().StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
-	imagePushCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name the image belongs to")
+	imagePushCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
+	imagePushCmd.Flags().StringVarP(&imageProject, "project", "p", "", "Project name the image belongs to")
 	_ = imagePushCmd.MarkFlagRequired("tag")
 
 	rootCmd.AddCommand(imageCmd)
