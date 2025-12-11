@@ -24,6 +24,7 @@ iai services delete [service_name] [flags]
 
 ```
       --api-key string               API key for authentication
+      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.dev.interactive.ai")
       --hostname string              Hostname for the API (default "https://dev.interactive.ai")
 ```

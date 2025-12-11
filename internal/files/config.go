@@ -110,3 +110,39 @@ func SelectOrg(cfgDirName, orgName string) error {
 	cfg.SelectedOrg = strings.TrimSpace(orgName)
 	return SaveConfig(cfgDirName, cfg)
 }
+
+// ResolveOrganization returns the organization name.
+// Returns error if all three are empty.
+func ResolveOrganization(cfgOrg, flagOrg, selectedOrg string) (string, error) {
+	cfgOrg = strings.TrimSpace(cfgOrg)
+	flagOrg = strings.TrimSpace(flagOrg)
+	selectedOrg = strings.TrimSpace(selectedOrg)
+
+	if cfgOrg != "" {
+		return cfgOrg, nil
+	}
+	if flagOrg != "" {
+		return flagOrg, nil
+	}
+	if selectedOrg != "" {
+		return selectedOrg, nil
+	}
+
+	return "", fmt.Errorf("organization is required: provide via --organization flag, --cfg-file, or run 'iai organizations select'")
+}
+
+// ResolveProject returns the project name using this precedence
+// Returns error if both are empty.
+func ResolveProject(cfgProject, flagProject string) (string, error) {
+	cfgProject = strings.TrimSpace(cfgProject)
+	flagProject = strings.TrimSpace(flagProject)
+
+	if cfgProject != "" {
+		return cfgProject, nil
+	}
+	if flagProject != "" {
+		return flagProject, nil
+	}
+
+	return "", fmt.Errorf("project is required: provide via --project flag or --cfg-file")
+}

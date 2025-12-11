@@ -1,9 +1,15 @@
-# Sample stack configuration file for 'iai services sync'
+# Sample stack configuration file for InteractiveAI CLI
 #
-# Usage: iai services sync --project my-project --file stack-config-sample.yaml
+# This file can be used with the global --cfg-file flag to provide organization and project
+# context for all commands, and with 'iai services sync' for full service deployment.
 #
-# This file defines a stack of services to be deployed together.
-# The sync command will ensure that the services in the project match this configuration.
+# Usage examples:
+#   iai services list --cfg-file stack-config.yaml
+#   iai secrets list --cfg-file stack-config.yaml
+#   iai services sync --cfg-file stack-config.yaml
+#
+# The organization and project fields are optional and provide defaults for all commands.
+# The stack-id and services map are only required for the 'services sync' command.
 #
 # Note: The stack-id is used to group services together. Services with the same stack-id
 # are managed as a unit. When syncing, the command will:
@@ -11,6 +17,8 @@
 # - Update services that exist in both
 # - Delete services (with the same stack-id) that exist in the project but not in the config
 
+organization: my-org
+project: my-project
 stack-id: my-stack-v1
 
 services:

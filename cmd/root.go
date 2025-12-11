@@ -18,6 +18,7 @@ var (
 	hostname           string = "https://dev.interactive.ai"
 	deploymentHostname string = "https://deployment.dev.interactive.ai"
 	apiKey             string
+	cfgFilePath        string
 	rootCmd            = &cobra.Command{
 		Use:          "iai",
 		Short:        "InteractiveAI's CLI",
@@ -60,4 +61,5 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&hostname, "hostname", hostname, "Hostname for the API")
 	rootCmd.PersistentFlags().StringVar(&deploymentHostname, "deployment-hostname", deploymentHostname, "Hostname for the deployment API")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", apiKey, "API key for authentication")
+	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "cfg-file", "", "Path to YAML config file with organization, project, and optional service definitions")
 }

@@ -34,11 +34,19 @@ The project is selected with --project.`,
 
 		serviceName := strings.TrimSpace(args[0])
 
-		if strings.TrimSpace(replicasProject) == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
 		if serviceName == "" {
 			return fmt.Errorf("service name is required")
+		}
+
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -60,16 +68,20 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if strings.TrimSpace(replicasOrganization) == "" {
-			if strings.TrimSpace(selectedOrg) == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			replicasOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, replicasOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), replicasOrganization, replicasProject)
+		projectName, err := files.ResolveProject(cfg.Project, replicasProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", replicasProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		replicas, err := deployClient.ListReplicas(cmd.Context(), orgId, projectId, serviceName)

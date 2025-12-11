@@ -53,10 +53,6 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceName = args[0]
 		}
 
-		// Validate required flags.
-		if serviceProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
 		if serviceName == "" {
 			return fmt.Errorf("service name is required; please provide it as a positional argument")
 		}
@@ -80,6 +76,17 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
+		}
+
 		// Ensure the user is logged in and load session cookies.
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
@@ -100,16 +107,20 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if serviceOrganization == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
-			}
-			serviceOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		// Build env vars from repeated --env flags (NAME=VALUE).
@@ -189,10 +200,6 @@ All configuration is provided via flags. The project is selected with --project.
 			serviceName = args[0]
 		}
 
-		// Validate required flags.
-		if serviceProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
 		if serviceName == "" {
 			return fmt.Errorf("service name is required; please provide [service_name] as the first positional argument")
 		}
@@ -216,6 +223,17 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
+		}
+
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
@@ -235,16 +253,20 @@ All configuration is provided via flags. The project is selected with --project.
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if serviceOrganization == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
-			}
-			serviceOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		// Build env vars from repeated --env flags (NAME=VALUE).
@@ -337,8 +359,15 @@ The project is selected with --project.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if serviceProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -360,16 +389,20 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if serviceOrganization == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
-			}
-			serviceOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		services, err := deployClient.ListServices(cmd.Context(), orgId, projectId, "")
@@ -412,11 +445,19 @@ The project is selected with --project.`,
 			serviceName = args[0]
 		}
 
-		if serviceProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
 		if serviceName == "" {
 			return fmt.Errorf("service name is required; please provide the service name as an argument")
+		}
+
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -438,16 +479,20 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if serviceOrganization == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select &lt;name&gt;'", rootCmd.Use)
-			}
-			serviceOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), serviceOrganization, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", serviceProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		fmt.Fprintln(out)
@@ -469,7 +514,6 @@ The project is selected with --project.`,
 var (
 	syncProject      string
 	syncOrganization string
-	syncConfigPath   string
 )
 
 var servicesSyncCmd = &cobra.Command{
@@ -482,18 +526,22 @@ The sync command will:
 - Update services that exist in both the config and the project
 - Delete services that exist in the project but not in the config (for the specified stack)
 
-The project is selected with --project and the config file with --file.`,
+The project is selected with --project and the config file with --cfg-file.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if syncConfigPath == "" {
-			return fmt.Errorf("config file is required; please provide --file")
+		if cfgFilePath == "" {
+			return fmt.Errorf("config file is required; please provide --cfg-file")
 		}
 
-		cfg, err := files.LoadStackConfig(syncConfigPath)
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load stack config: %w", err)
+		}
+
+		if len(cfg.Services) == 0 {
+			return fmt.Errorf("services are required in config file for sync command")
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -516,29 +564,14 @@ The project is selected with --project and the config file with --file.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		orgName := ""
-		if selectedOrg != "" {
-			orgName = selectedOrg
-		}
-		if syncOrganization != "" {
-			orgName = syncOrganization
-		}
-		if cfg.Organization != "" {
-			orgName = cfg.Organization
-		}
-		if orgName == "" {
-			return fmt.Errorf("organization is required")
+		orgName, err := files.ResolveOrganization(cfg.Organization, syncOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		projectName := ""
-		if syncOrganization != "" {
-			projectName = syncProject
-		}
-		if cfg.Organization != "" {
-			projectName = cfg.Project
-		}
-		if projectName == "" {
-			return fmt.Errorf("project is required")
+		projectName, err := files.ResolveProject(cfg.Project, syncProject)
+		if err != nil {
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -684,7 +717,6 @@ func init() {
 	// Flags for "services sync"
 	servicesSyncCmd.Flags().StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
 	servicesSyncCmd.Flags().StringVarP(&syncOrganization, "organization", "o", "", "Organization name that owns the project")
-	servicesSyncCmd.Flags().StringVarP(&syncConfigPath, "file", "f", "", "Path to the stack config YAML file")
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)

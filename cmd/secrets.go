@@ -37,8 +37,15 @@ The project is selected with --project.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if strings.TrimSpace(secretsProject) == "" {
-			return fmt.Errorf("project is required; please provide --project")
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -60,16 +67,20 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if strings.TrimSpace(secretsOrganization) == "" {
-			if strings.TrimSpace(selectedOrg) == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			secretsOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
+		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		secrets, err := deployClient.ListSecrets(cmd.Context(), orgId, projectId)
@@ -121,14 +132,22 @@ When both are provided, --data values take precedence.`,
 			secretName = args[0]
 		}
 
-		if strings.TrimSpace(secretsProject) == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
 		if strings.TrimSpace(secretName) == "" {
 			return fmt.Errorf("secret name is required; please provide --secret-name or positional argument")
 		}
 		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
+		}
+
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -150,16 +169,20 @@ When both are provided, --data values take precedence.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if strings.TrimSpace(secretsOrganization) == "" {
-			if strings.TrimSpace(selectedOrg) == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			secretsOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
+		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
@@ -203,14 +226,22 @@ When both are provided, --data values take precedence.`,
 			secretName = args[0]
 		}
 
-		if strings.TrimSpace(secretsProject) == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
 		if strings.TrimSpace(secretName) == "" {
 			return fmt.Errorf("secret name is required; please provide --secret-name or positional argument")
 		}
 		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
+		}
+
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -232,16 +263,20 @@ When both are provided, --data values take precedence.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if strings.TrimSpace(secretsOrganization) == "" {
-			if strings.TrimSpace(selectedOrg) == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			secretsOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
+		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
@@ -280,8 +315,16 @@ The project is selected with --project.`,
 		if secretToDelete == "" {
 			return fmt.Errorf("secret name is required")
 		}
-		if strings.TrimSpace(secretsProject) == "" {
-			return fmt.Errorf("project is required; please provide --project")
+
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -303,16 +346,20 @@ The project is selected with --project.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if strings.TrimSpace(secretsOrganization) == "" {
-			if strings.TrimSpace(selectedOrg) == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			secretsOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), secretsOrganization, secretsProject)
+		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		fmt.Fprintln(out)
