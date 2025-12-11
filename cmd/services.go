@@ -484,9 +484,6 @@ The project is selected with --project and the config file with --file.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if syncProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
 		if syncConfigPath == "" {
 			return fmt.Errorf("config file is required; please provide --file")
 		}
@@ -515,19 +512,37 @@ The project is selected with --project and the config file with --file.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		orgName := syncOrganization
-		if orgName == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
+
+		orgName := ""
+		if selectedOrg != "" {
 			orgName = selectedOrg
+		}
+		if syncOrganization != "" {
+			orgName = syncOrganization
+		}
+		if cfg.Organization != "" {
+			orgName = cfg.Organization
+		}
+		if orgName == "" {
+			return fmt.Errorf("organization is required")
+		}
+
+		projectName := ""
+		if syncOrganization != "" {
+			projectName = syncProject
+		}
+		if cfg.Organization != "" {
+			projectName = cfg.Project
+		}
+		if projectName == "" {
+			return fmt.Errorf("project is required")
 		}
 
 		fmt.Fprintln(out)
 		fmt.Fprint(out, "Syncing services")
 		done := internal.PrintLoadingDots(out)
 
-		result, err := internal.SyncServices(cmd.Context(), apiClient, deployClient, orgName, syncProject, cfg)
+		result, err := internal.SyncServices(cmd.Context(), apiClient, deployClient, orgName, projectName, cfg)
 		fmt.Fprintln(out)
 		close(done)
 		if err != nil {

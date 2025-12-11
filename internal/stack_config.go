@@ -8,8 +8,10 @@ import (
 )
 
 type StackConfig struct {
-	StackId  string                   `yaml:"stack-id"`
-	Services map[string]ServiceConfig `yaml:"services"`
+	Organization string                   `yaml:"organization"`
+	Project      string                   `yaml:"project"`
+	StackId      string                   `yaml:"stack-id"`
+	Services     map[string]ServiceConfig `yaml:"services"`
 }
 
 type ServiceConfig struct {
