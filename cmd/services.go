@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -78,22 +81,22 @@ All configuration is provided via flags. The project is selected with --project.
 		}
 
 		// Ensure the user is logged in and load session cookies.
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -110,42 +113,42 @@ All configuration is provided via flags. The project is selected with --project.
 		}
 
 		// Build env vars from repeated --env flags (NAME=VALUE).
-		var env []internal.EnvVar
+		var env []clients.EnvVar
 		for _, e := range serviceEnvVars {
 			parts := strings.SplitN(e, "=", 2)
 			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
 				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
 			}
-			env = append(env, internal.EnvVar{
+			env = append(env, clients.EnvVar{
 				Name:  strings.TrimSpace(parts[0]),
 				Value: parts[1],
 			})
 		}
 
 		// Build secret references from repeated --secret flags (secret names).
-		var secretRefs []internal.SecretRef
+		var secretRefs []clients.SecretRef
 		for _, name := range serviceSecretRefs {
 			trimmed := strings.TrimSpace(name)
 			if trimmed == "" {
 				return fmt.Errorf("invalid --secret value %q; name must not be empty", name)
 			}
-			secretRefs = append(secretRefs, internal.SecretRef{SecretName: trimmed})
+			secretRefs = append(secretRefs, clients.SecretRef{SecretName: trimmed})
 		}
 
-		reqBody := internal.CreateServiceBody{
+		reqBody := clients.CreateServiceBody{
 			ServicePort: servicePort,
-			Image: internal.ImageSpec{
+			Image: clients.ImageSpec{
 				Type:       serviceImageType,
 				Repository: serviceImageRepository,
 				Name:       serviceImageName,
 				Tag:        serviceImageTag,
 			},
-			Resources: internal.Resources{
-				Requests: internal.ResourceRequirements{
+			Resources: clients.Resources{
+				Requests: clients.ResourceRequirements{
 					Memory: serviceReqMemory,
 					CPU:    serviceReqCPU,
 				},
-				Limits: internal.ResourceRequirements{
+				Limits: clients.ResourceRequirements{
 					Memory: serviceLimitMemory,
 					CPU:    serviceLimitCPU,
 				},
@@ -213,22 +216,22 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -245,42 +248,42 @@ All configuration is provided via flags. The project is selected with --project.
 		}
 
 		// Build env vars from repeated --env flags (NAME=VALUE).
-		var env []internal.EnvVar
+		var env []clients.EnvVar
 		for _, e := range serviceEnvVars {
 			parts := strings.SplitN(e, "=", 2)
 			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
 				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
 			}
-			env = append(env, internal.EnvVar{
+			env = append(env, clients.EnvVar{
 				Name:  strings.TrimSpace(parts[0]),
 				Value: parts[1],
 			})
 		}
 
 		// Build secret references from repeated --secret flags (secret names).
-		var secretRefs []internal.SecretRef
+		var secretRefs []clients.SecretRef
 		for _, name := range serviceSecretRefs {
 			trimmed := strings.TrimSpace(name)
 			if trimmed == "" {
 				return fmt.Errorf("invalid --secret value %q; name must not be empty", name)
 			}
-			secretRefs = append(secretRefs, internal.SecretRef{SecretName: trimmed})
+			secretRefs = append(secretRefs, clients.SecretRef{SecretName: trimmed})
 		}
 
-		reqBody := internal.CreateServiceBody{
+		reqBody := clients.CreateServiceBody{
 			ServicePort: servicePort,
-			Image: internal.ImageSpec{
+			Image: clients.ImageSpec{
 				Type:       serviceImageType,
 				Repository: serviceImageRepository,
 				Name:       serviceImageName,
 				Tag:        serviceImageTag,
 			},
-			Resources: internal.Resources{
-				Requests: internal.ResourceRequirements{
+			Resources: clients.Resources{
+				Requests: clients.ResourceRequirements{
 					Memory: serviceReqMemory,
 					CPU:    serviceReqCPU,
 				},
-				Limits: internal.ResourceRequirements{
+				Limits: clients.ResourceRequirements{
 					Memory: serviceLimitMemory,
 					CPU:    serviceLimitCPU,
 				},
@@ -338,22 +341,22 @@ The project is selected with --project.`,
 			return fmt.Errorf("project is required; please provide --project")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -386,7 +389,7 @@ The project is selected with --project.`,
 			}
 		}
 
-		if err := internal.PrintTable(out, headers, rows); err != nil {
+		if err := output.PrintTable(out, headers, rows); err != nil {
 			return fmt.Errorf("failed to print table: %w", err)
 		}
 
@@ -416,22 +419,22 @@ The project is selected with --project.`,
 			return fmt.Errorf("service name is required; please provide the service name as an argument")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -488,27 +491,27 @@ The project is selected with --project and the config file with --file.`,
 			return fmt.Errorf("config file is required; please provide --file")
 		}
 
-		cfg, err := internal.LoadStackConfig(syncConfigPath)
+		cfg, err := files.LoadStackConfig(syncConfigPath)
 		if err != nil {
 			return fmt.Errorf("failed to load stack config: %w", err)
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -540,9 +543,9 @@ The project is selected with --project and the config file with --file.`,
 
 		fmt.Fprintln(out)
 		fmt.Fprint(out, "Syncing services")
-		done := internal.PrintLoadingDots(out)
+		done := output.PrintLoadingDots(out)
 
-		result, err := internal.SyncServices(cmd.Context(), apiClient, deployClient, orgName, projectName, cfg)
+		result, err := SyncServices(cmd.Context(), apiClient, deployClient, orgName, projectName, cfg)
 		fmt.Fprintln(out)
 		close(done)
 		if err != nil {
@@ -564,6 +567,72 @@ The project is selected with --project and the config file with --file.`,
 
 		return nil
 	},
+}
+
+type SyncResult struct {
+	Created []string
+	Updated []string
+	Deleted []string
+}
+
+func SyncServices(
+	ctx context.Context,
+	apiClient *clients.APIClient,
+	deployClient *clients.DeploymentClient,
+	orgName,
+	projectName string,
+	cfg *files.StackConfig,
+) (*SyncResult, error) {
+	orgId, projectId, err := apiClient.GetProjectId(ctx, orgName, projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := deployClient.ListServices(ctx, orgId, projectId, cfg.StackId)
+	if err != nil {
+		return nil, err
+	}
+
+	existingByName := make(map[string]clients.ServiceOutput)
+	for _, svc := range existing {
+		existingByName[svc.Name] = svc
+	}
+
+	result := &SyncResult{
+		Created: []string{},
+		Updated: []string{},
+		Deleted: []string{},
+	}
+
+	for name, svcCfg := range cfg.Services {
+		req := svcCfg.ToCreateRequest(cfg.StackId)
+
+		if _, exists := existingByName[name]; !exists {
+			_, err := deployClient.CreateService(ctx, orgId, projectId, name, req)
+			if err != nil {
+				return nil, err
+			}
+			result.Created = append(result.Created, name)
+		} else {
+			_, err := deployClient.UpdateService(ctx, orgId, projectId, name, req)
+			if err != nil {
+				return nil, err
+			}
+			result.Updated = append(result.Updated, name)
+		}
+	}
+
+	for name := range existingByName {
+		if _, desired := cfg.Services[name]; !desired {
+			_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
+			if err != nil {
+				return nil, err
+			}
+			result.Deleted = append(result.Deleted, name)
+		}
+	}
+
+	return result, nil
 }
 
 func init() {

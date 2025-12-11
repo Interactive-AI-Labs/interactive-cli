@@ -69,6 +69,53 @@ func (c *DeploymentClient) newRequest(ctx context.Context, method, path string) 
 	return http.NewRequestWithContext(ctx, method, u.String(), nil)
 }
 
+type CreateServiceBody struct {
+	ServicePort int         `json:"servicePort"`
+	Image       ImageSpec   `json:"image"`
+	Resources   Resources   `json:"resources"`
+	Env         []EnvVar    `json:"env,omitempty"`
+	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
+	Endpoint    bool        `json:"endpoint,omitempty"`
+	Hostname    string      `json:"hostname,omitempty"`
+	Replicas    int         `json:"replicas"`
+	StackId     string      `json:"stackId,omitempty"`
+}
+
+type ResourceRequirements struct {
+	Memory string `json:"memory" yaml:"memory"`
+	CPU    string `json:"cpu" yaml:"cpu"`
+}
+
+type Resources struct {
+	Requests ResourceRequirements `json:"requests" yaml:"requests"`
+	Limits   ResourceRequirements `json:"limits" yaml:"limits"`
+}
+
+type ImageSpec struct {
+	Type       string `json:"type" yaml:"type"`
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Name       string `json:"name" yaml:"name"`
+	Tag        string `json:"tag" yaml:"tag"`
+}
+
+type EnvVar struct {
+	Name  string `json:"name" yaml:"name"`
+	Value string `json:"value" yaml:"value"`
+}
+
+type SecretRef struct {
+	SecretName string `json:"secretName" yaml:"secretName"`
+}
+
+type ServiceOutput struct {
+	Name      string `json:"name"`
+	ProjectId string `json:"projectId"`
+	Revision  int    `json:"revision"`
+	Status    string `json:"status"`
+	Updated   string `json:"updated,omitempty"`
+	Endpoint  string `json:"endpoint,omitempty"`
+}
+
 func (c *DeploymentClient) CreateService(
 	ctx context.Context,
 	orgId,

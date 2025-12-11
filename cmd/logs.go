@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/spf13/cobra"
 )
 
@@ -33,22 +34,22 @@ is used.`,
 		replicaName := args[0]
 
 		// Load session cookies.
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}

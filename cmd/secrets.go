@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +16,7 @@ var (
 	secretsOrganization string
 	secretName          string
 	secretDataKVs       []string
+	secretEnvFile       string
 )
 
 var secretsCmd = &cobra.Command{
@@ -37,22 +41,22 @@ The project is selected with --project.`,
 			return fmt.Errorf("project is required; please provide --project")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -89,7 +93,7 @@ The project is selected with --project.`,
 			}
 		}
 
-		if err := internal.PrintTable(out, headers, rows); err != nil {
+		if err := output.PrintTable(out, headers, rows); err != nil {
 			return fmt.Errorf("failed to print table: %w", err)
 		}
 
@@ -102,7 +106,13 @@ var secretsCreateCmd = &cobra.Command{
 	Short: "Create a secret in a project",
 	Long: `Create a secret in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project.
+
+Secret data can be provided via:
+  --data KEY=VALUE         (can be repeated)
+  --from-env-file FILE     (KEY=VALUE pairs, one per line)
+
+When both are provided, --data values take precedence.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -117,26 +127,26 @@ The project is selected with --project.`,
 		if strings.TrimSpace(secretName) == "" {
 			return fmt.Errorf("secret name is required; please provide --secret-name or positional argument")
 		}
-		if len(secretDataKVs) == 0 {
-			return fmt.Errorf("at least one --data KEY=VALUE pair is required")
+		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
+			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -152,7 +162,7 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
 		}
 
-		data, err := buildSecretData(secretDataKVs)
+		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
 		if err != nil {
 			return err
 		}
@@ -178,7 +188,13 @@ var secretsUpdateCmd = &cobra.Command{
 	Short: "Update a secret in a project",
 	Long: `Update a secret in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project.
+
+Secret data can be provided via:
+  --data KEY=VALUE         (can be repeated)
+  --from-env-file FILE     (KEY=VALUE pairs, one per line)
+
+When both are provided, --data values take precedence.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -193,26 +209,26 @@ The project is selected with --project.`,
 		if strings.TrimSpace(secretName) == "" {
 			return fmt.Errorf("secret name is required; please provide --secret-name or positional argument")
 		}
-		if len(secretDataKVs) == 0 {
-			return fmt.Errorf("at least one --data KEY=VALUE pair is required")
+		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
+			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -228,7 +244,7 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to resolve project %q: %w", secretsProject, err)
 		}
 
-		data, err := buildSecretData(secretDataKVs)
+		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
 		if err != nil {
 			return err
 		}
@@ -268,22 +284,22 @@ The project is selected with --project.`,
 			return fmt.Errorf("project is required; please provide --project")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -336,6 +352,31 @@ func buildSecretData(pairs []string) (map[string]string, error) {
 	return data, nil
 }
 
+func buildSecretDataWithEnvFile(pairs []string, envFilePath string) (map[string]string, error) {
+	data := make(map[string]string)
+
+	if strings.TrimSpace(envFilePath) != "" {
+		envData, err := files.ParseEnvFile(envFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load env file: %w", err)
+		}
+		maps.Copy(data, envData)
+	}
+
+	if len(pairs) > 0 {
+		pairData, err := buildSecretData(pairs)
+		if err != nil {
+			return nil, err
+		}
+		// We don't run maps.copy to avoid panicking with duplicated keys
+		for k, v := range pairData {
+			data[k] = v
+		}
+	}
+
+	return data, nil
+}
+
 func init() {
 	// secrets list
 	secretsListCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
@@ -346,12 +387,14 @@ func init() {
 	secretsCreateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 	secretsCreateCmd.Flags().StringVarP(&secretName, "secret-name", "s", "", "Name of the secret")
 	secretsCreateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
+	secretsCreateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 
 	// secrets update
 	secretsUpdateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsUpdateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 	secretsUpdateCmd.Flags().StringVarP(&secretName, "secret-name", "s", "", "Name of the secret")
 	secretsUpdateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
+	secretsUpdateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 
 	// secrets delete
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
