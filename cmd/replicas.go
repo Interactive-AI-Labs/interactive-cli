@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -39,22 +41,22 @@ The project is selected with --project.`,
 			return fmt.Errorf("service name is required")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -102,7 +104,7 @@ The project is selected with --project.`,
 			}
 		}
 
-		if err := internal.PrintTable(out, headers, rows); err != nil {
+		if err := output.PrintTable(out, headers, rows); err != nil {
 			return fmt.Errorf("failed to print table: %w", err)
 		}
 

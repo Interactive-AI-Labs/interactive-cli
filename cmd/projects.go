@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +35,7 @@ var projectsListCmd = &cobra.Command{
 		if projectsOrganization != "" {
 			orgName = projectsOrganization
 		} else {
-			selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+			selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
@@ -43,12 +45,12 @@ var projectsListCmd = &cobra.Command{
 			orgName = selectedOrg
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -71,7 +73,7 @@ var projectsListCmd = &cobra.Command{
 			rows[i] = []string{proj.Name, proj.Role}
 		}
 
-		if err := internal.PrintTable(out, headers, rows); err != nil {
+		if err := output.PrintTable(out, headers, rows); err != nil {
 			return fmt.Errorf("failed to print table: %w", err)
 		}
 

@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -44,22 +46,22 @@ var imageListCmd = &cobra.Command{
 			return fmt.Errorf("project is required; please provide --project")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := internal.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -94,7 +96,7 @@ var imageListCmd = &cobra.Command{
 			}
 		}
 
-		if err := internal.PrintTable(out, headers, rows); err != nil {
+		if err := output.PrintTable(out, headers, rows); err != nil {
 			return fmt.Errorf("failed to print table: %w", err)
 		}
 
@@ -174,17 +176,17 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("project is required; please provide --project")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -254,7 +256,7 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to create request: %w", err)
 		}
 
-		if err := internal.ApplyAuth(req, apiKey, cookies); err != nil {
+		if err := clients.ApplyAuth(req, apiKey, cookies); err != nil {
 			return err
 		}
 
@@ -266,7 +268,7 @@ var imagePushCmd = &cobra.Command{
 
 		fmt.Fprintln(out)
 		fmt.Fprint(out, "Uploading image")
-		done := internal.PrintLoadingDots(out)
+		done := output.PrintLoadingDots(out)
 
 		resp, err := httpClient.Do(req)
 		close(done)
@@ -279,7 +281,7 @@ var imagePushCmd = &cobra.Command{
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if msg := internal.ExtractServerMessage(body); msg != "" {
+			if msg := clients.ExtractServerMessage(body); msg != "" {
 				return fmt.Errorf("%s", msg)
 			}
 			return fmt.Errorf("failed to push image: server returned %s", resp.Status)

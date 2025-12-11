@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -27,12 +29,12 @@ var organizationsListCmd = &cobra.Command{
 			return fmt.Errorf("organizations list is not available when using API key authentication")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -42,7 +44,7 @@ var organizationsListCmd = &cobra.Command{
 			return err
 		}
 
-		selectedOrg, err := internal.GetSelectedOrg(cfgDirName)
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -57,7 +59,7 @@ var organizationsListCmd = &cobra.Command{
 			rows[i] = []string{displayName, fmt.Sprintf("%d", org.ProjectCount), org.Role}
 		}
 
-		if err := internal.PrintTable(out, headers, rows); err != nil {
+		if err := output.PrintTable(out, headers, rows); err != nil {
 			return fmt.Errorf("failed to print table: %w", err)
 		}
 
@@ -79,12 +81,12 @@ var organizationsSelectCmd = &cobra.Command{
 			return fmt.Errorf("organizations select is not available when using API key authentication")
 		}
 
-		cookies, err := internal.LoadSessionCookies(cfgDirName, sessionFileName)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := internal.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -93,7 +95,7 @@ var organizationsSelectCmd = &cobra.Command{
 			return fmt.Errorf("failed to resolve organization %q: %w", orgName, err)
 		}
 
-		if err := internal.SelectOrg(cfgDirName, orgName); err != nil {
+		if err := files.SelectOrg(cfgDirName, orgName); err != nil {
 			return fmt.Errorf("failed to store selected organization: %w", err)
 		}
 

@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
 	"github.com/spf13/cobra"
+
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 )
 
 var logoutCmd = &cobra.Command{
@@ -14,7 +15,7 @@ var logoutCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if err := internal.DeleteSessionCookies(cfgDirName, sessionFileName); err != nil {
+		if err := files.DeleteSessionCookies(cfgDirName, sessionFileName); err != nil {
 			return fmt.Errorf("failed to logout: %w", err)
 		}
 

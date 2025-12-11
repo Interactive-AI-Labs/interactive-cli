@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	internal "github.com/Interactive-AI-Labs/interactive-cli/internal"
+	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/spf13/cobra"
 )
 
@@ -88,7 +88,7 @@ var loginCmd = &cobra.Command{
 		if len(cookies) == 0 {
 			fmt.Fprintln(out, "Warning: login succeeded but no cookies were returned by the server.")
 		} else {
-			if err := internal.SaveSessionCookies(cookies, cfgDirName, sessionFileName); err != nil {
+			if err := files.SaveSessionCookies(cookies, cfgDirName, sessionFileName); err != nil {
 				return fmt.Errorf("login succeeded but failed to store session cookies: %w", err)
 			}
 			fmt.Fprintf(out, "Login successful. %d cookie(s) stored for future commands.\n", len(cookies))

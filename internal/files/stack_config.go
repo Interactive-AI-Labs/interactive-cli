@@ -1,26 +1,29 @@
-package internal
+package files
 
 import (
 	"fmt"
 	"os"
 
+	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"gopkg.in/yaml.v3"
 )
 
 type StackConfig struct {
-	StackId  string                   `yaml:"stack-id"`
-	Services map[string]ServiceConfig `yaml:"services"`
+	Organization string                   `yaml:"organization"`
+	Project      string                   `yaml:"project"`
+	StackId      string                   `yaml:"stack-id"`
+	Services     map[string]ServiceConfig `yaml:"services"`
 }
 
 type ServiceConfig struct {
-	Version     string      `yaml:"version,omitempty"`
-	ServicePort int         `yaml:"servicePort"`
-	Image       ImageSpec   `yaml:"image"`
-	Resources   Resources   `yaml:"resources"`
-	Env         []EnvVar    `yaml:"env,omitempty"`
-	SecretRefs  []SecretRef `yaml:"secretRefs,omitempty"`
-	Endpoint    bool        `yaml:"endpoint,omitempty"`
-	Replicas    int         `yaml:"replicas"`
+	Version     string              `yaml:"version,omitempty"`
+	ServicePort int                 `yaml:"servicePort"`
+	Image       clients.ImageSpec   `yaml:"image"`
+	Resources   clients.Resources   `yaml:"resources"`
+	Env         []clients.EnvVar    `yaml:"env,omitempty"`
+	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"`
+	Endpoint    bool                `yaml:"endpoint,omitempty"`
+	Replicas    int                 `yaml:"replicas"`
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
@@ -84,8 +87,8 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	return &cfg, nil
 }
 
-func (s ServiceConfig) ToCreateRequest(stackId string) CreateServiceBody {
-	return CreateServiceBody{
+func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody {
+	return clients.CreateServiceBody{
 		ServicePort: s.ServicePort,
 		Image:       s.Image,
 		Resources:   s.Resources,
