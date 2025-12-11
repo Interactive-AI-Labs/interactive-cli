@@ -11,7 +11,7 @@ The sync command will:
 - Update services that exist in both the config and the project
 - Delete services that exist in the project but not in the config (for the specified stack)
 
-The project is selected with --project and the config file with --file.
+The project is selected with --project and the config file with --cfg-file.
 
 ```
 iai services sync [flags]
@@ -20,7 +20,6 @@ iai services sync [flags]
 ### Options
 
 ```
-  -f, --file string           Path to the stack config YAML file
   -h, --help                  help for sync
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name to sync services in
@@ -30,6 +29,7 @@ iai services sync [flags]
 
 ```
       --api-key string               API key for authentication
+      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.dev.interactive.ai")
       --hostname string              Hostname for the API (default "https://dev.interactive.ai")
 ```

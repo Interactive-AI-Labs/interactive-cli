@@ -27,11 +27,18 @@ is used.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if logsProject == "" {
-			return fmt.Errorf("project is required; please provide --project")
-		}
-
 		replicaName := args[0]
+
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
+		}
 
 		// Load session cookies.
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -53,16 +60,20 @@ is used.`,
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if logsOrganization == "" {
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			logsOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, logsOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), logsOrganization, logsProject)
+		projectName, err := files.ResolveProject(cfg.Project, logsProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", logsProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		logReader, err := deployClient.GetLogs(cmd.Context(), orgId, projectId, replicaName, logsFollow)

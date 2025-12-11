@@ -42,8 +42,15 @@ var imageListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if strings.TrimSpace(imageProject) == "" {
-			return fmt.Errorf("project is required; please provide --project")
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -65,16 +72,20 @@ var imageListCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if strings.TrimSpace(imageOrganization) == "" {
-			if strings.TrimSpace(selectedOrg) == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			imageOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), imageOrganization, imageProject)
+		projectName, err := files.ResolveProject(cfg.Project, imageProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", imageProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		images, err := deployClient.ListImages(cmd.Context(), orgId, projectId)
@@ -172,8 +183,15 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("tag is required; please provide --tag")
 		}
 
-		if strings.TrimSpace(imageProject) == "" {
-			return fmt.Errorf("project is required; please provide --project")
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -190,16 +208,20 @@ var imagePushCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
-		if strings.TrimSpace(imageOrganization) == "" {
-			if strings.TrimSpace(selectedOrg) == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			imageOrganization = selectedOrg
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
+		if err != nil {
+			return err
 		}
 
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), imageOrganization, imageProject)
+		projectName, err := files.ResolveProject(cfg.Project, imageProject)
 		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", imageProject, err)
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		// Ensure Docker CLI is available.
