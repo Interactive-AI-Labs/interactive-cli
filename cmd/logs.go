@@ -3,6 +3,9 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
+	"os/signal"
+	"syscall"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -28,6 +31,12 @@ is used.`,
 		out := cmd.OutOrStdout()
 
 		replicaName := args[0]
+		ctx := cmd.Context()
+		if logsFollow {
+			var stop func()
+			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+			defer stop()
+		}
 
 		var cfg *files.StackConfig
 		if cfgFilePath != "" {
@@ -51,7 +60,12 @@ is used.`,
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		timeout := defaultHTTPTimeout
+		if logsFollow {
+			timeout = 0
+		}
+
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, timeout, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -76,13 +90,16 @@ is used.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		logReader, err := deployClient.GetLogs(cmd.Context(), orgId, projectId, replicaName, logsFollow)
+		logReader, err := deployClient.GetLogs(ctx, orgId, projectId, replicaName, logsFollow)
 		if err != nil {
 			return err
 		}
 		defer logReader.Close()
 
 		_, err = io.Copy(out, logReader)
+		if logsFollow && ctx.Err() != nil {
+			return nil
+		}
 		return err
 	},
 }
