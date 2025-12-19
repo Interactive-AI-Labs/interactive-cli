@@ -15,8 +15,8 @@ const (
 )
 
 var (
-	hostname           string = "https://dev.interactive.ai"
-	deploymentHostname string = "https://deployment.dev.interactive.ai"
+	hostname           string = "https://app.interactive.ai"
+	deploymentHostname string = "https://deployment.interactive.ai"
 	apiKey             string
 	cfgFilePath        string
 	rootCmd            = &cobra.Command{
