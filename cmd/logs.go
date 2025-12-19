@@ -49,7 +49,6 @@ is used.`,
 			cfg = &files.StackConfig{}
 		}
 
-		// Load session cookies.
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
