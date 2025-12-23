@@ -6,7 +6,7 @@ on:
   issue_comment:
 jobs:
   pr-review:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     if: ${{ github.event.sender.type != 'Bot' }}
     permissions:
       issues: write
