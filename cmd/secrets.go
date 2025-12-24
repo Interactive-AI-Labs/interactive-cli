@@ -39,15 +39,13 @@ The project is selected with --project.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -141,15 +139,13 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -235,15 +231,13 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -318,15 +312,13 @@ The project is selected with --project.`,
 			return fmt.Errorf("secret name is required")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -395,15 +387,13 @@ The project is selected with --project.`,
 			return fmt.Errorf("secret name is required")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -457,8 +447,7 @@ The project is selected with --project.`,
 			var pairs []string
 			for _, k := range keys {
 				val := secret.Data[k]
-				decoded, err := base64.StdEncoding.DecodeString(val)
-				if err == nil {
+				if decoded, err := base64.StdEncoding.DecodeString(val); err == nil {
 					val = string(decoded)
 				}
 				pairs = append(pairs, fmt.Sprintf("%s=%s", k, val))
