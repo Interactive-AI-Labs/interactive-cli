@@ -145,7 +145,10 @@ func (c *DeploymentClient) CreateService(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	serverMessage := ExtractServerMessage(respBody)
 
@@ -186,7 +189,10 @@ func (c *DeploymentClient) UpdateService(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	serverMessage := ExtractServerMessage(respBody)
 
@@ -218,7 +224,10 @@ func (c *DeploymentClient) DeleteService(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	serverMessage := ExtractServerMessage(respBody)
 
@@ -256,7 +265,10 @@ func (c *DeploymentClient) ListServices(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		msg := ExtractServerMessage(respBody)
@@ -309,7 +321,10 @@ func (c *DeploymentClient) CreateSecret(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	serverMessage := ExtractServerMessage(respBody)
 
@@ -356,7 +371,10 @@ func (c *DeploymentClient) UpdateSecret(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	serverMessage := ExtractServerMessage(respBody)
 
@@ -388,7 +406,10 @@ func (c *DeploymentClient) DeleteSecret(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	serverMessage := ExtractServerMessage(respBody)
 
@@ -420,7 +441,14 @@ func (c *DeploymentClient) GetSecret(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		msg := ExtractServerMessage(respBody)
@@ -473,7 +501,14 @@ func (c *DeploymentClient) ListSecrets(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		msg := ExtractServerMessage(respBody)
@@ -510,7 +545,15 @@ func (c *DeploymentClient) ListImages(
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg := ExtractServerMessage(body); msg != "" {
@@ -548,7 +591,10 @@ func (c *DeploymentClient) ListReplicas(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		msg := ExtractServerMessage(respBody)
@@ -593,8 +639,11 @@ func (c *DeploymentClient) GetLogs(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
