@@ -55,12 +55,12 @@ The project is selected with --project.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -70,12 +70,12 @@ The project is selected with --project.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -155,12 +155,12 @@ When both are provided, --data values take precedence.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -170,12 +170,12 @@ When both are provided, --data values take precedence.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -247,12 +247,12 @@ When both are provided, --data values take precedence.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -262,12 +262,12 @@ When both are provided, --data values take precedence.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -328,12 +328,12 @@ The project is selected with --project.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -343,12 +343,12 @@ The project is selected with --project.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -403,12 +403,12 @@ The project is selected with --project.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -418,12 +418,12 @@ The project is selected with --project.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -433,7 +433,7 @@ The project is selected with --project.`,
 
 		secret, err := deployClient.GetSecret(cmd.Context(), orgId, projectId, secretName)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get secret %q: %w", secretName, err)
 		}
 
 		var keysDisplay string
