@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 )
@@ -19,10 +20,11 @@ type DeploymentClient struct {
 }
 
 type SecretInfo struct {
-	Name      string   `json:"name"`
-	Type      string   `json:"type"`
-	CreatedAt string   `json:"createdAt"`
-	Keys      []string `json:"keys"`
+	Name      string            `json:"name"`
+	Type      string            `json:"type"`
+	CreatedAt string            `json:"createdAt"`
+	Keys      []string          `json:"keys"`
+	Data      map[string]string `json:"data,omitempty"`
 }
 
 type ImageInfo struct {
@@ -398,6 +400,60 @@ func (c *DeploymentClient) DeleteSecret(
 	}
 
 	return serverMessage, nil
+}
+
+func (c *DeploymentClient) GetSecret(
+	ctx context.Context,
+	orgId,
+	projectId,
+	secretName string,
+) (*SecretInfo, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("secret request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to get secret: server returned %s", resp.Status)
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(respBody, &raw); err != nil {
+		return nil, fmt.Errorf("failed to decode secret response: %w", err)
+	}
+
+	var secret SecretInfo
+	if val, ok := raw["secret"]; ok {
+		if err := json.Unmarshal(val, &secret); err != nil {
+			return nil, fmt.Errorf("failed to decode secret object: %w", err)
+		}
+	} else {
+		if err := json.Unmarshal(respBody, &secret); err != nil {
+			return nil, fmt.Errorf("failed to decode secret object: %w", err)
+		}
+	}
+
+	if len(secret.Keys) == 0 && len(secret.Data) > 0 {
+		for k := range secret.Data {
+			secret.Keys = append(secret.Keys, k)
+		}
+		sort.Strings(secret.Keys)
+	}
+
+	return &secret, nil
 }
 
 func (c *DeploymentClient) ListSecrets(

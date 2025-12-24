@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"maps"
+	"sort"
 	"strings"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -378,6 +380,112 @@ The project is selected with --project.`,
 	},
 }
 
+var secretsGetCmd = &cobra.Command{
+	Use:   "get <secret_name>",
+	Short: "Get a secret in a project",
+	Long: `Get a secret in a specific project using the deployment service.
+
+The project is selected with --project.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		secretName := strings.TrimSpace(args[0])
+		if secretName == "" {
+			return fmt.Errorf("secret name is required")
+		}
+
+		var cfg *files.StackConfig
+		if cfgFilePath != "" {
+			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+			cfg = loadedCfg
+		} else {
+			cfg = &files.StackConfig{}
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		secret, err := deployClient.GetSecret(cmd.Context(), orgId, projectId, secretName)
+		if err != nil {
+			return err
+		}
+
+		var keysDisplay string
+		if len(secret.Data) > 0 {
+			keys := make([]string, 0, len(secret.Data))
+			for k := range secret.Data {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+
+			var pairs []string
+			for _, k := range keys {
+				val := secret.Data[k]
+				decoded, err := base64.StdEncoding.DecodeString(val)
+				if err == nil {
+					val = string(decoded)
+				}
+				pairs = append(pairs, fmt.Sprintf("%s=%s", k, val))
+			}
+			keysDisplay = strings.Join(pairs, ", ")
+		} else {
+			keysDisplay = strings.Join(secret.Keys, ", ")
+		}
+
+		headers := []string{"NAME", "TYPE", "CREATED", "KEYS"}
+		rows := [][]string{
+			{
+				secret.Name,
+				secret.Type,
+				secret.CreatedAt,
+				keysDisplay,
+			},
+		}
+
+		if err := output.PrintTable(out, headers, rows); err != nil {
+			return fmt.Errorf("failed to print table: %w", err)
+		}
+
+		return nil
+	},
+}
+
 func buildSecretData(pairs []string) (map[string]string, error) {
 	data := make(map[string]string, len(pairs))
 
@@ -447,6 +555,10 @@ func init() {
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsDeleteCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd)
+	// secrets get
+	secretsGetCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsGetCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+
+	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd)
 	rootCmd.AddCommand(secretsCmd)
 }
