@@ -266,14 +266,14 @@ func (c *DeploymentClient) RestartService(
 
 	serverMessage := ExtractServerMessage(respBody)
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if serverMessage != "" {
-			return "", fmt.Errorf("%s", serverMessage)
-		}
-		return "", fmt.Errorf("service restart failed with status %s", resp.Status)
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
 	}
 
-	return serverMessage, nil
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("service restart failed with status %s", resp.Status)
 }
 
 func (c *DeploymentClient) ListServices(

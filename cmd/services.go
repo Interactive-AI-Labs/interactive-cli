@@ -531,12 +531,12 @@ The project is selected with --project.`,
 		}
 
 		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			var err error
 			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
