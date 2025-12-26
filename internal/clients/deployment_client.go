@@ -247,7 +247,7 @@ func (c *DeploymentClient) RestartService(
 	projectId string,
 	serviceName string,
 ) (string, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/restart", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/restart", orgId, projectId, url.PathEscape(serviceName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
