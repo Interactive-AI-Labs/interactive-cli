@@ -9,7 +9,7 @@ Restart a service in a specific project using the deployment service.
 The project is selected with --project.
 
 ```
-iai services restart [service_name] [flags]
+iai services restart <service_name> [flags]
 ```
 
 ### Options
