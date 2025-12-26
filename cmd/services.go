@@ -512,23 +512,16 @@ The project is selected with --project.`,
 }
 
 var servRestartCmd = &cobra.Command{
-	Use:   "restart [service_name]",
+	Use:   "restart <service_name>",
 	Short: "Restart a service in a project",
 	Long: `Restart a service in a specific project using the deployment service.
 
 The project is selected with --project.`,
-	Args: cobra.RangeArgs(0, 1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var serviceName string
-		if len(args) > 0 {
-			serviceName = args[0]
-		}
-
-		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide the service name as an argument")
-		}
+		serviceName := args[0]
 
 		cfg := &files.StackConfig{}
 		var err error
