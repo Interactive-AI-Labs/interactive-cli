@@ -130,7 +130,7 @@ func (c *DeploymentClient) CreateService(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, url.PathEscape(serviceName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -174,7 +174,7 @@ func (c *DeploymentClient) UpdateService(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, url.PathEscape(serviceName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodPut, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -212,7 +212,7 @@ func (c *DeploymentClient) DeleteService(
 	projectId string,
 	serviceName string,
 ) (string, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, url.PathEscape(serviceName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -341,7 +341,7 @@ func (c *DeploymentClient) CreateSecret(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodPost, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -391,7 +391,7 @@ func (c *DeploymentClient) UpdateSecret(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodPut, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -429,7 +429,7 @@ func (c *DeploymentClient) DeleteSecret(
 	projectId,
 	secretName string,
 ) (string, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -464,7 +464,7 @@ func (c *DeploymentClient) GetSecret(
 	projectId,
 	secretName string,
 ) (*SecretInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -614,7 +614,7 @@ func (c *DeploymentClient) ListReplicas(
 	projectId,
 	serviceName string,
 ) ([]ReplicaInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/replicas", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/replicas", orgId, projectId, url.PathEscape(serviceName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -656,7 +656,7 @@ func (c *DeploymentClient) GetLogs(
 	replicaName string,
 	follow bool,
 ) (io.ReadCloser, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, replicaName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, url.PathEscape(replicaName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
