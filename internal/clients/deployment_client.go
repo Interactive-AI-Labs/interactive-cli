@@ -241,6 +241,41 @@ func (c *DeploymentClient) DeleteService(
 	return serverMessage, nil
 }
 
+func (c *DeploymentClient) RestartService(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	serviceName string,
+) (string, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/restart", orgId, projectId, serviceName)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("service restart request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("service restart failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
 func (c *DeploymentClient) ListServices(
 	ctx context.Context,
 	orgId,

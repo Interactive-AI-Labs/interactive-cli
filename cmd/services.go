@@ -511,6 +511,85 @@ The project is selected with --project.`,
 	},
 }
 
+var servRestartCmd = &cobra.Command{
+	Use:   "restart [service_name]",
+	Short: "Restart a service in a project",
+	Long: `Restart a service in a specific project using the deployment service.
+
+The project is selected with --project.`,
+	Args: cobra.RangeArgs(0, 1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		var serviceName string
+		if len(args) > 0 {
+			serviceName = args[0]
+		}
+
+		if serviceName == "" {
+			return fmt.Errorf("service name is required; please provide the service name as an argument")
+		}
+
+		cfg := &files.StackConfig{}
+		if cfgFilePath != "" {
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting service restart request...")
+
+		serverMessage, err := deployClient.RestartService(cmd.Context(), orgId, projectId, serviceName)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 var (
 	syncProject      string
 	syncOrganization string
@@ -714,6 +793,10 @@ func init() {
 	servDCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to delete the service from")
 	servDCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	// Flags for "services restart"
+	servRestartCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to restart the service in")
+	servRestartCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+
 	// Flags for "services sync"
 	servicesSyncCmd.Flags().StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
 	servicesSyncCmd.Flags().StringVarP(&syncOrganization, "organization", "o", "", "Organization name that owns the project")
@@ -724,5 +807,6 @@ func init() {
 	servicesCmd.AddCommand(servUCmd)
 	servicesCmd.AddCommand(servListCmd)
 	servicesCmd.AddCommand(servDCmd)
+	servicesCmd.AddCommand(servRestartCmd)
 	servicesCmd.AddCommand(servicesSyncCmd)
 }
