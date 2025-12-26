@@ -27,6 +27,7 @@ Manage deployment of services to InteractiveAI projects.
 * [iai services create](iai_services_create.md)	 - Create a service in a project
 * [iai services delete](iai_services_delete.md)	 - Delete a service from a project
 * [iai services list](iai_services_list.md)	 - List services in a project
+* [iai services restart](iai_services_restart.md)	 - Restart a service in a project
 * [iai services sync](iai_services_sync.md)	 - Sync services in a project from a stack config file
 * [iai services update](iai_services_update.md)	 - Update a service in a project
 
