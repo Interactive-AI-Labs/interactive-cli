@@ -436,7 +436,9 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to get secret %q: %w", secretName, err)
 		}
 
-		var keysDisplay string
+		headers := []string{"KEYS", "VALUES"}
+		var rows [][]string
+
 		if len(secret.Data) > 0 {
 			keys := make([]string, 0, len(secret.Data))
 			for k := range secret.Data {
@@ -444,27 +446,16 @@ The project is selected with --project.`,
 			}
 			sort.Strings(keys)
 
-			var pairs []string
 			for _, k := range keys {
 				val := secret.Data[k]
 				if decoded, err := base64.StdEncoding.DecodeString(val); err == nil {
 					val = string(decoded)
 				}
-				pairs = append(pairs, fmt.Sprintf("%s=%s", k, val))
+				rows = append(rows, []string{k, val})
 			}
-			keysDisplay = strings.Join(pairs, ", ")
 		} else {
-			keysDisplay = strings.Join(secret.Keys, ", ")
-		}
-
-		headers := []string{"NAME", "TYPE", "CREATED", "KEYS"}
-		rows := [][]string{
-			{
-				secret.Name,
-				secret.Type,
-				secret.CreatedAt,
-				keysDisplay,
-			},
+			fmt.Fprintln(out, "No data found in secret.")
+			return nil
 		}
 
 		if err := output.PrintTable(out, headers, rows); err != nil {
