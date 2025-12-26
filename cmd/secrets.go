@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"maps"
+	"sort"
 	"strings"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -37,15 +39,13 @@ The project is selected with --project.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -55,12 +55,12 @@ The project is selected with --project.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -70,12 +70,12 @@ The project is selected with --project.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -139,15 +139,13 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -157,12 +155,12 @@ When both are provided, --data values take precedence.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -172,12 +170,12 @@ When both are provided, --data values take precedence.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -233,15 +231,13 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -251,12 +247,12 @@ When both are provided, --data values take precedence.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -266,12 +262,12 @@ When both are provided, --data values take precedence.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -316,15 +312,13 @@ The project is selected with --project.`,
 			return fmt.Errorf("secret name is required")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
+		var err error
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -334,12 +328,12 @@ The project is selected with --project.`,
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
 		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
@@ -349,12 +343,12 @@ The project is selected with --project.`,
 
 		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
 		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
@@ -372,6 +366,100 @@ The project is selected with --project.`,
 
 		if serverMessage != "" {
 			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
+var secretsGetCmd = &cobra.Command{
+	Use:   "get <secret_name>",
+	Short: "Get a secret in a project",
+	Long: `Get a secret in a specific project using the deployment service.
+
+The project is selected with --project.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		secretName := strings.TrimSpace(args[0])
+		if secretName == "" {
+			return fmt.Errorf("secret name is required")
+		}
+
+		cfg := &files.StackConfig{}
+		var err error
+		if cfgFilePath != "" {
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return fmt.Errorf("failed to create deployment client: %w", err)
+		}
+
+		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		if err != nil {
+			return fmt.Errorf("failed to resolve organization: %w", err)
+		}
+
+		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project: %w", err)
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		secret, err := deployClient.GetSecret(cmd.Context(), orgId, projectId, secretName)
+		if err != nil {
+			return fmt.Errorf("failed to get secret %q: %w", secretName, err)
+		}
+
+		headers := []string{"KEYS", "VALUES"}
+		var rows [][]string
+
+		if len(secret.Data) > 0 {
+			keys := make([]string, 0, len(secret.Data))
+			for k := range secret.Data {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+
+			for _, k := range keys {
+				val := secret.Data[k]
+				if decoded, err := base64.StdEncoding.DecodeString(val); err == nil {
+					val = string(decoded)
+				}
+				rows = append(rows, []string{k, val})
+			}
+		} else {
+			fmt.Fprintln(out, "No data found in secret.")
+			return nil
+		}
+
+		if err := output.PrintTable(out, headers, rows); err != nil {
+			return fmt.Errorf("failed to print table: %w", err)
 		}
 
 		return nil
@@ -447,6 +535,10 @@ func init() {
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsDeleteCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd)
+	// secrets get
+	secretsGetCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsGetCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+
+	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd)
 	rootCmd.AddCommand(secretsCmd)
 }
