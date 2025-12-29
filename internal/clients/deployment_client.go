@@ -130,7 +130,7 @@ func (c *DeploymentClient) CreateService(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(serviceName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -174,7 +174,7 @@ func (c *DeploymentClient) UpdateService(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(serviceName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodPut, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -212,7 +212,7 @@ func (c *DeploymentClient) DeleteService(
 	projectId string,
 	serviceName string,
 ) (string, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(serviceName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -241,13 +241,48 @@ func (c *DeploymentClient) DeleteService(
 	return serverMessage, nil
 }
 
+func (c *DeploymentClient) RestartService(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	serviceName string,
+) (string, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/restart", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(serviceName))
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("service restart request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("service restart failed with status %s", resp.Status)
+}
+
 func (c *DeploymentClient) ListServices(
 	ctx context.Context,
 	orgId,
 	projectId string,
 	stackId string,
 ) ([]ServiceOutput, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services", orgId, projectId)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services", url.PathEscape(orgId), url.PathEscape(projectId))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -306,7 +341,7 @@ func (c *DeploymentClient) CreateSecret(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodPost, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -356,7 +391,7 @@ func (c *DeploymentClient) UpdateSecret(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodPut, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -394,7 +429,7 @@ func (c *DeploymentClient) DeleteSecret(
 	projectId,
 	secretName string,
 ) (string, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -429,7 +464,7 @@ func (c *DeploymentClient) GetSecret(
 	projectId,
 	secretName string,
 ) (*SecretInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", orgId, projectId, secretName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(secretName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -489,7 +524,7 @@ func (c *DeploymentClient) ListSecrets(
 	orgId,
 	projectId string,
 ) ([]SecretInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets", orgId, projectId)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets", url.PathEscape(orgId), url.PathEscape(projectId))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -533,7 +568,7 @@ func (c *DeploymentClient) ListImages(
 	orgId,
 	projectId string,
 ) ([]ImageInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/images", orgId, projectId)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/images", url.PathEscape(orgId), url.PathEscape(projectId))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -579,7 +614,7 @@ func (c *DeploymentClient) ListReplicas(
 	projectId,
 	serviceName string,
 ) ([]ReplicaInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/replicas", orgId, projectId, serviceName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/replicas", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(serviceName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -621,7 +656,7 @@ func (c *DeploymentClient) GetLogs(
 	replicaName string,
 	follow bool,
 ) (io.ReadCloser, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s/logs", orgId, projectId, replicaName)
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s/logs", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(replicaName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
