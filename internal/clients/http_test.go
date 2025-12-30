@@ -91,7 +91,7 @@ func TestApplyAuth(t *testing.T) {
 		if authHeader == "" {
 			t.Fatal("Authorization header not set")
 		}
-		if authHeader[:6] != "Basic " {
+		if !strings.HasPrefix(authHeader, "Basic ") {
 			t.Errorf("Authorization header should start with 'Basic ', got %q", authHeader)
 		}
 	})
