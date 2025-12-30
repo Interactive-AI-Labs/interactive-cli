@@ -58,7 +58,7 @@ All configuration is provided via flags. The project is selected with --project.
 		}
 
 		if servicePort <= 0 {
-			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
+			return fmt.Errorf("service port must be greater than zero; please provide --port")
 		}
 		if serviceImageName == "" {
 			return fmt.Errorf("image name is required; please provide --image-name")
@@ -205,7 +205,7 @@ All configuration is provided via flags. The project is selected with --project.
 		}
 
 		if servicePort <= 0 {
-			return fmt.Errorf("service port must be greater than zero; please provide --service-port")
+			return fmt.Errorf("service port must be greater than zero; please provide --port")
 		}
 		if serviceImageName == "" {
 			return fmt.Errorf("image name is required; please provide --image-name")
@@ -746,7 +746,7 @@ func init() {
 	servCCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to create the service in")
 	servCCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servCCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
-	servCCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
+	servCCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: 'internal' (InteractiveAI registry) or 'external' (external registry like Docker Hub)")
 	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
@@ -758,13 +758,13 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 	servCCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
 	servCCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
-	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
+	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
 
 	// Flags for "services update"
 	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
 	servUCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servUCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
-	servUCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: internal or external")
+	servUCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: 'internal' (InteractiveAI registry) or 'external' (external registry like Docker Hub)")
 	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
@@ -776,7 +776,7 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
 	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
 	servUCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
-	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.dev.interactive.ai")
+	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
 
 	// Flags for "services list"
 	servListCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
