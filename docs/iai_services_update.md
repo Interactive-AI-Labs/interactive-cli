@@ -21,7 +21,7 @@ iai services update [service_name] [flags]
       --image-name string         Container image name
       --image-repository string   Container image repository (external images only)
       --image-tag string          Container image tag
-      --image-type string         Image type: 'internal' (InteractiveAI registry) or 'external' (external registry like Docker Hub)
+      --image-type string         Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)
       --limits-cpu string         CPU limit (e.g. 500m) (default "500m")
       --limits-memory string      Memory limit (e.g. 1Gi) (default "1Gi")
   -o, --organization string       Organization name that owns the project
