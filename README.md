@@ -141,3 +141,84 @@ This will rebuild and reinstall the latest version over your existing binary.
   - Make sure you can reach GitHub from your machine.
 
 If you continue to have issues, capture the exact command and error message and share it when asking for help.
+
+---
+
+## 8. Development and Testing
+
+### 8.1 Running Tests
+
+This project includes both unit tests and integration tests, organized in separate files with build tags.
+
+#### Unit Tests
+
+Unit tests run fast and don't require external dependencies. They're located in `*_test.go` files without build tags.
+
+Run all unit tests:
+
+```bash
+make test-unit
+# or
+go test -v ./...
+```
+
+#### Integration Tests
+
+Integration tests use the `integration` build tag and may make real HTTP calls to test servers. They're located in `*_integration_test.go` files.
+
+Run integration tests:
+
+```bash
+make test-integration
+# or
+go test -v -tags=integration ./...
+```
+
+#### All Tests
+
+Run both unit and integration tests:
+
+```bash
+make test-all
+```
+
+#### Test Coverage
+
+Generate a coverage report for unit tests only:
+
+```bash
+make test-coverage
+```
+
+This creates `coverage.html` which you can open in a browser to view detailed coverage information.
+
+Generate a coverage report including integration tests:
+
+```bash
+make test-coverage-all
+```
+
+This creates `coverage-all.html` with comprehensive coverage data from both unit and integration tests.
+
+### 8.2 Test Organization
+
+- **Unit tests**: No build tags, run by default with `go test ./...`
+- **Integration tests**: Use `//go:build integration` and `// +build integration` tags
+- Test files follow these naming conventions:
+  - `*_test.go` - Unit tests
+  - `*_integration_test.go` - Integration tests
+
+### 8.3 Writing Tests
+
+When adding new tests:
+
+1. Unit tests should be fast, deterministic, and not depend on external services
+2. Integration tests should use the `integration` build tag at the top of the file:
+   ```go
+   //go:build integration
+   // +build integration
+   
+   package mypackage
+   ```
+3. Use `t.TempDir()` for tests that need temporary directories
+4. Follow Go testing best practices and table-driven test patterns where appropriate
