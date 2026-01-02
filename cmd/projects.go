@@ -7,6 +7,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -32,18 +33,10 @@ var projectsListCmd = &cobra.Command{
 			return fmt.Errorf("projects list is not available when using API key authentication")
 		}
 
-		var orgName string
-		if projectsOrganization != "" {
-			orgName = projectsOrganization
-		} else {
-			selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
-			}
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			orgName = selectedOrg
+		sess := session.NewSession(cfgDirName)
+		orgName, err := sess.ResolveOrganization("", projectsOrganization)
+		if err != nil {
+			return err
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -105,18 +98,10 @@ var projectsSelectCmd = &cobra.Command{
 			return fmt.Errorf("projects select is not available when using API key authentication")
 		}
 
-		var orgName string
-		if projectsOrganization != "" {
-			orgName = projectsOrganization
-		} else {
-			selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
-			}
-			if selectedOrg == "" {
-				return fmt.Errorf("organization is required; please provide --organization or run '%s organizations select <name>'", rootCmd.Use)
-			}
-			orgName = selectedOrg
+		sess := session.NewSession(cfgDirName)
+		orgName, err := sess.ResolveOrganization("", projectsOrganization)
+		if err != nil {
+			return err
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)

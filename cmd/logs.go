@@ -9,6 +9,7 @@ import (
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -69,22 +70,14 @@ is used.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, logsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, logsOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, logsProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, logsProject)
 		if err != nil {
 			return err
 		}

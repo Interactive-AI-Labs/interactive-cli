@@ -8,6 +8,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -103,22 +104,14 @@ All configuration is provided via flags. The project is selected with --project 
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -254,22 +247,14 @@ All configuration is provided via flags. The project is selected with --project 
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -395,22 +380,14 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -490,22 +467,14 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -567,22 +536,14 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -656,22 +617,14 @@ The project is selected with --project or via 'iai projects select', and the con
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, syncOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, syncOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, syncProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, syncProject)
 		if err != nil {
 			return err
 		}

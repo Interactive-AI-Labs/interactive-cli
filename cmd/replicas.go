@@ -7,6 +7,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -64,22 +65,14 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, replicasOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, replicasOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, replicasProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, replicasProject)
 		if err != nil {
 			return err
 		}

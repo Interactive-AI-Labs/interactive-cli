@@ -10,6 +10,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -63,22 +64,14 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -168,22 +161,14 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -265,22 +250,14 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -351,22 +328,14 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -431,22 +400,14 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}

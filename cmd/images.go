@@ -14,6 +14,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -68,22 +69,14 @@ var imageListCmd = &cobra.Command{
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, imageOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, imageProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, imageProject)
 		if err != nil {
 			return err
 		}
@@ -209,22 +202,14 @@ var imagePushCmd = &cobra.Command{
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		selectedProject, err := files.GetSelectedProject(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, imageOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, imageProject, selectedProject)
+		projectName, err := sess.ResolveProject(cfg.Project, imageProject)
 		if err != nil {
 			return err
 		}
