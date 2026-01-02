@@ -14,6 +14,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -42,15 +43,13 @@ var imageListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to load config file: %w", err)
 			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -68,17 +67,14 @@ var imageListCmd = &cobra.Command{
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, imageOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, imageProject)
+		projectName, err := sess.ResolveProject(cfg.Project, imageProject)
 		if err != nil {
 			return err
 		}
@@ -183,15 +179,13 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("tag is required; please provide --tag")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to load config file: %w", err)
 			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -204,17 +198,14 @@ var imagePushCmd = &cobra.Command{
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, imageOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, imageProject)
+		projectName, err := sess.ResolveProject(cfg.Project, imageProject)
 		if err != nil {
 			return err
 		}
