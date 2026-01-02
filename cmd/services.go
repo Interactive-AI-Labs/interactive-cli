@@ -44,7 +44,7 @@ var servCCmd = &cobra.Command{
 	Short:   "Create a service in a project",
 	Long: `Create a service in a specific project using the deployment service.
 
-All configuration is provided via flags. The project is selected with --project.`,
+All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -108,12 +108,17 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
 		if err != nil {
 			return err
 		}
@@ -191,7 +196,7 @@ var servUCmd = &cobra.Command{
 	Short: "Update a service in a project",
 	Long: `Update a service in a specific project using the deployment service.
 
-All configuration is provided via flags. The project is selected with --project.`,
+All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -254,12 +259,17 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
 		if err != nil {
 			return err
 		}
@@ -354,7 +364,7 @@ var servListCmd = &cobra.Command{
 	Short:   "List services in a project",
 	Long: `List services in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -390,12 +400,17 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
 		if err != nil {
 			return err
 		}
@@ -435,7 +450,7 @@ var servDCmd = &cobra.Command{
 	Short: "Delete a service from a project",
 	Long: `Delete a service from a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -480,12 +495,17 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
 		if err != nil {
 			return err
 		}
@@ -516,7 +536,7 @@ var servRestartCmd = &cobra.Command{
 	Short: "Restart a service in a project",
 	Long: `Restart a service in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -552,12 +572,17 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := files.ResolveProject(cfg.Project, serviceProject, selectedProject)
 		if err != nil {
 			return err
 		}
@@ -598,7 +623,7 @@ The sync command will:
 - Update services that exist in both the config and the project
 - Delete services that exist in the project but not in the config (for the specified stack)
 
-The project is selected with --project and the config file with --cfg-file.`,
+The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -636,12 +661,17 @@ The project is selected with --project and the config file with --cfg-file.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, syncOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, syncProject)
+		projectName, err := files.ResolveProject(cfg.Project, syncProject, selectedProject)
 		if err != nil {
 			return err
 		}

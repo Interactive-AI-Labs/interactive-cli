@@ -1,20 +1,20 @@
-## iai projects list
+## iai projects select
 
-List projects in an organization
+Select a project for subsequent commands
 
 ### Synopsis
 
-List all projects within a specific organization. The organization name will be resolved to its Id before making API calls.
+Select a project by name and store it in the local CLI configuration so other commands can use it without specifying the project each time.
 
 ```
-iai projects list [flags]
+iai projects select [project_name] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
-  -o, --organization string   Organization name that owns the projects
+  -h, --help                  help for select
+  -o, --organization string   Organization name that owns the project
 ```
 
 ### Options inherited from parent commands

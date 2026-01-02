@@ -23,8 +23,8 @@ var logsCmd = &cobra.Command{
 	Short: "Show logs for a specific replica",
 	Long: `Show logs for a specific replica (pod) in a project.
 
-The project is selected with --project. If --organization is not provided,
-the currently selected organization (via 'interactiveai organizations select')
+The project is selected with --project or via 'iai projects select'. If --organization is not provided,
+the currently selected organization (via 'iai organizations select')
 is used.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -74,12 +74,17 @@ is used.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, logsOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, logsProject)
+		projectName, err := files.ResolveProject(cfg.Project, logsProject, selectedProject)
 		if err != nil {
 			return err
 		}

@@ -27,7 +27,7 @@ var replicasListCmd = &cobra.Command{
 	Short:   "List replicas for a service",
 	Long: `List pods backing a service in a specific project.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -69,12 +69,17 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, replicasOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, replicasProject)
+		projectName, err := files.ResolveProject(cfg.Project, replicasProject, selectedProject)
 		if err != nil {
 			return err
 		}

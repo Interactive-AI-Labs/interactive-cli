@@ -12,7 +12,8 @@ import (
 const configFileName = "config.yaml"
 
 type Config struct {
-	SelectedOrg string `yaml:"selected_organization,omitempty"`
+	SelectedOrg     string `yaml:"selected_organization,omitempty"`
+	SelectedProject string `yaml:"selected_project,omitempty"`
 }
 
 func LoadConfig(cfgDirName string) (*Config, error) {
@@ -99,15 +100,44 @@ func GetSelectedOrg(cfgDirName string) (string, error) {
 	return strings.TrimSpace(cfg.SelectedOrg), nil
 }
 
+// GetSelectedProject returns the currently configured selected
+// project name, or an empty string when no project
+// has been chosen yet.
+func GetSelectedProject(cfgDirName string) (string, error) {
+	cfg, err := LoadConfig(cfgDirName)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(cfg.SelectedProject), nil
+}
+
+// SelectProject updates the selected project name in the
+// config file. An empty name clears the selection.
+func SelectProject(cfgDirName, projectName string) error {
+	cfg, err := LoadConfig(cfgDirName)
+	if err != nil {
+		return err
+	}
+
+	cfg.SelectedProject = strings.TrimSpace(projectName)
+	return SaveConfig(cfgDirName, cfg)
+}
+
 // SelectOrg updates the selected organization name in the
 // config file. An empty name clears the selection.
+// When the organization changes, the selected project is cleared.
 func SelectOrg(cfgDirName, orgName string) error {
 	cfg, err := LoadConfig(cfgDirName)
 	if err != nil {
 		return err
 	}
 
-	cfg.SelectedOrg = strings.TrimSpace(orgName)
+	newOrg := strings.TrimSpace(orgName)
+	// If the organization is changing, clear the selected project
+	if cfg.SelectedOrg != newOrg {
+		cfg.SelectedProject = ""
+	}
+	cfg.SelectedOrg = newOrg
 	return SaveConfig(cfgDirName, cfg)
 }
 
@@ -131,11 +161,13 @@ func ResolveOrganization(cfgOrg, flagOrg, selectedOrg string) (string, error) {
 	return "", fmt.Errorf("organization is required: provide via --organization flag, --cfg-file, or run 'iai organizations select'")
 }
 
-// ResolveProject returns the project name using this precedence
-// Returns error if both are empty.
-func ResolveProject(cfgProject, flagProject string) (string, error) {
+// ResolveProject returns the project name using this precedence:
+// cfgProject > flagProject > selectedProject.
+// Returns error if all are empty.
+func ResolveProject(cfgProject, flagProject, selectedProject string) (string, error) {
 	cfgProject = strings.TrimSpace(cfgProject)
 	flagProject = strings.TrimSpace(flagProject)
+	selectedProject = strings.TrimSpace(selectedProject)
 
 	if cfgProject != "" {
 		return cfgProject, nil
@@ -143,6 +175,9 @@ func ResolveProject(cfgProject, flagProject string) (string, error) {
 	if flagProject != "" {
 		return flagProject, nil
 	}
+	if selectedProject != "" {
+		return selectedProject, nil
+	}
 
-	return "", fmt.Errorf("project is required: provide via --project flag or --cfg-file")
+	return "", fmt.Errorf("project is required: provide via --project flag, --cfg-file, or run 'iai projects select'")
 }

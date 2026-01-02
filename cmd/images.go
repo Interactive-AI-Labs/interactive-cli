@@ -73,12 +73,17 @@ var imageListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, imageProject)
+		projectName, err := files.ResolveProject(cfg.Project, imageProject, selectedProject)
 		if err != nil {
 			return err
 		}
@@ -209,12 +214,17 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		selectedProject, err := files.GetSelectedProject(cfgDirName)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		orgName, err := files.ResolveOrganization(cfg.Organization, imageOrganization, selectedOrg)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, imageProject)
+		projectName, err := files.ResolveProject(cfg.Project, imageProject, selectedProject)
 		if err != nil {
 			return err
 		}
