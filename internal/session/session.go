@@ -18,17 +18,17 @@ func NewSession(cfgDirName string) *Session {
 }
 
 // ResolveOrganization returns the organization name using this precedence:
-// cfgOrg > flagOrg > selectedOrg.
+// flagOrg > cfgOrg > selectedOrg.
 // Returns error if all three are empty.
 func (s *Session) ResolveOrganization(cfgOrg, flagOrg string) (string, error) {
 	cfgOrg = strings.TrimSpace(cfgOrg)
 	flagOrg = strings.TrimSpace(flagOrg)
 
-	if cfgOrg != "" {
-		return cfgOrg, nil
-	}
 	if flagOrg != "" {
 		return flagOrg, nil
+	}
+	if cfgOrg != "" {
+		return cfgOrg, nil
 	}
 
 	selectedOrg, err := files.GetSelectedOrg(s.cfgDirName)
@@ -45,11 +45,11 @@ func (s *Session) ResolveOrganization(cfgOrg, flagOrg string) (string, error) {
 }
 
 // ResolveProject returns the project name using this precedence:
-// cfgProject > flagProject > selectedProject.
+// flagProject > cfgProject > selectedProject.
 // Returns error if all are empty.
 func (s *Session) ResolveProject(cfgProject, flagProject string) (string, error) {
-	cfgProject = strings.TrimSpace(cfgProject)
 	flagProject = strings.TrimSpace(flagProject)
+	cfgProject = strings.TrimSpace(cfgProject)
 
 	if cfgProject != "" {
 		return cfgProject, nil
