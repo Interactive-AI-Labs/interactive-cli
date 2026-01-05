@@ -9,6 +9,7 @@ import (
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -23,8 +24,8 @@ var logsCmd = &cobra.Command{
 	Short: "Show logs for a specific replica",
 	Long: `Show logs for a specific replica (pod) in a project.
 
-The project is selected with --project. If --organization is not provided,
-the currently selected organization (via 'interactiveai organizations select')
+The project is selected with --project or via 'iai projects select'. If --organization is not provided,
+the currently selected organization (via 'iai organizations select')
 is used.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,15 +39,13 @@ is used.`,
 			defer stop()
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to load config file: %w", err)
 			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -69,17 +68,14 @@ is used.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, logsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, logsOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, logsProject)
+		projectName, err := sess.ResolveProject(cfg.Project, logsProject)
 		if err != nil {
 			return err
 		}

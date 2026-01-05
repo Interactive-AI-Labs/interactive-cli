@@ -8,6 +8,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +45,7 @@ var servCCmd = &cobra.Command{
 	Short:   "Create a service in a project",
 	Long: `Create a service in a specific project using the deployment service.
 
-All configuration is provided via flags. The project is selected with --project.`,
+All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -76,15 +77,13 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to load config file: %w", err)
 			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
 		}
 
 		// Ensure the user is logged in and load session cookies.
@@ -103,17 +102,14 @@ All configuration is provided via flags. The project is selected with --project.
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -191,7 +187,7 @@ var servUCmd = &cobra.Command{
 	Short: "Update a service in a project",
 	Long: `Update a service in a specific project using the deployment service.
 
-All configuration is provided via flags. The project is selected with --project.`,
+All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -223,15 +219,13 @@ All configuration is provided via flags. The project is selected with --project.
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to load config file: %w", err)
 			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -249,17 +243,14 @@ All configuration is provided via flags. The project is selected with --project.
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -354,20 +345,18 @@ var servListCmd = &cobra.Command{
 	Short:   "List services in a project",
 	Long: `List services in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to load config file: %w", err)
 			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -385,17 +374,14 @@ The project is selected with --project.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -435,7 +421,7 @@ var servDCmd = &cobra.Command{
 	Short: "Delete a service from a project",
 	Long: `Delete a service from a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -449,15 +435,13 @@ The project is selected with --project.`,
 			return fmt.Errorf("service name is required; please provide the service name as an argument")
 		}
 
-		var cfg *files.StackConfig
+		cfg := &files.StackConfig{}
 		if cfgFilePath != "" {
-			loadedCfg, err := files.LoadStackConfig(cfgFilePath)
+			var err error
+			cfg, err = files.LoadStackConfig(cfgFilePath)
 			if err != nil {
 				return fmt.Errorf("failed to load config file: %w", err)
 			}
-			cfg = loadedCfg
-		} else {
-			cfg = &files.StackConfig{}
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -475,17 +459,14 @@ The project is selected with --project.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -516,7 +497,7 @@ var servRestartCmd = &cobra.Command{
 	Short: "Restart a service in a project",
 	Long: `Restart a service in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -547,17 +528,14 @@ The project is selected with --project.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, serviceOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, serviceProject)
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
 		if err != nil {
 			return err
 		}
@@ -598,7 +576,7 @@ The sync command will:
 - Update services that exist in both the config and the project
 - Delete services that exist in the project but not in the config (for the specified stack)
 
-The project is selected with --project and the config file with --cfg-file.`,
+The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -631,17 +609,14 @@ The project is selected with --project and the config file with --cfg-file.`,
 			return err
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, syncOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, syncOrganization)
 		if err != nil {
 			return err
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, syncProject)
+		projectName, err := sess.ResolveProject(cfg.Project, syncProject)
 		if err != nil {
 			return err
 		}

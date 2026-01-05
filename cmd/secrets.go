@@ -10,6 +10,7 @@ import (
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,7 @@ var secretsListCmd = &cobra.Command{
 	Short:   "List secrets in a project",
 	Long: `List secrets in a specific project.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -63,17 +64,14 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -117,7 +115,7 @@ var secretsCreateCmd = &cobra.Command{
 	Short: "Create a secret in a project",
 	Long: `Create a secret in a specific project using the deployment service.
 
-The project is selected with --project.
+The project is selected with --project or via 'iai projects select'.
 
 Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
@@ -163,17 +161,14 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -209,7 +204,7 @@ var secretsUpdateCmd = &cobra.Command{
 	Short: "Update a secret in a project",
 	Long: `Update a secret in a specific project using the deployment service.
 
-The project is selected with --project.
+The project is selected with --project or via 'iai projects select'.
 
 Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
@@ -255,17 +250,14 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -302,7 +294,7 @@ var secretsDeleteCmd = &cobra.Command{
 	Short:   "Delete a secret in a project",
 	Long: `Delete a secret in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -336,17 +328,14 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -377,7 +366,7 @@ var secretsGetCmd = &cobra.Command{
 	Short: "Get a secret in a project",
 	Long: `Get a secret in a specific project using the deployment service.
 
-The project is selected with --project.`,
+The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -411,17 +400,14 @@ The project is selected with --project.`,
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
 
-		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+		sess := session.NewSession(cfgDirName)
 
-		orgName, err := files.ResolveOrganization(cfg.Organization, secretsOrganization, selectedOrg)
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
 		if err != nil {
 			return fmt.Errorf("failed to resolve organization: %w", err)
 		}
 
-		projectName, err := files.ResolveProject(cfg.Project, secretsProject)
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
