@@ -141,3 +141,27 @@ This will rebuild and reinstall the latest version over your existing binary.
   - Make sure you can reach GitHub from your machine.
 
 If you continue to have issues, capture the exact command and error message and share it when asking for help.
+
+---
+
+## 8. Development and Testing
+
+### 8.1 Running Tests
+
+Run all tests:
+
+```bash
+make test
+# or
+go test -v ./...
+```
+
+### 8.2 Test Coverage
+
+Generate a coverage report:
+
+```bash
+make test-coverage
+```
+
+This creates `coverage.html` which you can open in a browser to view detailed coverage information.
