@@ -1,4 +1,4 @@
-.PHONY: help docs test test-unit test-integration test-all test-coverage
+.PHONY: help docs test test-unit test-coverage
 
 help:
 	@echo "📝 Available commands:"
@@ -11,30 +11,14 @@ docs: ## Generate CLI documentation
 
 test: test-unit ## Run unit tests (default test target)
 
-test-unit: ## Run unit tests only
+test-unit: ## Run unit tests
 	@echo "Running unit tests..."
 	@go test -v ./...
 
-test-integration: ## Run integration tests only
-	@echo "Running integration tests..."
-	@go test -v -tags=integration ./...
-
-test-all: ## Run all tests (unit + integration)
-	@echo "Running all tests..."
-	@go test -v ./...
-	@go test -v -tags=integration ./...
-
-test-coverage: ## Run unit tests with coverage report
+test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
 	@go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
-
-test-coverage-all: ## Run all tests (unit + integration) with coverage report
-	@echo "Running all tests with coverage (including integration tests)..."
-	@go test -coverprofile=coverage-all.out -tags=integration ./...
-	@go tool cover -html=coverage-all.out -o coverage-all.html
-	@echo "Combined coverage report generated: coverage-all.html"
-	@go tool cover -func=coverage-all.out | grep total:
 
 .DEFAULT_GOAL := help
