@@ -51,11 +51,11 @@ func (s *Session) ResolveProject(cfgProject, flagProject string) (string, error)
 	flagProject = strings.TrimSpace(flagProject)
 	cfgProject = strings.TrimSpace(cfgProject)
 
-	if cfgProject != "" {
-		return cfgProject, nil
-	}
 	if flagProject != "" {
 		return flagProject, nil
+	}
+	if cfgProject != "" {
+		return cfgProject, nil
 	}
 
 	selectedProject, err := files.GetSelectedProject(s.cfgDirName)
