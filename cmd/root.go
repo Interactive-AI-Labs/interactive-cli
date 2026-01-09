@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	version            = "0.0.31"
 	cfgDirName         = ".interactiveai"
 	sessionFileName    = "session_cookies.json"
 	defaultHTTPTimeout = 15 * time.Second
@@ -23,6 +24,7 @@ var (
 		Use:          "iai",
 		Short:        "InteractiveAI's CLI",
 		Long:         `InteractiveAI's CLI to interact with its platform`,
+		Version:      version,
 		SilenceUsage: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if !strings.HasPrefix(hostname, "http://") && !strings.HasPrefix(hostname, "https://") {
