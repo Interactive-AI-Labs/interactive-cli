@@ -1,4 +1,4 @@
-.PHONY: help docs test test-unit test-coverage
+.PHONY: help docs test test-unit test-coverage kubeconfig start stop clean
 
 help:
 	@echo "📝 Available commands:"
@@ -20,5 +20,24 @@ test-coverage: ## Run tests with coverage report
 	@go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+
+kubeconfig:
+	@./generate-kubeconfig.sh
+
+start: kubeconfig
+	@echo ""
+	@echo "🐳 Starting Docker containers..."
+	@docker compose down 2>/dev/null || true
+	@docker compose up
+
+stop:
+	@echo "🛑 Stopping Docker containers..."
+	@docker compose down
+
+clean:
+	@echo "🧹 Cleaning up..."
+	@docker compose down 2>/dev/null || true
+	@rm -rf tmp/kubeconfig-docker
+	@echo "✅ Cleaned up"
 
 .DEFAULT_GOAL := help

@@ -18,3 +18,12 @@ repos:
         always_run: false
         stages: [pre-commit]
         files: ^go\.mod$
+
+      - id: run-unit-tests
+        name: Run unit tests
+        entry: go test ./...
+        language: system
+        pass_filenames: false
+        always_run: false
+        stages: [pre-commit]
+        files: '\.go$'

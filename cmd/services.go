@@ -22,10 +22,14 @@ var (
 	serviceImageName       string
 	serviceImageTag        string
 	serviceReplicas        int
-	serviceReqMemory       string
-	serviceReqCPU          string
-	serviceLimitMemory     string
-	serviceLimitCPU        string
+	serviceMemory          string
+	serviceCPU             string
+
+	serviceAutoscalingEnabled bool
+	serviceAutoscalingMin     int
+	serviceAutoscalingMax     int
+	serviceAutoscalingCPU     int
+	serviceAutoscalingMemory  int
 
 	serviceEndpoint   bool
 	serviceEnvVars    []string
@@ -75,6 +79,38 @@ All configuration is provided via flags. The project is selected with --project 
 		}
 		if serviceImageType == "external" && serviceImageRepository == "" {
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
+		}
+		if serviceMemory == "" {
+			return fmt.Errorf("memory is required; please provide --memory")
+		}
+		if serviceCPU == "" {
+			return fmt.Errorf("cpu is required; please provide --cpu")
+		}
+
+		hasReplicas := serviceReplicas > 0
+		hasAutoscaling := serviceAutoscalingEnabled
+
+		if hasReplicas && hasAutoscaling {
+			return fmt.Errorf("cannot specify both --replicas and --autoscaling-enabled; they are mutually exclusive")
+		}
+
+		if !hasReplicas && !hasAutoscaling {
+			return fmt.Errorf("must specify either --replicas or --autoscaling-enabled")
+		}
+
+		if hasAutoscaling {
+			if serviceAutoscalingMin <= 0 {
+				return fmt.Errorf("--autoscaling-min-replicas must be greater than zero when autoscaling is enabled")
+			}
+			if serviceAutoscalingMax <= 0 {
+				return fmt.Errorf("--autoscaling-max-replicas must be greater than zero when autoscaling is enabled")
+			}
+			if serviceAutoscalingMin > serviceAutoscalingMax {
+				return fmt.Errorf("--autoscaling-min-replicas cannot be greater than --autoscaling-max-replicas")
+			}
+			if serviceAutoscalingCPU <= 0 && serviceAutoscalingMemory <= 0 {
+				return fmt.Errorf("at least one of --autoscaling-cpu-percentage or --autoscaling-memory-percentage must be set when autoscaling is enabled")
+			}
 		}
 
 		cfg := &files.StackConfig{}
@@ -151,19 +187,24 @@ All configuration is provided via flags. The project is selected with --project 
 				Tag:        serviceImageTag,
 			},
 			Resources: clients.Resources{
-				Requests: clients.ResourceRequirements{
-					Memory: serviceReqMemory,
-					CPU:    serviceReqCPU,
-				},
-				Limits: clients.ResourceRequirements{
-					Memory: serviceLimitMemory,
-					CPU:    serviceLimitCPU,
-				},
+				Memory: serviceMemory,
+				CPU:    serviceCPU,
 			},
 			Env:        env,
 			SecretRefs: secretRefs,
 			Endpoint:   serviceEndpoint,
-			Replicas:   serviceReplicas,
+		}
+
+		if serviceAutoscalingEnabled {
+			reqBody.Autoscaling = &clients.Autoscaling{
+				Enabled:          true,
+				MinReplicas:      serviceAutoscalingMin,
+				MaxReplicas:      serviceAutoscalingMax,
+				CPUPercentage:    serviceAutoscalingCPU,
+				MemoryPercentage: serviceAutoscalingMemory,
+			}
+		} else if serviceReplicas > 0 {
+			reqBody.Replicas = serviceReplicas
 		}
 
 		fmt.Fprintln(out)
@@ -217,6 +258,38 @@ All configuration is provided via flags. The project is selected with --project 
 		}
 		if serviceImageType == "external" && serviceImageRepository == "" {
 			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
+		}
+		if serviceMemory == "" {
+			return fmt.Errorf("memory is required; please provide --memory")
+		}
+		if serviceCPU == "" {
+			return fmt.Errorf("cpu is required; please provide --cpu")
+		}
+
+		hasReplicas := serviceReplicas > 0
+		hasAutoscaling := serviceAutoscalingEnabled
+
+		if hasReplicas && hasAutoscaling {
+			return fmt.Errorf("cannot specify both --replicas and --autoscaling-enabled; they are mutually exclusive")
+		}
+
+		if !hasReplicas && !hasAutoscaling {
+			return fmt.Errorf("must specify either --replicas or --autoscaling-enabled")
+		}
+
+		if hasAutoscaling {
+			if serviceAutoscalingMin <= 0 {
+				return fmt.Errorf("--autoscaling-min-replicas must be greater than zero when autoscaling is enabled")
+			}
+			if serviceAutoscalingMax <= 0 {
+				return fmt.Errorf("--autoscaling-max-replicas must be greater than zero when autoscaling is enabled")
+			}
+			if serviceAutoscalingMin > serviceAutoscalingMax {
+				return fmt.Errorf("--autoscaling-min-replicas cannot be greater than --autoscaling-max-replicas")
+			}
+			if serviceAutoscalingCPU <= 0 && serviceAutoscalingMemory <= 0 {
+				return fmt.Errorf("at least one of --autoscaling-cpu-percentage or --autoscaling-memory-percentage must be set when autoscaling is enabled")
+			}
 		}
 
 		cfg := &files.StackConfig{}
@@ -292,19 +365,24 @@ All configuration is provided via flags. The project is selected with --project 
 				Tag:        serviceImageTag,
 			},
 			Resources: clients.Resources{
-				Requests: clients.ResourceRequirements{
-					Memory: serviceReqMemory,
-					CPU:    serviceReqCPU,
-				},
-				Limits: clients.ResourceRequirements{
-					Memory: serviceLimitMemory,
-					CPU:    serviceLimitCPU,
-				},
+				Memory: serviceMemory,
+				CPU:    serviceCPU,
 			},
 			Env:        env,
 			SecretRefs: secretRefs,
 			Endpoint:   serviceEndpoint,
-			Replicas:   serviceReplicas,
+		}
+
+		if serviceAutoscalingEnabled {
+			reqBody.Autoscaling = &clients.Autoscaling{
+				Enabled:          true,
+				MinReplicas:      serviceAutoscalingMin,
+				MaxReplicas:      serviceAutoscalingMax,
+				CPUPercentage:    serviceAutoscalingCPU,
+				MemoryPercentage: serviceAutoscalingMemory,
+			}
+		} else if serviceReplicas > 0 {
+			reqBody.Replicas = serviceReplicas
 		}
 
 		fmt.Fprintln(out)
@@ -726,11 +804,16 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
-	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
-	servCCmd.Flags().StringVar(&serviceReqMemory, "requests-memory", "512Mi", "Requested memory (e.g. 512Mi)")
-	servCCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
-	servCCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
-	servCCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
+	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
+	servCCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory resource (e.g. 128Mi, 1Gi) - required")
+	servCCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU resource (e.g. 50m, 500m) - required")
+
+	servCCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
+	servCCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
+	servCCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+	servCCmd.Flags().IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
+	servCCmd.Flags().IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
+
 	servCCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
 	servCCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
@@ -744,11 +827,16 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
-	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 1, "Number of replicas for the service")
-	servUCmd.Flags().StringVar(&serviceReqMemory, "requests-memory", "512Mi", "Requested memory (e.g. 512Mi)")
-	servUCmd.Flags().StringVar(&serviceReqCPU, "requests-cpu", "250m", "Requested CPU (e.g. 250m)")
-	servUCmd.Flags().StringVar(&serviceLimitMemory, "limits-memory", "1Gi", "Memory limit (e.g. 1Gi)")
-	servUCmd.Flags().StringVar(&serviceLimitCPU, "limits-cpu", "500m", "CPU limit (e.g. 500m)")
+	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
+	servUCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory resource (e.g. 128Mi, 1Gi) - required")
+	servUCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU resource (e.g. 50m, 500m) - required")
+
+	servUCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
+	servUCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
+	servUCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+	servUCmd.Flags().IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
+	servUCmd.Flags().IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
+
 	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
 	servUCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")

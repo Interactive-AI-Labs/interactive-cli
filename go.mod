@@ -2,7 +2,10 @@ module github.com/Interactive-AI-Labs/interactive-cli
 
 go 1.25.1
 
-require github.com/spf13/cobra v1.10.1
+require (
+	github.com/google/go-cmp v0.7.0
+	github.com/spf13/cobra v1.10.1
+)
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect

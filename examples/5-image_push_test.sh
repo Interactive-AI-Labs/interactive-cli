@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-interactiveai images push test --tag test
+iai images push test --tag test

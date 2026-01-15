@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-interactiveai images build test \
+iai images build test \
   --tag test

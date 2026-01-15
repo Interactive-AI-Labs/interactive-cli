@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-interactiveai projects list
+iai projects list
