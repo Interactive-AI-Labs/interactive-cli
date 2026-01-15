@@ -6,14 +6,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func TestLoadStackConfig(t *testing.T) {
-	t.Run("loads valid stack config", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "stack.yaml")
-		content := `organization: test-org
+	tests := []struct {
+		name           string
+		content        string
+		want           *StackConfig
+		wantErr        bool
+		errContains    string
+		useNonexistent bool
+	}{
+		{
+			name: "valid config with replicas",
+			content: `organization: test-org
 project: test-project
 stack-id: stack-123
 services:
@@ -29,81 +38,140 @@ services:
       cpu: 100m
     replicas: 2
     endpoint: true
-`
-		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
+`,
+			want: &StackConfig{
+				Organization: "test-org",
+				Project:      "test-project",
+				StackId:      "stack-123",
+				Services: map[string]ServiceConfig{
+					"web": {
+						Version:     "v1",
+						ServicePort: 8080,
+						Image: clients.ImageSpec{
+							Type: "internal",
+							Name: "myapp",
+							Tag:  "latest",
+						},
+						Resources: clients.Resources{
+							Memory: "256Mi",
+							CPU:    "100m",
+						},
+						Replicas: 2,
+						Endpoint: true,
+					},
+				},
+			},
+		},
+		{
+			name: "valid config with autoscaling",
+			content: `organization: my-org
+project: my-project
+stack-id: stack-456
+services:
+  api:
+    servicePort: 3000
+    image:
+      type: external
+      repository: nginx
+      name: nginx
+      tag: alpine
+    resources:
+      memory: 128Mi
+      cpu: 50m
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      cpuPercentage: 80
+      memoryPercentage: 85
+`,
+			want: &StackConfig{
+				Organization: "my-org",
+				Project:      "my-project",
+				StackId:      "stack-456",
+				Services: map[string]ServiceConfig{
+					"api": {
+						ServicePort: 3000,
+						Image: clients.ImageSpec{
+							Type:       "external",
+							Repository: "nginx",
+							Name:       "nginx",
+							Tag:        "alpine",
+						},
+						Resources: clients.Resources{
+							Memory: "128Mi",
+							CPU:    "50m",
+						},
+						Autoscaling: &clients.Autoscaling{
+							Enabled:          true,
+							MinReplicas:      2,
+							MaxReplicas:      10,
+							CPUPercentage:    80,
+							MemoryPercentage: 85,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:           "file does not exist",
+			useNonexistent: true,
+			wantErr:        true,
+			errContains:    "failed to read config file",
+		},
+		{
+			name: "invalid YAML",
+			content: `organization: test-org
+services: [invalid, yaml: syntax}`,
+			wantErr:     true,
+			errContains: "failed to parse YAML",
+		},
+	}
 
-		cfg, err := LoadStackConfig(configFile)
-		if err != nil {
-			t.Fatalf("LoadStackConfig() error = %v", err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var configFile string
 
-		if cfg.Organization != "test-org" {
-			t.Errorf("Organization = %q, want %q", cfg.Organization, "test-org")
-		}
-		if cfg.Project != "test-project" {
-			t.Errorf("Project = %q, want %q", cfg.Project, "test-project")
-		}
-		if cfg.StackId != "stack-123" {
-			t.Errorf("StackId = %q, want %q", cfg.StackId, "stack-123")
-		}
+			if tt.useNonexistent {
+				configFile = "/nonexistent/file.yaml"
+			} else {
+				tmpDir := t.TempDir()
+				configFile = filepath.Join(tmpDir, "stack.yaml")
+				if err := os.WriteFile(configFile, []byte(tt.content), 0o600); err != nil {
+					t.Fatalf("failed to write test file: %v", err)
+				}
+			}
 
-		if len(cfg.Services) != 1 {
-			t.Fatalf("expected 1 service, got %d", len(cfg.Services))
-		}
+			got, err := LoadStackConfig(configFile)
 
-		web, ok := cfg.Services["web"]
-		if !ok {
-			t.Fatal("service 'web' not found")
-		}
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("LoadStackConfig() expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("error should contain %q, got: %v", tt.errContains, err)
+				}
+				return
+			}
 
-		if web.ServicePort != 8080 {
-			t.Errorf("web.ServicePort = %d, want 8080", web.ServicePort)
-		}
-		if web.Image.Type != "internal" {
-			t.Errorf("web.Image.Type = %q, want 'internal'", web.Image.Type)
-		}
-		if web.Replicas != 2 {
-			t.Errorf("web.Replicas = %d, want 2", web.Replicas)
-		}
-		if !web.Endpoint {
-			t.Error("web.Endpoint = false, want true")
-		}
-	})
+			if err != nil {
+				t.Fatalf("LoadStackConfig() unexpected error = %v", err)
+			}
 
-	t.Run("returns error when file does not exist", func(t *testing.T) {
-		_, err := LoadStackConfig("/nonexistent/file.yaml")
-		if err == nil {
-			t.Fatal("LoadStackConfig() expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "failed to read config file") {
-			t.Errorf("error should mention 'failed to read config file', got: %v", err)
-		}
-	})
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("LoadStackConfig() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 
-	t.Run("returns error for invalid YAML", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "stack.yaml")
-		content := `organization: test-org
-services: [invalid, yaml: syntax}`
-		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
-
-		_, err := LoadStackConfig(configFile)
-		if err == nil {
-			t.Fatal("LoadStackConfig() expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "failed to parse YAML") {
-			t.Errorf("error should mention 'failed to parse YAML', got: %v", err)
-		}
-	})
-
-	t.Run("returns error when stack-id missing with services", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "stack.yaml")
-		content := `organization: test-org
+	validationTests := []struct {
+		name        string
+		config      string
+		errContains string
+	}{
+		{
+			name: "missing stack-id with services",
+			config: `organization: test-org
 project: test-project
 services:
   web:
@@ -116,24 +184,12 @@ services:
       memory: 256Mi
       cpu: 100m
     replicas: 1
-`
-		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
-
-		_, err := LoadStackConfig(configFile)
-		if err == nil {
-			t.Fatal("LoadStackConfig() expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "stack-id is required") {
-			t.Errorf("error should mention 'stack-id is required', got: %v", err)
-		}
-	})
-
-	t.Run("validates service port", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "stack.yaml")
-		content := `organization: test-org
+`,
+			errContains: "stack-id is required",
+		},
+		{
+			name: "invalid service port",
+			config: `organization: test-org
 project: test-project
 stack-id: stack-123
 services:
@@ -147,24 +203,12 @@ services:
       memory: 256Mi
       cpu: 100m
     replicas: 1
-`
-		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
-
-		_, err := LoadStackConfig(configFile)
-		if err == nil {
-			t.Fatal("LoadStackConfig() expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "servicePort must be greater than zero") {
-			t.Errorf("error should mention 'servicePort must be greater than zero', got: %v", err)
-		}
-	})
-
-	t.Run("validates image type", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "stack.yaml")
-		content := `organization: test-org
+`,
+			errContains: "servicePort must be greater than zero",
+		},
+		{
+			name: "invalid image type",
+			config: `organization: test-org
 project: test-project
 stack-id: stack-123
 services:
@@ -178,24 +222,12 @@ services:
       memory: 256Mi
       cpu: 100m
     replicas: 1
-`
-		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
-
-		_, err := LoadStackConfig(configFile)
-		if err == nil {
-			t.Fatal("LoadStackConfig() expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "must be 'internal' or 'external'") {
-			t.Errorf("error should mention image type validation, got: %v", err)
-		}
-	})
-
-	t.Run("validates mutual exclusivity of replicas and autoscaling", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "stack.yaml")
-		content := `organization: test-org
+`,
+			errContains: "must be 'internal' or 'external'",
+		},
+		{
+			name: "both replicas and autoscaling",
+			config: `organization: test-org
 project: test-project
 stack-id: stack-123
 services:
@@ -214,24 +246,12 @@ services:
       minReplicas: 2
       maxReplicas: 10
       cpuPercentage: 80
-`
-		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
-
-		_, err := LoadStackConfig(configFile)
-		if err == nil {
-			t.Fatal("LoadStackConfig() expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "cannot set both replicas and autoscaling.enabled") {
-			t.Errorf("error should mention mutual exclusivity, got: %v", err)
-		}
-	})
-
-	t.Run("validates external image repository", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		configFile := filepath.Join(tmpDir, "stack.yaml")
-		content := `organization: test-org
+`,
+			errContains: "cannot set both replicas and autoscaling.enabled",
+		},
+		{
+			name: "external image without repository",
+			config: `organization: test-org
 project: test-project
 stack-id: stack-123
 services:
@@ -245,68 +265,192 @@ services:
       memory: 256Mi
       cpu: 100m
     replicas: 1
-`
-		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
+`,
+			errContains: "image.repository is required for external images",
+		},
+		{
+			name: "neither replicas nor autoscaling",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+services:
+  web:
+    servicePort: 8080
+    image:
+      type: internal
+      name: myapp
+      tag: latest
+    resources:
+      memory: 256Mi
+      cpu: 100m
+`,
+			errContains: "must specify either replicas or autoscaling",
+		},
+	}
 
-		_, err := LoadStackConfig(configFile)
-		if err == nil {
-			t.Fatal("LoadStackConfig() expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "image.repository is required for external images") {
-			t.Errorf("error should mention repository requirement, got: %v", err)
-		}
-	})
+	for _, tt := range validationTests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			configFile := filepath.Join(tmpDir, "stack.yaml")
+
+			if err := os.WriteFile(configFile, []byte(tt.config), 0o600); err != nil {
+				t.Fatalf("failed to write test file: %v", err)
+			}
+
+			_, err := LoadStackConfig(configFile)
+			if err == nil {
+				t.Fatal("LoadStackConfig() expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("expected error containing %q, got: %v", tt.errContains, err)
+			}
+		})
+	}
 }
 
 func TestServiceConfigToCreateRequest(t *testing.T) {
-	t.Run("converts to create request", func(t *testing.T) {
-		svc := ServiceConfig{
-			Version:     "v1",
-			ServicePort: 8080,
-			Image: clients.ImageSpec{
-				Type: "internal",
-				Name: "myapp",
-				Tag:  "latest",
+	tests := []struct {
+		name    string
+		input   ServiceConfig
+		stackId string
+		want    clients.CreateServiceBody
+	}{
+		{
+			name: "with fixed replicas",
+			input: ServiceConfig{
+				ServicePort: 8080,
+				Image: clients.ImageSpec{
+					Type: "internal",
+					Name: "myapp",
+					Tag:  "latest",
+				},
+				Resources: clients.Resources{
+					Memory: "256Mi",
+					CPU:    "100m",
+				},
+				Env: []clients.EnvVar{
+					{Name: "KEY1", Value: "value1"},
+				},
+				SecretRefs: []clients.SecretRef{
+					{SecretName: "my-secret"},
+				},
+				Endpoint: true,
+				Replicas: 3,
 			},
-			Resources: clients.Resources{
-				Memory: "256Mi",
-				CPU:    "100m",
+			stackId: "stack-123",
+			want: clients.CreateServiceBody{
+				ServicePort: 8080,
+				Image: clients.ImageSpec{
+					Type: "internal",
+					Name: "myapp",
+					Tag:  "latest",
+				},
+				Resources: clients.Resources{
+					Memory: "256Mi",
+					CPU:    "100m",
+				},
+				Env: []clients.EnvVar{
+					{Name: "KEY1", Value: "value1"},
+				},
+				SecretRefs: []clients.SecretRef{
+					{SecretName: "my-secret"},
+				},
+				Endpoint:    true,
+				Replicas:    3,
+				Autoscaling: nil,
+				StackId:     "stack-123",
 			},
-			Env: []clients.EnvVar{
-				{Name: "KEY1", Value: "value1"},
+		},
+		{
+			name: "with autoscaling",
+			input: ServiceConfig{
+				ServicePort: 8080,
+				Image: clients.ImageSpec{
+					Type:       "external",
+					Repository: "nginx",
+					Name:       "nginx",
+					Tag:        "latest",
+				},
+				Resources: clients.Resources{
+					Memory: "128Mi",
+					CPU:    "50m",
+				},
+				Autoscaling: &clients.Autoscaling{
+					Enabled:          true,
+					MinReplicas:      2,
+					MaxReplicas:      10,
+					CPUPercentage:    80,
+					MemoryPercentage: 85,
+				},
 			},
-			SecretRefs: []clients.SecretRef{
-				{SecretName: "my-secret"},
+			stackId: "stack-456",
+			want: clients.CreateServiceBody{
+				ServicePort: 8080,
+				Image: clients.ImageSpec{
+					Type:       "external",
+					Repository: "nginx",
+					Name:       "nginx",
+					Tag:        "latest",
+				},
+				Resources: clients.Resources{
+					Memory: "128Mi",
+					CPU:    "50m",
+				},
+				Replicas: 0,
+				Autoscaling: &clients.Autoscaling{
+					Enabled:          true,
+					MinReplicas:      2,
+					MaxReplicas:      10,
+					CPUPercentage:    80,
+					MemoryPercentage: 85,
+				},
+				StackId: "stack-456",
 			},
-			Endpoint: true,
-			Replicas: 3,
-		}
+		},
+		{
+			name: "autoscaling disabled with replicas",
+			input: ServiceConfig{
+				ServicePort: 3000,
+				Image: clients.ImageSpec{
+					Type: "internal",
+					Name: "app",
+					Tag:  "v1",
+				},
+				Resources: clients.Resources{
+					Memory: "512Mi",
+					CPU:    "250m",
+				},
+				Autoscaling: &clients.Autoscaling{
+					Enabled: false,
+				},
+				Replicas: 5,
+			},
+			stackId: "stack-789",
+			want: clients.CreateServiceBody{
+				ServicePort: 3000,
+				Image: clients.ImageSpec{
+					Type: "internal",
+					Name: "app",
+					Tag:  "v1",
+				},
+				Resources: clients.Resources{
+					Memory: "512Mi",
+					CPU:    "250m",
+				},
+				Replicas:    5,
+				Autoscaling: nil,
+				StackId:     "stack-789",
+			},
+		},
+	}
 
-		stackId := "stack-123"
-		req := svc.ToCreateRequest(stackId)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.ToCreateRequest(tt.stackId)
 
-		if req.ServicePort != 8080 {
-			t.Errorf("ServicePort = %d, want 8080", req.ServicePort)
-		}
-		if req.Image.Type != "internal" {
-			t.Errorf("Image.Type = %q, want 'internal'", req.Image.Type)
-		}
-		if req.Replicas != 3 {
-			t.Errorf("Replicas = %d, want 3", req.Replicas)
-		}
-		if req.StackId != stackId {
-			t.Errorf("StackId = %q, want %q", req.StackId, stackId)
-		}
-		if !req.Endpoint {
-			t.Error("Endpoint = false, want true")
-		}
-		if len(req.Env) != 1 {
-			t.Errorf("Env length = %d, want 1", len(req.Env))
-		}
-		if len(req.SecretRefs) != 1 {
-			t.Errorf("SecretRefs length = %d, want 1", len(req.SecretRefs))
-		}
-	})
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("ToCreateRequest() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
