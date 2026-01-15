@@ -16,11 +16,6 @@
 # - Create services that exist in the config but not in the project
 # - Update services that exist in both
 # - Delete services (with the same stack-id) that exist in the project but not in the config
-#
-# Scaling Configuration:
-# Services can use either 'replicas' OR 'autoscaling', but not both:
-# - Use 'replicas' for a fixed number of instances
-# - Use 'autoscaling' for dynamic scaling based on resource usage
 
 organization: my-org
 project: my-project
