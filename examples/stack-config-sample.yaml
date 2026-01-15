@@ -16,12 +16,18 @@
 # - Create services that exist in the config but not in the project
 # - Update services that exist in both
 # - Delete services (with the same stack-id) that exist in the project but not in the config
+#
+# Scaling Configuration:
+# Services can use either 'replicas' OR 'autoscaling', but not both:
+# - Use 'replicas' for a fixed number of instances
+# - Use 'autoscaling' for dynamic scaling based on resource usage
 
 organization: my-org
 project: my-project
 stack-id: my-stack-v1
 
 services:
+  # Example service with fixed replicas
   api-service:
     servicePort: 8080
     image:
@@ -30,12 +36,8 @@ services:
       name: httpbin
       tag: latest
     resources:
-      requests:
-        memory: "512Mi"
-        cpu: "250m"
-      limits:
-        memory: "1Gi"
-        cpu: "500m"
+      memory: "128Mi"
+      cpu: "50m"
     env:
       - name: DATABASE_URL
         value: "postgres://db:5432/mydb"
@@ -46,6 +48,7 @@ services:
     endpoint: true
     replicas: 2
 
+  # Example service with autoscaling
   api-service-2:
     servicePort: 8080
     image:
@@ -54,12 +57,8 @@ services:
       name: httpbin
       tag: latest
     resources:
-      requests:
-        memory: "512Mi"
-        cpu: "250m"
-      limits:
-        memory: "1Gi"
-        cpu: "500m"
+      memory: "128Mi"
+      cpu: "50m"
     env:
       - name: DATABASE_URL
         value: "postgres://db:5432/mydb"
@@ -68,4 +67,9 @@ services:
     secretRefs:
       - secretName: my-secret
     endpoint: true
-    replicas: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      cpuPercentage: 80
+      memoryPercentage: 85
