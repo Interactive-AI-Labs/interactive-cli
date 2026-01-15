@@ -78,7 +78,6 @@ type CreateServiceBody struct {
 	Env         []EnvVar     `json:"env,omitempty"`
 	SecretRefs  []SecretRef  `json:"secretRefs,omitempty"`
 	Endpoint    bool         `json:"endpoint,omitempty"`
-	Hostname    string       `json:"hostname,omitempty"`
 	Replicas    int          `json:"replicas,omitempty"`
 	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
 	StackId     string       `json:"stackId,omitempty"`
