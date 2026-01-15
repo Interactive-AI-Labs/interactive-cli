@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -73,13 +72,6 @@ var loginCmd = &cobra.Command{
 
 		// 3. Handle non-successful status codes.
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-			respText := strings.TrimSpace(string(respBody))
-
-			if respText != "" {
-				fmt.Fprintf(out, "Server response:\n%s\n", respText)
-			}
-
 			return fmt.Errorf("login failed with status %s", resp.Status)
 		}
 
