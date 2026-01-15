@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-interactiveai services update httpbin \
-  --project betsson-poc \
+iai services update httpbin \
+  --project demo-1 \
   --port 80 \
   --image-type external \
   --image-name httpbin \

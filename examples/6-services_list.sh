@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-interactiveai services list --project betsson-poc
+iai services list --project demo-1
