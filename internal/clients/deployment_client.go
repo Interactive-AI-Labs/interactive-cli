@@ -72,25 +72,29 @@ func (c *DeploymentClient) newRequest(ctx context.Context, method, path string) 
 }
 
 type CreateServiceBody struct {
-	ServicePort int         `json:"servicePort"`
-	Image       ImageSpec   `json:"image"`
-	Resources   Resources   `json:"resources"`
-	Env         []EnvVar    `json:"env,omitempty"`
-	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
-	Endpoint    bool        `json:"endpoint,omitempty"`
-	Hostname    string      `json:"hostname,omitempty"`
-	Replicas    int         `json:"replicas"`
-	StackId     string      `json:"stackId,omitempty"`
+	ServicePort int          `json:"servicePort"`
+	Image       ImageSpec    `json:"image"`
+	Resources   Resources    `json:"resources"`
+	Env         []EnvVar     `json:"env,omitempty"`
+	SecretRefs  []SecretRef  `json:"secretRefs,omitempty"`
+	Endpoint    bool         `json:"endpoint,omitempty"`
+	Hostname    string       `json:"hostname,omitempty"`
+	Replicas    int          `json:"replicas,omitempty"`
+	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
+	StackId     string       `json:"stackId,omitempty"`
 }
 
-type ResourceRequirements struct {
+type Resources struct {
 	Memory string `json:"memory" yaml:"memory"`
 	CPU    string `json:"cpu" yaml:"cpu"`
 }
 
-type Resources struct {
-	Requests ResourceRequirements `json:"requests" yaml:"requests"`
-	Limits   ResourceRequirements `json:"limits" yaml:"limits"`
+type Autoscaling struct {
+	Enabled          bool `json:"enabled" yaml:"enabled"`
+	MinReplicas      int  `json:"minReplicas,omitempty" yaml:"minReplicas,omitempty"`
+	MaxReplicas      int  `json:"maxReplicas,omitempty" yaml:"maxReplicas,omitempty"`
+	CPUPercentage    int  `json:"cpuPercentage,omitempty" yaml:"cpuPercentage,omitempty"`
+	MemoryPercentage int  `json:"memoryPercentage,omitempty" yaml:"memoryPercentage,omitempty"`
 }
 
 type ImageSpec struct {

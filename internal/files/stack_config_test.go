@@ -25,12 +25,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 200m
+      memory: 256Mi
+      cpu: 100m
     replicas: 2
     endpoint: true
 `
@@ -117,12 +113,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 200m
+      memory: 256Mi
+      cpu: 100m
     replicas: 1
 `
 		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
@@ -152,12 +144,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 200m
+      memory: 256Mi
+      cpu: 100m
     replicas: 1
 `
 		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
@@ -187,12 +175,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 200m
+      memory: 256Mi
+      cpu: 100m
     replicas: 1
 `
 		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
@@ -208,7 +192,7 @@ services:
 		}
 	})
 
-	t.Run("validates replicas", func(t *testing.T) {
+	t.Run("validates mutual exclusivity of replicas and autoscaling", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		configFile := filepath.Join(tmpDir, "stack.yaml")
 		content := `organization: test-org
@@ -222,13 +206,14 @@ services:
       name: myapp
       tag: latest
     resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 200m
-    replicas: 0
+      memory: 256Mi
+      cpu: 100m
+    replicas: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      cpuPercentage: 80
 `
 		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
 			t.Fatalf("failed to write test file: %v", err)
@@ -238,8 +223,8 @@ services:
 		if err == nil {
 			t.Fatal("LoadStackConfig() expected error, got nil")
 		}
-		if !strings.Contains(err.Error(), "replicas must be at least 1") {
-			t.Errorf("error should mention 'replicas must be at least 1', got: %v", err)
+		if !strings.Contains(err.Error(), "cannot set both replicas and autoscaling.enabled") {
+			t.Errorf("error should mention mutual exclusivity, got: %v", err)
 		}
 	})
 
@@ -257,12 +242,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      requests:
-        memory: 256Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 200m
+      memory: 256Mi
+      cpu: 100m
     replicas: 1
 `
 		if err := os.WriteFile(configFile, []byte(content), 0o600); err != nil {
@@ -290,14 +271,8 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 				Tag:  "latest",
 			},
 			Resources: clients.Resources{
-				Requests: clients.ResourceRequirements{
-					Memory: "256Mi",
-					CPU:    "100m",
-				},
-				Limits: clients.ResourceRequirements{
-					Memory: "512Mi",
-					CPU:    "200m",
-				},
+				Memory: "256Mi",
+				CPU:    "100m",
 			},
 			Env: []clients.EnvVar{
 				{Name: "KEY1", Value: "value1"},

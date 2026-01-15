@@ -16,14 +16,15 @@ type StackConfig struct {
 }
 
 type ServiceConfig struct {
-	Version     string              `yaml:"version,omitempty"`
-	ServicePort int                 `yaml:"servicePort"`
-	Image       clients.ImageSpec   `yaml:"image"`
-	Resources   clients.Resources   `yaml:"resources"`
-	Env         []clients.EnvVar    `yaml:"env,omitempty"`
-	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"`
-	Endpoint    bool                `yaml:"endpoint,omitempty"`
-	Replicas    int                 `yaml:"replicas"`
+	Version     string               `yaml:"version,omitempty"`
+	ServicePort int                  `yaml:"servicePort"`
+	Image       clients.ImageSpec    `yaml:"image"`
+	Resources   clients.Resources    `yaml:"resources"`
+	Env         []clients.EnvVar     `yaml:"env,omitempty"`
+	SecretRefs  []clients.SecretRef  `yaml:"secretRefs,omitempty"`
+	Endpoint    bool                 `yaml:"endpoint,omitempty"`
+	Replicas    int                  `yaml:"replicas,omitempty"`
+	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"`
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
@@ -68,8 +69,34 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		if svc.Image.Tag == "" {
 			return nil, fmt.Errorf("service %q: image.tag is required", name)
 		}
-		if svc.Replicas < 1 {
-			return nil, fmt.Errorf("service %q: replicas must be at least 1", name)
+
+		if svc.Resources.Memory == "" {
+			return nil, fmt.Errorf("service %q: resources.memory is required", name)
+		}
+		if svc.Resources.CPU == "" {
+			return nil, fmt.Errorf("service %q: resources.cpu is required", name)
+		}
+
+		hasReplicas := svc.Replicas > 0
+		hasAutoscaling := svc.Autoscaling != nil && svc.Autoscaling.Enabled
+
+		if hasReplicas && hasAutoscaling {
+			return nil, fmt.Errorf("service %q: cannot set both replicas and autoscaling.enabled; only one scaling method can be configured", name)
+		}
+
+		if svc.Autoscaling != nil && svc.Autoscaling.Enabled {
+			if svc.Autoscaling.MinReplicas <= 0 {
+				return nil, fmt.Errorf("service %q: autoscaling.minReplicas must be greater than zero when autoscaling is enabled", name)
+			}
+			if svc.Autoscaling.MaxReplicas <= 0 {
+				return nil, fmt.Errorf("service %q: autoscaling.maxReplicas must be greater than zero when autoscaling is enabled", name)
+			}
+			if svc.Autoscaling.MinReplicas > svc.Autoscaling.MaxReplicas {
+				return nil, fmt.Errorf("service %q: autoscaling.minReplicas cannot be greater than autoscaling.maxReplicas", name)
+			}
+			if svc.Autoscaling.CPUPercentage <= 0 && svc.Autoscaling.MemoryPercentage <= 0 {
+				return nil, fmt.Errorf("service %q: at least one of autoscaling.cpuPercentage or autoscaling.memoryPercentage must be set when autoscaling is enabled", name)
+			}
 		}
 
 		for j, env := range svc.Env {
@@ -89,14 +116,21 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 }
 
 func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody {
-	return clients.CreateServiceBody{
+	body := clients.CreateServiceBody{
 		ServicePort: s.ServicePort,
 		Image:       s.Image,
 		Resources:   s.Resources,
 		Env:         s.Env,
 		SecretRefs:  s.SecretRefs,
 		Endpoint:    s.Endpoint,
-		Replicas:    s.Replicas,
 		StackId:     stackId,
 	}
+
+	if s.Autoscaling != nil && s.Autoscaling.Enabled {
+		body.Autoscaling = s.Autoscaling
+	} else {
+		body.Replicas = s.Replicas
+	}
+
+	return body
 }
