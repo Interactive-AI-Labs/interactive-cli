@@ -1,0 +1,24 @@
+services:
+  deployment-operator:
+    image: europe-west4-docker.pkg.dev/packages-3317e3ad/core-apps/deployment-operator:0.1.1
+    container_name: deployment-operator
+    platform: linux/amd64
+    ports:
+      - "8000:80"
+    environment:
+      - KUBECONFIG=/root/kubeconfig
+      - PORT=80
+      - HELM_DRIVER=secret
+      - ENV=dev
+      - SWAGGER_HOST=localhost:8000
+      - SWAGGER_SCHEME=http
+      - INTERACTIVE_HOSTNAME=dev.interactive.ai
+      - LOKI_HOST=test
+    volumes:
+      # Copy generated kubeconfig so helm install (api server interactions)
+      # are correctly authenticated
+      - ./tmp/kubeconfig-docker:/root/kubeconfig:ro
+      # Copy the gcloud credentials so the gcr cred helper
+      # works to pull helm charts
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+    restart: unless-stopped
