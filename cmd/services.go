@@ -7,6 +7,7 @@ import (
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
@@ -58,59 +59,30 @@ All configuration is provided via flags. The project is selected with --project 
 			serviceName = args[0]
 		}
 
-		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide it as a positional argument")
+		input := inputs.ServiceInput{
+			Name:            serviceName,
+			Port:            servicePort,
+			ImageType:       serviceImageType,
+			ImageRepository: serviceImageRepository,
+			ImageName:       serviceImageName,
+			ImageTag:        serviceImageTag,
+			Memory:          serviceMemory,
+			CPU:             serviceCPU,
+			Replicas:        serviceReplicas,
 		}
 
-		if servicePort <= 0 {
-			return fmt.Errorf("service port must be greater than zero; please provide --port")
-		}
-		if serviceImageName == "" {
-			return fmt.Errorf("image name is required; please provide --image-name")
-		}
-		if serviceImageTag == "" {
-			return fmt.Errorf("image tag is required; please provide --image-tag")
-		}
-		if serviceImageType == "" {
-			return fmt.Errorf("image type is required; please provide --image-type")
-		}
-		if serviceImageType != "internal" && serviceImageType != "external" {
-			return fmt.Errorf("image type must be either 'internal' or 'external'; please provide --image-type")
-		}
-		if serviceImageType == "external" && serviceImageRepository == "" {
-			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
-		}
-		if serviceMemory == "" {
-			return fmt.Errorf("memory is required; please provide --memory")
-		}
-		if serviceCPU == "" {
-			return fmt.Errorf("cpu is required; please provide --cpu")
-		}
-
-		hasReplicas := serviceReplicas > 0
-		hasAutoscaling := serviceAutoscalingEnabled
-
-		if hasReplicas && hasAutoscaling {
-			return fmt.Errorf("cannot specify both --replicas and --autoscaling-enabled; they are mutually exclusive")
-		}
-
-		if !hasReplicas && !hasAutoscaling {
-			return fmt.Errorf("must specify either --replicas or --autoscaling-enabled")
-		}
-
-		if hasAutoscaling {
-			if serviceAutoscalingMin <= 0 {
-				return fmt.Errorf("--autoscaling-min-replicas must be greater than zero when autoscaling is enabled")
+		if serviceAutoscalingEnabled {
+			input.Autoscaling = &inputs.AutoscalingInput{
+				Enabled:       true,
+				MinReplicas:   serviceAutoscalingMin,
+				MaxReplicas:   serviceAutoscalingMax,
+				CPUPercentage: serviceAutoscalingCPU,
+				MemoryPercent: serviceAutoscalingMemory,
 			}
-			if serviceAutoscalingMax <= 0 {
-				return fmt.Errorf("--autoscaling-max-replicas must be greater than zero when autoscaling is enabled")
-			}
-			if serviceAutoscalingMin > serviceAutoscalingMax {
-				return fmt.Errorf("--autoscaling-min-replicas cannot be greater than --autoscaling-max-replicas")
-			}
-			if serviceAutoscalingCPU <= 0 && serviceAutoscalingMemory <= 0 {
-				return fmt.Errorf("at least one of --autoscaling-cpu-percentage or --autoscaling-memory-percentage must be set when autoscaling is enabled")
-			}
+		}
+
+		if err := inputs.ValidateService(input); err != nil {
+			return err
 		}
 
 		cfg := &files.StackConfig{}
@@ -155,27 +127,26 @@ All configuration is provided via flags. The project is selected with --project 
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		// Build env vars from repeated --env flags (NAME=VALUE).
+		if err := inputs.ValidateServiceEnvVars(serviceEnvVars); err != nil {
+			return err
+		}
 		var env []clients.EnvVar
 		for _, e := range serviceEnvVars {
 			parts := strings.SplitN(e, "=", 2)
-			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
-				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
-			}
 			env = append(env, clients.EnvVar{
 				Name:  strings.TrimSpace(parts[0]),
 				Value: parts[1],
 			})
 		}
 
-		// Build secret references from repeated --secret flags (secret names).
+		if err := inputs.ValidateServiceSecretRefs(serviceSecretRefs); err != nil {
+			return err
+		}
 		var secretRefs []clients.SecretRef
 		for _, name := range serviceSecretRefs {
-			trimmed := strings.TrimSpace(name)
-			if trimmed == "" {
-				return fmt.Errorf("invalid --secret value %q; name must not be empty", name)
-			}
-			secretRefs = append(secretRefs, clients.SecretRef{SecretName: trimmed})
+			secretRefs = append(secretRefs, clients.SecretRef{
+				SecretName: strings.TrimSpace(name),
+			})
 		}
 
 		reqBody := clients.CreateServiceBody{
@@ -237,59 +208,30 @@ All configuration is provided via flags. The project is selected with --project 
 			serviceName = args[0]
 		}
 
-		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide [service_name] as the first positional argument")
+		input := inputs.ServiceInput{
+			Name:            serviceName,
+			Port:            servicePort,
+			ImageType:       serviceImageType,
+			ImageRepository: serviceImageRepository,
+			ImageName:       serviceImageName,
+			ImageTag:        serviceImageTag,
+			Memory:          serviceMemory,
+			CPU:             serviceCPU,
+			Replicas:        serviceReplicas,
 		}
 
-		if servicePort <= 0 {
-			return fmt.Errorf("service port must be greater than zero; please provide --port")
-		}
-		if serviceImageName == "" {
-			return fmt.Errorf("image name is required; please provide --image-name")
-		}
-		if serviceImageTag == "" {
-			return fmt.Errorf("image tag is required; please provide --image-tag")
-		}
-		if serviceImageType == "" {
-			return fmt.Errorf("image type is required; please provide --image-type")
-		}
-		if serviceImageType != "internal" && serviceImageType != "external" {
-			return fmt.Errorf("image type must be either 'internal' or 'external'; please provide --image-type")
-		}
-		if serviceImageType == "external" && serviceImageRepository == "" {
-			return fmt.Errorf("image repository is required for external images; please provide --image-repository")
-		}
-		if serviceMemory == "" {
-			return fmt.Errorf("memory is required; please provide --memory")
-		}
-		if serviceCPU == "" {
-			return fmt.Errorf("cpu is required; please provide --cpu")
-		}
-
-		hasReplicas := serviceReplicas > 0
-		hasAutoscaling := serviceAutoscalingEnabled
-
-		if hasReplicas && hasAutoscaling {
-			return fmt.Errorf("cannot specify both --replicas and --autoscaling-enabled; they are mutually exclusive")
-		}
-
-		if !hasReplicas && !hasAutoscaling {
-			return fmt.Errorf("must specify either --replicas or --autoscaling-enabled")
-		}
-
-		if hasAutoscaling {
-			if serviceAutoscalingMin <= 0 {
-				return fmt.Errorf("--autoscaling-min-replicas must be greater than zero when autoscaling is enabled")
+		if serviceAutoscalingEnabled {
+			input.Autoscaling = &inputs.AutoscalingInput{
+				Enabled:       true,
+				MinReplicas:   serviceAutoscalingMin,
+				MaxReplicas:   serviceAutoscalingMax,
+				CPUPercentage: serviceAutoscalingCPU,
+				MemoryPercent: serviceAutoscalingMemory,
 			}
-			if serviceAutoscalingMax <= 0 {
-				return fmt.Errorf("--autoscaling-max-replicas must be greater than zero when autoscaling is enabled")
-			}
-			if serviceAutoscalingMin > serviceAutoscalingMax {
-				return fmt.Errorf("--autoscaling-min-replicas cannot be greater than --autoscaling-max-replicas")
-			}
-			if serviceAutoscalingCPU <= 0 && serviceAutoscalingMemory <= 0 {
-				return fmt.Errorf("at least one of --autoscaling-cpu-percentage or --autoscaling-memory-percentage must be set when autoscaling is enabled")
-			}
+		}
+
+		if err := inputs.ValidateService(input); err != nil {
+			return err
 		}
 
 		cfg := &files.StackConfig{}
@@ -334,12 +276,12 @@ All configuration is provided via flags. The project is selected with --project 
 		}
 
 		// Build env vars from repeated --env flags (NAME=VALUE).
+		if err := inputs.ValidateServiceEnvVars(serviceEnvVars); err != nil {
+			return err
+		}
 		var env []clients.EnvVar
 		for _, e := range serviceEnvVars {
 			parts := strings.SplitN(e, "=", 2)
-			if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
-				return fmt.Errorf("invalid --env value %q; expected NAME=VALUE", e)
-			}
 			env = append(env, clients.EnvVar{
 				Name:  strings.TrimSpace(parts[0]),
 				Value: parts[1],
@@ -347,13 +289,14 @@ All configuration is provided via flags. The project is selected with --project 
 		}
 
 		// Build secret references from repeated --secret flags (secret names).
+		if err := inputs.ValidateServiceSecretRefs(serviceSecretRefs); err != nil {
+			return err
+		}
 		var secretRefs []clients.SecretRef
 		for _, name := range serviceSecretRefs {
-			trimmed := strings.TrimSpace(name)
-			if trimmed == "" {
-				return fmt.Errorf("invalid --secret value %q; name must not be empty", name)
-			}
-			secretRefs = append(secretRefs, clients.SecretRef{SecretName: trimmed})
+			secretRefs = append(secretRefs, clients.SecretRef{
+				SecretName: strings.TrimSpace(name),
+			})
 		}
 
 		reqBody := clients.CreateServiceBody{
