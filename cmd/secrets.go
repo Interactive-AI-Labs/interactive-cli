@@ -98,7 +98,7 @@ The project is selected with --project or via 'iai projects select'.`,
 				s.Name,
 				s.Type,
 				s.CreatedAt,
-				strings.Join(s.Keys, ", "),
+				formatSecretKeys(s.Keys, 3),
 			}
 		}
 
@@ -450,6 +450,17 @@ The project is selected with --project or via 'iai projects select'.`,
 
 		return nil
 	},
+}
+
+func formatSecretKeys(keys []string, maxVisible int) string {
+	if len(keys) == 0 {
+		return ""
+	}
+	if len(keys) <= maxVisible {
+		return strings.Join(keys, ", ")
+	}
+	visible := strings.Join(keys[:maxVisible], ", ")
+	return fmt.Sprintf("%s (+%d more)", visible, len(keys)-maxVisible)
 }
 
 func buildSecretData(pairs []string) (map[string]string, error) {
