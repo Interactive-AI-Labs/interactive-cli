@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -136,9 +137,15 @@ Dockerfile, and build context.`,
 			return fmt.Errorf("context is required; please provide --context")
 		}
 
-		// Ensure Docker CLI is available.
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf("docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w", err)
+		}
+
+		hostArch := runtime.GOARCH
+		if hostArch == "arm64" {
+			if err := checkBuildxAvailable(); err != nil {
+				return fmt.Errorf("cross-platform build setup required: %w", err)
+			}
 		}
 
 		imageRef := fmt.Sprintf("%s:%s", imageName, imageBuildTag)
@@ -147,6 +154,7 @@ Dockerfile, and build context.`,
 			"build",
 			"-t", imageRef,
 			"-f", imageBuildFile,
+			"--platform", "linux/amd64",
 			imageBuildContext,
 		}
 
@@ -215,13 +223,15 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		// Ensure Docker CLI is available.
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf("docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w", err)
 		}
 
-		// Local image reference that was built previously.
 		imageRef := fmt.Sprintf("%s:%s", imageName, imagePushTag)
+
+		if err := validateImageArchitecture(imageRef); err != nil {
+			return err
+		}
 
 		tmpFile, err := os.CreateTemp("", "image-*.tar")
 		if err != nil {
@@ -311,6 +321,56 @@ var imagePushCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func checkBuildxAvailable() error {
+	cmd := exec.Command("docker", "buildx", "version")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Docker Buildx is not available")
+	}
+
+	cmd = exec.Command("docker", "buildx", "inspect")
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("no Docker Buildx builder is configured")
+	}
+
+	outputStr := string(output)
+
+	if !strings.Contains(outputStr, "linux/amd64") {
+		return fmt.Errorf("Docker Buildx builder does not support linux/amd64 platform")
+	}
+
+	if strings.Contains(outputStr, "Driver:") && strings.Contains(outputStr, "docker-container") {
+		lines := strings.Split(outputStr, "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "linux/amd64") {
+				if strings.Contains(line, "linux/amd64*") {
+					return fmt.Errorf("QEMU emulation for linux/amd64 is not available")
+				}
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateImageArchitecture(imageRef string) error {
+	inspectArgs := []string{"inspect", "--format", "{{.Architecture}}", imageRef}
+	cmdExec := exec.Command("docker", inspectArgs...)
+
+	output, err := cmdExec.Output()
+	if err != nil {
+		return fmt.Errorf("failed to inspect image architecture: %w", err)
+	}
+
+	arch := strings.TrimSpace(string(output))
+	if arch != "amd64" && arch != "x86_64" {
+		return fmt.Errorf("unsupported architecture %q detected in image; only amd64 images are supported on this platform", arch)
+	}
+
+	return nil
 }
 
 func init() {
