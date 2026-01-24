@@ -1,9 +1,6 @@
 package inputs
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 // ValidateSecretValue checks that a secret value does not start and end with quotes.
 // This prevents user confusion since Kubernetes treats quoted values as literal strings
@@ -25,18 +22,4 @@ func isQuoted(s string, quote byte) bool {
 		return false
 	}
 	return s[0] == quote && s[len(s)-1] == quote
-}
-
-// ValidateSecretData validates all key-value pairs in a secret data map.
-func ValidateSecretData(data map[string]string) error {
-	var errors []string
-	for key, value := range data {
-		if err := ValidateSecretValue(key, value); err != nil {
-			errors = append(errors, err.Error())
-		}
-	}
-	if len(errors) > 0 {
-		return fmt.Errorf("invalid secret values:\n  %s", strings.Join(errors, "\n  "))
-	}
-	return nil
 }

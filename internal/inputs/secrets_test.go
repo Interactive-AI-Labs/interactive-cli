@@ -65,53 +65,6 @@ func TestValidateSecretValue(t *testing.T) {
 	}
 }
 
-func TestValidateSecretData(t *testing.T) {
-	tests := []struct {
-		name    string
-		data    map[string]string
-		wantErr bool
-	}{
-		{
-			name: "all valid values",
-			data: map[string]string{
-				"KEY1": "value1",
-				"KEY2": "value2",
-			},
-			wantErr: false,
-		},
-		{
-			name:    "empty map",
-			data:    map[string]string{},
-			wantErr: false,
-		},
-		{
-			name: "one invalid double quoted value",
-			data: map[string]string{
-				"KEY1": "value1",
-				"KEY2": `"quoted"`,
-			},
-			wantErr: true,
-		},
-		{
-			name: "one invalid single quoted value",
-			data: map[string]string{
-				"KEY1": `'quoted'`,
-				"KEY2": "value2",
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateSecretData(tt.data)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateSecretData() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestIsQuoted(t *testing.T) {
 	tests := []struct {
 		name  string
