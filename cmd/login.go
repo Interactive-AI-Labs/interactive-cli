@@ -20,7 +20,6 @@ var loginCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 		in := cmd.InOrStdin()
 
-		// 1. Prompt for email and password.
 		reader := bufio.NewReader(in)
 
 		fmt.Fprint(out, "email: ")
@@ -41,7 +40,6 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("email and password cannot be empty")
 		}
 
-		// 2. Prepare and send the sign-in request.
 		reqBody := map[string]string{
 			"email":    email,
 			"password": password,
@@ -70,12 +68,10 @@ var loginCmd = &cobra.Command{
 		}
 		defer resp.Body.Close()
 
-		// 3. Handle non-successful status codes.
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return fmt.Errorf("login failed with status %s", resp.Status)
 		}
 
-		// 4. Extract cookies from the response.
 		cookies := resp.Cookies()
 		if len(cookies) == 0 {
 			fmt.Fprintln(out, "Warning: login succeeded but no cookies were returned by the server.")

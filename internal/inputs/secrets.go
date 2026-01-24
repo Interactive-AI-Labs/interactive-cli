@@ -3,8 +3,7 @@ package inputs
 import "fmt"
 
 // ValidateSecretValue checks that a secret value does not start and end with quotes.
-// This prevents user confusion since Kubernetes treats quoted values as literal strings
-// (including the quotes), unlike shell environment variables which strip them.
+// This prevents user confusion since Kubernetes doesn't strip quotes from secret's values
 func ValidateSecretValue(key, value string) error {
 	if isQuoted(value, '"') {
 		return fmt.Errorf("secret value for key %q should not be wrapped in double quotes", key)

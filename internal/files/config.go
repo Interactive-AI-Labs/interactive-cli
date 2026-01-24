@@ -27,7 +27,6 @@ func LoadConfig(cfgDirName string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// No config yet; return an empty config.
 			return &Config{}, nil
 		}
 		return nil, fmt.Errorf("failed to read config file %q: %w", path, err)
@@ -133,7 +132,6 @@ func SelectOrg(cfgDirName, orgName string) error {
 	}
 
 	newOrg := strings.TrimSpace(orgName)
-	// If the organization is changing, clear the selected project
 	if cfg.SelectedOrg != newOrg {
 		cfg.SelectedProject = ""
 	}
