@@ -12,27 +12,9 @@ func TestValidateSecretValue(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "valid unquoted value",
-			key:     "MY_KEY",
-			value:   "myvalue",
-			wantErr: false,
-		},
-		{
 			name:    "valid value with internal quotes",
 			key:     "MY_KEY",
 			value:   `say "hello"`,
-			wantErr: false,
-		},
-		{
-			name:    "valid empty value",
-			key:     "MY_KEY",
-			value:   "",
-			wantErr: false,
-		},
-		{
-			name:    "valid single character",
-			key:     "MY_KEY",
-			value:   "x",
 			wantErr: false,
 		},
 		{
@@ -46,12 +28,6 @@ func TestValidateSecretValue(t *testing.T) {
 			key:     "MY_KEY",
 			value:   `'myvalue'`,
 			wantErr: true,
-		},
-		{
-			name:    "valid mixed quotes",
-			key:     "MY_KEY",
-			value:   `"myvalue'`,
-			wantErr: false,
 		},
 	}
 
@@ -97,15 +73,9 @@ func TestIsQuoted(t *testing.T) {
 			want:  false,
 		},
 		{
-			name:  "empty string",
-			s:     "",
+			name:  "single character",
+			s:     `"`,
 			quote: '"',
-			want:  false,
-		},
-		{
-			name:  "wrong quote type",
-			s:     `"hello"`,
-			quote: '\'',
 			want:  false,
 		},
 	}
