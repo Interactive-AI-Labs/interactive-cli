@@ -6,10 +6,10 @@ import "fmt"
 // This prevents user confusion since Kubernetes doesn't strip quotes from secret's values
 func ValidateSecretValue(key, value string) error {
 	if isQuoted(value, '"') {
-		return fmt.Errorf("secret value for key %q should not be wrapped in double quotes", key)
+		return fmt.Errorf("data value for key %q should not be wrapped in double quotes", key)
 	}
 	if isQuoted(value, '\'') {
-		return fmt.Errorf("secret value for key %q should not be wrapped in single quotes", key)
+		return fmt.Errorf("data value for key %q should not be wrapped in single quotes", key)
 	}
 	return nil
 }
