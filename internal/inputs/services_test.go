@@ -18,6 +18,8 @@ func TestValidateCPU(t *testing.T) {
 		{name: "invalid decimal", cpu: "0.5", wantErr: true, wantErrContains: "invalid cpu value"},
 		{name: "invalid text", cpu: "abc", wantErr: true, wantErrContains: "invalid cpu value"},
 		{name: "invalid negative", cpu: "-1", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid zero", cpu: "0", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid zero millicores", cpu: "0m", wantErr: true, wantErrContains: "invalid cpu value"},
 		{name: "invalid unit Mi", cpu: "500Mi", wantErr: true, wantErrContains: "invalid cpu value"},
 	}
 
@@ -54,6 +56,8 @@ func TestValidateMemory(t *testing.T) {
 		{name: "invalid decimal", memory: "512.5M", wantErr: true, wantErrContains: "invalid memory value"},
 		{name: "invalid text", memory: "abc", wantErr: true, wantErrContains: "invalid memory value"},
 		{name: "invalid negative", memory: "-128M", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid zero M", memory: "0M", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid zero G", memory: "0G", wantErr: true, wantErrContains: "invalid memory value"},
 		{name: "invalid lowercase", memory: "512m", wantErr: true, wantErrContains: "invalid memory value"},
 	}
 

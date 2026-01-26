@@ -122,7 +122,7 @@ func ValidateCPU(cpu string) error {
 	value, _ := strings.CutSuffix(cpu, "m")
 
 	n, err := strconv.Atoi(value)
-	if err != nil || n < 0 {
+	if err != nil || n <= 0 {
 		return fmt.Errorf("invalid cpu value %q; expected a whole number of cores (e.g., '1', '2') or millicores (e.g., '500m', '1000m')", cpu)
 	}
 	return nil
@@ -145,7 +145,7 @@ func ValidateMemory(memory string) error {
 	}
 
 	n, err := strconv.Atoi(value)
-	if err != nil || n < 0 {
+	if err != nil || n <= 0 {
 		return fmt.Errorf("invalid memory value %q; expected a value with M or G unit (e.g., '128M', '512M', '1G')", memory)
 	}
 	return nil
