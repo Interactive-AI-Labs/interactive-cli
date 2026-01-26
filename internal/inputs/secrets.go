@@ -1,0 +1,24 @@
+package inputs
+
+import "fmt"
+
+// ValidateSecretValue checks that a secret value does not start and end with quotes.
+// This prevents user confusion since Kubernetes doesn't strip quotes from secret's values
+func ValidateSecretValue(key, value string) error {
+	if isQuoted(value, '"') {
+		return fmt.Errorf("data value for key %q should not be wrapped in double quotes", key)
+	}
+	if isQuoted(value, '\'') {
+		return fmt.Errorf("data value for key %q should not be wrapped in single quotes", key)
+	}
+	return nil
+}
+
+// isQuoted returns true if the string starts and ends with the given quote character
+// and is at least 2 characters long.
+func isQuoted(s string, quote byte) bool {
+	if len(s) < 2 {
+		return false
+	}
+	return s[0] == quote && s[len(s)-1] == quote
+}

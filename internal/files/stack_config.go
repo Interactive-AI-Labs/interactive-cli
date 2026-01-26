@@ -38,7 +38,6 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	// If services are provided, stack-id is required
 	if len(cfg.Services) > 0 && cfg.StackId == "" {
 		return nil, fmt.Errorf("stack-id is required when services are defined in config file")
 	}

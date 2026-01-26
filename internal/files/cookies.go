@@ -139,7 +139,7 @@ func DeleteSessionCookies(cfgDirName, sessionFileName string) error {
 	path := filepath.Join(home, cfgDirName, sessionFileName)
 	if err := os.Remove(path); err != nil {
 		if os.IsNotExist(err) {
-			return nil // Already deleted
+			return nil
 		}
 		return fmt.Errorf("failed to delete session file %q: %w", path, err)
 	}

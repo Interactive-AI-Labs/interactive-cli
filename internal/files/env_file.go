@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
 // ParseEnvFile reads a file from the given path and parses it as KEY=VALUE pairs.
@@ -25,12 +27,10 @@ func ParseEnvFile(filePath string) (map[string]string, error) {
 		lineNum++
 		line := strings.TrimSpace(scanner.Text())
 
-		// Skip empty lines and comments
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 
-		// Split on first = only
 		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
 			errors = append(errors, fmt.Sprintf("  line %d: missing '=' separator", lineNum))
@@ -44,6 +44,10 @@ func ParseEnvFile(filePath string) (map[string]string, error) {
 		}
 
 		value := strings.TrimSpace(parts[1])
+		if err := inputs.ValidateSecretValue(key, value); err != nil {
+			errors = append(errors, fmt.Sprintf("  line %d: %s", lineNum, err.Error()))
+			continue
+		}
 		result[key] = value
 	}
 

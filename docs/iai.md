@@ -4,7 +4,11 @@ InteractiveAI's CLI
 
 ### Synopsis
 
-# Install
+InteractiveAI's CLI to interact with its platform.
+
+Use the subcommands below to manage your organizations, projects, services, secrets, and other components.
+
+## Install
 
 The CLI is distributed through Go's package manager, so it must first be installed. Click on [this](https://go.dev/doc/install) link and follow the instructions to do so.
 
@@ -36,7 +40,6 @@ iai --help
 
 ---
 
-InteractiveAI's CLI to interact with its platform
 
 ### Options
 

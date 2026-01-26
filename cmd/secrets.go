@@ -9,6 +9,7 @@ import (
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
@@ -98,7 +99,7 @@ The project is selected with --project or via 'iai projects select'.`,
 				s.Name,
 				s.Type,
 				s.CreatedAt,
-				strings.Join(s.Keys, ", "),
+				formatSecretKeys(s.Keys, 3),
 			}
 		}
 
@@ -452,6 +453,17 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
+func formatSecretKeys(keys []string, maxVisible int) string {
+	if len(keys) == 0 {
+		return ""
+	}
+	if len(keys) <= maxVisible {
+		return strings.Join(keys, ", ")
+	}
+	visible := strings.Join(keys[:maxVisible], ", ")
+	return fmt.Sprintf("%s (+%d more)", visible, len(keys)-maxVisible)
+}
+
 func buildSecretData(pairs []string) (map[string]string, error) {
 	data := make(map[string]string, len(pairs))
 
@@ -467,6 +479,9 @@ func buildSecretData(pairs []string) (map[string]string, error) {
 		}
 
 		value := parts[1]
+		if err := inputs.ValidateSecretValue(key, value); err != nil {
+			return nil, err
+		}
 		data[key] = value
 	}
 
