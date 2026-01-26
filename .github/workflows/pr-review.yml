@@ -1,22 +1,31 @@
 name: PR Review
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 on:
-  pull_request:
-    types: [opened, reopened, ready_for_review]
-  issue_comment:
+  pull_request_target:
+    types: [opened, reopened]
+  pull_request_review_comment:
+    types: [created]
+
 jobs:
-  pr-review:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.sender.type != 'Bot' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      contents: write
-    name: Run pr agent on every pull request, respond to user comments
+  review:
+    runs-on: [gke-default]
     steps:
-      - name: PR Agent action step
-        id: pragent
-        uses: qodo-ai/pr-agent@main
+
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.OPEN_ROUTER_API_KEY }}" ]; then
+            echo "Error: OPEN_ROUTER_API_KEY secret is not configured"
+            exit 1
+          fi
+      - uses: presubmit/ai-reviewer@main
         env:
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LLM_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          LLM_MODEL: "anthropic/claude-opus-4.5"
+          LLM_PROVIDER: "ai-sdk"
+          LLM_BASE_URL: "https://openrouter.ai/api/v1"
