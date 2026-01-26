@@ -28,7 +28,7 @@ iai services create [service_name] [flags]
       --image-repository string             Container image repository (external images only)
       --image-tag string                    Container image tag
       --image-type string                   Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)
-      --memory string                       Memory with M or G unit (e.g. 128M, 512M, 1G) - required
+      --memory string                       Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G) - required
   -o, --organization string                 Organization name that owns the project
       --port int                            Service port to expose
   -p, --project string                      Project name to create the service in
