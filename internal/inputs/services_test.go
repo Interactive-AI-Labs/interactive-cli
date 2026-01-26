@@ -5,6 +5,96 @@ import (
 	"testing"
 )
 
+func TestValidateCPU(t *testing.T) {
+	tests := []struct {
+		name            string
+		cpu             string
+		wantErr         bool
+		wantErrContains string
+	}{
+		{name: "valid millicores 100m", cpu: "100m", wantErr: false},
+		{name: "valid millicores 500m", cpu: "500m", wantErr: false},
+		{name: "valid millicores 50m", cpu: "50m", wantErr: false},
+		{name: "valid millicores 1000m", cpu: "1000m", wantErr: false},
+		{name: "valid whole number 1", cpu: "1", wantErr: false},
+		{name: "valid whole number 2", cpu: "2", wantErr: false},
+		{name: "valid decimal 0.5", cpu: "0.5", wantErr: false},
+		{name: "valid decimal 1.5", cpu: "1.5", wantErr: false},
+		{name: "valid decimal .5", cpu: ".5", wantErr: false},
+		{name: "empty string", cpu: "", wantErr: true, wantErrContains: "cpu is required"},
+		{name: "invalid unit", cpu: "100Mi", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid format with text", cpu: "abc", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid negative", cpu: "-100m", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid spaces", cpu: "100 m", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid uppercase M", cpu: "100M", wantErr: true, wantErrContains: "invalid cpu value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateCPU(tt.cpu)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("ValidateCPU() expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
+					t.Errorf("ValidateCPU() error = %v, want error containing %q", err, tt.wantErrContains)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ValidateCPU() unexpected error = %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateMemory(t *testing.T) {
+	tests := []struct {
+		name            string
+		memory          string
+		wantErr         bool
+		wantErrContains string
+	}{
+		{name: "valid mebibytes 128Mi", memory: "128Mi", wantErr: false},
+		{name: "valid mebibytes 256Mi", memory: "256Mi", wantErr: false},
+		{name: "valid mebibytes 512Mi", memory: "512Mi", wantErr: false},
+		{name: "valid gibibytes 1Gi", memory: "1Gi", wantErr: false},
+		{name: "valid gibibytes 2Gi", memory: "2Gi", wantErr: false},
+		{name: "valid kibibytes 256Ki", memory: "256Ki", wantErr: false},
+		{name: "valid tebibytes 1Ti", memory: "1Ti", wantErr: false},
+		{name: "valid decimal SI megabytes 512M", memory: "512M", wantErr: false},
+		{name: "valid decimal SI gigabytes 1G", memory: "1G", wantErr: false},
+		{name: "valid decimal SI kilobytes 1k", memory: "1k", wantErr: false},
+		{name: "valid plain bytes", memory: "134217728", wantErr: false},
+		{name: "valid decimal value", memory: "1.5Gi", wantErr: false},
+		{name: "empty string", memory: "", wantErr: true, wantErrContains: "memory is required"},
+		{name: "invalid unit", memory: "100m", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid format with text", memory: "abc", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid negative", memory: "-128Mi", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid spaces", memory: "128 Mi", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid lowercase mi", memory: "128mi", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid lowercase gi", memory: "1gi", wantErr: true, wantErrContains: "invalid memory value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateMemory(tt.memory)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("ValidateMemory() expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
+					t.Errorf("ValidateMemory() error = %v, want error containing %q", err, tt.wantErrContains)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ValidateMemory() unexpected error = %v", err)
+				}
+			}
+		})
+	}
+}
+
 func TestValidateService(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -235,6 +325,36 @@ func TestValidateService(t *testing.T) {
 			},
 			wantErr:         true,
 			wantErrContains: "cpu is required",
+		},
+		{
+			name: "invalid cpu format",
+			input: ServiceInput{
+				Name:      "my-service",
+				Port:      8080,
+				ImageType: "internal",
+				ImageName: "my-image",
+				ImageTag:  "1.0.0",
+				Memory:    "512Mi",
+				CPU:       "500Mi",
+				Replicas:  1,
+			},
+			wantErr:         true,
+			wantErrContains: "invalid cpu value",
+		},
+		{
+			name: "invalid memory format",
+			input: ServiceInput{
+				Name:      "my-service",
+				Port:      8080,
+				ImageType: "internal",
+				ImageName: "my-image",
+				ImageTag:  "1.0.0",
+				Memory:    "invalid",
+				CPU:       "500m",
+				Replicas:  1,
+			},
+			wantErr:         true,
+			wantErrContains: "invalid memory value",
 		},
 		{
 			name: "both replicas and autoscaling",

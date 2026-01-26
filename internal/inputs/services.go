@@ -2,6 +2,7 @@ package inputs
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -49,11 +50,11 @@ func ValidateService(input ServiceInput) error {
 	if input.ImageType == "external" && input.ImageRepository == "" {
 		return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 	}
-	if input.Memory == "" {
-		return fmt.Errorf("memory is required; please provide --memory")
+	if err := ValidateMemory(input.Memory); err != nil {
+		return fmt.Errorf("%w; please provide --memory", err)
 	}
-	if input.CPU == "" {
-		return fmt.Errorf("cpu is required; please provide --cpu")
+	if err := ValidateCPU(input.CPU); err != nil {
+		return fmt.Errorf("%w; please provide --cpu", err)
 	}
 
 	hasReplicas := input.Replicas > 0
@@ -108,6 +109,42 @@ func ValidateServiceSecretRefs(secretRefs []string) error {
 		if trimmed == "" {
 			return fmt.Errorf("invalid --secret value %q; name must not be empty", name)
 		}
+	}
+	return nil
+}
+
+// cpuPattern matches Kubernetes CPU resource quantities:
+// - Whole numbers (e.g., "1", "2")
+// - Decimal numbers (e.g., "0.5", "1.5")
+// - Millicores (e.g., "100m", "500m")
+var cpuPattern = regexp.MustCompile(`^(\d+\.?\d*|\d*\.?\d+)(m)?$`)
+
+// memoryPattern matches Kubernetes memory resource quantities:
+// - Decimal SI units: E, P, T, G, M, k (e.g., "128M", "1G")
+// - Binary units: Ei, Pi, Ti, Gi, Mi, Ki (e.g., "128Mi", "1Gi")
+// - Plain bytes (e.g., "134217728")
+var memoryPattern = regexp.MustCompile(`^(\d+\.?\d*|\d*\.?\d+)(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki)?$`)
+
+// ValidateCPU validates a Kubernetes CPU resource quantity.
+// Valid formats: "1", "0.5", "100m", "500m"
+func ValidateCPU(cpu string) error {
+	if cpu == "" {
+		return fmt.Errorf("cpu is required")
+	}
+	if !cpuPattern.MatchString(cpu) {
+		return fmt.Errorf("invalid cpu value %q; expected format like '100m', '500m', '1', or '0.5'", cpu)
+	}
+	return nil
+}
+
+// ValidateMemory validates a Kubernetes memory resource quantity.
+// Valid formats: "128Mi", "1Gi", "512M", "134217728"
+func ValidateMemory(memory string) error {
+	if memory == "" {
+		return fmt.Errorf("memory is required")
+	}
+	if !memoryPattern.MatchString(memory) {
+		return fmt.Errorf("invalid memory value %q; expected format like '128Mi', '1Gi', '512M', or '256Ki'", memory)
 	}
 	return nil
 }
