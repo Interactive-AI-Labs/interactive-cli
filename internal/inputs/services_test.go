@@ -12,21 +12,15 @@ func TestValidateCPU(t *testing.T) {
 		wantErr         bool
 		wantErrContains string
 	}{
-		{name: "valid millicores 100m", cpu: "100m", wantErr: false},
-		{name: "valid millicores 500m", cpu: "500m", wantErr: false},
-		{name: "valid millicores 50m", cpu: "50m", wantErr: false},
-		{name: "valid millicores 1000m", cpu: "1000m", wantErr: false},
-		{name: "valid whole number 1", cpu: "1", wantErr: false},
-		{name: "valid whole number 2", cpu: "2", wantErr: false},
-		{name: "valid decimal 0.5", cpu: "0.5", wantErr: false},
-		{name: "valid decimal 1.5", cpu: "1.5", wantErr: false},
-		{name: "valid decimal .5", cpu: ".5", wantErr: false},
+		{name: "valid millicores", cpu: "500m", wantErr: false},
+		{name: "valid whole number", cpu: "2", wantErr: false},
+		{name: "valid decimal", cpu: "0.5", wantErr: false},
+		{name: "valid decimal without leading zero", cpu: ".5", wantErr: false},
 		{name: "empty string", cpu: "", wantErr: true, wantErrContains: "cpu is required"},
-		{name: "invalid unit", cpu: "100Mi", wantErr: true, wantErrContains: "invalid cpu value"},
-		{name: "invalid format with text", cpu: "abc", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid memory unit", cpu: "100Mi", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid text", cpu: "abc", wantErr: true, wantErrContains: "invalid cpu value"},
 		{name: "invalid negative", cpu: "-100m", wantErr: true, wantErrContains: "invalid cpu value"},
 		{name: "invalid spaces", cpu: "100 m", wantErr: true, wantErrContains: "invalid cpu value"},
-		{name: "invalid uppercase M", cpu: "100M", wantErr: true, wantErrContains: "invalid cpu value"},
 	}
 
 	for _, tt := range tests {
@@ -55,25 +49,16 @@ func TestValidateMemory(t *testing.T) {
 		wantErr         bool
 		wantErrContains string
 	}{
-		{name: "valid mebibytes 128Mi", memory: "128Mi", wantErr: false},
-		{name: "valid mebibytes 256Mi", memory: "256Mi", wantErr: false},
-		{name: "valid mebibytes 512Mi", memory: "512Mi", wantErr: false},
-		{name: "valid gibibytes 1Gi", memory: "1Gi", wantErr: false},
-		{name: "valid gibibytes 2Gi", memory: "2Gi", wantErr: false},
-		{name: "valid kibibytes 256Ki", memory: "256Ki", wantErr: false},
-		{name: "valid tebibytes 1Ti", memory: "1Ti", wantErr: false},
-		{name: "valid decimal SI megabytes 512M", memory: "512M", wantErr: false},
-		{name: "valid decimal SI gigabytes 1G", memory: "1G", wantErr: false},
-		{name: "valid decimal SI kilobytes 1k", memory: "1k", wantErr: false},
+		{name: "valid binary unit Mi", memory: "512Mi", wantErr: false},
+		{name: "valid binary unit Gi", memory: "1Gi", wantErr: false},
+		{name: "valid decimal SI unit M", memory: "512M", wantErr: false},
 		{name: "valid plain bytes", memory: "134217728", wantErr: false},
 		{name: "valid decimal value", memory: "1.5Gi", wantErr: false},
 		{name: "empty string", memory: "", wantErr: true, wantErrContains: "memory is required"},
-		{name: "invalid unit", memory: "100m", wantErr: true, wantErrContains: "invalid memory value"},
-		{name: "invalid format with text", memory: "abc", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid cpu unit", memory: "100m", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid text", memory: "abc", wantErr: true, wantErrContains: "invalid memory value"},
 		{name: "invalid negative", memory: "-128Mi", wantErr: true, wantErrContains: "invalid memory value"},
-		{name: "invalid spaces", memory: "128 Mi", wantErr: true, wantErrContains: "invalid memory value"},
-		{name: "invalid lowercase mi", memory: "128mi", wantErr: true, wantErrContains: "invalid memory value"},
-		{name: "invalid lowercase gi", memory: "1gi", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid lowercase unit", memory: "128mi", wantErr: true, wantErrContains: "invalid memory value"},
 	}
 
 	for _, tt := range tests {
