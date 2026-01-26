@@ -2,7 +2,7 @@ package inputs
 
 import (
 	"fmt"
-	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -113,31 +113,39 @@ func ValidateServiceSecretRefs(secretRefs []string) error {
 	return nil
 }
 
-// cpuPattern matches whole numbers (e.g., "1", "2", "4") or millicores (e.g., "500m", "1000m")
-var cpuPattern = regexp.MustCompile(`^(\d+|\d+m)$`)
-
-// memoryPattern matches memory values with M or G units (e.g., "128M", "512M", "1G", "2G")
-var memoryPattern = regexp.MustCompile(`^\d+(M|G)$`)
-
 // ValidateCPU validates a CPU value as a whole number of cores or millicores.
-// Valid formats: "1", "2", "4", "500m", "1000m"
 func ValidateCPU(cpu string) error {
 	if cpu == "" {
 		return fmt.Errorf("cpu is required")
 	}
-	if !cpuPattern.MatchString(cpu) {
+
+	value, _ := strings.CutSuffix(cpu, "m")
+
+	n, err := strconv.Atoi(value)
+	if err != nil || n < 0 {
 		return fmt.Errorf("invalid cpu value %q; expected a whole number of cores (e.g., '1', '2') or millicores (e.g., '500m', '1000m')", cpu)
 	}
 	return nil
 }
 
 // ValidateMemory validates a memory value with M or G units.
-// Valid formats: "128M", "512M", "1G", "2G"
 func ValidateMemory(memory string) error {
 	if memory == "" {
 		return fmt.Errorf("memory is required")
 	}
-	if !memoryPattern.MatchString(memory) {
+
+	var value string
+	switch {
+	case strings.HasSuffix(memory, "M"):
+		value = strings.TrimSuffix(memory, "M")
+	case strings.HasSuffix(memory, "G"):
+		value = strings.TrimSuffix(memory, "G")
+	default:
+		return fmt.Errorf("invalid memory value %q; expected a value with M or G unit (e.g., '128M', '512M', '1G')", memory)
+	}
+
+	n, err := strconv.Atoi(value)
+	if err != nil || n < 0 {
 		return fmt.Errorf("invalid memory value %q; expected a value with M or G unit (e.g., '128M', '512M', '1G')", memory)
 	}
 	return nil
