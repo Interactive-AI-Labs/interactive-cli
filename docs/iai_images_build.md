@@ -16,10 +16,11 @@ iai images build [image_name] [flags]
 ### Options
 
 ```
-  -c, --context string   Build context directory (default: current directory) (default ".")
-  -f, --file string      Path to the Dockerfile (default: ./Dockerfile) (default "Dockerfile")
-  -h, --help             help for build
-  -t, --tag string       Tag suffix to append to the fixed registry (e.g. 1.2.3)
+  -c, --context string    Build context directory (default: current directory) (default ".")
+  -f, --file string       Path to the Dockerfile (default: ./Dockerfile) (default "Dockerfile")
+  -h, --help              help for build
+      --platform string   Target platform for the build (currently only linux/amd64 is supported) (default "linux/amd64")
+  -t, --tag string        Tag suffix to append to the fixed registry (e.g. 1.2.3)
 ```
 
 ### Options inherited from parent commands
