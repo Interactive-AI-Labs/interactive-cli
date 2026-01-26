@@ -94,7 +94,6 @@ All configuration is provided via flags. The project is selected with --project 
 			}
 		}
 
-		// Ensure the user is logged in and load session cookies.
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 		if err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
@@ -275,7 +274,6 @@ All configuration is provided via flags. The project is selected with --project 
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		// Build env vars from repeated --env flags (NAME=VALUE).
 		if err := inputs.ValidateServiceEnvVars(serviceEnvVars); err != nil {
 			return err
 		}
@@ -288,7 +286,6 @@ All configuration is provided via flags. The project is selected with --project 
 			})
 		}
 
-		// Build secret references from repeated --secret flags (secret names).
 		if err := inputs.ValidateServiceSecretRefs(serviceSecretRefs); err != nil {
 			return err
 		}

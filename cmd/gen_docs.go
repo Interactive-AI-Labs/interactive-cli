@@ -32,7 +32,6 @@ var genDocsCmd = &cobra.Command{
 			return err
 		}
 
-		// Disable auto-generated timestamp in docs
 		rootCmd.DisableAutoGenTag = true
 
 		err = doc.GenMarkdownTreeCustom(
