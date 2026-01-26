@@ -745,8 +745,8 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
 	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
-	servCCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory resource (e.g. 128Mi, 1Gi) - required")
-	servCCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU resource (e.g. 50m, 500m) - required")
+	servCCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory with M or G unit (e.g. 128M, 512M, 1G) - required")
+	servCCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 1, 2, 500m, 1000m) - required")
 
 	servCCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
 	servCCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
@@ -768,8 +768,8 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
 	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
-	servUCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory resource (e.g. 128Mi, 1Gi) - required")
-	servUCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU resource (e.g. 50m, 500m) - required")
+	servUCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory with M or G unit (e.g. 128M, 512M, 1G) - required")
+	servUCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 1, 2, 500m, 1000m) - required")
 
 	servUCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
 	servUCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")

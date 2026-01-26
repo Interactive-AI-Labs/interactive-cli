@@ -113,38 +113,32 @@ func ValidateServiceSecretRefs(secretRefs []string) error {
 	return nil
 }
 
-// cpuPattern matches Kubernetes CPU resource quantities:
-// - Whole numbers (e.g., "1", "2")
-// - Decimal numbers (e.g., "0.5", "1.5")
-// - Millicores (e.g., "100m", "500m")
-var cpuPattern = regexp.MustCompile(`^(\d+\.?\d*|\d*\.?\d+)(m)?$`)
+// cpuPattern matches whole numbers (e.g., "1", "2", "4") or millicores (e.g., "500m", "1000m")
+var cpuPattern = regexp.MustCompile(`^(\d+|\d+m)$`)
 
-// memoryPattern matches Kubernetes memory resource quantities:
-// - Decimal SI units: E, P, T, G, M, k (e.g., "128M", "1G")
-// - Binary units: Ei, Pi, Ti, Gi, Mi, Ki (e.g., "128Mi", "1Gi")
-// - Plain bytes (e.g., "134217728")
-var memoryPattern = regexp.MustCompile(`^(\d+\.?\d*|\d*\.?\d+)(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki)?$`)
+// memoryPattern matches memory values with M or G units (e.g., "128M", "512M", "1G", "2G")
+var memoryPattern = regexp.MustCompile(`^\d+(M|G)$`)
 
-// ValidateCPU validates a Kubernetes CPU resource quantity.
-// Valid formats: "1", "0.5", "100m", "500m"
+// ValidateCPU validates a CPU value as a whole number of cores or millicores.
+// Valid formats: "1", "2", "4", "500m", "1000m"
 func ValidateCPU(cpu string) error {
 	if cpu == "" {
 		return fmt.Errorf("cpu is required")
 	}
 	if !cpuPattern.MatchString(cpu) {
-		return fmt.Errorf("invalid cpu value %q; expected format like '100m', '500m', '1', or '0.5'", cpu)
+		return fmt.Errorf("invalid cpu value %q; expected a whole number of cores (e.g., '1', '2') or millicores (e.g., '500m', '1000m')", cpu)
 	}
 	return nil
 }
 
-// ValidateMemory validates a Kubernetes memory resource quantity.
-// Valid formats: "128Mi", "1Gi", "512M", "134217728"
+// ValidateMemory validates a memory value with M or G units.
+// Valid formats: "128M", "512M", "1G", "2G"
 func ValidateMemory(memory string) error {
 	if memory == "" {
 		return fmt.Errorf("memory is required")
 	}
 	if !memoryPattern.MatchString(memory) {
-		return fmt.Errorf("invalid memory value %q; expected format like '128Mi', '1Gi', '512M', or '256Ki'", memory)
+		return fmt.Errorf("invalid memory value %q; expected a value with M or G unit (e.g., '128M', '512M', '1G')", memory)
 	}
 	return nil
 }

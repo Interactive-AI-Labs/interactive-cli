@@ -34,8 +34,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      memory: 256Mi
-      cpu: 100m
+      memory: "256M"
+      cpu: "1"
     replicas: 2
     endpoint: true
 `,
@@ -53,8 +53,8 @@ services:
 							Tag:  "latest",
 						},
 						Resources: clients.Resources{
-							Memory: "256Mi",
-							CPU:    "100m",
+							Memory: "256M",
+							CPU:    "1",
 						},
 						Replicas: 2,
 						Endpoint: true,
@@ -76,8 +76,8 @@ services:
       name: nginx
       tag: alpine
     resources:
-      memory: 128Mi
-      cpu: 50m
+      memory: "128M"
+      cpu: "1"
     autoscaling:
       enabled: true
       minReplicas: 2
@@ -99,8 +99,8 @@ services:
 							Tag:        "alpine",
 						},
 						Resources: clients.Resources{
-							Memory: "128Mi",
-							CPU:    "50m",
+							Memory: "128M",
+							CPU:    "1",
 						},
 						Autoscaling: &clients.Autoscaling{
 							Enabled:          true,
@@ -181,8 +181,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      memory: 256Mi
-      cpu: 100m
+      memory: "256M"
+      cpu: "1"
     replicas: 1
 `,
 			errContains: "stack-id is required",
@@ -200,8 +200,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      memory: 256Mi
-      cpu: 100m
+      memory: "256M"
+      cpu: "1"
     replicas: 1
 `,
 			errContains: "servicePort must be greater than zero",
@@ -219,8 +219,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      memory: 256Mi
-      cpu: 100m
+      memory: "256M"
+      cpu: "1"
     replicas: 1
 `,
 			errContains: "must be 'internal' or 'external'",
@@ -238,8 +238,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      memory: 256Mi
-      cpu: 100m
+      memory: "256M"
+      cpu: "1"
     replicas: 2
     autoscaling:
       enabled: true
@@ -262,8 +262,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      memory: 256Mi
-      cpu: 100m
+      memory: "256M"
+      cpu: "1"
     replicas: 1
 `,
 			errContains: "image.repository is required for external images",
@@ -281,8 +281,8 @@ services:
       name: myapp
       tag: latest
     resources:
-      memory: 256Mi
-      cpu: 100m
+      memory: "256M"
+      cpu: "1"
 `,
 			errContains: "must specify either replicas or autoscaling",
 		},
@@ -325,8 +325,8 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 					Tag:  "latest",
 				},
 				Resources: clients.Resources{
-					Memory: "256Mi",
-					CPU:    "100m",
+					Memory: "256M",
+					CPU:    "1",
 				},
 				Env: []clients.EnvVar{
 					{Name: "KEY1", Value: "value1"},
@@ -346,8 +346,8 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 					Tag:  "latest",
 				},
 				Resources: clients.Resources{
-					Memory: "256Mi",
-					CPU:    "100m",
+					Memory: "256M",
+					CPU:    "1",
 				},
 				Env: []clients.EnvVar{
 					{Name: "KEY1", Value: "value1"},
@@ -372,8 +372,8 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 					Tag:        "latest",
 				},
 				Resources: clients.Resources{
-					Memory: "128Mi",
-					CPU:    "50m",
+					Memory: "128M",
+					CPU:    "1",
 				},
 				Autoscaling: &clients.Autoscaling{
 					Enabled:          true,
@@ -393,8 +393,8 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 					Tag:        "latest",
 				},
 				Resources: clients.Resources{
-					Memory: "128Mi",
-					CPU:    "50m",
+					Memory: "128M",
+					CPU:    "1",
 				},
 				Replicas: 0,
 				Autoscaling: &clients.Autoscaling{
@@ -417,8 +417,8 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 					Tag:  "v1",
 				},
 				Resources: clients.Resources{
-					Memory: "512Mi",
-					CPU:    "250m",
+					Memory: "512M",
+					CPU:    "2",
 				},
 				Autoscaling: &clients.Autoscaling{
 					Enabled: false,
@@ -434,8 +434,8 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 					Tag:  "v1",
 				},
 				Resources: clients.Resources{
-					Memory: "512Mi",
-					CPU:    "250m",
+					Memory: "512M",
+					CPU:    "2",
 				},
 				Replicas:    5,
 				Autoscaling: nil,
