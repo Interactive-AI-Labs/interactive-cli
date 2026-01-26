@@ -19,12 +19,13 @@ import (
 )
 
 var (
-	imageBuildTag     string
-	imageBuildFile    string
-	imageBuildContext string
-	imagePushTag      string
-	imageOrganization string
-	imageProject      string
+	imageBuildTag      string
+	imageBuildFile     string
+	imageBuildContext  string
+	imageBuildPlatform string
+	imagePushTag       string
+	imageOrganization  string
+	imageProject       string
 )
 
 var imageCmd = &cobra.Command{
@@ -146,7 +147,7 @@ Dockerfile, and build context.`,
 			"build",
 			"-t", imageRef,
 			"-f", imageBuildFile,
-			"--platform", "linux/amd64",
+			"--platform", imageBuildPlatform,
 			imageBuildContext,
 		}
 
@@ -336,6 +337,7 @@ func init() {
 	imageBuildCmd.Flags().StringVarP(&imageBuildTag, "tag", "t", "", "Tag suffix to append to the fixed registry (e.g. 1.2.3)")
 	imageBuildCmd.Flags().StringVarP(&imageBuildFile, "file", "f", "Dockerfile", "Path to the Dockerfile (default: ./Dockerfile)")
 	imageBuildCmd.Flags().StringVarP(&imageBuildContext, "context", "c", ".", "Build context directory (default: current directory)")
+	imageBuildCmd.Flags().StringVar(&imageBuildPlatform, "platform", "linux/amd64", "Target platform for the build (currently only linux/amd64 is supported)")
 
 	_ = imageBuildCmd.MarkFlagRequired("tag")
 
