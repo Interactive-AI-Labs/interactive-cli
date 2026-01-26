@@ -19,12 +19,13 @@ import (
 )
 
 var (
-	imageBuildTag     string
-	imageBuildFile    string
-	imageBuildContext string
-	imagePushTag      string
-	imageOrganization string
-	imageProject      string
+	imageBuildTag      string
+	imageBuildFile     string
+	imageBuildContext  string
+	imageBuildPlatform string
+	imagePushTag       string
+	imageOrganization  string
+	imageProject       string
 )
 
 var imageCmd = &cobra.Command{
@@ -136,7 +137,6 @@ Dockerfile, and build context.`,
 			return fmt.Errorf("context is required; please provide --context")
 		}
 
-		// Ensure Docker CLI is available.
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf("docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w", err)
 		}
@@ -147,6 +147,7 @@ Dockerfile, and build context.`,
 			"build",
 			"-t", imageRef,
 			"-f", imageBuildFile,
+			"--platform", imageBuildPlatform,
 			imageBuildContext,
 		}
 
@@ -215,13 +216,15 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		// Ensure Docker CLI is available.
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf("docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w", err)
 		}
 
-		// Local image reference that was built previously.
 		imageRef := fmt.Sprintf("%s:%s", imageName, imagePushTag)
+
+		if err := validateImageArchitecture(imageRef); err != nil {
+			return err
+		}
 
 		tmpFile, err := os.CreateTemp("", "image-*.tar")
 		if err != nil {
@@ -313,10 +316,28 @@ var imagePushCmd = &cobra.Command{
 	},
 }
 
+func validateImageArchitecture(imageRef string) error {
+	inspectArgs := []string{"inspect", "--format", "{{.Architecture}}", imageRef}
+	cmdExec := exec.Command("docker", inspectArgs...)
+
+	output, err := cmdExec.Output()
+	if err != nil {
+		return fmt.Errorf("failed to inspect image architecture: %w", err)
+	}
+
+	arch := strings.TrimSpace(string(output))
+	if arch != "amd64" && arch != "x86_64" {
+		return fmt.Errorf("unsupported architecture %q detected in image; only amd64 images are supported on this platform", arch)
+	}
+
+	return nil
+}
+
 func init() {
 	imageBuildCmd.Flags().StringVarP(&imageBuildTag, "tag", "t", "", "Tag suffix to append to the fixed registry (e.g. 1.2.3)")
 	imageBuildCmd.Flags().StringVarP(&imageBuildFile, "file", "f", "Dockerfile", "Path to the Dockerfile (default: ./Dockerfile)")
 	imageBuildCmd.Flags().StringVarP(&imageBuildContext, "context", "c", ".", "Build context directory (default: current directory)")
+	imageBuildCmd.Flags().StringVar(&imageBuildPlatform, "platform", "linux/amd64", "Target platform for the build (currently only linux/amd64 is supported)")
 
 	_ = imageBuildCmd.MarkFlagRequired("tag")
 
