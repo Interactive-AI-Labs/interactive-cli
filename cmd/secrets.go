@@ -21,7 +21,7 @@ var (
 	secretName          string
 	secretDataKVs       []string
 	secretEnvFile       string
-	secretKeyValue      string
+	secretKeyData       string
 )
 
 var secretsCmd = &cobra.Command{
@@ -454,16 +454,22 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
-var secretsUpdateKeyCmd = &cobra.Command{
-	Use:   "update-key <secret_name> <key_name>",
+var secretsKeysCmd = &cobra.Command{
+	Use:   "keys",
+	Short: "Manage individual keys within a secret",
+	Long:  `Manage individual keys within a secret in InteractiveAI projects.`,
+}
+
+var secretsKeysUpdateCmd = &cobra.Command{
+	Use:   "update <secret_name>",
 	Short: "Update a single key in a secret",
 	Long: `Update a single key/value pair in an existing secret without replacing the entire secret data.
 
 The project is selected with --project or via 'iai projects select'.
 
 Example:
-  iai secrets update-key my-secret API_KEY --value "new-api-key-value"`,
-	Args: cobra.ExactArgs(2),
+  iai secrets keys update my-secret -d API_KEY=new-api-key-value`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -472,16 +478,26 @@ Example:
 			return fmt.Errorf("secret name is required")
 		}
 
-		keyName := strings.TrimSpace(args[1])
+		if secretKeyData == "" {
+			return fmt.Errorf("--data KEY=VALUE is required")
+		}
+
+		parts := strings.SplitN(secretKeyData, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid --data value %q; expected KEY=VALUE", secretKeyData)
+		}
+
+		keyName := strings.TrimSpace(parts[0])
 		if keyName == "" {
-			return fmt.Errorf("key name is required")
+			return fmt.Errorf("invalid --data value %q; key must not be empty", secretKeyData)
 		}
 
 		if !inputs.IsValidEnvVarName(keyName) {
 			return fmt.Errorf("key name %q is not a valid environment variable name", keyName)
 		}
 
-		if err := inputs.ValidateSecretValue(keyName, secretKeyValue); err != nil {
+		value := parts[1]
+		if err := inputs.ValidateSecretValue(keyName, value); err != nil {
 			return err
 		}
 
@@ -529,7 +545,7 @@ Example:
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting secret key update request...")
 
-		serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, secretKeyValue)
+		serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, value)
 		if err != nil {
 			return err
 		}
@@ -629,11 +645,13 @@ func init() {
 	secretsGetCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsGetCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// secrets update-key
-	secretsUpdateKeyCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsUpdateKeyCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
-	secretsUpdateKeyCmd.Flags().StringVarP(&secretKeyValue, "value", "v", "", "New value for the secret key")
+	// secrets keys update
+	secretsKeysUpdateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsKeysUpdateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsKeysUpdateCmd.Flags().StringVarP(&secretKeyData, "data", "d", "", "Secret key data in KEY=VALUE form")
 
-	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd, secretsUpdateKeyCmd)
+	// Wire up the command hierarchy
+	secretsKeysCmd.AddCommand(secretsKeysUpdateCmd)
+	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd, secretsKeysCmd)
 	rootCmd.AddCommand(secretsCmd)
 }
