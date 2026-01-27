@@ -113,17 +113,24 @@ func ValidateServiceSecretRefs(secretRefs []string) error {
 	return nil
 }
 
-// ValidateCPU validates a CPU value as a whole number of cores or millicores.
+// ValidateCPU validates a CPU value as a whole number of cores, decimal cores, or millicores.
 func ValidateCPU(cpu string) error {
 	if cpu == "" {
 		return fmt.Errorf("cpu is required")
 	}
 
-	value, _ := strings.CutSuffix(cpu, "m")
+	value := cpu
+	if v, found := strings.CutSuffix(cpu, "m"); found {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			return fmt.Errorf("invalid cpu value %q; expected cores (e.g., '1', '0.5') or millicores (e.g., '500m')", cpu)
+		}
+		return nil
+	}
 
-	n, err := strconv.Atoi(value)
-	if err != nil || n <= 0 {
-		return fmt.Errorf("invalid cpu value %q; expected a whole number of cores (e.g., '1', '2') or millicores (e.g., '500m', '1000m')", cpu)
+	f, err := strconv.ParseFloat(value, 64)
+	if err != nil || f <= 0 {
+		return fmt.Errorf("invalid cpu value %q; expected cores (e.g., '1', '0.5') or millicores (e.g., '500m')", cpu)
 	}
 	return nil
 }
