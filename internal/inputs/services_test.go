@@ -5,6 +5,75 @@ import (
 	"testing"
 )
 
+func TestValidateCPU(t *testing.T) {
+	tests := []struct {
+		name            string
+		cpu             string
+		wantErr         bool
+		wantErrContains string
+	}{
+		{name: "valid whole number", cpu: "1", wantErr: false},
+		{name: "valid decimal", cpu: "0.5", wantErr: false},
+		{name: "valid millicores", cpu: "500m", wantErr: false},
+		{name: "empty string", cpu: "", wantErr: true, wantErrContains: "cpu is required"},
+		{name: "invalid text", cpu: "abc", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid zero", cpu: "0", wantErr: true, wantErrContains: "invalid cpu value"},
+		{name: "invalid zero millicores", cpu: "0m", wantErr: true, wantErrContains: "invalid cpu value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateCPU(tt.cpu)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("ValidateCPU() expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
+					t.Errorf("ValidateCPU() error = %v, want error containing %q", err, tt.wantErrContains)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ValidateCPU() unexpected error = %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateMemory(t *testing.T) {
+	tests := []struct {
+		name            string
+		memory          string
+		wantErr         bool
+		wantErrContains string
+	}{
+		{name: "valid M unit", memory: "512M", wantErr: false},
+		{name: "valid G unit", memory: "1G", wantErr: false},
+		{name: "empty string", memory: "", wantErr: true, wantErrContains: "memory is required"},
+		{name: "invalid no unit", memory: "512", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid text", memory: "abc", wantErr: true, wantErrContains: "invalid memory value"},
+		{name: "invalid zero", memory: "0M", wantErr: true, wantErrContains: "invalid memory value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateMemory(tt.memory)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("ValidateMemory() expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
+					t.Errorf("ValidateMemory() error = %v, want error containing %q", err, tt.wantErrContains)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("ValidateMemory() unexpected error = %v", err)
+				}
+			}
+		})
+	}
+}
+
 func TestValidateService(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -20,8 +89,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  3,
 			},
 			wantErr: false,
@@ -35,8 +104,8 @@ func TestValidateService(t *testing.T) {
 				ImageRepository: "docker.io/myrepo",
 				ImageName:       "my-image",
 				ImageTag:        "1.0.0",
-				Memory:          "512Mi",
-				CPU:             "500m",
+				Memory:          "512M",
+				CPU:             "1",
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
 					MinReplicas:   2,
@@ -55,8 +124,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
 					MinReplicas:   1,
@@ -74,8 +143,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
 					MinReplicas:   1,
@@ -93,8 +162,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -108,8 +177,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -123,8 +192,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -138,8 +207,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -153,8 +222,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -168,8 +237,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -183,8 +252,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "invalid",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -199,8 +268,8 @@ func TestValidateService(t *testing.T) {
 				ImageRepository: "",
 				ImageName:       "my-image",
 				ImageTag:        "1.0.0",
-				Memory:          "512Mi",
-				CPU:             "500m",
+				Memory:          "512M",
+				CPU:             "1",
 				Replicas:        1,
 			},
 			wantErr:         true,
@@ -215,7 +284,7 @@ func TestValidateService(t *testing.T) {
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
 				Memory:    "",
-				CPU:       "500m",
+				CPU:       "1",
 				Replicas:  1,
 			},
 			wantErr:         true,
@@ -229,12 +298,42 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
+				Memory:    "512M",
 				CPU:       "",
 				Replicas:  1,
 			},
 			wantErr:         true,
 			wantErrContains: "cpu is required",
+		},
+		{
+			name: "invalid cpu format",
+			input: ServiceInput{
+				Name:      "my-service",
+				Port:      8080,
+				ImageType: "internal",
+				ImageName: "my-image",
+				ImageTag:  "1.0.0",
+				Memory:    "512M",
+				CPU:       "500Mi",
+				Replicas:  1,
+			},
+			wantErr:         true,
+			wantErrContains: "invalid cpu value",
+		},
+		{
+			name: "invalid memory format",
+			input: ServiceInput{
+				Name:      "my-service",
+				Port:      8080,
+				ImageType: "internal",
+				ImageName: "my-image",
+				ImageTag:  "1.0.0",
+				Memory:    "invalid",
+				CPU:       "1",
+				Replicas:  1,
+			},
+			wantErr:         true,
+			wantErrContains: "invalid memory value",
 		},
 		{
 			name: "both replicas and autoscaling",
@@ -244,8 +343,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  3,
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
@@ -265,8 +364,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Replicas:  0,
 			},
 			wantErr:         true,
@@ -280,8 +379,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
 					MinReplicas:   0,
@@ -300,8 +399,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
 					MinReplicas:   2,
@@ -320,8 +419,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
 					MinReplicas:   10,
@@ -340,8 +439,8 @@ func TestValidateService(t *testing.T) {
 				ImageType: "internal",
 				ImageName: "my-image",
 				ImageTag:  "1.0.0",
-				Memory:    "512Mi",
-				CPU:       "500m",
+				Memory:    "512M",
+				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
 					Enabled:       true,
 					MinReplicas:   2,
