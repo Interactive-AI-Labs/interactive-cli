@@ -21,6 +21,7 @@ var (
 	secretName          string
 	secretDataKVs       []string
 	secretEnvFile       string
+	secretKeyValue      string
 )
 
 var secretsCmd = &cobra.Command{
@@ -453,6 +454,94 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
+var secretsUpdateKeyCmd = &cobra.Command{
+	Use:   "update-key <secret_name> <key_name>",
+	Short: "Update a single key in a secret",
+	Long: `Update a single key/value pair in an existing secret without replacing the entire secret data.
+
+The project is selected with --project or via 'iai projects select'.
+
+Example:
+  iai secrets update-key my-secret API_KEY --value "new-api-key-value"`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		secretName := strings.TrimSpace(args[0])
+		if secretName == "" {
+			return fmt.Errorf("secret name is required")
+		}
+
+		keyName := strings.TrimSpace(args[1])
+		if keyName == "" {
+			return fmt.Errorf("key name is required")
+		}
+
+		if !inputs.IsValidEnvVarName(keyName) {
+			return fmt.Errorf("key name %q is not a valid environment variable name", keyName)
+		}
+
+		if err := inputs.ValidateSecretValue(keyName, secretKeyValue); err != nil {
+			return err
+		}
+
+		cfg := &files.StackConfig{}
+		var err error
+		if cfgFilePath != "" {
+			cfg, err = files.LoadStackConfig(cfgFilePath)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return fmt.Errorf("failed to create deployment client: %w", err)
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
+		if err != nil {
+			return fmt.Errorf("failed to resolve organization: %w", err)
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project: %w", err)
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting secret key update request...")
+
+		serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, secretKeyValue)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 func formatSecretKeys(keys []string, maxVisible int) string {
 	if len(keys) == 0 {
 		return ""
@@ -540,6 +629,11 @@ func init() {
 	secretsGetCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsGetCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd)
+	// secrets update-key
+	secretsUpdateKeyCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsUpdateKeyCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsUpdateKeyCmd.Flags().StringVarP(&secretKeyValue, "value", "v", "", "New value for the secret key")
+
+	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd, secretsUpdateKeyCmd)
 	rootCmd.AddCommand(secretsCmd)
 }

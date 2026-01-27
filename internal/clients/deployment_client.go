@@ -461,6 +461,58 @@ func (c *DeploymentClient) DeleteSecret(
 	return serverMessage, nil
 }
 
+func (c *DeploymentClient) UpdateSecretKey(
+	ctx context.Context,
+	orgId,
+	projectId,
+	secretName,
+	keyName,
+	value string,
+) (string, error) {
+	reqBody := struct {
+		Value string `json:"value"`
+	}{
+		Value: value,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s/keys/%s",
+		url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(secretName), url.PathEscape(keyName))
+	req, err := c.newRequest(ctx, http.MethodPut, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", fmt.Errorf("secret key update request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("secret key update failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
 func (c *DeploymentClient) GetSecret(
 	ctx context.Context,
 	orgId,
