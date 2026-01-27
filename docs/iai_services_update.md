@@ -20,7 +20,7 @@ iai services update [service_name] [flags]
       --autoscaling-max-replicas int        Maximum number of replicas when autoscaling is enabled
       --autoscaling-memory-percentage int   Memory percentage threshold for autoscaling
       --autoscaling-min-replicas int        Minimum number of replicas when autoscaling is enabled
-      --cpu string                          CPU cores or millicores (e.g. 1, 2, 500m, 1000m) - required
+      --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) - required
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
   -h, --help                                help for update
