@@ -39,13 +39,9 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("service name is required")
 		}
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)

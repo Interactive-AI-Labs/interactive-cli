@@ -1,10 +1,16 @@
 ## iai secrets update
 
-Update a secret in a project
+Update keys in a secret
 
 ### Synopsis
 
-Update a secret in a specific project using the deployment service.
+Update one or more keys in an existing secret.
+
+By default, only the specified keys are updated (merge/upsert). Existing keys
+not included in the update are preserved.
+
+With --replace, ALL secret data is replaced. Any keys not included in the new
+data will be permanently deleted.
 
 The project is selected with --project or via 'iai projects select'.
 
@@ -14,8 +20,18 @@ Secret data can be provided via:
 
 When both are provided, --data values take precedence.
 
+Examples:
+  # Update a single key (other keys preserved)
+  iai secrets update my-secret -d API_KEY=new-value
+
+  # Update multiple keys (other keys preserved)
+  iai secrets update my-secret -d API_KEY=val1 -d DB_PASS=val2
+
+  # Replace all keys (keys not provided will be deleted)
+  iai secrets update my-secret -d API_KEY=val1 --replace
+
 ```
-iai secrets update [secret_name] [flags]
+iai secrets update <secret_name> [flags]
 ```
 
 ### Options
@@ -26,7 +42,7 @@ iai secrets update [secret_name] [flags]
   -h, --help                   help for update
   -o, --organization string    Organization name that owns the project
   -p, --project string         Project name that owns the secrets
-  -s, --secret-name string     Name of the secret
+      --replace                Replace all secret data (keys not provided will be deleted)
 ```
 
 ### Options inherited from parent commands

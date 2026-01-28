@@ -29,6 +29,9 @@ type ServiceConfig struct {
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
+	if path == "" {
+		return &StackConfig{}, nil
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)

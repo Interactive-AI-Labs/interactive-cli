@@ -39,13 +39,9 @@ is used.`,
 			defer stop()
 		}
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)

@@ -85,13 +85,9 @@ All configuration is provided via flags. The project is selected with --project 
 			return err
 		}
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -233,13 +229,9 @@ All configuration is provided via flags. The project is selected with --project 
 			return err
 		}
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -368,13 +360,9 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -453,13 +441,9 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("service name is required; please provide the service name as an argument")
 		}
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -522,11 +506,7 @@ The project is selected with --project or via 'iai projects select'.`,
 
 		serviceName := args[0]
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}

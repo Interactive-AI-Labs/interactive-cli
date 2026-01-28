@@ -42,6 +42,10 @@ func ParseEnvFile(filePath string) (map[string]string, error) {
 			errors = append(errors, fmt.Sprintf("  line %d: empty key", lineNum))
 			continue
 		}
+		if err := inputs.ValidateSecretKey(key); err != nil {
+			errors = append(errors, fmt.Sprintf("  line %d: %s", lineNum, err.Error()))
+			continue
+		}
 
 		value := strings.TrimSpace(parts[1])
 		if err := inputs.ValidateSecretValue(key, value); err != nil {

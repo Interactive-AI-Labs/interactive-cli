@@ -21,6 +21,7 @@ var (
 	secretName          string
 	secretDataKVs       []string
 	secretEnvFile       string
+	secretReplaceFlag   bool
 )
 
 var secretsCmd = &cobra.Command{
@@ -41,11 +42,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -99,7 +96,7 @@ The project is selected with --project or via 'iai projects select'.`,
 				s.Name,
 				s.Type,
 				s.CreatedAt,
-				formatSecretKeys(s.Keys, 3),
+				output.TruncateList(s.Keys, 3),
 			}
 		}
 
@@ -138,11 +135,7 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -179,7 +172,7 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
+		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
 		if err != nil {
 			return err
 		}
@@ -201,9 +194,15 @@ When both are provided, --data values take precedence.`,
 }
 
 var secretsUpdateCmd = &cobra.Command{
-	Use:   "update [secret_name]",
-	Short: "Update a secret in a project",
-	Long: `Update a secret in a specific project using the deployment service.
+	Use:   "update <secret_name>",
+	Short: "Update keys in a secret",
+	Long: `Update one or more keys in an existing secret.
+
+By default, only the specified keys are updated (merge/upsert). Existing keys
+not included in the update are preserved.
+
+With --replace, ALL secret data is replaced. Any keys not included in the new
+data will be permanently deleted.
 
 The project is selected with --project or via 'iai projects select'.
 
@@ -211,27 +210,36 @@ Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
-When both are provided, --data values take precedence.`,
-	Args: cobra.RangeArgs(0, 1),
+When both are provided, --data values take precedence.
+
+Examples:
+  # Update a single key (other keys preserved)
+  iai secrets update my-secret -d API_KEY=new-value
+
+  # Update multiple keys (other keys preserved)
+  iai secrets update my-secret -d API_KEY=val1 -d DB_PASS=val2
+
+  # Replace all keys (keys not provided will be deleted)
+  iai secrets update my-secret -d API_KEY=val1 --replace`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if len(args) > 0 && strings.TrimSpace(secretName) == "" {
-			secretName = args[0]
+		secretName := strings.TrimSpace(args[0])
+		if secretName == "" {
+			return fmt.Errorf("secret name is required")
 		}
 
-		if strings.TrimSpace(secretName) == "" {
-			return fmt.Errorf("secret name is required; please provide --secret-name or positional argument")
-		}
 		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
+		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
+		if err != nil {
+			return err
 		}
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -268,21 +276,44 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
-		if err != nil {
-			return err
+		fmt.Fprintln(out)
+
+		if secretReplaceFlag {
+			fmt.Fprintln(out, "Submitting secret replace request...")
+
+			serverMessage, err := deployClient.ReplaceSecret(cmd.Context(), orgId, projectId, secretName, data)
+			if err != nil {
+				return err
+			}
+
+			if serverMessage != "" {
+				fmt.Fprintln(out, serverMessage)
+			}
+			return nil
 		}
 
-		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting secret update request...")
 
-		serverMessage, err := deployClient.UpdateSecret(cmd.Context(), orgId, projectId, secretName, data)
-		if err != nil {
-			return err
+		keys := make([]string, 0, len(data))
+		for k := range data {
+			keys = append(keys, k)
 		}
+		sort.Strings(keys)
 
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
+		var updatedKeys []string
+		for _, keyName := range keys {
+			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, data[keyName])
+			if err != nil {
+				if len(updatedKeys) > 0 {
+					fmt.Fprintf(out, "Successfully updated keys: %s\n", strings.Join(updatedKeys, ", "))
+				}
+				return fmt.Errorf("failed to update key %q: %w", keyName, err)
+			}
+			updatedKeys = append(updatedKeys, keyName)
+
+			if serverMessage != "" {
+				fmt.Fprintln(out, serverMessage)
+			}
 		}
 
 		return nil
@@ -305,11 +336,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("secret name is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -377,11 +404,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("secret name is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -453,18 +476,8 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
-func formatSecretKeys(keys []string, maxVisible int) string {
-	if len(keys) == 0 {
-		return ""
-	}
-	if len(keys) <= maxVisible {
-		return strings.Join(keys, ", ")
-	}
-	visible := strings.Join(keys[:maxVisible], ", ")
-	return fmt.Sprintf("%s (+%d more)", visible, len(keys)-maxVisible)
-}
-
-func buildSecretData(pairs []string) (map[string]string, error) {
+// parseKeyValuePairs parses KEY=VALUE strings and validates each key and value.
+func parseKeyValuePairs(pairs []string) (map[string]string, error) {
 	data := make(map[string]string, len(pairs))
 
 	for _, p := range pairs {
@@ -477,6 +490,9 @@ func buildSecretData(pairs []string) (map[string]string, error) {
 		if key == "" {
 			return nil, fmt.Errorf("invalid --data value %q; key must not be empty", p)
 		}
+		if err := inputs.ValidateSecretKey(key); err != nil {
+			return nil, err
+		}
 
 		value := parts[1]
 		if err := inputs.ValidateSecretValue(key, value); err != nil {
@@ -488,7 +504,9 @@ func buildSecretData(pairs []string) (map[string]string, error) {
 	return data, nil
 }
 
-func buildSecretDataWithEnvFile(pairs []string, envFilePath string) (map[string]string, error) {
+// mergeSecretData merges secret data from --data flags and/or an env file.
+// When both sources are provided, --data values take precedence over env file values.
+func mergeSecretData(pairs []string, envFilePath string) (map[string]string, error) {
 	data := make(map[string]string)
 
 	if strings.TrimSpace(envFilePath) != "" {
@@ -500,14 +518,11 @@ func buildSecretDataWithEnvFile(pairs []string, envFilePath string) (map[string]
 	}
 
 	if len(pairs) > 0 {
-		pairData, err := buildSecretData(pairs)
+		pairData, err := parseKeyValuePairs(pairs)
 		if err != nil {
 			return nil, err
 		}
-		// We don't run maps.copy to avoid panicking with duplicated keys
-		for k, v := range pairData {
-			data[k] = v
-		}
+		maps.Copy(data, pairData)
 	}
 
 	return data, nil
@@ -528,9 +543,9 @@ func init() {
 	// secrets update
 	secretsUpdateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsUpdateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
-	secretsUpdateCmd.Flags().StringVarP(&secretName, "secret-name", "s", "", "Name of the secret")
 	secretsUpdateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
 	secretsUpdateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
+	secretsUpdateCmd.Flags().BoolVar(&secretReplaceFlag, "replace", false, "Replace all secret data (keys not provided will be deleted)")
 
 	// secrets delete
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
@@ -540,6 +555,7 @@ func init() {
 	secretsGetCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsGetCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	// Wire up the command hierarchy
 	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd)
 	rootCmd.AddCommand(secretsCmd)
 }
