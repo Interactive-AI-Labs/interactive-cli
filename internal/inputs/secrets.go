@@ -2,11 +2,11 @@ package inputs
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 // ValidateSecretValue validates a secret value.
-// It checks that the value is not empty/whitespace and is not wrapped in quotes.
 func ValidateSecretValue(key, value string) error {
 	if strings.TrimSpace(value) == "" {
 		return fmt.Errorf("value for key %q cannot be empty", key)
@@ -20,31 +20,29 @@ func ValidateSecretValue(key, value string) error {
 	return nil
 }
 
-// IsValidEnvVarName validates that a string is a valid environment variable name.
-// Environment variable names must start with a letter or underscore,
-// and contain only letters, digits, or underscores.
-func IsValidEnvVarName(name string) bool {
-	if len(name) == 0 {
-		return false
+// ValidateSecretKey validates a secret key name.
+func ValidateSecretKey(key string) error {
+	if strings.TrimSpace(key) == "" {
+		return fmt.Errorf("key name cannot be empty")
 	}
 
-	firstChar := name[0]
-	if !((firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= 'a' && firstChar <= 'z') || firstChar == '_') {
-		return false
+	if !isValidEnvVarName(key) {
+		return fmt.Errorf("key name %q is not a valid environment variable name", key)
 	}
 
-	for i := 1; i < len(name); i++ {
-		c := name[i]
-		if !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {
-			return false
-		}
-	}
+	return nil
+}
 
-	return true
+// envVarNameRegex matches valid POSIX environment variable names:
+// must start with a letter or underscore, followed by letters, digits, or underscores.
+var envVarNameRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// isValidEnvVarName validates that a string is a valid environment variable name.
+func isValidEnvVarName(name string) bool {
+	return envVarNameRegex.MatchString(name)
 }
 
 // isQuoted returns true if the string starts and ends with the given quote character
-// and is at least 2 characters long.
 func isQuoted(s string, quote byte) bool {
 	if len(s) < 2 {
 		return false

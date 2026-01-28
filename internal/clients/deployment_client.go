@@ -376,7 +376,7 @@ func (c *DeploymentClient) CreateSecret(
 	return serverMessage, nil
 }
 
-func (c *DeploymentClient) UpdateSecret(
+func (c *DeploymentClient) ReplaceSecret(
 	ctx context.Context,
 	orgId,
 	projectId,
@@ -405,7 +405,7 @@ func (c *DeploymentClient) UpdateSecret(
 
 	resp, err := c.do(req)
 	if err != nil {
-		return "", fmt.Errorf("secret update request failed: %w", err)
+		return "", fmt.Errorf("secret replace request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -420,7 +420,7 @@ func (c *DeploymentClient) UpdateSecret(
 		if serverMessage != "" {
 			return "", fmt.Errorf("%s", serverMessage)
 		}
-		return "", fmt.Errorf("secret update failed with status %s", resp.Status)
+		return "", fmt.Errorf("secret replace failed with status %s", resp.Status)
 	}
 
 	return serverMessage, nil

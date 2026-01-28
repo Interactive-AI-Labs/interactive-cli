@@ -201,10 +201,14 @@ When both are provided, --data values take precedence.`,
 	},
 }
 
-var secretsUpdateCmd = &cobra.Command{
-	Use:   "update [secret_name]",
-	Short: "Update a secret in a project",
-	Long: `Update a secret in a specific project using the deployment service.
+var secretsReplaceCmd = &cobra.Command{
+	Use:   "replace [secret_name]",
+	Short: "Replace all data in a secret",
+	Long: `Replace all data in a secret, removing any existing keys not specified.
+
+WARNING: This operation replaces ALL secret data. Any keys not included
+in the new data will be permanently deleted. To update individual keys
+without affecting others, use 'iai secrets keys update' instead.
 
 The project is selected with --project or via 'iai projects select'.
 
@@ -275,9 +279,9 @@ When both are provided, --data values take precedence.`,
 		}
 
 		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting secret update request...")
+		fmt.Fprintln(out, "Submitting secret replace request...")
 
-		serverMessage, err := deployClient.UpdateSecret(cmd.Context(), orgId, projectId, secretName, data)
+		serverMessage, err := deployClient.ReplaceSecret(cmd.Context(), orgId, projectId, secretName, data)
 		if err != nil {
 			return err
 		}
@@ -488,12 +492,8 @@ Example:
 		}
 
 		keyName := strings.TrimSpace(parts[0])
-		if keyName == "" {
-			return fmt.Errorf("invalid --data value %q; key must not be empty", secretKeyData)
-		}
-
-		if !inputs.IsValidEnvVarName(keyName) {
-			return fmt.Errorf("key name %q is not a valid environment variable name", keyName)
+		if err := inputs.ValidateSecretKey(keyName); err != nil {
+			return err
 		}
 
 		value := parts[1]
@@ -630,12 +630,12 @@ func init() {
 	secretsCreateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
 	secretsCreateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 
-	// secrets update
-	secretsUpdateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsUpdateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
-	secretsUpdateCmd.Flags().StringVarP(&secretName, "secret-name", "s", "", "Name of the secret")
-	secretsUpdateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
-	secretsUpdateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
+	// secrets replace
+	secretsReplaceCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsReplaceCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsReplaceCmd.Flags().StringVarP(&secretName, "secret-name", "s", "", "Name of the secret")
+	secretsReplaceCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
+	secretsReplaceCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 
 	// secrets delete
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
@@ -652,6 +652,6 @@ func init() {
 
 	// Wire up the command hierarchy
 	secretsKeysCmd.AddCommand(secretsKeysUpdateCmd)
-	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd, secretsKeysCmd)
+	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsReplaceCmd, secretsDeleteCmd, secretsGetCmd, secretsKeysCmd)
 	rootCmd.AddCommand(secretsCmd)
 }
