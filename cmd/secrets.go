@@ -294,9 +294,15 @@ Examples:
 
 		fmt.Fprintln(out, "Submitting secret update request...")
 
+		keys := make([]string, 0, len(data))
+		for k := range data {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
 		var updatedKeys []string
-		for keyName, value := range data {
-			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, value)
+		for _, keyName := range keys {
+			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, data[keyName])
 			if err != nil {
 				if len(updatedKeys) > 0 {
 					fmt.Fprintf(out, "Successfully updated keys: %s\n", strings.Join(updatedKeys, ", "))
