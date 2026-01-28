@@ -294,11 +294,16 @@ Examples:
 
 		fmt.Fprintln(out, "Submitting secret update request...")
 
+		var updatedKeys []string
 		for keyName, value := range data {
 			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, value)
 			if err != nil {
+				if len(updatedKeys) > 0 {
+					fmt.Fprintf(out, "Successfully updated keys: %s\n", strings.Join(updatedKeys, ", "))
+				}
 				return fmt.Errorf("failed to update key %q: %w", keyName, err)
 			}
+			updatedKeys = append(updatedKeys, keyName)
 
 			if serverMessage != "" {
 				fmt.Fprintln(out, serverMessage)
@@ -464,7 +469,6 @@ The project is selected with --project or via 'iai projects select'.`,
 		return nil
 	},
 }
-
 
 func formatSecretKeys(keys []string, maxVisible int) string {
 	if len(keys) == 0 {
