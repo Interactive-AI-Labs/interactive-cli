@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// ValidateSecretValue validates a secret value.
 func ValidateSecretValue(key, value string) error {
 	if strings.TrimSpace(value) == "" {
 		return fmt.Errorf("value for key %q cannot be empty", key)
@@ -20,7 +19,6 @@ func ValidateSecretValue(key, value string) error {
 	return nil
 }
 
-// ValidateSecretKey validates a secret key name.
 func ValidateSecretKey(key string) error {
 	if strings.TrimSpace(key) == "" {
 		return fmt.Errorf("key name cannot be empty")
@@ -37,7 +35,6 @@ func ValidateSecretKey(key string) error {
 // must start with a letter or underscore, followed by letters, digits, or underscores.
 var envVarNameRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
-// isValidEnvVarName validates that a string is a valid environment variable name.
 func isValidEnvVarName(name string) bool {
 	return envVarNameRegex.MatchString(name)
 }
