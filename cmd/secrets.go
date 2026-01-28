@@ -96,7 +96,7 @@ The project is selected with --project or via 'iai projects select'.`,
 				s.Name,
 				s.Type,
 				s.CreatedAt,
-				formatSecretKeys(s.Keys, 3),
+				output.TruncateList(s.Keys, 3),
 			}
 		}
 
@@ -172,7 +172,7 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
+		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
 		if err != nil {
 			return err
 		}
@@ -234,7 +234,7 @@ Examples:
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		data, err := buildSecretDataWithValidation(secretDataKVs, secretEnvFile)
+		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
 		if err != nil {
 			return err
 		}
@@ -470,18 +470,8 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
-func formatSecretKeys(keys []string, maxVisible int) string {
-	if len(keys) == 0 {
-		return ""
-	}
-	if len(keys) <= maxVisible {
-		return strings.Join(keys, ", ")
-	}
-	visible := strings.Join(keys[:maxVisible], ", ")
-	return fmt.Sprintf("%s (+%d more)", visible, len(keys)-maxVisible)
-}
-
-func buildSecretData(pairs []string) (map[string]string, error) {
+// parseKeyValuePairs parses KEY=VALUE strings and validates each key and value.
+func parseKeyValuePairs(pairs []string) (map[string]string, error) {
 	data := make(map[string]string, len(pairs))
 
 	for _, p := range pairs {
@@ -494,6 +484,9 @@ func buildSecretData(pairs []string) (map[string]string, error) {
 		if key == "" {
 			return nil, fmt.Errorf("invalid --data value %q; key must not be empty", p)
 		}
+		if err := inputs.ValidateSecretKey(key); err != nil {
+			return nil, err
+		}
 
 		value := parts[1]
 		if err := inputs.ValidateSecretValue(key, value); err != nil {
@@ -505,7 +498,9 @@ func buildSecretData(pairs []string) (map[string]string, error) {
 	return data, nil
 }
 
-func buildSecretDataWithEnvFile(pairs []string, envFilePath string) (map[string]string, error) {
+// mergeSecretData merges secret data from --data flags and/or an env file.
+// When both sources are provided, --data values take precedence over env file values.
+func mergeSecretData(pairs []string, envFilePath string) (map[string]string, error) {
 	data := make(map[string]string)
 
 	if strings.TrimSpace(envFilePath) != "" {
@@ -517,29 +512,11 @@ func buildSecretDataWithEnvFile(pairs []string, envFilePath string) (map[string]
 	}
 
 	if len(pairs) > 0 {
-		pairData, err := buildSecretData(pairs)
+		pairData, err := parseKeyValuePairs(pairs)
 		if err != nil {
 			return nil, err
 		}
-		// We don't run maps.copy to avoid panicking with duplicated keys
-		for k, v := range pairData {
-			data[k] = v
-		}
-	}
-
-	return data, nil
-}
-
-func buildSecretDataWithValidation(pairs []string, envFilePath string) (map[string]string, error) {
-	data, err := buildSecretDataWithEnvFile(pairs, envFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	for key := range data {
-		if err := inputs.ValidateSecretKey(key); err != nil {
-			return nil, err
-		}
+		maps.Copy(data, pairData)
 	}
 
 	return data, nil
