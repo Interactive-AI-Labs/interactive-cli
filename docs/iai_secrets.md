@@ -27,7 +27,6 @@ Manage secrets in InteractiveAI projects.
 * [iai secrets create](iai_secrets_create.md)	 - Create a secret in a project
 * [iai secrets delete](iai_secrets_delete.md)	 - Delete a secret in a project
 * [iai secrets get](iai_secrets_get.md)	 - Get a secret in a project
-* [iai secrets keys](iai_secrets_keys.md)	 - Manage individual keys within a secret
 * [iai secrets list](iai_secrets_list.md)	 - List secrets in a project
-* [iai secrets replace](iai_secrets_replace.md)	 - Replace all data in a secret
+* [iai secrets update](iai_secrets_update.md)	 - Update keys in a secret
 

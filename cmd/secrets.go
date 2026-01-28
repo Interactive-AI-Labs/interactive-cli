@@ -21,7 +21,7 @@ var (
 	secretName          string
 	secretDataKVs       []string
 	secretEnvFile       string
-	secretKeyData       string
+	secretReplaceFlag   bool
 )
 
 var secretsCmd = &cobra.Command{
@@ -193,14 +193,16 @@ When both are provided, --data values take precedence.`,
 	},
 }
 
-var secretsReplaceCmd = &cobra.Command{
-	Use:   "replace [secret_name]",
-	Short: "Replace all data in a secret",
-	Long: `Replace all data in a secret, removing any existing keys not specified.
+var secretsUpdateCmd = &cobra.Command{
+	Use:   "update <secret_name>",
+	Short: "Update keys in a secret",
+	Long: `Update one or more keys in an existing secret.
 
-WARNING: This operation replaces ALL secret data. Any keys not included
-in the new data will be permanently deleted. To update individual keys
-without affecting others, use 'iai secrets keys update' instead.
+By default, only the specified keys are updated (merge/upsert). Existing keys
+not included in the update are preserved.
+
+With --replace, ALL secret data is replaced. Any keys not included in the new
+data will be permanently deleted.
 
 The project is selected with --project or via 'iai projects select'.
 
@@ -208,20 +210,33 @@ Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
-When both are provided, --data values take precedence.`,
-	Args: cobra.RangeArgs(0, 1),
+When both are provided, --data values take precedence.
+
+Examples:
+  # Update a single key (other keys preserved)
+  iai secrets update my-secret -d API_KEY=new-value
+
+  # Update multiple keys (other keys preserved)
+  iai secrets update my-secret -d API_KEY=val1 -d DB_PASS=val2
+
+  # Replace all keys (keys not provided will be deleted)
+  iai secrets update my-secret -d API_KEY=val1 --replace`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if len(args) > 0 && strings.TrimSpace(secretName) == "" {
-			secretName = args[0]
+		secretName := strings.TrimSpace(args[0])
+		if secretName == "" {
+			return fmt.Errorf("secret name is required")
 		}
 
-		if strings.TrimSpace(secretName) == "" {
-			return fmt.Errorf("secret name is required; please provide --secret-name or positional argument")
-		}
 		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
+		}
+
+		data, err := buildSecretDataWithValidation(secretDataKVs, secretEnvFile)
+		if err != nil {
+			return err
 		}
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
@@ -261,21 +276,33 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		data, err := buildSecretDataWithEnvFile(secretDataKVs, secretEnvFile)
-		if err != nil {
-			return err
-		}
-
 		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting secret replace request...")
 
-		serverMessage, err := deployClient.ReplaceSecret(cmd.Context(), orgId, projectId, secretName, data)
-		if err != nil {
-			return err
+		if secretReplaceFlag {
+			fmt.Fprintln(out, "Submitting secret replace request...")
+
+			serverMessage, err := deployClient.ReplaceSecret(cmd.Context(), orgId, projectId, secretName, data)
+			if err != nil {
+				return err
+			}
+
+			if serverMessage != "" {
+				fmt.Fprintln(out, serverMessage)
+			}
+			return nil
 		}
 
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
+		fmt.Fprintln(out, "Submitting secret update request...")
+
+		for keyName, value := range data {
+			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, value)
+			if err != nil {
+				return fmt.Errorf("failed to update key %q: %w", keyName, err)
+			}
+
+			if serverMessage != "" {
+				fmt.Fprintln(out, serverMessage)
+			}
 		}
 
 		return nil
@@ -438,101 +465,6 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
-var secretsKeysCmd = &cobra.Command{
-	Use:   "keys",
-	Short: "Manage individual keys within a secret",
-	Long:  `Manage individual keys within a secret in InteractiveAI projects.`,
-}
-
-var secretsKeysUpdateCmd = &cobra.Command{
-	Use:   "update <secret_name>",
-	Short: "Update a single key in a secret",
-	Long: `Update a single key/value pair in an existing secret without replacing the entire secret data.
-
-The project is selected with --project or via 'iai projects select'.
-
-Example:
-  iai secrets keys update my-secret -d API_KEY=new-api-key-value`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-
-		secretName := strings.TrimSpace(args[0])
-		if secretName == "" {
-			return fmt.Errorf("secret name is required")
-		}
-
-		if secretKeyData == "" {
-			return fmt.Errorf("--data KEY=VALUE is required")
-		}
-
-		parts := strings.SplitN(secretKeyData, "=", 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid --data value %q; expected KEY=VALUE", secretKeyData)
-		}
-
-		keyName := strings.TrimSpace(parts[0])
-		if err := inputs.ValidateSecretKey(keyName); err != nil {
-			return err
-		}
-
-		value := parts[1]
-		if err := inputs.ValidateSecretValue(keyName, value); err != nil {
-			return err
-		}
-
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting secret key update request...")
-
-		serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, value)
-		if err != nil {
-			return err
-		}
-
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
-		}
-
-		return nil
-	},
-}
 
 func formatSecretKeys(keys []string, maxVisible int) string {
 	if len(keys) == 0 {
@@ -594,6 +526,21 @@ func buildSecretDataWithEnvFile(pairs []string, envFilePath string) (map[string]
 	return data, nil
 }
 
+func buildSecretDataWithValidation(pairs []string, envFilePath string) (map[string]string, error) {
+	data, err := buildSecretDataWithEnvFile(pairs, envFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	for key := range data {
+		if err := inputs.ValidateSecretKey(key); err != nil {
+			return nil, err
+		}
+	}
+
+	return data, nil
+}
+
 func init() {
 	// secrets list
 	secretsListCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
@@ -606,12 +553,12 @@ func init() {
 	secretsCreateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
 	secretsCreateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 
-	// secrets replace
-	secretsReplaceCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsReplaceCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
-	secretsReplaceCmd.Flags().StringVarP(&secretName, "secret-name", "s", "", "Name of the secret")
-	secretsReplaceCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
-	secretsReplaceCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
+	// secrets update
+	secretsUpdateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsUpdateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsUpdateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
+	secretsUpdateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
+	secretsUpdateCmd.Flags().BoolVar(&secretReplaceFlag, "replace", false, "Replace all secret data (keys not provided will be deleted)")
 
 	// secrets delete
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
@@ -621,13 +568,7 @@ func init() {
 	secretsGetCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsGetCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// secrets keys update
-	secretsKeysUpdateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsKeysUpdateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
-	secretsKeysUpdateCmd.Flags().StringVarP(&secretKeyData, "data", "d", "", "Secret key data in KEY=VALUE form")
-
 	// Wire up the command hierarchy
-	secretsKeysCmd.AddCommand(secretsKeysUpdateCmd)
-	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsReplaceCmd, secretsDeleteCmd, secretsGetCmd, secretsKeysCmd)
+	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd)
 	rootCmd.AddCommand(secretsCmd)
 }
