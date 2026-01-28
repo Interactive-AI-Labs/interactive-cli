@@ -23,6 +23,9 @@ jobs:
             exit 1
           fi
       - uses: presubmit/ai-reviewer@main
+        with:
+          style_guide_rules: |
+            - Use uppercase letters in your reviews always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LLM_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
