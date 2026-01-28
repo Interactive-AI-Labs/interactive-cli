@@ -44,13 +44,9 @@ var imageListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -180,13 +176,9 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("tag is required; please provide --tag")
 		}
 
-		cfg := &files.StackConfig{}
-		if cfgFilePath != "" {
-			var err error
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)

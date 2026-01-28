@@ -42,11 +42,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -139,11 +135,7 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -232,11 +224,7 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -310,11 +298,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("secret name is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -382,11 +366,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("secret name is required")
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}
@@ -501,11 +481,7 @@ Example:
 			return err
 		}
 
-		cfg := &files.StackConfig{}
-		var err error
-		if cfgFilePath != "" {
-			cfg, err = files.LoadStackConfig(cfgFilePath)
-		}
+		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
 		}

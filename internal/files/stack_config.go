@@ -28,7 +28,12 @@ type ServiceConfig struct {
 	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"`
 }
 
+// LoadStackConfig loads and validates a stack config from the given path.
+// If path is empty, it returns an empty StackConfig.
 func LoadStackConfig(path string) (*StackConfig, error) {
+	if path == "" {
+		return &StackConfig{}, nil
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
