@@ -80,6 +80,7 @@ type CreateServiceBody struct {
 	Endpoint    bool         `json:"endpoint,omitempty"`
 	Replicas    int          `json:"replicas,omitempty"`
 	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
+	Healthcheck *Healthcheck `json:"healthcheck,omitempty"`
 	StackId     string       `json:"stackId,omitempty"`
 }
 
@@ -94,6 +95,12 @@ type Autoscaling struct {
 	MaxReplicas      int  `json:"maxReplicas,omitempty" yaml:"maxReplicas,omitempty"`
 	CPUPercentage    int  `json:"cpuPercentage,omitempty" yaml:"cpuPercentage,omitempty"`
 	MemoryPercentage int  `json:"memoryPercentage,omitempty" yaml:"memoryPercentage,omitempty"`
+}
+
+type Healthcheck struct {
+	Enabled            bool   `json:"enabled" yaml:"enabled"`
+	Path               string `json:"path,omitempty" yaml:"path,omitempty"`
+	InitialDelaySeconds int    `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
 }
 
 type ImageSpec struct {

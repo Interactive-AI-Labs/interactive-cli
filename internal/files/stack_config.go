@@ -26,6 +26,7 @@ type ServiceConfig struct {
 	Endpoint    bool                 `yaml:"endpoint,omitempty"`
 	Replicas    int                  `yaml:"replicas,omitempty"`
 	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"`
+	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty"`
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
@@ -137,6 +138,10 @@ func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody
 		body.Autoscaling = s.Autoscaling
 	} else {
 		body.Replicas = s.Replicas
+	}
+
+	if s.Healthcheck != nil && s.Healthcheck.Enabled {
+		body.Healthcheck = s.Healthcheck
 	}
 
 	return body
