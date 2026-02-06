@@ -422,23 +422,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		headers := []string{"NAME", "REVISION", "STATUS", "ENDPOINT", "UPDATED"}
-		rows := make([][]string, len(services))
-		for i, svc := range services {
-			rows[i] = []string{
-				svc.Name,
-				fmt.Sprintf("%d", svc.Revision),
-				svc.Status,
-				svc.Endpoint,
-				svc.Updated,
-			}
-		}
-
-		if err := output.PrintTable(out, headers, rows); err != nil {
-			return fmt.Errorf("failed to print table: %w", err)
-		}
-
-		return nil
+		return output.PrintServiceList(out, services)
 	},
 }
 
@@ -650,18 +634,7 @@ The project is selected with --project or via 'iai projects select', and the con
 			return err
 		}
 
-		if len(result.Created) > 0 {
-			fmt.Fprintf(out, "Created services: %s\n", strings.Join(result.Created, ", "))
-		}
-		if len(result.Updated) > 0 {
-			fmt.Fprintf(out, "Updated services: %s\n", strings.Join(result.Updated, ", "))
-		}
-		if len(result.Deleted) > 0 {
-			fmt.Fprintf(out, "Deleted services: %s\n", strings.Join(result.Deleted, ", "))
-		}
-		if len(result.Created) == 0 && len(result.Updated) == 0 && len(result.Deleted) == 0 {
-			fmt.Fprintln(out, "No changes required; services already match config.")
-		}
+		output.PrintSyncResult(out, result.Created, result.Updated, result.Deleted)
 
 		return nil
 	},

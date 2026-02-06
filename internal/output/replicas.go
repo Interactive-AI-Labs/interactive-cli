@@ -3,9 +3,41 @@ package output
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
+
+func PrintReplicaList(out io.Writer, replicas []clients.ReplicaInfo) error {
+	headers := []string{"NAME", "STATUS", "CPU", "MEMORY", "STARTED"}
+	rows := make([][]string, len(replicas))
+	for i, r := range replicas {
+		readinessLabel := "Not Ready"
+		if r.Ready {
+			readinessLabel = "Ready"
+		}
+
+		combinedStatus := strings.TrimSpace(r.Status)
+		if combinedStatus == "" {
+			combinedStatus = strings.TrimSpace(r.Phase)
+		}
+		if combinedStatus == "" {
+			combinedStatus = "Unknown"
+		}
+
+		combinedStatus = fmt.Sprintf("%s [%s]", combinedStatus, readinessLabel)
+
+		rows[i] = []string{
+			r.Name,
+			combinedStatus,
+			r.CPU,
+			r.Memory,
+			r.StartTime,
+		}
+	}
+
+	return PrintTable(out, headers, rows)
+}
 
 func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
 	readyStr := "No"
