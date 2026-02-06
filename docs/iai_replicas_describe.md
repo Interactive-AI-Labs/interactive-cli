@@ -1,21 +1,23 @@
-## iai images list
+## iai replicas describe
 
-List images for a project
+Describe a replica in detail
 
 ### Synopsis
 
-List container images in the deployment registry for a specific project.
+Show detailed information about a specific replica including status, resources, healthcheck configuration, and events.
+
+The project is selected with --project or via 'iai projects select'.
 
 ```
-iai images list [flags]
+iai replicas describe <replica_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
+  -h, --help                  help for describe
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name to list images for
+  -p, --project string        Project name that owns the service
 ```
 
 ### Options inherited from parent commands
@@ -29,5 +31,5 @@ iai images list [flags]
 
 ### SEE ALSO
 
-* [iai images](iai_images.md)	 - Build and manage container images
+* [iai replicas](iai_replicas.md)	 - Manage service replicas
 

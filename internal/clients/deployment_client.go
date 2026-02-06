@@ -42,6 +42,36 @@ type ReplicaInfo struct {
 	StartTime string `json:"startTime,omitempty"`
 }
 
+type ReplicaStatus struct {
+	Name         string              `json:"name"`
+	Ready        bool                `json:"ready"`
+	Status       string              `json:"status"`
+	StartTime    string              `json:"startTime,omitempty"`
+	RestartCount int                 `json:"restartCount"`
+	Resources    *ReplicaResources   `json:"resources,omitempty"`
+	Healthcheck  *ReplicaHealthcheck `json:"healthcheck,omitempty"`
+	Events       []ReplicaEvent      `json:"events,omitempty"`
+}
+
+type ReplicaResources struct {
+	CPU    string `json:"cpu"`
+	Memory string `json:"memory"`
+}
+
+type ReplicaHealthcheck struct {
+	Path                string `json:"path"`
+	InitialDelaySeconds int    `json:"initialDelaySeconds"`
+}
+
+type ReplicaEvent struct {
+	Type           string `json:"type"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+	Count          int    `json:"count"`
+	FirstTimestamp string `json:"firstTimestamp"`
+	LastTimestamp  string `json:"lastTimestamp"`
+}
+
 func NewDeploymentClient(hostname string, timeout time.Duration, apiKey string, cookies []*http.Cookie) (*DeploymentClient, error) {
 	if apiKey == "" && len(cookies) == 0 {
 		return nil, fmt.Errorf("no authentication method available: provide an API key or log in")
@@ -709,6 +739,45 @@ func (c *DeploymentClient) ListReplicas(
 	}
 
 	return result.Replicas, nil
+}
+
+func (c *DeploymentClient) DescribeReplica(
+	ctx context.Context,
+	orgId,
+	projectId,
+	replicaName string,
+) (*ReplicaStatus, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(replicaName))
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("describe replica request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 65536))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("describe replica request failed with status %s", resp.Status)
+	}
+
+	var result ReplicaStatus
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode replica status response: %w", err)
+	}
+
+	return &result, nil
 }
 
 func (c *DeploymentClient) GetLogs(
