@@ -759,6 +759,7 @@ func (c *DeploymentClient) DescribeReplica(
 	}
 	defer resp.Body.Close()
 
+	// 64KB limit: response includes events, resources, and healthcheck data
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 65536))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
