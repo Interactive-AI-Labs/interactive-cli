@@ -36,6 +36,9 @@ iai services create [service_name] [flags]
       --port int                            Service port to expose
   -p, --project string                      Project name to create the service in
       --replicas int                        Number of replicas for the service (mutually exclusive with autoscaling)
+      --schedule-downtime string            Downtime schedule for the service (e.g. Sat-Sun 00:00-24:00)
+      --schedule-timezone string            Timezone for the service schedule (e.g. America/New_York)
+      --schedule-uptime string              Uptime schedule for the service (e.g. Mon-Fri 07:30-20:30)
       --secret stringArray                  Secrets to be loaded as env vars; can be repeated
 ```
 

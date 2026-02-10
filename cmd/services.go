@@ -39,6 +39,10 @@ var (
 	serviceHealthcheckEnabled      bool
 	serviceHealthcheckPath         string
 	serviceHealthcheckInitialDelay int
+
+	serviceScheduleUptime   string
+	serviceScheduleDowntime string
+	serviceScheduleTimezone string
 )
 
 var servicesCmd = &cobra.Command{
@@ -182,6 +186,14 @@ All configuration is provided via flags. The project is selected with --project 
 				Enabled:             true,
 				Path:                serviceHealthcheckPath,
 				InitialDelaySeconds: serviceHealthcheckInitialDelay,
+			}
+		}
+
+		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" || serviceScheduleTimezone != "" {
+			reqBody.Schedule = &clients.Schedule{
+				Uptime:   serviceScheduleUptime,
+				Downtime: serviceScheduleDowntime,
+				Timezone: serviceScheduleTimezone,
 			}
 		}
 
@@ -334,6 +346,14 @@ All configuration is provided via flags. The project is selected with --project 
 				Enabled:             true,
 				Path:                serviceHealthcheckPath,
 				InitialDelaySeconds: serviceHealthcheckInitialDelay,
+			}
+		}
+
+		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" || serviceScheduleTimezone != "" {
+			reqBody.Schedule = &clients.Schedule{
+				Uptime:   serviceScheduleUptime,
+				Downtime: serviceScheduleDowntime,
+				Timezone: serviceScheduleTimezone,
 			}
 		}
 
@@ -762,6 +782,10 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
 	servCCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
 
+	servCCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "Uptime schedule for the service (e.g. Mon-Fri 07:30-20:30)")
+	servCCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "Downtime schedule for the service (e.g. Sat-Sun 00:00-24:00)")
+	servCCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "Timezone for the service schedule (e.g. America/New_York)")
+
 	// Flags for "services update"
 	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
 	servUCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
@@ -788,6 +812,10 @@ func init() {
 	servUCmd.Flags().BoolVar(&serviceHealthcheckEnabled, "healthcheck-enabled", false, "Enable HTTP healthcheck for the service")
 	servUCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
 	servUCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
+
+	servUCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "Uptime schedule for the service (e.g. Mon-Fri 07:30-20:30)")
+	servUCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "Downtime schedule for the service (e.g. Sat-Sun 00:00-24:00)")
+	servUCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "Timezone for the service schedule (e.g. America/New_York)")
 
 	// Flags for "services list"
 	servListCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
