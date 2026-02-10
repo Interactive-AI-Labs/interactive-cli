@@ -24,5 +24,6 @@ Manage pods backing services in a specific project.
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
+* [iai replicas describe](iai_replicas_describe.md)	 - Describe a replica in detail
 * [iai replicas list](iai_replicas_list.md)	 - List replicas for a service
 

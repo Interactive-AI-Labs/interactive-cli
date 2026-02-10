@@ -116,11 +116,79 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
+var replicasDescribeCmd = &cobra.Command{
+	Use:     "describe <replica_name>",
+	Aliases: []string{"desc"},
+	Short:   "Describe a replica in detail",
+	Long: `Show detailed information about a specific replica including status, resources, healthcheck configuration, and events.
+
+The project is selected with --project or via 'iai projects select'.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		replicaName := strings.TrimSpace(args[0])
+
+		if replicaName == "" {
+			return fmt.Errorf("replica name is required")
+		}
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, replicasOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, replicasProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		status, err := deployClient.DescribeReplica(cmd.Context(), orgId, projectId, replicaName)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintReplicaDescribe(out, status)
+	},
+}
+
 func init() {
 	// Flags for "replicas list"
 	replicasListCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
 	replicasListCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	// Flags for "replicas describe"
+	replicasDescribeCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+	replicasDescribeCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+
 	replicasCmd.AddCommand(replicasListCmd)
+	replicasCmd.AddCommand(replicasDescribeCmd)
 	rootCmd.AddCommand(replicasCmd)
 }

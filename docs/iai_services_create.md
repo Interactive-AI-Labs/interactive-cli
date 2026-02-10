@@ -23,6 +23,9 @@ iai services create [service_name] [flags]
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) - required
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
+      --healthcheck-enabled                 Enable HTTP healthcheck for the service
+      --healthcheck-initial-delay int       Initial delay in seconds before starting healthchecks
+      --healthcheck-path string             HTTP path for healthcheck endpoint (e.g. /health)
   -h, --help                                help for create
       --image-name string                   Container image name
       --image-repository string             Container image repository (external images only)

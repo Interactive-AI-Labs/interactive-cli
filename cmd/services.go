@@ -35,6 +35,10 @@ var (
 	serviceEndpoint   bool
 	serviceEnvVars    []string
 	serviceSecretRefs []string
+
+	serviceHealthcheckEnabled      bool
+	serviceHealthcheckPath         string
+	serviceHealthcheckInitialDelay int
 )
 
 var servicesCmd = &cobra.Command{
@@ -171,6 +175,14 @@ All configuration is provided via flags. The project is selected with --project 
 			}
 		} else if serviceReplicas > 0 {
 			reqBody.Replicas = serviceReplicas
+		}
+
+		if serviceHealthcheckEnabled {
+			reqBody.Healthcheck = &clients.Healthcheck{
+				Enabled:             true,
+				Path:                serviceHealthcheckPath,
+				InitialDelaySeconds: serviceHealthcheckInitialDelay,
+			}
 		}
 
 		fmt.Fprintln(out)
@@ -315,6 +327,14 @@ All configuration is provided via flags. The project is selected with --project 
 			}
 		} else if serviceReplicas > 0 {
 			reqBody.Replicas = serviceReplicas
+		}
+
+		if serviceHealthcheckEnabled {
+			reqBody.Healthcheck = &clients.Healthcheck{
+				Enabled:             true,
+				Path:                serviceHealthcheckPath,
+				InitialDelaySeconds: serviceHealthcheckInitialDelay,
+			}
 		}
 
 		fmt.Fprintln(out)
@@ -738,6 +758,10 @@ func init() {
 	servCCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
 
+	servCCmd.Flags().BoolVar(&serviceHealthcheckEnabled, "healthcheck-enabled", false, "Enable HTTP healthcheck for the service")
+	servCCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
+	servCCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
+
 	// Flags for "services update"
 	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
 	servUCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
@@ -760,6 +784,10 @@ func init() {
 	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
 	servUCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
+
+	servUCmd.Flags().BoolVar(&serviceHealthcheckEnabled, "healthcheck-enabled", false, "Enable HTTP healthcheck for the service")
+	servUCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
+	servUCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
 
 	// Flags for "services list"
 	servListCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
