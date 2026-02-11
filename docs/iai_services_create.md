@@ -36,6 +36,9 @@ iai services create [service_name] [flags]
       --port int                            Service port to expose
   -p, --project string                      Project name to create the service in
       --replicas int                        Number of replicas for the service (mutually exclusive with autoscaling)
+      --schedule-downtime string            When the service should stop: DAY-DAY HH:MM-HH:MM (e.g. Sat-Sun 00:00-24:00); mutually exclusive with --schedule-uptime
+      --schedule-timezone string            IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
+      --schedule-uptime string              When the service should run: DAY-DAY HH:MM-HH:MM (e.g. Mon-Fri 07:30-20:30); mutually exclusive with --schedule-downtime
       --secret stringArray                  Secrets to be loaded as env vars; can be repeated
 ```
 

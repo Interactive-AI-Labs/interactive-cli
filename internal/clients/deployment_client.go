@@ -111,6 +111,7 @@ type CreateServiceBody struct {
 	Replicas    int          `json:"replicas,omitempty"`
 	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
 	Healthcheck *Healthcheck `json:"healthcheck,omitempty"`
+	Schedule    *Schedule    `json:"schedule,omitempty"`
 	StackId     string       `json:"stackId,omitempty"`
 }
 
@@ -131,6 +132,12 @@ type Healthcheck struct {
 	Enabled            bool   `json:"enabled" yaml:"enabled"`
 	Path               string `json:"path,omitempty" yaml:"path,omitempty"`
 	InitialDelaySeconds int    `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
+}
+
+type Schedule struct {
+	Uptime   string `json:"uptime,omitempty" yaml:"uptime,omitempty"`
+	Downtime string `json:"downtime,omitempty" yaml:"downtime,omitempty"`
+	Timezone string `json:"timezone,omitempty" yaml:"timezone,omitempty"`
 }
 
 type ImageSpec struct {

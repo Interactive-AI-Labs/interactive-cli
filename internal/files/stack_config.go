@@ -27,6 +27,7 @@ type ServiceConfig struct {
 	Replicas    int                  `yaml:"replicas,omitempty"`
 	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"`
 	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty"`
+	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"`
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
@@ -142,6 +143,10 @@ func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody
 
 	if s.Healthcheck != nil && s.Healthcheck.Enabled {
 		body.Healthcheck = s.Healthcheck
+	}
+
+	if s.Schedule != nil {
+		body.Schedule = s.Schedule
 	}
 
 	return body

@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var loginCmd = &cobra.Command{
@@ -30,11 +32,23 @@ var loginCmd = &cobra.Command{
 		email = strings.TrimSpace(email)
 
 		fmt.Fprint(out, "Password: ")
-		password, err := reader.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("failed to read password: %w", err)
+		var password string
+		// stdin is a terminal: read password with echo disabled
+		if f, ok := in.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+			raw, err := term.ReadPassword(int(f.Fd()))
+			if err != nil {
+				return fmt.Errorf("failed to read password: %w", err)
+			}
+			fmt.Fprintln(out)
+			password = string(raw)
+		} else {
+			// stdin is not a terminal: read as plain text
+			p, err := reader.ReadString('\n')
+			if err != nil {
+				return fmt.Errorf("failed to read password: %w", err)
+			}
+			password = strings.TrimSpace(p)
 		}
-		password = strings.TrimSpace(password)
 
 		if email == "" || password == "" {
 			return fmt.Errorf("email and password cannot be empty")
