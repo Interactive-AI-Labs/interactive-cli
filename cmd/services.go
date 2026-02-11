@@ -782,9 +782,9 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
 	servCCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
 
-	servCCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "Uptime schedule for the service (e.g. Mon-Fri 07:30-20:30)")
-	servCCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "Downtime schedule for the service (e.g. Sat-Sun 00:00-24:00)")
-	servCCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "Timezone for the service schedule (e.g. America/New_York)")
+	servCCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should run: DAY-DAY HH:MM-HH:MM (e.g. Mon-Fri 07:30-20:30); mutually exclusive with --schedule-downtime")
+	servCCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should stop: DAY-DAY HH:MM-HH:MM (e.g. Sat-Sun 00:00-24:00); mutually exclusive with --schedule-uptime")
+	servCCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 
 	// Flags for "services update"
 	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
