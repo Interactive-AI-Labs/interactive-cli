@@ -86,25 +86,7 @@ var imageListCmd = &cobra.Command{
 			return err
 		}
 
-		if len(images) == 0 {
-			fmt.Fprintln(out, "No images found.")
-			return nil
-		}
-
-		headers := []string{"NAME", "TAGS"}
-		rows := make([][]string, len(images))
-		for i, img := range images {
-			rows[i] = []string{
-				img.Name,
-				strings.Join(img.Tags, ", "),
-			}
-		}
-
-		if err := output.PrintTable(out, headers, rows); err != nil {
-			return fmt.Errorf("failed to print table: %w", err)
-		}
-
-		return nil
+		return output.PrintImageList(out, images)
 	},
 }
 

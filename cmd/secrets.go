@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/base64"
 	"fmt"
 	"maps"
 	"sort"
@@ -84,27 +83,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		if len(secrets) == 0 {
-			fmt.Fprintln(out, "No secrets found.")
-			return nil
-		}
-
-		headers := []string{"NAME", "TYPE", "CREATED", "KEYS"}
-		rows := make([][]string, len(secrets))
-		for i, s := range secrets {
-			rows[i] = []string{
-				s.Name,
-				s.Type,
-				s.CreatedAt,
-				output.TruncateList(s.Keys, 3),
-			}
-		}
-
-		if err := output.PrintTable(out, headers, rows); err != nil {
-			return fmt.Errorf("failed to print table: %w", err)
-		}
-
-		return nil
+		return output.PrintSecretList(out, secrets)
 	},
 }
 
@@ -446,33 +425,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to get secret %q: %w", secretName, err)
 		}
 
-		headers := []string{"KEYS", "VALUES"}
-		var rows [][]string
-
-		if len(secret.Data) > 0 {
-			keys := make([]string, 0, len(secret.Data))
-			for k := range secret.Data {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-
-			for _, k := range keys {
-				val := secret.Data[k]
-				if decoded, err := base64.StdEncoding.DecodeString(val); err == nil {
-					val = string(decoded)
-				}
-				rows = append(rows, []string{k, val})
-			}
-		} else {
-			fmt.Fprintln(out, "No data found in secret.")
-			return nil
-		}
-
-		if err := output.PrintTable(out, headers, rows); err != nil {
-			return fmt.Errorf("failed to print table: %w", err)
-		}
-
-		return nil
+		return output.PrintSecretData(out, secret.Data)
 	},
 }
 

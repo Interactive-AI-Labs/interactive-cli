@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -64,23 +63,7 @@ var projectsListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		fmt.Fprintln(out)
-
-		headers := []string{"NAME", "ROLE"}
-		rows := make([][]string, len(projects))
-		for i, proj := range projects {
-			displayName := proj.Name
-			if selectedProject != "" && strings.EqualFold(proj.Name, selectedProject) {
-				displayName = displayName + " *"
-			}
-			rows[i] = []string{displayName, proj.Role}
-		}
-
-		if err := output.PrintTable(out, headers, rows); err != nil {
-			return fmt.Errorf("failed to print table: %w", err)
-		}
-
-		return nil
+		return output.PrintProjectList(out, projects, selectedProject)
 	},
 }
 
