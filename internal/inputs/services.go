@@ -2,7 +2,6 @@ package inputs
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -50,13 +49,6 @@ func ValidateService(input ServiceInput) error {
 	if input.ImageType == "external" && input.ImageRepository == "" {
 		return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 	}
-	if err := ValidateMemory(input.Memory); err != nil {
-		return fmt.Errorf("%w; please provide --memory", err)
-	}
-	if err := ValidateCPU(input.CPU); err != nil {
-		return fmt.Errorf("%w; please provide --cpu", err)
-	}
-
 	hasReplicas := input.Replicas > 0
 	hasAutoscaling := input.Autoscaling != nil && input.Autoscaling.Enabled
 
@@ -113,47 +105,3 @@ func ValidateServiceSecretRefs(secretRefs []string) error {
 	return nil
 }
 
-// ValidateCPU validates a CPU value as a whole number of cores, decimal cores, or millicores.
-func ValidateCPU(cpu string) error {
-	if cpu == "" {
-		return fmt.Errorf("cpu is required")
-	}
-
-	value := cpu
-	if v, found := strings.CutSuffix(cpu, "m"); found {
-		n, err := strconv.Atoi(v)
-		if err != nil || n <= 0 {
-			return fmt.Errorf("invalid cpu value %q; expected cores (e.g., '1', '0.5') or millicores (e.g., '500m')", cpu)
-		}
-		return nil
-	}
-
-	f, err := strconv.ParseFloat(value, 64)
-	if err != nil || f <= 0 {
-		return fmt.Errorf("invalid cpu value %q; expected cores (e.g., '1', '0.5') or millicores (e.g., '500m')", cpu)
-	}
-	return nil
-}
-
-// ValidateMemory validates a memory value with M or G units.
-func ValidateMemory(memory string) error {
-	if memory == "" {
-		return fmt.Errorf("memory is required")
-	}
-
-	var value string
-	switch {
-	case strings.HasSuffix(memory, "M"):
-		value = strings.TrimSuffix(memory, "M")
-	case strings.HasSuffix(memory, "G"):
-		value = strings.TrimSuffix(memory, "G")
-	default:
-		return fmt.Errorf("invalid memory value %q; expected a value with M or G unit (e.g., '128M', '512M', '1G')", memory)
-	}
-
-	n, err := strconv.Atoi(value)
-	if err != nil || n <= 0 {
-		return fmt.Errorf("invalid memory value %q; expected a value with M or G unit (e.g., '128M', '512M', '1G')", memory)
-	}
-	return nil
-}
