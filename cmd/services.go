@@ -738,8 +738,10 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
 	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
-	servCCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G) - required")
-	servCCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) - required")
+	servCCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)")
+	servCCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
+	_ = servCCmd.MarkFlagRequired("memory")
+	_ = servCCmd.MarkFlagRequired("cpu")
 
 	servCCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
 	servCCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
@@ -769,8 +771,10 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
 	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
-	servUCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G) - required")
-	servUCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) - required")
+	servUCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)")
+	servUCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
+	_ = servUCmd.MarkFlagRequired("memory")
+	_ = servUCmd.MarkFlagRequired("cpu")
 
 	servUCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
 	servUCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")

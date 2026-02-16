@@ -20,7 +20,7 @@ iai services update [service_name] [flags]
       --autoscaling-max-replicas int        Maximum number of replicas when autoscaling is enabled
       --autoscaling-memory-percentage int   Memory percentage threshold for autoscaling
       --autoscaling-min-replicas int        Minimum number of replicas when autoscaling is enabled
-      --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) - required
+      --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
       --healthcheck-enabled                 Enable HTTP healthcheck for the service
@@ -31,7 +31,7 @@ iai services update [service_name] [flags]
       --image-repository string             Container image repository (external images only)
       --image-tag string                    Container image tag
       --image-type string                   Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)
-      --memory string                       Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G) - required
+      --memory string                       Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)
   -o, --organization string                 Organization name that owns the project
       --port int                            Service port to expose
   -p, --project string                      Project name to update the service in

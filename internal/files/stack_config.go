@@ -5,7 +5,6 @@ import (
 	"os"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"gopkg.in/yaml.v3"
 )
 
@@ -73,13 +72,6 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		}
 		if svc.Image.Tag == "" {
 			return nil, fmt.Errorf("service %q: image.tag is required", name)
-		}
-
-		if err := inputs.ValidateMemory(svc.Resources.Memory); err != nil {
-			return nil, fmt.Errorf("service %q: resources.memory: %w", name, err)
-		}
-		if err := inputs.ValidateCPU(svc.Resources.CPU); err != nil {
-			return nil, fmt.Errorf("service %q: resources.cpu: %w", name, err)
 		}
 
 		hasReplicas := svc.Replicas > 0
