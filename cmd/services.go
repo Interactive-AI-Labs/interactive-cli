@@ -26,11 +26,10 @@ var (
 	serviceMemory          string
 	serviceCPU             string
 
-	serviceAutoscalingEnabled bool
-	serviceAutoscalingMin     int
-	serviceAutoscalingMax     int
-	serviceAutoscalingCPU     int
-	serviceAutoscalingMemory  int
+	serviceAutoscalingMin    int
+	serviceAutoscalingMax    int
+	serviceAutoscalingCPU    int
+	serviceAutoscalingMemory int
 
 	serviceEndpoint   bool
 	serviceEnvVars    []string
@@ -44,6 +43,10 @@ var (
 	serviceScheduleDowntime string
 	serviceScheduleTimezone string
 )
+
+func hasAutoscalingFlags() bool {
+	return serviceAutoscalingMin > 0 || serviceAutoscalingMax > 0 || serviceAutoscalingCPU > 0 || serviceAutoscalingMemory > 0
+}
 
 var servicesCmd = &cobra.Command{
 	Use:     "services",
@@ -79,9 +82,8 @@ All configuration is provided via flags. The project is selected with --project 
 			Replicas:        serviceReplicas,
 		}
 
-		if serviceAutoscalingEnabled {
+		if hasAutoscalingFlags() {
 			input.Autoscaling = &inputs.AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   serviceAutoscalingMin,
 				MaxReplicas:   serviceAutoscalingMax,
 				CPUPercentage: serviceAutoscalingCPU,
@@ -169,7 +171,7 @@ All configuration is provided via flags. The project is selected with --project 
 			Endpoint:   serviceEndpoint,
 		}
 
-		if serviceAutoscalingEnabled {
+		if hasAutoscalingFlags() {
 			reqBody.Autoscaling = &clients.Autoscaling{
 				Enabled:          true,
 				MinReplicas:      serviceAutoscalingMin,
@@ -239,9 +241,8 @@ All configuration is provided via flags. The project is selected with --project 
 			Replicas:        serviceReplicas,
 		}
 
-		if serviceAutoscalingEnabled {
+		if hasAutoscalingFlags() {
 			input.Autoscaling = &inputs.AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   serviceAutoscalingMin,
 				MaxReplicas:   serviceAutoscalingMax,
 				CPUPercentage: serviceAutoscalingCPU,
@@ -329,7 +330,7 @@ All configuration is provided via flags. The project is selected with --project 
 			Endpoint:   serviceEndpoint,
 		}
 
-		if serviceAutoscalingEnabled {
+		if hasAutoscalingFlags() {
 			reqBody.Autoscaling = &clients.Autoscaling{
 				Enabled:          true,
 				MinReplicas:      serviceAutoscalingMin,
@@ -743,9 +744,8 @@ func init() {
 	_ = servCCmd.MarkFlagRequired("memory")
 	_ = servCCmd.MarkFlagRequired("cpu")
 
-	servCCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
-	servCCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
-	servCCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+	servCCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas for autoscaling")
+	servCCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas for autoscaling")
 	servCCmd.Flags().IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
 	servCCmd.Flags().IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
 
@@ -776,9 +776,8 @@ func init() {
 	_ = servUCmd.MarkFlagRequired("memory")
 	_ = servUCmd.MarkFlagRequired("cpu")
 
-	servUCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
-	servUCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
-	servUCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+	servUCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas for autoscaling")
+	servUCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas for autoscaling")
 	servUCmd.Flags().IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
 	servUCmd.Flags().IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
 

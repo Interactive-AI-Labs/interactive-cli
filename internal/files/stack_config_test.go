@@ -242,12 +242,11 @@ services:
       cpu: "1"
     replicas: 2
     autoscaling:
-      enabled: true
       minReplicas: 2
       maxReplicas: 10
       cpuPercentage: 80
 `,
-			errContains: "cannot set both replicas and autoscaling.enabled",
+			errContains: "cannot set both replicas and autoscaling",
 		},
 		{
 			name: "external image without repository",
@@ -408,7 +407,7 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "autoscaling disabled with replicas",
+			name: "nil autoscaling with replicas",
 			input: ServiceConfig{
 				ServicePort: 3000,
 				Image: clients.ImageSpec{
@@ -419,9 +418,6 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 				Resources: clients.Resources{
 					Memory: "512M",
 					CPU:    "2",
-				},
-				Autoscaling: &clients.Autoscaling{
-					Enabled: false,
 				},
 				Replicas: 5,
 			},

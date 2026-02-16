@@ -38,7 +38,6 @@ func TestValidateService(t *testing.T) {
 				Memory:          "512M",
 				CPU:             "1",
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   2,
 					MaxReplicas:   10,
 					CPUPercentage: 80,
@@ -58,7 +57,6 @@ func TestValidateService(t *testing.T) {
 				Memory:    "512M",
 				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   1,
 					MaxReplicas:   5,
 					CPUPercentage: 75,
@@ -77,7 +75,6 @@ func TestValidateService(t *testing.T) {
 				Memory:    "512M",
 				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   1,
 					MaxReplicas:   5,
 					MemoryPercent: 80,
@@ -218,14 +215,13 @@ func TestValidateService(t *testing.T) {
 				CPU:       "1",
 				Replicas:  3,
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   2,
 					MaxReplicas:   10,
 					CPUPercentage: 80,
 				},
 			},
 			wantErr:         true,
-			wantErrContains: "cannot specify both --replicas and --autoscaling-enabled",
+			wantErrContains: "cannot specify both --replicas and autoscaling parameters",
 		},
 		{
 			name: "neither replicas nor autoscaling",
@@ -240,7 +236,7 @@ func TestValidateService(t *testing.T) {
 				Replicas:  0,
 			},
 			wantErr:         true,
-			wantErrContains: "must specify either --replicas or --autoscaling-enabled",
+			wantErrContains: "must specify either --replicas or autoscaling parameters",
 		},
 		{
 			name: "autoscaling with min zero",
@@ -253,7 +249,6 @@ func TestValidateService(t *testing.T) {
 				Memory:    "512M",
 				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   0,
 					MaxReplicas:   10,
 					CPUPercentage: 80,
@@ -273,7 +268,6 @@ func TestValidateService(t *testing.T) {
 				Memory:    "512M",
 				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   2,
 					MaxReplicas:   0,
 					CPUPercentage: 80,
@@ -293,7 +287,6 @@ func TestValidateService(t *testing.T) {
 				Memory:    "512M",
 				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   10,
 					MaxReplicas:   5,
 					CPUPercentage: 80,
@@ -313,7 +306,6 @@ func TestValidateService(t *testing.T) {
 				Memory:    "512M",
 				CPU:       "1",
 				Autoscaling: &AutoscalingInput{
-					Enabled:       true,
 					MinReplicas:   2,
 					MaxReplicas:   10,
 					CPUPercentage: 0,
@@ -354,7 +346,6 @@ func TestValidateAutoscaling(t *testing.T) {
 		{
 			name: "valid with both metrics",
 			config: AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   2,
 				MaxReplicas:   10,
 				CPUPercentage: 80,
@@ -365,7 +356,6 @@ func TestValidateAutoscaling(t *testing.T) {
 		{
 			name: "valid with CPU only",
 			config: AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   1,
 				MaxReplicas:   5,
 				CPUPercentage: 75,
@@ -375,7 +365,6 @@ func TestValidateAutoscaling(t *testing.T) {
 		{
 			name: "valid with Memory only",
 			config: AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   1,
 				MaxReplicas:   5,
 				MemoryPercent: 80,
@@ -385,7 +374,6 @@ func TestValidateAutoscaling(t *testing.T) {
 		{
 			name: "min replicas zero",
 			config: AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   0,
 				MaxReplicas:   10,
 				CPUPercentage: 80,
@@ -396,7 +384,6 @@ func TestValidateAutoscaling(t *testing.T) {
 		{
 			name: "max replicas zero",
 			config: AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   2,
 				MaxReplicas:   0,
 				CPUPercentage: 80,
@@ -407,7 +394,6 @@ func TestValidateAutoscaling(t *testing.T) {
 		{
 			name: "min greater than max",
 			config: AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   10,
 				MaxReplicas:   5,
 				CPUPercentage: 80,
@@ -418,7 +404,6 @@ func TestValidateAutoscaling(t *testing.T) {
 		{
 			name: "no metrics set",
 			config: AutoscalingInput{
-				Enabled:       true,
 				MinReplicas:   2,
 				MaxReplicas:   10,
 				CPUPercentage: 0,
