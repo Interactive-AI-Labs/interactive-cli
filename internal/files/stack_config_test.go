@@ -79,7 +79,6 @@ services:
       memory: "128M"
       cpu: "1"
     autoscaling:
-      enabled: true
       minReplicas: 2
       maxReplicas: 10
       cpuPercentage: 80
@@ -103,7 +102,6 @@ services:
 							CPU:    "1",
 						},
 						Autoscaling: &clients.Autoscaling{
-							Enabled:          true,
 							MinReplicas:      2,
 							MaxReplicas:      10,
 							CPUPercentage:    80,
@@ -375,7 +373,6 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 					CPU:    "1",
 				},
 				Autoscaling: &clients.Autoscaling{
-					Enabled:          true,
 					MinReplicas:      2,
 					MaxReplicas:      10,
 					CPUPercentage:    80,
@@ -397,7 +394,6 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 				},
 				Replicas: 0,
 				Autoscaling: &clients.Autoscaling{
-					Enabled:          true,
 					MinReplicas:      2,
 					MaxReplicas:      10,
 					CPUPercentage:    80,

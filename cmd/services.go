@@ -173,7 +173,6 @@ All configuration is provided via flags. The project is selected with --project 
 
 		if hasAutoscalingFlags() {
 			reqBody.Autoscaling = &clients.Autoscaling{
-				Enabled:          true,
 				MinReplicas:      serviceAutoscalingMin,
 				MaxReplicas:      serviceAutoscalingMax,
 				CPUPercentage:    serviceAutoscalingCPU,
@@ -332,7 +331,6 @@ All configuration is provided via flags. The project is selected with --project 
 
 		if hasAutoscalingFlags() {
 			reqBody.Autoscaling = &clients.Autoscaling{
-				Enabled:          true,
 				MinReplicas:      serviceAutoscalingMin,
 				MaxReplicas:      serviceAutoscalingMax,
 				CPUPercentage:    serviceAutoscalingCPU,
