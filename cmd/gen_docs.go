@@ -15,6 +15,9 @@ const defaultDocsOutDir = "./docs"
 //go:embed templates/install.md
 var installInstructions string
 
+//go:embed templates/sync_config_example.md
+var syncConfigExample string
+
 var genDocsCmd = &cobra.Command{
 	Use:    "gen-docs",
 	Short:  "Generate Markdown docs for all commands",
@@ -58,6 +61,21 @@ var genDocsCmd = &cobra.Command{
 			if nextSectionIdx != -1 {
 				insertPos := synopsisIdx + 1 + nextSectionIdx
 				docContent = docContent[:insertPos] + installInstructions + "\n" + docContent[insertPos:]
+			}
+		}
+
+		// Insert config example into the services sync doc
+		syncDocPath := filepath.Join(outDir, "iai_services_sync.md")
+		syncContent, err := os.ReadFile(syncDocPath)
+		if err != nil {
+			return err
+		}
+		syncDoc := string(syncContent)
+		optionsIdx := strings.Index(syncDoc, "### Options")
+		if optionsIdx != -1 {
+			syncDoc = syncDoc[:optionsIdx] + syncConfigExample + "\n" + syncDoc[optionsIdx:]
+			if err := os.WriteFile(syncDocPath, []byte(syncDoc), 0o644); err != nil {
+				return err
 			}
 		}
 
