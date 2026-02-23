@@ -788,6 +788,196 @@ func (c *DeploymentClient) DescribeReplica(
 	return &result, nil
 }
 
+type VectorStoreInfo struct {
+	InstanceName string `json:"instanceName"`
+	Status       string `json:"status"`
+	SecretName   string `json:"secretName,omitempty"`
+}
+
+type CreateVectorStoreBody struct {
+	Resources VectorStoreResources `json:"resources"`
+	Storage   VectorStoreStorage   `json:"storage"`
+	HA        bool                 `json:"ha"`
+	Backups   bool                 `json:"backups"`
+}
+
+type VectorStoreResources struct {
+	CPU    int     `json:"cpu"`
+	Memory float64 `json:"memory"`
+}
+
+type VectorStoreStorage struct {
+	Size            int  `json:"size"`
+	AutoResize      bool `json:"autoResize"`
+	AutoResizeLimit int  `json:"autoResizeLimit"`
+}
+
+func (c *DeploymentClient) CreateVectorStore(
+	ctx context.Context,
+	orgId,
+	projectId,
+	instanceName string,
+	req CreateVectorStoreBody,
+) (string, error) {
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(instanceName))
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("vector store creation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("vector store creation failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
+func (c *DeploymentClient) ListVectorStores(
+	ctx context.Context,
+	orgId,
+	projectId string,
+) ([]VectorStoreInfo, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores", url.PathEscape(orgId), url.PathEscape(projectId))
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("vector store list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list vector stores: server returned %s", resp.Status)
+	}
+
+	var result struct {
+		VectorStores []VectorStoreInfo `json:"vectorStores"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode vector stores response: %w", err)
+	}
+
+	return result.VectorStores, nil
+}
+
+func (c *DeploymentClient) GetVectorStore(
+	ctx context.Context,
+	orgId,
+	projectId,
+	instanceName string,
+) (*VectorStoreInfo, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(instanceName))
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("vector store request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to get vector store: server returned %s", resp.Status)
+	}
+
+	var result VectorStoreInfo
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode vector store response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *DeploymentClient) DeleteVectorStore(
+	ctx context.Context,
+	orgId,
+	projectId,
+	instanceName string,
+) (string, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(instanceName))
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", fmt.Errorf("vector store deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("vector store deletion failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
 func (c *DeploymentClient) GetLogs(
 	ctx context.Context,
 	orgId,
