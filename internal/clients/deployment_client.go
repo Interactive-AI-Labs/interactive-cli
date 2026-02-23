@@ -137,7 +137,6 @@ type Autoscaling struct {
 }
 
 type Healthcheck struct {
-	Enabled             bool   `json:"enabled" yaml:"enabled"`
 	Path                string `json:"path,omitempty" yaml:"path,omitempty"`
 	InitialDelaySeconds int    `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
 }

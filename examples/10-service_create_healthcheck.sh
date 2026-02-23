@@ -12,7 +12,6 @@ iai services create my-healthcheck-service \
   --replicas 1 \
   --memory 128M \
   --cpu 50m \
-  --healthcheck-enabled \
   --healthcheck-path /health \
   --healthcheck-initial-delay 10 \
   --endpoint

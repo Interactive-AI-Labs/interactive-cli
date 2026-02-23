@@ -45,7 +45,6 @@ services:
     endpoint: true
     replicas: 2
     healthcheck:
-      enabled: true
       path: /health
       initialDelaySeconds: 10
     schedule:
