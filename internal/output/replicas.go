@@ -54,6 +54,19 @@ func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
 	}
 	fmt.Fprintf(out, "Restart Count: %d\n", status.RestartCount)
 
+	if status.LastTerminationState != nil {
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Last Termination State:")
+		fmt.Fprintf(out, "  Reason:      %s\n", status.LastTerminationState.Reason)
+		fmt.Fprintf(out, "  Exit Code:   %d\n", status.LastTerminationState.ExitCode)
+		if status.LastTerminationState.StartedAt != "" {
+			fmt.Fprintf(out, "  Started At:  %s\n", status.LastTerminationState.StartedAt)
+		}
+		if status.LastTerminationState.FinishedAt != "" {
+			fmt.Fprintf(out, "  Finished At: %s\n", status.LastTerminationState.FinishedAt)
+		}
+	}
+
 	if status.Resources != nil {
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Resources:")

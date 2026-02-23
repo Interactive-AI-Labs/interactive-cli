@@ -43,14 +43,22 @@ type ReplicaInfo struct {
 }
 
 type ReplicaStatus struct {
-	Name         string              `json:"name"`
-	Ready        bool                `json:"ready"`
-	Status       string              `json:"status"`
-	StartTime    string              `json:"startTime,omitempty"`
-	RestartCount int                 `json:"restartCount"`
-	Resources    *ReplicaResources   `json:"resources,omitempty"`
-	Healthcheck  *ReplicaHealthcheck `json:"healthcheck,omitempty"`
-	Events       []ReplicaEvent      `json:"events,omitempty"`
+	Name                 string                  `json:"name"`
+	Ready                bool                    `json:"ready"`
+	Status               string                  `json:"status"`
+	StartTime            string                  `json:"startTime,omitempty"`
+	RestartCount         int                     `json:"restartCount"`
+	LastTerminationState *ReplicaLastTermination `json:"lastTerminationState,omitempty"`
+	Resources            *ReplicaResources       `json:"resources,omitempty"`
+	Healthcheck          *ReplicaHealthcheck     `json:"healthcheck,omitempty"`
+	Events               []ReplicaEvent          `json:"events,omitempty"`
+}
+
+type ReplicaLastTermination struct {
+	Reason     string `json:"reason"`
+	ExitCode   int32  `json:"exitCode"`
+	StartedAt  string `json:"startedAt,omitempty"`
+	FinishedAt string `json:"finishedAt,omitempty"`
 }
 
 type ReplicaResources struct {
@@ -129,8 +137,8 @@ type Autoscaling struct {
 }
 
 type Healthcheck struct {
-	Enabled            bool   `json:"enabled" yaml:"enabled"`
-	Path               string `json:"path,omitempty" yaml:"path,omitempty"`
+	Enabled             bool   `json:"enabled" yaml:"enabled"`
+	Path                string `json:"path,omitempty" yaml:"path,omitempty"`
 	InitialDelaySeconds int    `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
 }
 
