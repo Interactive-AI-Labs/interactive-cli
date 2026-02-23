@@ -19,7 +19,6 @@ type ServiceInput struct {
 }
 
 type AutoscalingInput struct {
-	Enabled       bool
 	MinReplicas   int
 	MaxReplicas   int
 	CPUPercentage int
@@ -50,14 +49,14 @@ func ValidateService(input ServiceInput) error {
 		return fmt.Errorf("image repository is required for external images; please provide --image-repository")
 	}
 	hasReplicas := input.Replicas > 0
-	hasAutoscaling := input.Autoscaling != nil && input.Autoscaling.Enabled
+	hasAutoscaling := input.Autoscaling != nil
 
 	if hasReplicas && hasAutoscaling {
-		return fmt.Errorf("cannot specify both --replicas and --autoscaling-enabled; they are mutually exclusive")
+		return fmt.Errorf("cannot specify both --replicas and autoscaling parameters; they are mutually exclusive")
 	}
 
 	if !hasReplicas && !hasAutoscaling {
-		return fmt.Errorf("must specify either --replicas or --autoscaling-enabled")
+		return fmt.Errorf("must specify either --replicas or autoscaling parameters")
 	}
 
 	if hasAutoscaling {
@@ -104,4 +103,3 @@ func ValidateServiceSecretRefs(secretRefs []string) error {
 	}
 	return nil
 }
-

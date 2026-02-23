@@ -75,17 +75,17 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		}
 
 		hasReplicas := svc.Replicas > 0
-		hasAutoscaling := svc.Autoscaling != nil && svc.Autoscaling.Enabled
+		hasAutoscaling := svc.Autoscaling != nil
 
 		if hasReplicas && hasAutoscaling {
-			return nil, fmt.Errorf("service %q: cannot set both replicas and autoscaling.enabled; only one scaling method can be configured", name)
+			return nil, fmt.Errorf("service %q: cannot set both replicas and autoscaling; only one scaling method can be configured", name)
 		}
 
 		if !hasReplicas && !hasAutoscaling {
 			return nil, fmt.Errorf("service %q: must specify either replicas or autoscaling", name)
 		}
 
-		if svc.Autoscaling != nil && svc.Autoscaling.Enabled {
+		if svc.Autoscaling != nil {
 			if svc.Autoscaling.MinReplicas <= 0 {
 				return nil, fmt.Errorf("service %q: autoscaling.minReplicas must be greater than zero when autoscaling is enabled", name)
 			}
@@ -127,7 +127,7 @@ func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody
 		StackId:     stackId,
 	}
 
-	if s.Autoscaling != nil && s.Autoscaling.Enabled {
+	if s.Autoscaling != nil {
 		body.Autoscaling = s.Autoscaling
 	} else {
 		body.Replicas = s.Replicas

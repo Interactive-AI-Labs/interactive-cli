@@ -121,16 +121,15 @@ type Resources struct {
 }
 
 type Autoscaling struct {
-	Enabled          bool `json:"enabled" yaml:"enabled"`
-	MinReplicas      int  `json:"minReplicas,omitempty" yaml:"minReplicas,omitempty"`
-	MaxReplicas      int  `json:"maxReplicas,omitempty" yaml:"maxReplicas,omitempty"`
-	CPUPercentage    int  `json:"cpuPercentage,omitempty" yaml:"cpuPercentage,omitempty"`
-	MemoryPercentage int  `json:"memoryPercentage,omitempty" yaml:"memoryPercentage,omitempty"`
+	MinReplicas      int `json:"minReplicas,omitempty" yaml:"minReplicas,omitempty"`
+	MaxReplicas      int `json:"maxReplicas,omitempty" yaml:"maxReplicas,omitempty"`
+	CPUPercentage    int `json:"cpuPercentage,omitempty" yaml:"cpuPercentage,omitempty"`
+	MemoryPercentage int `json:"memoryPercentage,omitempty" yaml:"memoryPercentage,omitempty"`
 }
 
 type Healthcheck struct {
-	Enabled            bool   `json:"enabled" yaml:"enabled"`
-	Path               string `json:"path,omitempty" yaml:"path,omitempty"`
+	Enabled             bool   `json:"enabled" yaml:"enabled"`
+	Path                string `json:"path,omitempty" yaml:"path,omitempty"`
 	InitialDelaySeconds int    `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
 }
 
