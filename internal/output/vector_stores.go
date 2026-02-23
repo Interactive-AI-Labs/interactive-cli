@@ -25,9 +25,3 @@ func PrintVectorStoreList(out io.Writer, stores []clients.VectorStoreInfo) error
 
 	return PrintTable(out, headers, rows)
 }
-
-func PrintVectorStoreAccepted(out io.Writer, message string) {
-	if message != "" {
-		fmt.Fprintln(out, message)
-	}
-}

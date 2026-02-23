@@ -220,7 +220,9 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		output.PrintVectorStoreAccepted(out, serverMessage)
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
 
 		return nil
 	},
@@ -284,7 +286,9 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		output.PrintVectorStoreAccepted(out, serverMessage)
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
 
 		return nil
 	},
