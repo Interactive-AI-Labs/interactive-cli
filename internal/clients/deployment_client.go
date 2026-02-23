@@ -789,7 +789,7 @@ func (c *DeploymentClient) DescribeReplica(
 }
 
 type VectorStoreInfo struct {
-	InstanceName string `json:"instanceName"`
+	VectorStoreName string `json:"instanceName"`
 	Status       string `json:"status"`
 	SecretName   string `json:"secretName,omitempty"`
 }
@@ -816,7 +816,7 @@ func (c *DeploymentClient) CreateVectorStore(
 	ctx context.Context,
 	orgId,
 	projectId,
-	instanceName string,
+	vectorStoreName string,
 	req CreateVectorStoreBody,
 ) (string, error) {
 	bodyBytes, err := json.Marshal(req)
@@ -824,7 +824,7 @@ func (c *DeploymentClient) CreateVectorStore(
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(instanceName))
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(vectorStoreName))
 	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -904,9 +904,9 @@ func (c *DeploymentClient) GetVectorStore(
 	ctx context.Context,
 	orgId,
 	projectId,
-	instanceName string,
+	vectorStoreName string,
 ) (*VectorStoreInfo, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(instanceName))
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(vectorStoreName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -947,9 +947,9 @@ func (c *DeploymentClient) DeleteVectorStore(
 	ctx context.Context,
 	orgId,
 	projectId,
-	instanceName string,
+	vectorStoreName string,
 ) (string, error) {
-	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(instanceName))
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(vectorStoreName))
 	req, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)

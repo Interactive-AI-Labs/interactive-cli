@@ -87,7 +87,7 @@ The project is selected with --project or via 'iai projects select'.`,
 }
 
 var vsGetCmd = &cobra.Command{
-	Use:   "get <instanceName>",
+	Use:   "get <vectorStoreName>",
 	Short: "Get status of a vector store",
 	Long: `Get the status of a specific vector store.
 
@@ -96,7 +96,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		instanceName := args[0]
+		vectorStoreName := args[0]
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
@@ -135,7 +135,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		store, err := deployClient.GetVectorStore(cmd.Context(), orgId, projectId, instanceName)
+		store, err := deployClient.GetVectorStore(cmd.Context(), orgId, projectId, vectorStoreName)
 		if err != nil {
 			return err
 		}
@@ -145,7 +145,7 @@ The project is selected with --project or via 'iai projects select'.`,
 }
 
 var vsCreateCmd = &cobra.Command{
-	Use:   "create <instanceName>",
+	Use:   "create <vectorStoreName>",
 	Short: "Create a vector store",
 	Long: `Create a vector store in a specific project.
 
@@ -154,7 +154,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		instanceName := args[0]
+		vectorStoreName := args[0]
 
 		if vsAutoResize && !cmd.Flags().Changed("auto-resize-limit") {
 			return fmt.Errorf("--auto-resize-limit is required when --auto-resize is enabled")
@@ -214,7 +214,7 @@ The project is selected with --project or via 'iai projects select'.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting vector store creation request...")
 
-		serverMessage, err := deployClient.CreateVectorStore(cmd.Context(), orgId, projectId, instanceName, reqBody)
+		serverMessage, err := deployClient.CreateVectorStore(cmd.Context(), orgId, projectId, vectorStoreName, reqBody)
 		if err != nil {
 			return err
 		}
@@ -226,7 +226,7 @@ The project is selected with --project or via 'iai projects select'.`,
 }
 
 var vsDeleteCmd = &cobra.Command{
-	Use:     "delete <instanceName>",
+	Use:     "delete <vectorStoreName>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a vector store",
 	Long: `Delete a vector store in a specific project.
@@ -236,7 +236,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		instanceName := args[0]
+		vectorStoreName := args[0]
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
@@ -278,7 +278,7 @@ The project is selected with --project or via 'iai projects select'.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting vector store deletion request...")
 
-		serverMessage, err := deployClient.DeleteVectorStore(cmd.Context(), orgId, projectId, instanceName)
+		serverMessage, err := deployClient.DeleteVectorStore(cmd.Context(), orgId, projectId, vectorStoreName)
 		if err != nil {
 			return err
 		}

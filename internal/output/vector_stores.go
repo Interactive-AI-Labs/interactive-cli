@@ -17,7 +17,7 @@ func PrintVectorStoreList(out io.Writer, stores []clients.VectorStoreInfo) error
 	rows := make([][]string, len(stores))
 	for i, s := range stores {
 		rows[i] = []string{
-			s.InstanceName,
+			s.VectorStoreName,
 			s.Status,
 			s.SecretName,
 		}
