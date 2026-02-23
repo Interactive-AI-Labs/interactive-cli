@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -96,7 +97,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		vectorStoreName := args[0]
+		vectorStoreName := strings.TrimSpace(args[0])
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
@@ -154,7 +155,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		vectorStoreName := args[0]
+		vectorStoreName := strings.TrimSpace(args[0])
 
 		if vsAutoResize && !cmd.Flags().Changed("auto-resize-limit") {
 			return fmt.Errorf("--auto-resize-limit is required when --auto-resize is enabled")
@@ -236,7 +237,7 @@ The project is selected with --project or via 'iai projects select'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		vectorStoreName := args[0]
+		vectorStoreName := strings.TrimSpace(args[0])
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
