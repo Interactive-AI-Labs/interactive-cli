@@ -87,10 +87,11 @@ The project is selected with --project or via 'iai projects select'.`,
 	},
 }
 
-var vsGetCmd = &cobra.Command{
-	Use:   "get <vectorStoreName>",
-	Short: "Get status of a vector store",
-	Long: `Get the status of a specific vector store.
+var vsDescribeCmd = &cobra.Command{
+	Use:     "describe <vectorStoreName>",
+	Aliases: []string{"desc"},
+	Short:   "Describe a vector store in detail",
+	Long: `Show detailed information about a specific vector store including status, resources, storage, HA, and backup settings.
 
 The project is selected with --project or via 'iai projects select'.`,
 	Args: cobra.ExactArgs(1),
@@ -136,12 +137,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		store, err := deployClient.GetVectorStore(cmd.Context(), orgId, projectId, vectorStoreName)
+		store, err := deployClient.DescribeVectorStore(cmd.Context(), orgId, projectId, vectorStoreName)
 		if err != nil {
 			return err
 		}
 
-		return output.PrintVectorStoreList(out, []clients.VectorStoreInfo{*store})
+		return output.PrintVectorStoreDescribe(out, store)
 	},
 }
 
@@ -299,9 +300,9 @@ func init() {
 	vsListCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
 	vsListCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// vector-stores get
-	vsGetCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
-	vsGetCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
+	// vector-stores describe
+	vsDescribeCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
+	vsDescribeCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// vector-stores create
 	vsCreateCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
@@ -322,6 +323,6 @@ func init() {
 	vsDeleteCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Wire up the command hierarchy
-	vectorStoresCmd.AddCommand(vsListCmd, vsGetCmd, vsCreateCmd, vsDeleteCmd)
+	vectorStoresCmd.AddCommand(vsListCmd, vsDescribeCmd, vsCreateCmd, vsDeleteCmd)
 	rootCmd.AddCommand(vectorStoresCmd)
 }

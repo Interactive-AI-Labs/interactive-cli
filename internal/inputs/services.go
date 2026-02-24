@@ -104,4 +104,3 @@ func ValidateServiceSecretRefs(secretRefs []string) error {
 	}
 	return nil
 }
-

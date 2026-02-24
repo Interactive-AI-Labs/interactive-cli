@@ -26,6 +26,6 @@ Manage vector stores in InteractiveAI projects.
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai vector-stores create](iai_vector-stores_create.md)	 - Create a vector store
 * [iai vector-stores delete](iai_vector-stores_delete.md)	 - Delete a vector store
-* [iai vector-stores get](iai_vector-stores_get.md)	 - Get status of a vector store
+* [iai vector-stores describe](iai_vector-stores_describe.md)	 - Describe a vector store in detail
 * [iai vector-stores list](iai_vector-stores_list.md)	 - List vector stores in a project
 

@@ -129,8 +129,8 @@ type Autoscaling struct {
 }
 
 type Healthcheck struct {
-	Enabled            bool   `json:"enabled" yaml:"enabled"`
-	Path               string `json:"path,omitempty" yaml:"path,omitempty"`
+	Enabled             bool   `json:"enabled" yaml:"enabled"`
+	Path                string `json:"path,omitempty" yaml:"path,omitempty"`
 	InitialDelaySeconds int    `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
 }
 
@@ -790,8 +790,8 @@ func (c *DeploymentClient) DescribeReplica(
 
 type VectorStoreInfo struct {
 	VectorStoreName string `json:"instanceName"`
-	Status       string `json:"status"`
-	SecretName   string `json:"secretName,omitempty"`
+	Status          string `json:"status"`
+	SecretName      string `json:"secretName,omitempty"`
 }
 
 type CreateVectorStoreBody struct {
@@ -810,6 +810,23 @@ type VectorStoreStorage struct {
 	Size            int  `json:"size"`
 	AutoResize      bool `json:"autoResize"`
 	AutoResizeLimit int  `json:"autoResizeLimit"`
+}
+
+type VectorStoreBackupConfig struct {
+	Enabled   bool   `json:"enabled"`
+	StartTime string `json:"startTime"`
+}
+
+type DescribeVectorStoreResponse struct {
+	VectorStoreName string                  `json:"vectorStoreName"`
+	Status          string                  `json:"status"`
+	EngineVersion   string                  `json:"engineVersion"`
+	CreatedAt       string                  `json:"createdAt"`
+	Resources       VectorStoreResources    `json:"resources"`
+	Storage         VectorStoreStorage      `json:"storage"`
+	HA              bool                    `json:"ha"`
+	Backups         VectorStoreBackupConfig `json:"backups"`
+	SecretName      string                  `json:"secretName,omitempty"`
 }
 
 func (c *DeploymentClient) CreateVectorStore(
@@ -900,12 +917,12 @@ func (c *DeploymentClient) ListVectorStores(
 	return result.VectorStores, nil
 }
 
-func (c *DeploymentClient) GetVectorStore(
+func (c *DeploymentClient) DescribeVectorStore(
 	ctx context.Context,
 	orgId,
 	projectId,
 	vectorStoreName string,
-) (*VectorStoreInfo, error) {
+) (*DescribeVectorStoreResponse, error) {
 	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/vector-stores/%s", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(vectorStoreName))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
@@ -914,7 +931,7 @@ func (c *DeploymentClient) GetVectorStore(
 
 	resp, err := c.do(req)
 	if err != nil {
-		return nil, fmt.Errorf("vector store request failed: %w", err)
+		return nil, fmt.Errorf("describe vector store request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -932,10 +949,10 @@ func (c *DeploymentClient) GetVectorStore(
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
-		return nil, fmt.Errorf("failed to get vector store: server returned %s", resp.Status)
+		return nil, fmt.Errorf("failed to describe vector store: server returned %s", resp.Status)
 	}
 
-	var result VectorStoreInfo
+	var result DescribeVectorStoreResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode vector store response: %w", err)
 	}
