@@ -21,10 +21,10 @@ iai vector-stores create <vectorStoreName> [flags]
       --cpu int                 CPU cores (2-80, must be even)
       --ha                      Enable high availability with a standby replica in a separate zone for automatic failover
   -h, --help                    help for create
-      --memory float            Memory in GB (0.25 increments)
+      --memory float            Memory in GB, numeric value only (0.25 increments)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the vector stores
-      --storage-size int        Storage size in GB (min 20)
+      --storage-size int        Storage size in GB, numeric value only (min 20)
 ```
 
 ### Options inherited from parent commands
