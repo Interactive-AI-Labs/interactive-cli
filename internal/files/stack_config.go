@@ -133,7 +133,7 @@ func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody
 		body.Replicas = s.Replicas
 	}
 
-	if s.Healthcheck != nil && s.Healthcheck.Enabled {
+	if s.Healthcheck != nil {
 		body.Healthcheck = s.Healthcheck
 	}
 
