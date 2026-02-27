@@ -3,7 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -587,6 +591,99 @@ The project is selected with --project or via 'iai projects select'.`,
 }
 
 var (
+	servLogsFollow    bool
+	servLogsSince     string
+	servLogsStartTime string
+)
+
+var servLogsCmd = &cobra.Command{
+	Use:   "logs <service_name>",
+	Short: "Show logs for a service",
+	Long: `Show logs for all replicas of a service in a project.
+
+Returns up to 5000 log entries in chronological order. Default lookback is 1h.
+
+The project is selected with --project or via 'iai projects select'.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		serviceName := strings.TrimSpace(args[0])
+		if serviceName == "" {
+			return fmt.Errorf("service name is required")
+		}
+
+		ctx := cmd.Context()
+		if servLogsFollow {
+			var stop func()
+			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+			defer stop()
+		}
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		timeout := 1 * time.Minute
+		if servLogsFollow {
+			timeout = 0
+		}
+
+		deployClient, err := clients.NewDeploymentClient(deploymentHostname, timeout, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		opts := clients.LogsOptions{
+			Follow:    servLogsFollow,
+			Since:     servLogsSince,
+			StartTime: servLogsStartTime,
+		}
+
+		logsResp, err := deployClient.GetServiceLogs(ctx, orgId, projectId, serviceName, opts)
+		if err != nil {
+			return err
+		}
+		defer logsResp.Body.Close()
+
+		meta := output.LogsMeta{Since: logsResp.Since, Truncated: logsResp.Truncated}
+		err = output.PrintLogStream(out, logsResp.Body, true, meta)
+		if servLogsFollow && ctx.Err() != nil {
+			return nil
+		}
+		return err
+	},
+}
+
+var (
 	syncProject      string
 	syncOrganization string
 )
@@ -807,6 +904,13 @@ func init() {
 	servRestartCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to restart the service in")
 	servRestartCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	// Flags for "services logs"
+	servLogsCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name that owns the service")
+	servLogsCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servLogsCmd.Flags().BoolVarP(&servLogsFollow, "follow", "f", false, "Follow log output")
+	servLogsCmd.Flags().StringVar(&servLogsSince, "since", "", "Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d")
+	servLogsCmd.Flags().StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since")
+
 	// Flags for "services sync"
 	servicesSyncCmd.Flags().StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
 	servicesSyncCmd.Flags().StringVarP(&syncOrganization, "organization", "o", "", "Organization name that owns the project")
@@ -818,5 +922,6 @@ func init() {
 	servicesCmd.AddCommand(servListCmd)
 	servicesCmd.AddCommand(servDCmd)
 	servicesCmd.AddCommand(servRestartCmd)
+	servicesCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servicesSyncCmd)
 }

@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-iai logs REPLICA_NAME_HERE \
+iai replicas logs REPLICA_NAME_HERE \
   --project demo-1
