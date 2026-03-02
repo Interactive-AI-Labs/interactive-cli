@@ -26,5 +26,8 @@ jobs:
       - name: Install pre-commit and bump-my-version
         run: pip install pre-commit bump-my-version
 
+      - name: Install gci
+        run: go install github.com/daixiang0/gci@v0.14.0
+
       - name: Run pre-commit
         run: pre-commit run --all-files
