@@ -33,3 +33,5 @@ go.work.sum
 # .vscode/
 /tmp
 interactive-cli
+iai
+docs/plans/
