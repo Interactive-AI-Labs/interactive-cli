@@ -1013,6 +1013,7 @@ type LogsResponse struct {
 	Body      io.ReadCloser
 	Since     string // effective start timestamp (from X-Log-Since header)
 	Truncated bool   // true when the server hit the entry limit (X-Log-Truncated header)
+	Empty     bool   // true when there are no logs (X-Log-Empty header)
 }
 
 func (c *DeploymentClient) GetReplicaLogs(
@@ -1081,5 +1082,6 @@ func (c *DeploymentClient) fetchLogs(
 		Body:      resp.Body,
 		Since:     resp.Header.Get("X-Log-Since"),
 		Truncated: resp.Header.Get("X-Log-Truncated") == "true",
+		Empty:     resp.Header.Get("X-Log-Empty") == "true",
 	}, nil
 }

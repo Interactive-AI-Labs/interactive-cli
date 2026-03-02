@@ -236,7 +236,11 @@ The project is selected with --project or via 'iai projects select'.`,
 		}
 		defer logsResp.Body.Close()
 
-		meta := output.LogsMeta{Since: logsResp.Since, Truncated: logsResp.Truncated}
+		meta := output.LogsMeta{
+			Since:     logsResp.Since,
+			Truncated: logsResp.Truncated,
+			Empty:     logsResp.Empty,
+		}
 		err = output.PrintLogStream(out, logsResp.Body, false, meta)
 		if replicaLogsFollow && ctx.Err() != nil {
 			return nil

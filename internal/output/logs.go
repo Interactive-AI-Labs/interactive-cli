@@ -39,11 +39,17 @@ const colorReset = "\033[0m"
 type LogsMeta struct {
 	Since     string
 	Truncated bool
+	Empty     bool
 }
 
 // Informational messages are written to stderr so they don't pollute
 // log output when piped (e.g. iai services logs httpbin | grep error).
 func PrintLogStream(out io.Writer, r io.Reader, showReplica bool, meta LogsMeta) error {
+	if meta.Empty {
+		fmt.Fprintln(os.Stderr, "No logs found, check if replica exists")
+		return nil
+	}
+
 	if meta.Since != "" {
 		fmt.Fprintf(os.Stderr, "Showing logs since %s\n\n", meta.Since)
 	}
