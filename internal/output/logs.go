@@ -11,9 +11,8 @@ import (
 )
 
 type logEntry struct {
-	Timestamp string `json:"timestamp"`
-	Replica   string `json:"replica,omitempty"`
-	Line      string `json:"line"`
+	Replica string `json:"replica,omitempty"`
+	Line    string `json:"line"`
 }
 
 var replicaColors = []string{
