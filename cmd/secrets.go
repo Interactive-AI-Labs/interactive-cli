@@ -234,15 +234,6 @@ Examples:
 			return fmt.Errorf("--remove cannot be combined with --replace")
 		}
 
-		// Validate remove keys up front
-		if hasRemove {
-			for _, key := range secretRemoveKeys {
-				if err := inputs.ValidateSecretKey(strings.TrimSpace(key)); err != nil {
-					return err
-				}
-			}
-		}
-
 		var data map[string]string
 		if hasData {
 			var err error
