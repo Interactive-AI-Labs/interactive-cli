@@ -219,17 +219,6 @@ Examples:
 			return fmt.Errorf("secret name is required")
 		}
 
-		hasRemove := len(secretRemoveKeys) > 0
-
-		var data map[string]string
-		if !hasRemove {
-			var err error
-			data, err = mergeSecretData(secretDataKVs, secretEnvFile)
-			if err != nil {
-				return err
-			}
-		}
-
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
@@ -269,7 +258,7 @@ Examples:
 
 		fmt.Fprintln(out)
 
-		if hasRemove {
+		if len(secretRemoveKeys) > 0 {
 			fmt.Fprintln(out, "Submitting secret key remove request...")
 
 			sort.Strings(secretRemoveKeys)
@@ -280,7 +269,7 @@ Examples:
 				serverMessage, err := deployClient.DeleteSecretKey(cmd.Context(), orgId, projectId, secretName, keyName)
 				if err != nil {
 					if len(removedKeys) > 0 {
-						fmt.Fprintf(out, "Successfully removed keys: %s\n", strings.Join(removedKeys, ", "))
+						fmt.Fprintf(out, "Partial failure: removed keys %s before error\n", strings.Join(removedKeys, ", "))
 					}
 					return fmt.Errorf("failed to remove key %q: %w", keyName, err)
 				}
@@ -291,6 +280,11 @@ Examples:
 				}
 			}
 			return nil
+		}
+
+		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
+		if err != nil {
+			return err
 		}
 
 		if secretReplaceFlag {
@@ -320,7 +314,7 @@ Examples:
 			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, data[keyName])
 			if err != nil {
 				if len(updatedKeys) > 0 {
-					fmt.Fprintf(out, "Successfully updated keys: %s\n", strings.Join(updatedKeys, ", "))
+					fmt.Fprintf(out, "Partial failure: updated keys %s before error\n", strings.Join(updatedKeys, ", "))
 				}
 				return fmt.Errorf("failed to update key %q: %w", keyName, err)
 			}
