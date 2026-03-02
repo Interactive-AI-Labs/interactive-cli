@@ -21,6 +21,7 @@ var (
 	secretDataKVs       []string
 	secretEnvFile       string
 	secretReplaceFlag   bool
+	secretRemoveKeys    []string
 )
 
 var secretsCmd = &cobra.Command{
@@ -183,6 +184,9 @@ not included in the update are preserved.
 With --replace, ALL secret data is replaced. Any keys not included in the new
 data will be permanently deleted.
 
+With --remove, the specified keys are deleted from the secret. Cannot be
+combined with --data, --from-env-file, or --replace.
+
 The project is selected with --project or via 'iai projects select'.
 
 Secret data can be provided via:
@@ -199,7 +203,13 @@ Examples:
   iai secrets update my-secret -d API_KEY=val1 -d DB_PASS=val2
 
   # Replace all keys (keys not provided will be deleted)
-  iai secrets update my-secret -d API_KEY=val1 --replace`,
+  iai secrets update my-secret -d API_KEY=val1 --replace
+
+  # Remove specific keys from a secret
+  iai secrets update my-secret --remove API_KEY
+
+  # Remove multiple keys
+  iai secrets update my-secret --remove KEY1 --remove KEY2`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -207,15 +217,6 @@ Examples:
 		secretName := strings.TrimSpace(args[0])
 		if secretName == "" {
 			return fmt.Errorf("secret name is required")
-		}
-
-		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
-			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
-		}
-
-		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
-		if err != nil {
-			return err
 		}
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
@@ -257,6 +258,32 @@ Examples:
 
 		fmt.Fprintln(out)
 
+		if len(secretRemoveKeys) > 0 {
+			fmt.Fprintln(out, "Submitting secret key remove request...")
+
+			sort.Strings(secretRemoveKeys)
+
+			var removedKeys []string
+			for _, keyName := range secretRemoveKeys {
+				keyName = strings.TrimSpace(keyName)
+				_, err := deployClient.DeleteSecretKey(cmd.Context(), orgId, projectId, secretName, keyName)
+				if err != nil && len(removedKeys) > 0 {
+					fmt.Fprintf(out, "Partial failure: removed keys %s before error\n", strings.Join(removedKeys, ", "))
+				}
+				if err != nil {
+					return fmt.Errorf("failed to remove key %q: %w", keyName, err)
+				}
+				removedKeys = append(removedKeys, keyName)
+			}
+			fmt.Fprintf(out, "Success: removed keys %s\n", strings.Join(removedKeys, ", "))
+			return nil
+		}
+
+		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
+		if err != nil {
+			return err
+		}
+
 		if secretReplaceFlag {
 			fmt.Fprintln(out, "Submitting secret replace request...")
 
@@ -282,10 +309,10 @@ Examples:
 		var updatedKeys []string
 		for _, keyName := range keys {
 			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, data[keyName])
+			if err != nil && len(updatedKeys) > 0 {
+				fmt.Fprintf(out, "Partial failure: updated keys %s before error\n", strings.Join(updatedKeys, ", "))
+			}
 			if err != nil {
-				if len(updatedKeys) > 0 {
-					fmt.Fprintf(out, "Successfully updated keys: %s\n", strings.Join(updatedKeys, ", "))
-				}
 				return fmt.Errorf("failed to update key %q: %w", keyName, err)
 			}
 			updatedKeys = append(updatedKeys, keyName)
@@ -499,6 +526,11 @@ func init() {
 	secretsUpdateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
 	secretsUpdateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 	secretsUpdateCmd.Flags().BoolVar(&secretReplaceFlag, "replace", false, "Replace all secret data (keys not provided will be deleted)")
+	secretsUpdateCmd.Flags().StringArrayVar(&secretRemoveKeys, "remove", nil, "Key name to remove from the secret (repeatable)")
+	secretsUpdateCmd.MarkFlagsOneRequired("data", "from-env-file", "remove")
+	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "data")
+	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "from-env-file")
+	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "replace")
 
 	// secrets delete
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")

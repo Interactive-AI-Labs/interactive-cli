@@ -12,6 +12,9 @@ not included in the update are preserved.
 With --replace, ALL secret data is replaced. Any keys not included in the new
 data will be permanently deleted.
 
+With --remove, the specified keys are deleted from the secret. Cannot be
+combined with --data, --from-env-file, or --replace.
+
 The project is selected with --project or via 'iai projects select'.
 
 Secret data can be provided via:
@@ -30,6 +33,12 @@ Examples:
   # Replace all keys (keys not provided will be deleted)
   iai secrets update my-secret -d API_KEY=val1 --replace
 
+  # Remove specific keys from a secret
+  iai secrets update my-secret --remove API_KEY
+
+  # Remove multiple keys
+  iai secrets update my-secret --remove KEY1 --remove KEY2
+
 ```
 iai secrets update <secret_name> [flags]
 ```
@@ -42,6 +51,7 @@ iai secrets update <secret_name> [flags]
   -h, --help                   help for update
   -o, --organization string    Organization name that owns the project
   -p, --project string         Project name that owns the secrets
+      --remove stringArray     Key name to remove from the secret (repeatable)
       --replace                Replace all secret data (keys not provided will be deleted)
 ```
 

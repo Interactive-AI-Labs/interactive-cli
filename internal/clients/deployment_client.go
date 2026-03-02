@@ -512,6 +512,43 @@ func (c *DeploymentClient) DeleteSecret(
 	return serverMessage, nil
 }
 
+func (c *DeploymentClient) DeleteSecretKey(
+	ctx context.Context,
+	orgId,
+	projectId,
+	secretName,
+	keyName string,
+) (string, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/secrets/%s/keys/%s",
+		url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(secretName), url.PathEscape(keyName))
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", fmt.Errorf("secret key delete request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("secret key delete failed with status %s", resp.Status)
+}
+
 func (c *DeploymentClient) UpdateSecretKey(
 	ctx context.Context,
 	orgId,
