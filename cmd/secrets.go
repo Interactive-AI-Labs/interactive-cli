@@ -279,6 +279,7 @@ Examples:
 					fmt.Fprintln(out, serverMessage)
 				}
 			}
+			fmt.Fprintf(out, "Success: removed keys %s\n", strings.Join(removedKeys, ", "))
 			return nil
 		}
 
