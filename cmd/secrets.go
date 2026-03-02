@@ -267,10 +267,10 @@ Examples:
 			for _, keyName := range secretRemoveKeys {
 				keyName = strings.TrimSpace(keyName)
 				serverMessage, err := deployClient.DeleteSecretKey(cmd.Context(), orgId, projectId, secretName, keyName)
+				if err != nil && len(removedKeys) > 0 {
+					fmt.Fprintf(out, "Partial failure: removed keys %s before error\n", strings.Join(removedKeys, ", "))
+				}
 				if err != nil {
-					if len(removedKeys) > 0 {
-						fmt.Fprintf(out, "Partial failure: removed keys %s before error\n", strings.Join(removedKeys, ", "))
-					}
 					return fmt.Errorf("failed to remove key %q: %w", keyName, err)
 				}
 				removedKeys = append(removedKeys, keyName)
@@ -313,10 +313,10 @@ Examples:
 		var updatedKeys []string
 		for _, keyName := range keys {
 			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, data[keyName])
+			if err != nil && len(updatedKeys) > 0 {
+				fmt.Fprintf(out, "Partial failure: updated keys %s before error\n", strings.Join(updatedKeys, ", "))
+			}
 			if err != nil {
-				if len(updatedKeys) > 0 {
-					fmt.Fprintf(out, "Partial failure: updated keys %s before error\n", strings.Join(updatedKeys, ", "))
-				}
 				return fmt.Errorf("failed to update key %q: %w", keyName, err)
 			}
 			updatedKeys = append(updatedKeys, keyName)
