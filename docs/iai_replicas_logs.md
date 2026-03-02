@@ -1,17 +1,17 @@
-## iai logs
+## iai replicas logs
 
 Show logs for a specific replica
 
 ### Synopsis
 
-Show logs for a specific replica (pod) in a project.
+Show logs for a specific replica in a project.
 
-The project is selected with --project or via 'iai projects select'. If --organization is not provided,
-the currently selected organization (via 'iai organizations select')
-is used.
+Returns up to 5000 log entries in chronological order. Default lookback is 1h.
+
+The project is selected with --project or via 'iai projects select'.
 
 ```
-iai logs [replica_name] [flags]
+iai replicas logs <replica_name> [flags]
 ```
 
 ### Options
@@ -21,6 +21,8 @@ iai logs [replica_name] [flags]
   -h, --help                  help for logs
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the service
+      --since string          Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d
+      --start-time string     Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +36,5 @@ iai logs [replica_name] [flags]
 
 ### SEE ALSO
 
-* [iai](iai.md)	 - InteractiveAI's CLI
+* [iai replicas](iai_replicas.md)	 - Manage service replicas
 

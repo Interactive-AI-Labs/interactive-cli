@@ -57,7 +57,6 @@ iai --help
 * [iai images](iai_images.md)	 - Build and manage container images
 * [iai login](iai_login.md)	 - Log in to InteractiveAI with a email and password
 * [iai logout](iai_logout.md)	 - Log out of InteractiveAI
-* [iai logs](iai_logs.md)	 - Show logs for a specific replica
 * [iai organizations](iai_organizations.md)	 - Manage organizations
 * [iai projects](iai_projects.md)	 - Manage projects
 * [iai replicas](iai_replicas.md)	 - Manage service replicas

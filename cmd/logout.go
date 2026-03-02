@@ -3,9 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
 	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/spf13/cobra"
 )
 
 var logoutCmd = &cobra.Command{

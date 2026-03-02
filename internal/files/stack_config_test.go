@@ -6,9 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestLoadStackConfig(t *testing.T) {

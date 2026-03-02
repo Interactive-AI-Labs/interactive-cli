@@ -1039,24 +1039,63 @@ func (c *DeploymentClient) DeleteVectorStore(
 	return serverMessage, nil
 }
 
-func (c *DeploymentClient) GetLogs(
+type LogsOptions struct {
+	Follow    bool
+	Since     string
+	StartTime string
+}
+
+// LogsResponse wraps the log body stream together with metadata returned by the server.
+type LogsResponse struct {
+	Body      io.ReadCloser
+	Since     string // effective start timestamp (from X-Log-Since header)
+	Truncated bool   // true when the server hit the entry limit (X-Log-Truncated header)
+	Empty     bool   // true when there are no logs (X-Log-Empty header)
+}
+
+func (c *DeploymentClient) GetReplicaLogs(
 	ctx context.Context,
 	orgId,
 	projectId,
 	replicaName string,
-	follow bool,
-) (io.ReadCloser, error) {
+	opts LogsOptions,
+) (*LogsResponse, error) {
 	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/replicas/%s/logs", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(replicaName))
+	return c.fetchLogs(ctx, path, opts)
+}
+
+func (c *DeploymentClient) GetServiceLogs(
+	ctx context.Context,
+	orgId,
+	projectId,
+	serviceName string,
+	opts LogsOptions,
+) (*LogsResponse, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/projects/%s/services/%s/logs", url.PathEscape(orgId), url.PathEscape(projectId), url.PathEscape(serviceName))
+	return c.fetchLogs(ctx, path, opts)
+}
+
+func (c *DeploymentClient) fetchLogs(
+	ctx context.Context,
+	path string,
+	opts LogsOptions,
+) (*LogsResponse, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	if follow {
-		q := req.URL.Query()
+	q := req.URL.Query()
+	if opts.Follow {
 		q.Set("follow", "true")
-		req.URL.RawQuery = q.Encode()
 	}
+	if opts.Since != "" {
+		q.Set("since", opts.Since)
+	}
+	if opts.StartTime != "" {
+		q.Set("start-time", opts.StartTime)
+	}
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -1076,5 +1115,10 @@ func (c *DeploymentClient) GetLogs(
 		return nil, fmt.Errorf("logs request failed with status %s", resp.Status)
 	}
 
-	return resp.Body, nil
+	return &LogsResponse{
+		Body:      resp.Body,
+		Since:     resp.Header.Get("X-Log-Since"),
+		Truncated: resp.Header.Get("X-Log-Truncated") == "true",
+		Empty:     resp.Header.Get("X-Log-Empty") == "true",
+	}, nil
 }
