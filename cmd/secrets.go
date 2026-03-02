@@ -219,23 +219,10 @@ Examples:
 			return fmt.Errorf("secret name is required")
 		}
 
-		hasData := len(secretDataKVs) > 0 || strings.TrimSpace(secretEnvFile) != ""
 		hasRemove := len(secretRemoveKeys) > 0
 
-		if !hasData && !hasRemove {
-			return fmt.Errorf("at least one of --data, --from-env-file, or --remove is required")
-		}
-
-		if hasRemove && hasData {
-			return fmt.Errorf("--remove cannot be combined with --data or --from-env-file")
-		}
-
-		if hasRemove && secretReplaceFlag {
-			return fmt.Errorf("--remove cannot be combined with --replace")
-		}
-
 		var data map[string]string
-		if hasData {
+		if !hasRemove {
 			var err error
 			data, err = mergeSecretData(secretDataKVs, secretEnvFile)
 			if err != nil {
@@ -549,6 +536,10 @@ func init() {
 	secretsUpdateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 	secretsUpdateCmd.Flags().BoolVar(&secretReplaceFlag, "replace", false, "Replace all secret data (keys not provided will be deleted)")
 	secretsUpdateCmd.Flags().StringArrayVar(&secretRemoveKeys, "remove", nil, "Key name to remove from the secret (repeatable)")
+	secretsUpdateCmd.MarkFlagsOneRequired("data", "from-env-file", "remove")
+	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "data")
+	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "from-env-file")
+	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "replace")
 
 	// secrets delete
 	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
