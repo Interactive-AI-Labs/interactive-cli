@@ -539,14 +539,14 @@ func (c *DeploymentClient) DeleteSecretKey(
 
 	serverMessage := ExtractServerMessage(respBody)
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if serverMessage != "" {
-			return "", fmt.Errorf("%s", serverMessage)
-		}
-		return "", fmt.Errorf("secret key delete failed with status %s", resp.Status)
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
 	}
 
-	return serverMessage, nil
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("secret key delete failed with status %s", resp.Status)
 }
 
 func (c *DeploymentClient) UpdateSecretKey(
