@@ -32,7 +32,7 @@ func PrintReplicaList(out io.Writer, replicas []clients.ReplicaInfo) error {
 			combinedStatus,
 			r.CPU,
 			r.Memory,
-			r.StartTime,
+			LocalTime(r.StartTime),
 		}
 	}
 
@@ -50,7 +50,7 @@ func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
 	fmt.Fprintf(out, "Status:        %s\n", status.Status)
 	fmt.Fprintf(out, "Ready:         %s\n", readyStr)
 	if status.StartTime != "" {
-		fmt.Fprintf(out, "Start Time:    %s\n", status.StartTime)
+		fmt.Fprintf(out, "Start Time:    %s\n", LocalTime(status.StartTime))
 	}
 	fmt.Fprintf(out, "Restart Count: %d\n", status.RestartCount)
 
@@ -60,10 +60,10 @@ func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
 		fmt.Fprintf(out, "  Reason:      %s\n", status.LastTerminationState.Reason)
 		fmt.Fprintf(out, "  Exit Code:   %d\n", status.LastTerminationState.ExitCode)
 		if status.LastTerminationState.StartedAt != "" {
-			fmt.Fprintf(out, "  Started At:  %s\n", status.LastTerminationState.StartedAt)
+			fmt.Fprintf(out, "  Started At:  %s\n", LocalTime(status.LastTerminationState.StartedAt))
 		}
 		if status.LastTerminationState.FinishedAt != "" {
-			fmt.Fprintf(out, "  Finished At: %s\n", status.LastTerminationState.FinishedAt)
+			fmt.Fprintf(out, "  Finished At: %s\n", LocalTime(status.LastTerminationState.FinishedAt))
 		}
 	}
 
@@ -92,7 +92,7 @@ func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
 				e.Reason,
 				fmt.Sprintf("%d", e.Count),
 				e.Message,
-				e.LastTimestamp,
+				LocalTime(e.LastTimestamp),
 			}
 		}
 		if err := PrintTable(out, headers, rows); err != nil {

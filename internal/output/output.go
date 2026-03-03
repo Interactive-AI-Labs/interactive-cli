@@ -36,6 +36,14 @@ func TruncateList(items []string, maxVisible int) string {
 	return fmt.Sprintf("%s (+%d more)", visible, len(items)-maxVisible)
 }
 
+// LocalTime converts an RFC3339 timestamp to the user's local timezone.
+func LocalTime(s string) string {
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t.Local().Format(time.RFC1123Z)
+	}
+	return s
+}
+
 func PrintLoadingDots(out io.Writer) chan struct{} {
 	done := make(chan struct{})
 	go func() {

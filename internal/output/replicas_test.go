@@ -8,6 +8,8 @@ import (
 )
 
 func TestPrintReplicaList(t *testing.T) {
+	// Pin timezone so expected strings are deterministic across machines.
+	t.Setenv("TZ", "Europe/Madrid")
 	tests := []struct {
 		name     string
 		replicas []clients.ReplicaInfo
@@ -32,7 +34,7 @@ func TestPrintReplicaList(t *testing.T) {
 				},
 			},
 			want: "NAME         STATUS            CPU    MEMORY   STARTED\n" +
-				"web-abc123   Running [Ready]   100m   128Mi    2024-01-01T00:00:00Z\n",
+				"web-abc123   Running [Ready]   100m   128Mi    Mon, 01 Jan 2024 01:00:00 +0100\n",
 		},
 		{
 			name: "not-ready replica shows Not Ready",
@@ -98,6 +100,8 @@ func TestPrintReplicaList(t *testing.T) {
 }
 
 func TestPrintReplicaDescribe(t *testing.T) {
+	// Pin timezone so expected strings are deterministic across machines.
+	t.Setenv("TZ", "Europe/Madrid")
 	tests := []struct {
 		name   string
 		status *clients.ReplicaStatus
@@ -115,7 +119,7 @@ func TestPrintReplicaDescribe(t *testing.T) {
 			want: "\nName:          web-abc123\n" +
 				"Status:        Running\n" +
 				"Ready:         Yes\n" +
-				"Start Time:    2024-01-01T00:00:00Z\n" +
+				"Start Time:    Mon, 01 Jan 2024 01:00:00 +0100\n" +
 				"Restart Count: 0\n",
 		},
 		{
@@ -139,8 +143,8 @@ func TestPrintReplicaDescribe(t *testing.T) {
 				"\nLast Termination State:\n" +
 				"  Reason:      OOMKilled\n" +
 				"  Exit Code:   137\n" +
-				"  Started At:  2024-01-01T00:00:00Z\n" +
-				"  Finished At: 2024-01-01T01:00:00Z\n",
+				"  Started At:  Mon, 01 Jan 2024 01:00:00 +0100\n" +
+				"  Finished At: Mon, 01 Jan 2024 02:00:00 +0100\n",
 		},
 		{
 			name: "last termination state without timestamps",
@@ -206,18 +210,18 @@ func TestPrintReplicaDescribe(t *testing.T) {
 			want: "\nName:          full-pod\n" +
 				"Status:        Running\n" +
 				"Ready:         Yes\n" +
-				"Start Time:    2024-06-01T12:00:00Z\n" +
+				"Start Time:    Sat, 01 Jun 2024 14:00:00 +0200\n" +
 				"Restart Count: 1\n" +
 				"\nLast Termination State:\n" +
 				"  Reason:      OOMKilled\n" +
 				"  Exit Code:   137\n" +
-				"  Finished At: 2024-06-01T11:59:00Z\n" +
+				"  Finished At: Sat, 01 Jun 2024 13:59:00 +0200\n" +
 				"\nResources:\n" +
 				"  CPU:    250m\n" +
 				"  Memory: 512Mi\n" +
 				"\nEvents:\n" +
 				"TYPE      REASON       COUNT   MESSAGE                 LAST SEEN\n" +
-				"Warning   OOMKilling   1       Memory limit exceeded   2024-06-01T11:59:00Z\n",
+				"Warning   OOMKilling   1       Memory limit exceeded   Sat, 01 Jun 2024 13:59:00 +0200\n",
 		},
 	}
 
