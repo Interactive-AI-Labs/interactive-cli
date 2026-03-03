@@ -51,7 +51,7 @@ func PrintLogStream(out io.Writer, r io.Reader, showReplica bool, meta LogsMeta)
 	}
 
 	if meta.Since != "" {
-		fmt.Fprintf(os.Stderr, "Showing logs since %s\n\n", meta.Since)
+		fmt.Fprintf(os.Stderr, "Showing logs since %s\n\n", LocalTime(meta.Since))
 	}
 
 	useColor := showReplica && isTerminal(out)
@@ -100,7 +100,7 @@ func PrintLogStream(out io.Writer, r io.Reader, showReplica bool, meta LogsMeta)
 	}
 
 	if meta.Truncated {
-		msg := "Warning: output was truncated by the server. Use --since or --start-time to narrow the time range."
+		msg := "Warning: output was truncated by the server (max 5000 lines). Use --since or --start-time to narrow the time range."
 		if isTerminal(os.Stderr) {
 			fmt.Fprintf(os.Stderr, "\n\033[91m%s%s\n", msg, colorReset)
 		} else {

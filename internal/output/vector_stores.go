@@ -22,7 +22,7 @@ func PrintVectorStoreDescribe(out io.Writer, store *clients.DescribeVectorStoreR
 	fmt.Fprintf(out, "Status:          %s\n", store.Status)
 	fmt.Fprintf(out, "Engine Version:  %s\n", store.EngineVersion)
 	if store.CreatedAt != "" {
-		fmt.Fprintf(out, "Created At:      %s\n", store.CreatedAt)
+		fmt.Fprintf(out, "Created At:      %s\n", LocalTime(store.CreatedAt))
 	}
 	fmt.Fprintf(out, "HA:              %s\n", haStr)
 	backupsStr := "No"
