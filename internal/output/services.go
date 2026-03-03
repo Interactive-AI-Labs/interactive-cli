@@ -17,7 +17,7 @@ func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
 			fmt.Sprintf("%d", svc.Revision),
 			svc.Status,
 			svc.Endpoint,
-			svc.Updated,
+			LocalTime(svc.Updated),
 		}
 	}
 

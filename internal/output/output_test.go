@@ -69,6 +69,41 @@ func TestPrintTable(t *testing.T) {
 	}
 }
 
+func TestLocalTime(t *testing.T) {
+	// Pin timezone so expected strings are deterministic across machines.
+	t.Setenv("TZ", "Europe/Madrid")
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "converts UTC to local timezone in RFC1123Z format",
+			input: "2025-06-15T10:30:00Z",
+			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+		},
+		{
+			name:  "returns original string on parse failure",
+			input: "not-a-timestamp",
+			want:  "not-a-timestamp",
+		},
+		{
+			name:  "returns empty string unchanged",
+			input: "",
+			want:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := LocalTime(tt.input); got != tt.want {
+				t.Errorf("LocalTime(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPrintLoadingDots(t *testing.T) {
 	t.Run("prints dots periodically", func(t *testing.T) {
 		var buf bytes.Buffer
