@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   auto-tag:
-    runs-on: ubuntu-latest
+    runs-on: [gke-default]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
