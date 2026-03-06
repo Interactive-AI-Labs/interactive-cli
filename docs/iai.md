@@ -62,5 +62,6 @@ iai --help
 * [iai replicas](iai_replicas.md)	 - Manage service replicas
 * [iai secrets](iai_secrets.md)	 - Manage secrets
 * [iai services](iai_services.md)	 - Manage services
+* [iai traces](iai_traces.md)	 - Manage traces
 * [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores
 
