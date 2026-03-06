@@ -827,7 +827,6 @@ func SyncServices(
 }
 
 func init() {
-
 	// Flags for "services create"
 	servCCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to create the service in")
 	servCCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
