@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -277,6 +278,198 @@ func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName str
 	}
 
 	return matched[0].Id, nil
+}
+
+type TraceInfo struct {
+	ID          string   `json:"id"`
+	Timestamp   string   `json:"timestamp"`
+	Name        string   `json:"name"`
+	SessionID   string   `json:"sessionId"`
+	UserID      string   `json:"userId"`
+	Release     string   `json:"release"`
+	Version     string   `json:"version"`
+	Public      bool     `json:"public"`
+	Environment string   `json:"environment"`
+	Tags        []string `json:"tags"`
+	HtmlPath    string   `json:"htmlPath"`
+	Latency     *float64 `json:"latency"`
+	TotalCost   *float64 `json:"totalCost"`
+}
+
+type TraceDetail struct {
+	TraceInfo
+	Input    json.RawMessage `json:"input"`
+	Output   json.RawMessage `json:"output"`
+	Metadata json.RawMessage `json:"metadata"`
+}
+
+type TraceMeta struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalItems int `json:"totalItems"`
+	TotalPages int `json:"totalPages"`
+}
+
+type TraceListOptions struct {
+	Page          int
+	Limit         int
+	UserID        string
+	Name          string
+	SessionID     string
+	FromTimestamp string
+	ToTimestamp   string
+	OrderBy       string
+	Tags          []string
+	Version       string
+	Release       string
+	Environment   []string
+}
+
+func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]TraceInfo, TraceMeta, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, "/api/public/traces")
+	if err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if opts.Page > 0 {
+		q.Set("page", fmt.Sprintf("%d", opts.Page))
+	}
+	if opts.Limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+	}
+	if opts.UserID != "" {
+		q.Set("userId", opts.UserID)
+	}
+	if opts.Name != "" {
+		q.Set("name", opts.Name)
+	}
+	if opts.SessionID != "" {
+		q.Set("sessionId", opts.SessionID)
+	}
+	if opts.FromTimestamp != "" {
+		q.Set("fromTimestamp", opts.FromTimestamp)
+	}
+	if opts.ToTimestamp != "" {
+		q.Set("toTimestamp", opts.ToTimestamp)
+	}
+	if opts.OrderBy != "" {
+		q.Set("orderBy", opts.OrderBy)
+	}
+	for _, tag := range opts.Tags {
+		q.Add("tags", tag)
+	}
+	if opts.Version != "" {
+		q.Set("version", opts.Version)
+	}
+	if opts.Release != "" {
+		q.Set("release", opts.Release)
+	}
+	for _, env := range opts.Environment {
+		q.Add("environment", env)
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("traces list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, TraceMeta{}, errors.New(msg)
+		}
+		return nil, TraceMeta{}, fmt.Errorf("failed to list traces: server returned %s", resp.Status)
+	}
+
+	var result struct {
+		Data []TraceInfo `json:"data"`
+		Meta TraceMeta   `json:"meta"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("failed to decode traces response: %w", err)
+	}
+
+	return result.Data, result.Meta, nil
+}
+
+func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail, error) {
+	path := fmt.Sprintf("/api/public/traces/%s", url.PathEscape(traceID))
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("trace get request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, errors.New(msg)
+		}
+		return nil, fmt.Errorf("failed to get trace: server returned %s", resp.Status)
+	}
+
+	var trace TraceDetail
+	if err := json.Unmarshal(respBody, &trace); err != nil {
+		return nil, fmt.Errorf("failed to decode trace response: %w", err)
+	}
+
+	return &trace, nil
+}
+
+func (c *APIClient) DeleteTrace(ctx context.Context, traceID string) (string, error) {
+	path := fmt.Sprintf("/api/public/traces/%s", url.PathEscape(traceID))
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", fmt.Errorf("trace delete request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", errors.New(serverMessage)
+		}
+		return "", fmt.Errorf("trace deletion failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
 }
 
 func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName string) (string, string, error) {
