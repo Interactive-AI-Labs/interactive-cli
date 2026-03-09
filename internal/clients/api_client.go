@@ -310,6 +310,11 @@ type TraceMeta struct {
 	TotalPages int `json:"totalPages"`
 }
 
+type traceListResponse struct {
+	Data []TraceInfo `json:"data"`
+	Meta TraceMeta   `json:"meta"`
+}
+
 type TraceListOptions struct {
 	Page          int
 	Limit         int
@@ -393,10 +398,7 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 		return nil, TraceMeta{}, fmt.Errorf("failed to list traces: server returned %s", resp.Status)
 	}
 
-	var result struct {
-		Data []TraceInfo `json:"data"`
-		Meta TraceMeta   `json:"meta"`
-	}
+	var result traceListResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, TraceMeta{}, fmt.Errorf("failed to decode traces response: %w", err)
 	}
