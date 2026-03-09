@@ -19,6 +19,26 @@ type DeploymentClient struct {
 	hostname   string
 }
 
+type servicesResponse struct {
+	Services []ServiceOutput `json:"services"`
+}
+
+type secretsResponse struct {
+	Secrets []SecretInfo `json:"secrets"`
+}
+
+type imagesResponse struct {
+	Images []ImageInfo `json:"images"`
+}
+
+type replicasResponse struct {
+	Replicas []ReplicaInfo `json:"replicas"`
+}
+
+type vectorStoresResponse struct {
+	VectorStores []VectorStoreInfo `json:"vectorStores"`
+}
+
 type SecretInfo struct {
 	Name      string            `json:"name"`
 	Type      string            `json:"type"`
@@ -367,9 +387,7 @@ func (c *DeploymentClient) ListServices(
 		return nil, fmt.Errorf("service listing failed with status %s", resp.Status)
 	}
 
-	var result struct {
-		Services []ServiceOutput `json:"services"`
-	}
+	var result servicesResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode services response: %w", err)
 	}
@@ -696,9 +714,7 @@ func (c *DeploymentClient) ListSecrets(
 		return nil, fmt.Errorf("failed to list secrets: server returned %s", resp.Status)
 	}
 
-	var result struct {
-		Secrets []SecretInfo `json:"secrets"`
-	}
+	var result secretsResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode secrets response: %w", err)
 	}
@@ -740,10 +756,7 @@ func (c *DeploymentClient) ListImages(
 		return nil, fmt.Errorf("failed to list images: server returned %s", resp.Status)
 	}
 
-	var result struct {
-		Images []ImageInfo `json:"images"`
-	}
-
+	var result imagesResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -782,9 +795,7 @@ func (c *DeploymentClient) ListReplicas(
 		return nil, fmt.Errorf("replicas request failed with status %s", resp.Status)
 	}
 
-	var result struct {
-		Replicas []ReplicaInfo `json:"replicas"`
-	}
+	var result replicasResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode replicas response: %w", err)
 	}
@@ -951,9 +962,7 @@ func (c *DeploymentClient) ListVectorStores(
 		return nil, fmt.Errorf("failed to list vector stores: server returned %s", resp.Status)
 	}
 
-	var result struct {
-		VectorStores []VectorStoreInfo `json:"vectorStores"`
-	}
+	var result vectorStoresResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode vector stores response: %w", err)
 	}
