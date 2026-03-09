@@ -336,7 +336,41 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 		return nil, TraceMeta{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	q := req.URL.Query()
+	req.URL.RawQuery = traceListQuery(opts).Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("traces list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	limit := int64(1024 * 1024)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit = 4096
+	}
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	if err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, TraceMeta{}, errors.New(msg)
+		}
+		return nil, TraceMeta{}, fmt.Errorf("failed to list traces: server returned %s", resp.Status)
+	}
+
+	var result traceListResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("failed to decode traces response: %w", err)
+	}
+
+	return result.Data, result.Meta, nil
+}
+
+func traceListQuery(opts TraceListOptions) url.Values {
+	q := url.Values{}
 	if opts.Page > 0 {
 		q.Set("page", fmt.Sprintf("%d", opts.Page))
 	}
@@ -373,37 +407,8 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 	for _, env := range opts.Environment {
 		q.Add("environment", env)
 	}
-	req.URL.RawQuery = q.Encode()
 
-	resp, err := c.do(req)
-	if err != nil {
-		return nil, TraceMeta{}, fmt.Errorf("traces list request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	limit := int64(1024 * 1024)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, TraceMeta{}, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		msg := ExtractServerMessage(respBody)
-		if msg != "" {
-			return nil, TraceMeta{}, errors.New(msg)
-		}
-		return nil, TraceMeta{}, fmt.Errorf("failed to list traces: server returned %s", resp.Status)
-	}
-
-	var result traceListResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, TraceMeta{}, fmt.Errorf("failed to decode traces response: %w", err)
-	}
-
-	return result.Data, result.Meta, nil
+	return q
 }
 
 func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail, error) {
