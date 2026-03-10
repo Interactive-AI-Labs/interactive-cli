@@ -4,6 +4,7 @@ go 1.25.1
 
 require (
 	github.com/google/go-cmp v0.7.0
+	github.com/google/go-querystring v1.2.0
 	github.com/spf13/cobra v1.10.1
 	golang.org/x/term v0.40.0
 )
