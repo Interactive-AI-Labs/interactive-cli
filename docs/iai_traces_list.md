@@ -29,7 +29,7 @@ iai traces list [flags]
       --limit int                 Items per page
       --name string               Filter by trace name
       --order-by string           Order by field.direction (e.g. timestamp.desc)
-      --page int                  Page number (starts at 1, 0 = server default)
+      --page int                  Page number (starts at 1) (default 1)
       --release string            Filter by release
       --session-id string         Filter by session ID
       --tags stringArray          Filter by tags (repeatable)

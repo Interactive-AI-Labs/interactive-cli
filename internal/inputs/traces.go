@@ -31,8 +31,8 @@ var validOrderByFields = []string{"id", "name", "timestamp", "userId", "sessionI
 var validOrderByDirections = []string{"asc", "desc"}
 
 func ValidateTraceListOptions(opts clients.TraceListOptions) error {
-	if opts.Page < 0 {
-		return fmt.Errorf("page must be non-negative, got %d", opts.Page)
+	if opts.Page < 1 {
+		return fmt.Errorf("page must be >= 1, got %d", opts.Page)
 	}
 	if opts.Limit < 0 {
 		return fmt.Errorf("limit must be non-negative, got %d", opts.Limit)

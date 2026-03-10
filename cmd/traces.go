@@ -123,7 +123,7 @@ var tracesGetCmd = &cobra.Command{
 
 func init() {
 	// traces list filters
-	tracesListCmd.Flags().IntVar(&tracesPage, "page", 0, "Page number (starts at 1, 0 = server default)")
+	tracesListCmd.Flags().IntVar(&tracesPage, "page", 1, "Page number (starts at 1)")
 	tracesListCmd.Flags().IntVar(&tracesLimit, "limit", 0, "Items per page")
 	tracesListCmd.Flags().StringVar(&tracesUserID, "user-id", "", "Filter by user ID")
 	tracesListCmd.Flags().StringVar(&tracesName, "name", "", "Filter by trace name")
