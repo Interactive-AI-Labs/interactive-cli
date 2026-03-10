@@ -385,7 +385,8 @@ func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail,
 	}
 	defer resp.Body.Close()
 
-	limit := int64(1024 * 1024)
+	maxSize := int64(10 * 1024 * 1024)
+	limit := maxSize + 1
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		limit = 4096
 	}
@@ -400,6 +401,10 @@ func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail,
 			return nil, errors.New(msg)
 		}
 		return nil, fmt.Errorf("failed to get trace: server returned %s", resp.Status)
+	}
+
+	if int64(len(respBody)) > maxSize {
+		return nil, fmt.Errorf("trace response too large (%d MB); exceeds the %d MB limit", len(respBody)/(1024*1024), maxSize/(1024*1024))
 	}
 
 	var trace TraceDetail
