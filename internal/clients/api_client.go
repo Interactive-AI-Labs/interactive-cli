@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/google/go-querystring/query"
 )
 
 type APIClient struct {
@@ -316,18 +318,18 @@ type traceListResponse struct {
 }
 
 type TraceListOptions struct {
-	Page          int
-	Limit         int
-	UserID        string
-	Name          string
-	SessionID     string
-	FromTimestamp string
-	ToTimestamp   string
-	OrderBy       string
-	Tags          []string
-	Version       string
-	Release       string
-	Environment   []string
+	Page          int      `url:"page,omitempty"`
+	Limit         int      `url:"limit,omitempty"`
+	UserID        string   `url:"userId,omitempty"`
+	Name          string   `url:"name,omitempty"`
+	SessionID     string   `url:"sessionId,omitempty"`
+	FromTimestamp string   `url:"fromTimestamp,omitempty"`
+	ToTimestamp   string   `url:"toTimestamp,omitempty"`
+	OrderBy       string   `url:"orderBy,omitempty"`
+	Tags          []string `url:"tags,omitempty"`
+	Version       string   `url:"version,omitempty"`
+	Release       string   `url:"release,omitempty"`
+	Environment   []string `url:"environment,omitempty"`
 }
 
 func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]TraceInfo, TraceMeta, error) {
@@ -336,7 +338,8 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 		return nil, TraceMeta{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.URL.RawQuery = traceListQuery(opts).Encode()
+	q, _ := query.Values(opts)
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -367,48 +370,6 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 	}
 
 	return result.Data, result.Meta, nil
-}
-
-func traceListQuery(opts TraceListOptions) url.Values {
-	q := url.Values{}
-	if opts.Page > 0 {
-		q.Set("page", fmt.Sprintf("%d", opts.Page))
-	}
-	if opts.Limit > 0 {
-		q.Set("limit", fmt.Sprintf("%d", opts.Limit))
-	}
-	if opts.UserID != "" {
-		q.Set("userId", opts.UserID)
-	}
-	if opts.Name != "" {
-		q.Set("name", opts.Name)
-	}
-	if opts.SessionID != "" {
-		q.Set("sessionId", opts.SessionID)
-	}
-	if opts.FromTimestamp != "" {
-		q.Set("fromTimestamp", opts.FromTimestamp)
-	}
-	if opts.ToTimestamp != "" {
-		q.Set("toTimestamp", opts.ToTimestamp)
-	}
-	if opts.OrderBy != "" {
-		q.Set("orderBy", opts.OrderBy)
-	}
-	for _, tag := range opts.Tags {
-		q.Add("tags", tag)
-	}
-	if opts.Version != "" {
-		q.Set("version", opts.Version)
-	}
-	if opts.Release != "" {
-		q.Set("release", opts.Release)
-	}
-	for _, env := range opts.Environment {
-		q.Add("environment", env)
-	}
-
-	return q
 }
 
 func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail, error) {
