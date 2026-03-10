@@ -121,40 +121,6 @@ var tracesGetCmd = &cobra.Command{
 	},
 }
 
-var tracesDeleteCmd = &cobra.Command{
-	Use:     "delete <trace-id>",
-	Aliases: []string{"rm"},
-	Short:   "Delete a specific trace",
-	Args:    cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-
-		traceID := strings.TrimSpace(args[0])
-		if err := inputs.ValidateTraceID(traceID); err != nil {
-			return err
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, nil)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting trace delete request...")
-
-		serverMessage, err := apiClient.DeleteTrace(cmd.Context(), traceID)
-		if err != nil {
-			return err
-		}
-
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
-		}
-
-		return nil
-	},
-}
-
 func init() {
 	// traces list filters
 	tracesListCmd.Flags().IntVar(&tracesPage, "page", 0, "Page number (starts at 1, 0 = server default)")
@@ -173,6 +139,6 @@ func init() {
 	// --tags and --environment use StringArrayVar to avoid splitting values that may contain commas.
 	tracesListCmd.Flags().StringSliceVar(&tracesColumns, "columns", nil, "Columns to display (comma-separated, default: id,name,timestamp,latency,cost,tags)\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags")
 
-	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd, tracesDeleteCmd)
+	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd)
 	rootCmd.AddCommand(tracesCmd)
 }
