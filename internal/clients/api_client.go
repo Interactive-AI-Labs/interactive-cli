@@ -410,36 +410,6 @@ func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail,
 	return &trace, nil
 }
 
-func (c *APIClient) DeleteTrace(ctx context.Context, traceID string) (string, error) {
-	path := fmt.Sprintf("/api/public/traces/%s", url.PathEscape(traceID))
-	req, err := c.newRequest(ctx, http.MethodDelete, path)
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.do(req)
-	if err != nil {
-		return "", fmt.Errorf("trace delete request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	serverMessage := ExtractServerMessage(respBody)
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if serverMessage != "" {
-			return "", errors.New(serverMessage)
-		}
-		return "", fmt.Errorf("trace deletion failed with status %s", resp.Status)
-	}
-
-	return serverMessage, nil
-}
-
 func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName string) (string, string, error) {
 	orgName = strings.TrimSpace(orgName)
 	projectName = strings.TrimSpace(projectName)
