@@ -29,7 +29,7 @@ var projectsListCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 
 		if apiKey != "" {
-			return fmt.Errorf("projects list is not available when using API key authentication")
+			fmt.Fprintln(out, "Warning: API key authentication is ignored for projects commands; using session cookies instead.")
 		}
 
 		sess := session.NewSession(cfgDirName)
@@ -78,7 +78,7 @@ var projectsSelectCmd = &cobra.Command{
 		projectName := args[0]
 
 		if apiKey != "" {
-			return fmt.Errorf("projects select is not available when using API key authentication")
+			fmt.Fprintln(out, "Warning: API key authentication is ignored for projects commands; using session cookies instead.")
 		}
 
 		sess := session.NewSession(cfgDirName)
