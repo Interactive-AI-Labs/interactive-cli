@@ -219,7 +219,7 @@ func (c *DeploymentClient) CreateService(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -263,7 +263,7 @@ func (c *DeploymentClient) UpdateService(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -298,7 +298,7 @@ func (c *DeploymentClient) DeleteService(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -333,7 +333,7 @@ func (c *DeploymentClient) RestartService(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -374,12 +374,11 @@ func (c *DeploymentClient) ListServices(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
@@ -388,7 +387,7 @@ func (c *DeploymentClient) ListServices(
 	}
 
 	var result servicesResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode services response: %w", err)
 	}
 
@@ -428,7 +427,7 @@ func (c *DeploymentClient) CreateSecret(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -478,7 +477,7 @@ func (c *DeploymentClient) ReplaceSecret(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -513,7 +512,7 @@ func (c *DeploymentClient) DeleteSecret(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -550,7 +549,7 @@ func (c *DeploymentClient) DeleteSecretKey(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -602,7 +601,7 @@ func (c *DeploymentClient) UpdateSecretKey(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -637,16 +636,11 @@ func (c *DeploymentClient) GetSecret(
 	}
 	defer resp.Body.Close()
 
-	limit := int64(1024 * 1024)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
@@ -655,7 +649,7 @@ func (c *DeploymentClient) GetSecret(
 	}
 
 	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(respBody, &raw); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
 		return nil, fmt.Errorf("failed to decode secret response: %w", err)
 	}
 
@@ -665,7 +659,8 @@ func (c *DeploymentClient) GetSecret(
 			return nil, fmt.Errorf("failed to decode secret object: %w", err)
 		}
 	} else {
-		if err := json.Unmarshal(respBody, &secret); err != nil {
+		rawBytes, _ := json.Marshal(raw)
+		if err := json.Unmarshal(rawBytes, &secret); err != nil {
 			return nil, fmt.Errorf("failed to decode secret object: %w", err)
 		}
 	}
@@ -697,16 +692,11 @@ func (c *DeploymentClient) ListSecrets(
 	}
 	defer resp.Body.Close()
 
-	limit := int64(1024 * 1024)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
@@ -715,7 +705,7 @@ func (c *DeploymentClient) ListSecrets(
 	}
 
 	var result secretsResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode secrets response: %w", err)
 	}
 
@@ -739,17 +729,11 @@ func (c *DeploymentClient) ListImages(
 	}
 	defer resp.Body.Close()
 
-	limit := int64(1024 * 1024)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		if msg := ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -757,7 +741,7 @@ func (c *DeploymentClient) ListImages(
 	}
 
 	var result imagesResponse
-	if err := json.Unmarshal(body, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -782,12 +766,11 @@ func (c *DeploymentClient) ListReplicas(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
@@ -796,7 +779,7 @@ func (c *DeploymentClient) ListReplicas(
 	}
 
 	var result replicasResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode replicas response: %w", err)
 	}
 
@@ -821,13 +804,11 @@ func (c *DeploymentClient) DescribeReplica(
 	}
 	defer resp.Body.Close()
 
-	// 64KB limit: response includes events, resources, and healthcheck data
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 65536))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
@@ -836,7 +817,7 @@ func (c *DeploymentClient) DescribeReplica(
 	}
 
 	var result ReplicaStatus
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode replica status response: %w", err)
 	}
 
@@ -911,7 +892,7 @@ func (c *DeploymentClient) CreateVectorStore(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -945,16 +926,11 @@ func (c *DeploymentClient) ListVectorStores(
 	}
 	defer resp.Body.Close()
 
-	limit := int64(1024 * 1024)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
@@ -963,7 +939,7 @@ func (c *DeploymentClient) ListVectorStores(
 	}
 
 	var result vectorStoresResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode vector stores response: %w", err)
 	}
 
@@ -988,16 +964,11 @@ func (c *DeploymentClient) DescribeVectorStore(
 	}
 	defer resp.Body.Close()
 
-	limit := int64(1024 * 1024)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
@@ -1006,7 +977,7 @@ func (c *DeploymentClient) DescribeVectorStore(
 	}
 
 	var result DescribeVectorStoreResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode vector store response: %w", err)
 	}
 
@@ -1031,7 +1002,7 @@ func (c *DeploymentClient) DeleteVectorStore(
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -1112,7 +1083,7 @@ func (c *DeploymentClient) fetchLogs(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		respBody, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)

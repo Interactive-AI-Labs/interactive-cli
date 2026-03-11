@@ -92,7 +92,7 @@ func (c *APIClient) validateApiKey(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		body, _ := io.ReadAll(resp.Body)
 		if msg := ExtractServerMessage(body); msg != "" {
 			return fmt.Errorf("API key validation failed: %s", msg)
 		}
@@ -130,9 +130,8 @@ func (c *APIClient) ListOrganizations(ctx context.Context) ([]Organization, erro
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
 		if msg := ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to list organizations: %s", msg)
 		}
@@ -143,7 +142,7 @@ func (c *APIClient) ListOrganizations(ctx context.Context) ([]Organization, erro
 		Organizations []Organization `json:"organizations"`
 	}
 
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("failed to decode organizations response: %w", err)
 	}
 
@@ -214,9 +213,8 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
 		if msg := ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to list projects: %s", msg)
 		}
@@ -227,7 +225,7 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 		Projects []Project `json:"projects"`
 	}
 
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("failed to decode projects response: %w", err)
 	}
 
@@ -347,16 +345,11 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 	}
 	defer resp.Body.Close()
 
-	limit := int64(1024 * 1024)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, TraceMeta{}, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, TraceMeta{}, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, TraceMeta{}, errors.New(msg)
@@ -365,7 +358,7 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 	}
 
 	var result traceListResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, TraceMeta{}, fmt.Errorf("failed to decode traces response: %w", err)
 	}
 
@@ -385,17 +378,11 @@ func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail,
 	}
 	defer resp.Body.Close()
 
-	maxSize := int64(10 * 1024 * 1024)
-	limit := maxSize + 1
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limit = 4096
-	}
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
 		msg := ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, errors.New(msg)
@@ -403,12 +390,8 @@ func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail,
 		return nil, fmt.Errorf("failed to get trace: server returned %s", resp.Status)
 	}
 
-	if int64(len(respBody)) > maxSize {
-		return nil, fmt.Errorf("trace response too large (%d MB); exceeds the %d MB limit", len(respBody)/(1024*1024), maxSize/(1024*1024))
-	}
-
 	var trace TraceDetail
-	if err := json.Unmarshal(respBody, &trace); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&trace); err != nil {
 		return nil, fmt.Errorf("failed to decode trace response: %w", err)
 	}
 
