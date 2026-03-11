@@ -32,6 +32,10 @@ var tracesCmd = &cobra.Command{
 	Short:   "Manage traces",
 	Long:    `Manage traces. Requires an API key (--api-key or INTERACTIVE_API_KEY).`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Cobra doesn't chain PersistentPreRun hooks; call the parent's manually to preserve URL normalization.
+		if root := cmd.Root(); root != nil && root.PersistentPreRun != nil {
+			root.PersistentPreRun(cmd, args)
+		}
 		if apiKey == "" {
 			return fmt.Errorf("traces commands require API key authentication; use --api-key or set INTERACTIVE_API_KEY")
 		}
