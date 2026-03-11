@@ -1,6 +1,7 @@
 package output
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -84,19 +85,43 @@ func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
 
 	isTTY := isTerminal(out)
 
+	const jsonPrefix = "  "
 	if len(trace.Input) > 0 && string(trace.Input) != "null" {
-		fmt.Fprintf(out, "\n%s\n%s\n", colorHeader(isTTY, "Input:", colorGreen), prettyJSON(trace.Input, isTTY))
+		fmt.Fprintf(
+			out,
+			"\n%s\n%s\n",
+			colorHeader(isTTY, "Input:", colorGreen),
+			indentLines(prettyJSON(trace.Input, isTTY), jsonPrefix),
+		)
 	}
 
 	if len(trace.Output) > 0 && string(trace.Output) != "null" {
-		fmt.Fprintf(out, "\n%s\n%s\n", colorHeader(isTTY, "Output:", colorRed), prettyJSON(trace.Output, isTTY))
+		fmt.Fprintf(
+			out,
+			"\n%s\n%s\n",
+			colorHeader(isTTY, "Output:", colorRed),
+			indentLines(prettyJSON(trace.Output, isTTY), jsonPrefix),
+		)
 	}
 
 	if len(trace.Metadata) > 0 && string(trace.Metadata) != "null" {
-		fmt.Fprintf(out, "\n%s\n%s\n", colorHeader(isTTY, "Metadata:", colorOrange), prettyJSON(trace.Metadata, isTTY))
+		fmt.Fprintf(
+			out,
+			"\n%s\n%s\n",
+			colorHeader(isTTY, "Metadata:", colorOrange),
+			indentLines(prettyJSON(trace.Metadata, isTTY), jsonPrefix),
+		)
 	}
 
 	return nil
+}
+
+func indentLines(s, prefix string) string {
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = prefix + line
+	}
+	return strings.Join(lines, "\n")
 }
 
 func colorHeader(useColor bool, label string, color string) string {
@@ -120,20 +145,27 @@ func formatCost(v *float64) string {
 	return fmt.Sprintf("$%.6f", *v)
 }
 
+// jsonUnescaper performs a single-pass unescape of JSON escape sequences for
+// human-readable terminal output. NewReplacer matches left-to-right without
+// re-processing replaced text, so \\n correctly becomes literal \n (not a newline).
+var jsonUnescaper = strings.NewReplacer(`\\`, `\`, `\n`, "\n", `\t`, "\t", `\"`, `"`)
+
 func prettyJSON(raw json.RawMessage, unescape bool) string {
-	buf, err := json.MarshalIndent(raw, "  ", "  ")
-	if err != nil {
+	var decoded any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
 		return string(raw)
 	}
-	s := "  " + string(buf)
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	// show &, <, > as-is instead of \u0026, \u003c, \u003e
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(decoded); err != nil {
+		return string(raw)
+	}
+	s := strings.TrimRight(buf.String(), "\n")
 	if unescape {
-		for prev := ""; prev != s; {
-			prev = s
-			s = strings.ReplaceAll(s, `\\`, `\`)
-			s = strings.ReplaceAll(s, `\n`, "\n")
-			s = strings.ReplaceAll(s, `\t`, "\t")
-			s = strings.ReplaceAll(s, `\"`, `"`)
-		}
+		s = jsonUnescaper.Replace(s)
 	}
 	return s
 }

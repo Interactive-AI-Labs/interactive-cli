@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 
 	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -239,6 +240,168 @@ func TestPrintTraceDetail(t *testing.T) {
 			}
 			if got := buf.String(); got != tt.want {
 				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPrettyJSON(t *testing.T) {
+	tests := []struct {
+		name     string
+		raw      json.RawMessage
+		unescape bool
+		want     string
+	}{
+		{
+			name:     "object",
+			raw:      json.RawMessage(`{"key":"val"}`),
+			unescape: false,
+			want:     "{\n  \"key\": \"val\"\n}",
+		},
+		{
+			name:     "array",
+			raw:      json.RawMessage(`[1,2,3]`),
+			unescape: false,
+			want:     "[\n  1,\n  2,\n  3\n]",
+		},
+		{
+			name:     "string value",
+			raw:      json.RawMessage(`"hello"`),
+			unescape: false,
+			want:     `"hello"`,
+		},
+		{
+			name:     "number value",
+			raw:      json.RawMessage(`42`),
+			unescape: false,
+			want:     "42",
+		},
+		{
+			name:     "nested object indentation",
+			raw:      json.RawMessage(`{"a":{"b":"c"}}`),
+			unescape: false,
+			want:     "{\n  \"a\": {\n    \"b\": \"c\"\n  }\n}",
+		},
+		{
+			name:     "invalid json returns raw",
+			raw:      json.RawMessage(`{not valid`),
+			unescape: false,
+			want:     "{not valid",
+		},
+		{
+			name:     "unescape newlines and tabs",
+			raw:      json.RawMessage(`"line1\nline2\tcol"`),
+			unescape: true,
+			want:     "\"line1\nline2\tcol\"",
+		},
+		{
+			name:     "unescape backslashes",
+			raw:      json.RawMessage(`"a\\\\b"`),
+			unescape: true,
+			want:     "\"a\\\\b\"",
+		},
+		{
+			name:     "unescape quotes",
+			raw:      json.RawMessage(`"say \\\"hello\\\""`),
+			unescape: true,
+			want:     "\"say \\\"hello\\\"\"",
+		},
+		{
+			name:     "no unescape when false",
+			raw:      json.RawMessage(`"line1\nline2"`),
+			unescape: false,
+			want:     `"line1\nline2"`,
+		},
+		{
+			name:     "empty object",
+			raw:      json.RawMessage(`{}`),
+			unescape: false,
+			want:     "{}",
+		},
+		{
+			name:     "empty array",
+			raw:      json.RawMessage(`[]`),
+			unescape: false,
+			want:     "[]",
+		},
+		{
+			name:     "literal backslash-n in data is preserved",
+			raw:      json.RawMessage(`{"input":"print(\"line1\\nline2\")"}`),
+			unescape: true,
+			want:     "{\n  \"input\": \"print(\"line1\\nline2\")\"\n}",
+		},
+		{
+			name:     "multi-level escaping not collapsed",
+			raw:      json.RawMessage(`"\\\\n"`),
+			unescape: true,
+			want:     "\"\\\\n\"",
+		},
+		{
+			name:     "unicode escape decoded",
+			raw:      json.RawMessage(`"hello\u0021"`),
+			unescape: true,
+			want:     "\"hello!\"",
+		},
+		{
+			name:     "html chars not escaped",
+			raw:      json.RawMessage(`{"reason":"A \u0026 B \u003c C"}`),
+			unescape: false,
+			want:     "{\n  \"reason\": \"A & B < C\"\n}",
+		},
+		{
+			name:     "null value preserved",
+			raw:      json.RawMessage(`{"locationPosition":null}`),
+			unescape: false,
+			want:     "{\n  \"locationPosition\": null\n}",
+		},
+		{
+			name:     "boolean and numeric values",
+			raw:      json.RawMessage(`{"ok":1,"sent":true,"approved":false}`),
+			unescape: false,
+			want:     "{\n  \"approved\": false,\n  \"ok\": 1,\n  \"sent\": true\n}",
+		},
+		{
+			name:     "array of objects",
+			raw:      json.RawMessage(`{"tags":["WRONG_ADDRESS","PROBLEMATIC_APPLICANT_DATA"]}`),
+			unescape: false,
+			want:     "{\n  \"tags\": [\n    \"WRONG_ADDRESS\",\n    \"PROBLEMATIC_APPLICANT_DATA\"\n  ]\n}",
+		},
+		{
+			name:     "non-ascii characters preserved",
+			raw:      json.RawMessage(`{"comment":"Entrez votre adresse complète, y compris la rue, le numéro"}`),
+			unescape: false,
+			want:     "{\n  \"comment\": \"Entrez votre adresse complète, y compris la rue, le numéro\"\n}",
+		},
+		{
+			name:     "mrz lines with angle brackets",
+			raw:      json.RawMessage(`{"mrzLine1":"IDFRANGDNL61K10\u003c\u003c\u003c","mrzLine3":"BRISSAY\u003c\u003cTHOMAS\u003c\u003c\u003c"}`),
+			unescape: false,
+			want:     "{\n  \"mrzLine1\": \"IDFRANGDNL61K10<<<\",\n  \"mrzLine3\": \"BRISSAY<<THOMAS<<<\"\n}",
+		},
+		{
+			name:     "ampersand in reason field",
+			raw:      json.RawMessage(`{"reason":"Names match: THOMAS BRISSAY \u0026 thomas brissay"}`),
+			unescape: true,
+			want:     "{\n  \"reason\": \"Names match: THOMAS BRISSAY & thomas brissay\"\n}",
+		},
+		{
+			name:     "nested objects with arrays",
+			raw:      json.RawMessage(`{"info":{"firstName":"THOMAS","addresses":[{"town":"CHABRELOCHE","postCode":"63250"}]}}`),
+			unescape: false,
+			want:     "{\n  \"info\": {\n    \"addresses\": [\n      {\n        \"postCode\": \"63250\",\n        \"town\": \"CHABRELOCHE\"\n      }\n    ],\n    \"firstName\": \"THOMAS\"\n  }\n}",
+		},
+		{
+			name:     "empty notes array",
+			raw:      json.RawMessage(`{"notes":[],"type":"individual"}`),
+			unescape: false,
+			want:     "{\n  \"notes\": [],\n  \"type\": \"individual\"\n}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := prettyJSON(tt.raw, tt.unescape); got != tt.want {
+				t.Errorf("prettyJSON() =\n%q\nwant:\n%q", got, tt.want)
 			}
 		})
 	}
