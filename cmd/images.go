@@ -268,9 +268,8 @@ var imagePushCmd = &cobra.Command{
 		}
 		defer resp.Body.Close()
 
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			body, _ := io.ReadAll(resp.Body)
 			if msg := clients.ExtractServerMessage(body); msg != "" {
 				return fmt.Errorf("%s", msg)
 			}
@@ -280,7 +279,7 @@ var imagePushCmd = &cobra.Command{
 		var result struct {
 			ImageRef string `json:"ImageRef"`
 		}
-		if err := json.Unmarshal(body, &result); err != nil {
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			return fmt.Errorf("failed to decode message: %s", err.Error())
 		}
 

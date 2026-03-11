@@ -1,6 +1,15 @@
 repos:
   - repo: local
     hooks:
+      - id: gofumpt
+        name: Format Go code (strict gofmt)
+        entry: gofumpt -w
+        language: system
+        pass_filenames: true
+        always_run: false
+        stages: [pre-commit]
+        files: '\.go$'
+
       - id: gci
         name: Format import order (standard, 3rd-party, local)
         entry: gci write -s standard -s default -s "prefix(interactive-cli)"

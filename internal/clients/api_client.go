@@ -3,12 +3,15 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/google/go-querystring/query"
 )
 
 type APIClient struct {
@@ -89,7 +92,7 @@ func (c *APIClient) validateApiKey(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		body, _ := io.ReadAll(resp.Body)
 		if msg := ExtractServerMessage(body); msg != "" {
 			return fmt.Errorf("API key validation failed: %s", msg)
 		}
@@ -127,9 +130,8 @@ func (c *APIClient) ListOrganizations(ctx context.Context) ([]Organization, erro
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
 		if msg := ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to list organizations: %s", msg)
 		}
@@ -140,7 +142,7 @@ func (c *APIClient) ListOrganizations(ctx context.Context) ([]Organization, erro
 		Organizations []Organization `json:"organizations"`
 	}
 
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("failed to decode organizations response: %w", err)
 	}
 
@@ -211,9 +213,8 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
 		if msg := ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to list projects: %s", msg)
 		}
@@ -224,7 +225,7 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 		Projects []Project `json:"projects"`
 	}
 
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("failed to decode projects response: %w", err)
 	}
 
@@ -277,6 +278,124 @@ func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName str
 	}
 
 	return matched[0].Id, nil
+}
+
+type TraceInfo struct {
+	ID          string   `json:"id"`
+	Timestamp   string   `json:"timestamp"`
+	Name        string   `json:"name"`
+	SessionID   string   `json:"sessionId"`
+	UserID      string   `json:"userId"`
+	Release     string   `json:"release"`
+	Version     string   `json:"version"`
+	Public      bool     `json:"public"`
+	Environment string   `json:"environment"`
+	Tags        []string `json:"tags"`
+	HtmlPath    string   `json:"htmlPath"`
+	Latency     *float64 `json:"latency"`
+	TotalCost   *float64 `json:"totalCost"`
+}
+
+type TraceDetail struct {
+	TraceInfo
+	Input    json.RawMessage `json:"input"`
+	Output   json.RawMessage `json:"output"`
+	Metadata json.RawMessage `json:"metadata"`
+}
+
+type TraceMeta struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalItems int `json:"totalItems"`
+	TotalPages int `json:"totalPages"`
+}
+
+type traceListResponse struct {
+	Data []TraceInfo `json:"data"`
+	Meta TraceMeta   `json:"meta"`
+}
+
+type TraceListOptions struct {
+	Page          int      `url:"page,omitempty"`
+	Limit         int      `url:"limit,omitempty"`
+	UserID        string   `url:"userId,omitempty"`
+	Name          string   `url:"name,omitempty"`
+	SessionID     string   `url:"sessionId,omitempty"`
+	FromTimestamp string   `url:"fromTimestamp,omitempty"`
+	ToTimestamp   string   `url:"toTimestamp,omitempty"`
+	OrderBy       string   `url:"orderBy,omitempty"`
+	Tags          []string `url:"tags,omitempty"`
+	Version       string   `url:"version,omitempty"`
+	Release       string   `url:"release,omitempty"`
+	Environment   []string `url:"environment,omitempty"`
+}
+
+func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]TraceInfo, TraceMeta, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, "/api/public/traces")
+	if err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q, _ := query.Values(opts)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("traces list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, TraceMeta{}, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, TraceMeta{}, errors.New(msg)
+		}
+		return nil, TraceMeta{}, fmt.Errorf("failed to list traces: server returned %s", resp.Status)
+	}
+
+	var result traceListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, TraceMeta{}, fmt.Errorf("failed to decode traces response: %w", err)
+	}
+
+	return result.Data, result.Meta, nil
+}
+
+func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail, error) {
+	path := fmt.Sprintf("/api/public/traces/%s", url.PathEscape(traceID))
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("trace get request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, errors.New(msg)
+		}
+		return nil, fmt.Errorf("failed to get trace: server returned %s", resp.Status)
+	}
+
+	var trace TraceDetail
+	if err := json.NewDecoder(resp.Body).Decode(&trace); err != nil {
+		return nil, fmt.Errorf("failed to decode trace response: %w", err)
+	}
+
+	return &trace, nil
 }
 
 func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName string) (string, string, error) {
