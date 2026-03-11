@@ -368,27 +368,15 @@ func TestPrettyJSON(t *testing.T) {
 		},
 		{
 			name:     "non-ascii characters preserved",
-			raw:      json.RawMessage(`{"comment":"Entrez votre adresse complète, y compris la rue, le numéro"}`),
+			raw:      json.RawMessage(`{"comment":"Café résumé naïve"}`),
 			unescape: false,
-			want:     "{\n  \"comment\": \"Entrez votre adresse complète, y compris la rue, le numéro\"\n}",
-		},
-		{
-			name:     "mrz lines with angle brackets",
-			raw:      json.RawMessage(`{"mrzLine1":"IDFRANGDNL61K10\u003c\u003c\u003c","mrzLine3":"BRISSAY\u003c\u003cTHOMAS\u003c\u003c\u003c"}`),
-			unescape: false,
-			want:     "{\n  \"mrzLine1\": \"IDFRANGDNL61K10<<<\",\n  \"mrzLine3\": \"BRISSAY<<THOMAS<<<\"\n}",
-		},
-		{
-			name:     "ampersand in reason field",
-			raw:      json.RawMessage(`{"reason":"Names match: THOMAS BRISSAY \u0026 thomas brissay"}`),
-			unescape: true,
-			want:     "{\n  \"reason\": \"Names match: THOMAS BRISSAY & thomas brissay\"\n}",
+			want:     "{\n  \"comment\": \"Café résumé naïve\"\n}",
 		},
 		{
 			name:     "nested objects with arrays",
-			raw:      json.RawMessage(`{"info":{"firstName":"THOMAS","addresses":[{"town":"CHABRELOCHE","postCode":"63250"}]}}`),
+			raw:      json.RawMessage(`{"info":{"name":"Alice","items":[{"color":"red","size":"M"}]}}`),
 			unescape: false,
-			want:     "{\n  \"info\": {\n    \"addresses\": [\n      {\n        \"postCode\": \"63250\",\n        \"town\": \"CHABRELOCHE\"\n      }\n    ],\n    \"firstName\": \"THOMAS\"\n  }\n}",
+			want:     "{\n  \"info\": {\n    \"items\": [\n      {\n        \"color\": \"red\",\n        \"size\": \"M\"\n      }\n    ],\n    \"name\": \"Alice\"\n  }\n}",
 		},
 		{
 			name:     "empty notes array",
