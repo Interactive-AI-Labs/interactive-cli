@@ -6,7 +6,7 @@ InteractiveAI's CLI
 
 InteractiveAI's CLI to interact with its platform.
 
-Use the subcommands below to manage your organizations, projects, services, secrets, and other components.
+Use the subcommands below to manage your organizations, projects, services, secrets, prompts, routines, policies, variables, glossary, macros, and other components.
 
 ## Install
 
@@ -54,14 +54,19 @@ iai --help
 ### SEE ALSO
 
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
+* [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
 * [iai images](iai_images.md)	 - Build and manage container images
 * [iai login](iai_login.md)	 - Log in to InteractiveAI with a email and password
 * [iai logout](iai_logout.md)	 - Log out of InteractiveAI
+* [iai macros](iai_macros.md)	 - Manage macros
 * [iai organizations](iai_organizations.md)	 - Manage organizations
+* [iai policies](iai_policies.md)	 - Manage policies
 * [iai projects](iai_projects.md)	 - Manage projects
 * [iai replicas](iai_replicas.md)	 - Manage service replicas
+* [iai routines](iai_routines.md)	 - Manage routines
 * [iai secrets](iai_secrets.md)	 - Manage secrets
 * [iai services](iai_services.md)	 - Manage services
 * [iai traces](iai_traces.md)	 - Manage traces
+* [iai variables](iai_variables.md)	 - Manage variables
 * [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores
 

@@ -26,7 +26,7 @@ var (
 		Version: version,
 		Long: `InteractiveAI's CLI to interact with its platform.
 
-Use the subcommands below to manage your organizations, projects, services, secrets, and other components.`,
+Use the subcommands below to manage your organizations, projects, services, secrets, prompts, routines, policies, variables, glossary, macros, and other components.`,
 		SilenceUsage: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if !strings.HasPrefix(hostname, "http://") && !strings.HasPrefix(hostname, "https://") {

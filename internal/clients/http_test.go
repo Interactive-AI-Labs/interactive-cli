@@ -62,6 +62,31 @@ func TestExtractServerMessage(t *testing.T) {
 			body: []byte(`  plain text  `),
 			want: "plain text",
 		},
+		{
+			name: "platform nested error with schema errors",
+			body: []byte(`{"detail":{"success":false,"error":{"code":"SCHEMA_INVALID","message":"Schema validation failed for type 'routine'","details":{"schema_errors":[{"path":"steps","message":"Input should be a valid list"}]}}}}`),
+			want: "Schema validation failed for type 'routine'\n  - steps: Input should be a valid list",
+		},
+		{
+			name: "platform nested error with multiple schema errors",
+			body: []byte(`{"detail":{"success":false,"error":{"code":"SCHEMA_INVALID","message":"Schema validation failed","details":{"schema_errors":[{"path":"steps[0].step","message":"Field required"},{"path":"steps[0].type","message":"Input should be 'node', 'branch', 'finish' or 'branchnode'"}]}}}}`),
+			want: "Schema validation failed\n  - steps[0].step: Field required\n  - steps[0].type: Input should be 'node', 'branch', 'finish' or 'branchnode'",
+		},
+		{
+			name: "platform nested error without schema details",
+			body: []byte(`{"detail":{"success":false,"error":{"code":"PLATFORM_ERROR","message":"Invalid request data"}}}`),
+			want: "Invalid request data",
+		},
+		{
+			name: "platform nested error - prompt not found",
+			body: []byte(`{"detail":{"success":false,"error":{"code":"PROMPT_NOT_FOUND","message":"Prompt not found"}}}`),
+			want: "Prompt not found",
+		},
+		{
+			name: "platform nested error - forbidden",
+			body: []byte(`{"detail":{"success":false,"error":{"code":"FORBIDDEN","message":"Insufficient permissions: requires prompts:read"}}}`),
+			want: "Insufficient permissions: requires prompts:read",
+		},
 	}
 
 	for _, tt := range tests {

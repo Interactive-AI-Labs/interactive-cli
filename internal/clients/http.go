@@ -8,8 +8,13 @@ import (
 	"strings"
 )
 
-// It prefers a JSON payload with a "message" field, falling back to the raw
-// body text if that field is missing or empty.
+// ExtractServerMessage extracts a human-readable error message from an API
+// response body. It handles three formats:
+//
+//  1. Deployment API: {"message": "..."}
+//  2. Platform API (nested): {"detail": {"error": {"message": "...", "details": {...}}}}
+//  3. Simple API: {"detail": "..."}
+//  4. Plain text fallback
 func ExtractServerMessage(body []byte) string {
 	if len(body) == 0 {
 		return ""
@@ -20,6 +25,38 @@ func ExtractServerMessage(body []byte) string {
 	}
 	if err := json.Unmarshal(body, &deploymentPayload); err == nil {
 		if msg := strings.TrimSpace(deploymentPayload.Message); msg != "" {
+			return msg
+		}
+	}
+
+	var platformPayload struct {
+		Detail struct {
+			Error struct {
+				Message string `json:"message"`
+				Details struct {
+					SchemaErrors []struct {
+						Path    string `json:"path"`
+						Message string `json:"message"`
+					} `json:"schema_errors"`
+				} `json:"details"`
+			} `json:"error"`
+		} `json:"detail"`
+	}
+	if err := json.Unmarshal(body, &platformPayload); err == nil {
+		if msg := strings.TrimSpace(platformPayload.Detail.Error.Message); msg != "" {
+			if errs := platformPayload.Detail.Error.Details.SchemaErrors; len(errs) > 0 {
+				var b strings.Builder
+				b.WriteString(msg)
+				for _, e := range errs {
+					b.WriteString("\n  - ")
+					if e.Path != "" {
+						b.WriteString(e.Path)
+						b.WriteString(": ")
+					}
+					b.WriteString(e.Message)
+				}
+				return b.String()
+			}
 			return msg
 		}
 	}

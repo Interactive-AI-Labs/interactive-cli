@@ -1,0 +1,50 @@
+## iai glossary
+
+Manage glossary definitions
+
+### Synopsis
+
+Manage glossary definitions in InteractiveAI projects.
+
+Glossary entries are domain-specific terms with descriptions and synonyms (JSON
+format).
+
+Schema:
+  {"terms": [                     // required, array of glossary terms
+    {
+      "name": "<string>",         // required, the term
+      "description": "<string>",  // required, definition of the term
+      "synonyms": ["<string>"]    // optional, alternative names
+    }
+  ]}
+
+Example (glossary.json):
+  {"terms": [
+    {"name": "APR", "description": "Annual Percentage Rate", "synonyms": ["annual rate"]},
+    {"name": "KYC", "description": "Know Your Customer"}
+  ]}
+
+### Options
+
+```
+  -h, --help   help for glossary
+```
+
+### Options inherited from parent commands
+
+```
+      --api-key string               API key for authentication
+      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
+      --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
+      --hostname string              Hostname for the API (default "https://app.interactive.ai")
+```
+
+### SEE ALSO
+
+* [iai](iai.md)	 - InteractiveAI's CLI
+* [iai glossary create](iai_glossary_create.md)	 - Create a glossary
+* [iai glossary delete](iai_glossary_delete.md)	 - Delete a glossary
+* [iai glossary get](iai_glossary_get.md)	 - Get details of a glossary
+* [iai glossary list](iai_glossary_list.md)	 - List glossary definitions in a project
+* [iai glossary update](iai_glossary_update.md)	 - Update a glossary (creates a new version)
+

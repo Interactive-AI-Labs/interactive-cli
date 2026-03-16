@@ -70,12 +70,14 @@ func (c *APIClient) do(req *http.Request) (*http.Response, error) {
 	return c.httpClient.Do(req)
 }
 
-func (c *APIClient) newRequest(ctx context.Context, method, path string) (*http.Request, error) {
+func (c *APIClient) newRequest(ctx context.Context, method, rawPath string) (*http.Request, error) {
 	u, err := url.Parse(c.hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse API hostname: %w", err)
 	}
-	u.Path = path
+	decodedPath, _ := url.PathUnescape(rawPath)
+	u.Path = decodedPath
+	u.RawPath = rawPath
 	return http.NewRequestWithContext(ctx, method, u.String(), nil)
 }
 
@@ -452,4 +454,315 @@ func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName strin
 	}
 
 	return orgId, projectId, nil
+}
+
+type PromptInfo struct {
+	Name          string   `json:"name"`
+	Type          string   `json:"type"`
+	Versions      []int    `json:"versions"`
+	Labels        []string `json:"labels"`
+	Tags          []string `json:"tags"`
+	LastUpdatedAt string   `json:"lastUpdatedAt"`
+}
+
+type PromptDetail struct {
+	Id             string          `json:"id"`
+	Name           string          `json:"name"`
+	Type           string          `json:"type"`
+	Version        int             `json:"version"`
+	ProjectId      string          `json:"projectId"`
+	Prompt         json.RawMessage `json:"prompt"`
+	Config         json.RawMessage `json:"config"`
+	Labels         []string        `json:"labels"`
+	Tags           []string        `json:"tags"`
+	CreatedAt      string          `json:"createdAt"`
+	UpdatedAt      string          `json:"updatedAt"`
+	ExpectedFormat string          `json:"expectedFormat"`
+}
+
+type CreatePromptBody struct {
+	Name   string          `json:"name"`
+	Prompt json.RawMessage `json:"prompt"`
+	Labels []string        `json:"labels,omitempty"`
+	Tags   []string        `json:"tags,omitempty"`
+}
+
+type promptAPIResponse struct {
+	Success bool            `json:"success"`
+	Data    json.RawMessage `json:"data"`
+}
+
+type promptListData struct {
+	Prompts    []PromptInfo `json:"prompts"`
+	TotalCount int          `json:"totalCount"`
+}
+
+type PromptListResponse struct {
+	Prompts    []PromptInfo
+	TotalCount int
+}
+
+type PromptListOptions struct {
+	Folder string
+	Type   string
+	Page   int
+	Limit  int
+}
+
+func promptBasePath(projectId, routeSegment string) string {
+	base := fmt.Sprintf("/api/platform/v1/projects/%s/prompts", url.PathEscape(projectId))
+	if routeSegment != "" {
+		return base + "/" + routeSegment
+	}
+	return base
+}
+
+func (c *APIClient) CreatePrompt(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	body CreatePromptBody,
+	skipSchema bool,
+) (*PromptDetail, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := promptBasePath(projectId, routeSegment)
+	req, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	if skipSchema {
+		q := req.URL.Query()
+		q.Set("skip_schema", "true")
+		req.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt creation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("prompt creation failed with status %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt response: %w", err)
+	}
+
+	var result PromptDetail
+	if err := json.Unmarshal(envelope.Data, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt data: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *APIClient) ListPrompts(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	opts PromptListOptions,
+) (*PromptListResponse, error) {
+	path := promptBasePath(projectId, routeSegment)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if opts.Folder != "" {
+		q.Set("folder", opts.Folder)
+	}
+	if opts.Type != "" {
+		q.Set("type", opts.Type)
+	}
+	if opts.Page > 0 {
+		q.Set("page", fmt.Sprintf("%d", opts.Page))
+	}
+	if opts.Limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list prompts: server returned %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompts response: %w", err)
+	}
+
+	var listData promptListData
+	if err := json.Unmarshal(envelope.Data, &listData); err != nil {
+		return nil, fmt.Errorf("failed to decode prompts data: %w", err)
+	}
+
+	return &PromptListResponse{
+		Prompts:    listData.Prompts,
+		TotalCount: listData.TotalCount,
+	}, nil
+}
+
+func (c *APIClient) GetPrompt(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+	version int,
+	label string,
+) (*PromptDetail, error) {
+	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if version > 0 {
+		q.Set("version", fmt.Sprintf("%d", version))
+	}
+	if label != "" {
+		q.Set("label", label)
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt get request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to get prompt: server returned %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt response: %w", err)
+	}
+
+	var result PromptDetail
+	if err := json.Unmarshal(envelope.Data, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt data: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *APIClient) DeletePrompt(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+	version int,
+	label string,
+) error {
+	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if version > 0 {
+		q.Set("version", fmt.Sprintf("%d", version))
+	}
+	if label != "" {
+		q.Set("label", label)
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return fmt.Errorf("prompt deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return fmt.Errorf("%s", msg)
+		}
+		return fmt.Errorf("prompt deletion failed with status %s", resp.Status)
+	}
+
+	return nil
+}
+
+func (c *APIClient) DeletePromptByName(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+) error {
+	path := promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return fmt.Errorf("prompt deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return fmt.Errorf("%s", msg)
+		}
+		return fmt.Errorf("prompt deletion failed with status %s", resp.Status)
+	}
+
+	return nil
 }
