@@ -855,8 +855,8 @@ func init() {
 	servCCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
 	servCCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
 
-	servCCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should run: DAY-DAY HH:MM-HH:MM (e.g. Mon-Fri 07:30-20:30); mutually exclusive with --schedule-downtime")
-	servCCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should stop: DAY-DAY HH:MM-HH:MM (e.g. Sat-Sun 00:00-24:00); mutually exclusive with --schedule-uptime")
+	servCCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'")
+	servCCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
 	servCCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 
 	// Flags for "services update"
@@ -887,9 +887,9 @@ func init() {
 	servUCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
 	servUCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
 
-	servUCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "Uptime schedule for the service (e.g. Mon-Fri 07:30-20:30)")
-	servUCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "Downtime schedule for the service (e.g. Sat-Sun 00:00-24:00)")
-	servUCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "Timezone for the service schedule (e.g. America/New_York)")
+	servUCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'")
+	servUCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
+	servUCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 
 	// Flags for "services list"
 	servListCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")

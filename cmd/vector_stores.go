@@ -308,7 +308,7 @@ func init() {
 	vsCreateCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
 	vsCreateCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 	vsCreateCmd.Flags().IntVar(&vsCPU, "cpu", 0, "CPU cores (2-80, must be even)")
-	vsCreateCmd.Flags().Float64Var(&vsMemory, "memory", 0, "Memory in GB, numeric value only (0.25 increments)")
+	vsCreateCmd.Flags().Float64Var(&vsMemory, "memory", 0, "Memory in GB (2-8 per vCPU, 0.25 increments)")
 	vsCreateCmd.Flags().IntVar(&vsStorageSize, "storage-size", 0, "Storage size in GB, numeric value only (min 20)")
 	vsCreateCmd.Flags().BoolVar(&vsAutoResize, "auto-resize", false, "Enable automatic storage resizing")
 	vsCreateCmd.Flags().IntVar(&vsAutoResLimit, "auto-resize-limit", 0, "Auto-resize limit in GB (0 = unlimited, requires --auto-resize)")
