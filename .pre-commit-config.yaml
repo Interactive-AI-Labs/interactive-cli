@@ -1,6 +1,15 @@
 repos:
   - repo: local
     hooks:
+      - id: golines
+        name: Wrap long lines
+        entry: golines -w --max-len=100
+        language: system
+        pass_filenames: true
+        always_run: false
+        stages: [pre-commit]
+        files: '\.go$'
+
       - id: gofumpt
         name: Format Go code (strict gofmt)
         entry: gofumpt -w
