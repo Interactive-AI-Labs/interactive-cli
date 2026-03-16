@@ -37,7 +37,9 @@ var tracesCmd = &cobra.Command{
 			root.PersistentPreRun(cmd, args)
 		}
 		if apiKey == "" {
-			return fmt.Errorf("traces commands require API key authentication; use --api-key or set INTERACTIVE_API_KEY")
+			return fmt.Errorf(
+				"traces commands require API key authentication; use --api-key or set INTERACTIVE_API_KEY",
+			)
 		}
 		return nil
 	},
@@ -132,16 +134,21 @@ func init() {
 	tracesListCmd.Flags().StringVar(&tracesUserID, "user-id", "", "Filter by user ID")
 	tracesListCmd.Flags().StringVar(&tracesName, "name", "", "Filter by trace name")
 	tracesListCmd.Flags().StringVar(&tracesSessionID, "session-id", "", "Filter by session ID")
-	tracesListCmd.Flags().StringVar(&tracesFromTimestamp, "from-timestamp", "", "Filter traces from this timestamp (ISO 8601)")
-	tracesListCmd.Flags().StringVar(&tracesToTimestamp, "to-timestamp", "", "Filter traces to this timestamp (ISO 8601)")
-	tracesListCmd.Flags().StringVar(&tracesOrderBy, "order-by", "", "Order by field.direction (e.g. timestamp.desc)")
+	tracesListCmd.Flags().
+		StringVar(&tracesFromTimestamp, "from-timestamp", "", "Filter traces from this timestamp (ISO 8601)")
+	tracesListCmd.Flags().
+		StringVar(&tracesToTimestamp, "to-timestamp", "", "Filter traces to this timestamp (ISO 8601)")
+	tracesListCmd.Flags().
+		StringVar(&tracesOrderBy, "order-by", "", "Order by field.direction (e.g. timestamp.desc)")
 	tracesListCmd.Flags().StringArrayVar(&tracesTags, "tags", nil, "Filter by tags (repeatable)")
 	tracesListCmd.Flags().StringVar(&tracesVersion, "version", "", "Filter by version")
 	tracesListCmd.Flags().StringVar(&tracesRelease, "release", "", "Filter by release")
-	tracesListCmd.Flags().StringArrayVar(&tracesEnvironment, "environment", nil, "Filter by environment (repeatable)")
+	tracesListCmd.Flags().
+		StringArrayVar(&tracesEnvironment, "environment", nil, "Filter by environment (repeatable)")
 	// StringSliceVar (not StringArrayVar) so users can pass --columns id,name,cost as a comma-separated list.
 	// --tags and --environment use StringArrayVar to avoid splitting values that may contain commas.
-	tracesListCmd.Flags().StringSliceVar(&tracesColumns, "columns", nil, "Columns to display (comma-separated, default: id,name,timestamp,latency,cost,tags)\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags")
+	tracesListCmd.Flags().
+		StringSliceVar(&tracesColumns, "columns", nil, "Columns to display (comma-separated, default: id,name,timestamp,latency,cost,tags)\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags")
 
 	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd)
 	rootCmd.AddCommand(tracesCmd)

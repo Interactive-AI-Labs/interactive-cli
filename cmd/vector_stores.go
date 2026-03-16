@@ -56,7 +56,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -115,7 +120,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -137,7 +147,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		store, err := deployClient.DescribeVectorStore(cmd.Context(), orgId, projectId, vectorStoreName)
+		store, err := deployClient.DescribeVectorStore(
+			cmd.Context(),
+			orgId,
+			projectId,
+			vectorStoreName,
+		)
 		if err != nil {
 			return err
 		}
@@ -177,7 +192,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -216,7 +236,13 @@ The project is selected with --project or via 'iai projects select'.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting vector store creation request...")
 
-		serverMessage, err := deployClient.CreateVectorStore(cmd.Context(), orgId, projectId, vectorStoreName, reqBody)
+		serverMessage, err := deployClient.CreateVectorStore(
+			cmd.Context(),
+			orgId,
+			projectId,
+			vectorStoreName,
+			reqBody,
+		)
 		if err != nil {
 			return err
 		}
@@ -257,7 +283,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -282,7 +313,12 @@ The project is selected with --project or via 'iai projects select'.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting vector store deletion request...")
 
-		serverMessage, err := deployClient.DeleteVectorStore(cmd.Context(), orgId, projectId, vectorStoreName)
+		serverMessage, err := deployClient.DeleteVectorStore(
+			cmd.Context(),
+			orgId,
+			projectId,
+			vectorStoreName,
+		)
 		if err != nil {
 			return err
 		}
@@ -297,30 +333,44 @@ The project is selected with --project or via 'iai projects select'.`,
 
 func init() {
 	// vector-stores list
-	vsListCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
-	vsListCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
+	vsListCmd.Flags().
+		StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
+	vsListCmd.Flags().
+		StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// vector-stores describe
-	vsDescribeCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
-	vsDescribeCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
+	vsDescribeCmd.Flags().
+		StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
+	vsDescribeCmd.Flags().
+		StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// vector-stores create
-	vsCreateCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
-	vsCreateCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
+	vsCreateCmd.Flags().
+		StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
+	vsCreateCmd.Flags().
+		StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 	vsCreateCmd.Flags().IntVar(&vsCPU, "cpu", 0, "CPU cores (2-80, must be even)")
-	vsCreateCmd.Flags().Float64Var(&vsMemory, "memory", 0, "Memory in GB (2-8 per vCPU, 0.25 increments)")
-	vsCreateCmd.Flags().IntVar(&vsStorageSize, "storage-size", 0, "Storage size in GB, numeric value only (min 20)")
-	vsCreateCmd.Flags().BoolVar(&vsAutoResize, "auto-resize", false, "Enable automatic storage resizing")
-	vsCreateCmd.Flags().IntVar(&vsAutoResLimit, "auto-resize-limit", 0, "Auto-resize limit in GB (0 = unlimited, requires --auto-resize)")
-	vsCreateCmd.Flags().BoolVar(&vsHA, "ha", false, "Enable high availability with a standby replica in a separate zone for automatic failover")
-	vsCreateCmd.Flags().BoolVar(&vsBackups, "backups", false, "Enable automated daily backups with point-in-time recovery")
+	vsCreateCmd.Flags().
+		Float64Var(&vsMemory, "memory", 0, "Memory in GB (2-8 per vCPU, 0.25 increments)")
+	vsCreateCmd.Flags().
+		IntVar(&vsStorageSize, "storage-size", 0, "Storage size in GB, numeric value only (min 20)")
+	vsCreateCmd.Flags().
+		BoolVar(&vsAutoResize, "auto-resize", false, "Enable automatic storage resizing")
+	vsCreateCmd.Flags().
+		IntVar(&vsAutoResLimit, "auto-resize-limit", 0, "Auto-resize limit in GB (0 = unlimited, requires --auto-resize)")
+	vsCreateCmd.Flags().
+		BoolVar(&vsHA, "ha", false, "Enable high availability with a standby replica in a separate zone for automatic failover")
+	vsCreateCmd.Flags().
+		BoolVar(&vsBackups, "backups", false, "Enable automated daily backups with point-in-time recovery")
 	vsCreateCmd.MarkFlagRequired("cpu")
 	vsCreateCmd.MarkFlagRequired("memory")
 	vsCreateCmd.MarkFlagRequired("storage-size")
 
 	// vector-stores delete
-	vsDeleteCmd.Flags().StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
-	vsDeleteCmd.Flags().StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
+	vsDeleteCmd.Flags().
+		StringVarP(&vsProject, "project", "p", "", "Project name that owns the vector stores")
+	vsDeleteCmd.Flags().
+		StringVarP(&vsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Wire up the command hierarchy
 	vectorStoresCmd.AddCommand(vsListCmd, vsDescribeCmd, vsCreateCmd, vsDeleteCmd)

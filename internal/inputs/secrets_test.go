@@ -95,7 +95,11 @@ func TestValidateSecretValue(t *testing.T) {
 				return
 			}
 			if tt.wantErr && err.Error() != tt.errMsg {
-				t.Errorf("ValidateSecretValue() error message = %q, want %q", err.Error(), tt.errMsg)
+				t.Errorf(
+					"ValidateSecretValue() error message = %q, want %q",
+					err.Error(),
+					tt.errMsg,
+				)
 			}
 		})
 	}

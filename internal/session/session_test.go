@@ -126,7 +126,10 @@ func TestResolveOrganization(t *testing.T) {
 			}
 			if tt.wantErr && err != nil {
 				if !strings.Contains(err.Error(), "organization is required") {
-					t.Errorf("error message should mention 'organization is required', got: %v", err)
+					t.Errorf(
+						"error message should mention 'organization is required', got: %v",
+						err,
+					)
 				}
 			}
 		})

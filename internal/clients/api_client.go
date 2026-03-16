@@ -39,7 +39,12 @@ type Project struct {
 	Role string `json:"role"`
 }
 
-func NewAPIClient(hostname string, timeout time.Duration, apiKey string, cookies []*http.Cookie) (*APIClient, error) {
+func NewAPIClient(
+	hostname string,
+	timeout time.Duration,
+	apiKey string,
+	cookies []*http.Cookie,
+) (*APIClient, error) {
 	if apiKey == "" && len(cookies) == 0 {
 		return nil, fmt.Errorf("no authentication method available: provide an API key or log in")
 	}
@@ -106,7 +111,8 @@ func (c *APIClient) validateApiKey(ctx context.Context) error {
 	c.cachedProjectName = resp.Header.Get("x-project-name")
 	c.cachedProjectId = resp.Header.Get("x-project-id")
 
-	if c.cachedOrgId == "" || c.cachedOrgName == "" || c.cachedProjectId == "" || c.cachedProjectName == "" {
+	if c.cachedOrgId == "" || c.cachedOrgName == "" || c.cachedProjectId == "" ||
+		c.cachedProjectName == "" {
 		return fmt.Errorf("API key validation failed")
 	}
 
@@ -159,7 +165,11 @@ func (c *APIClient) GetOrgIdByName(ctx context.Context, name string) (string, er
 
 	if c.isApiKeyMode {
 		if c.cachedOrgName != "" && !strings.EqualFold(name, c.cachedOrgName) {
-			return "", fmt.Errorf("organization %q not found; API key is scoped to organization %q", name, c.cachedOrgName)
+			return "", fmt.Errorf(
+				"organization %q not found; API key is scoped to organization %q",
+				name,
+				c.cachedOrgName,
+			)
 		}
 		if c.cachedOrgName != "" && strings.EqualFold(name, c.cachedOrgName) {
 			return c.cachedOrgId, nil
@@ -167,7 +177,11 @@ func (c *APIClient) GetOrgIdByName(ctx context.Context, name string) (string, er
 		if c.cachedOrgName == "" && strings.EqualFold(name, c.cachedOrgId) {
 			return c.cachedOrgId, nil
 		}
-		return "", fmt.Errorf("organization %q not found; API key is scoped to organization ID %q", name, c.cachedOrgId)
+		return "", fmt.Errorf(
+			"organization %q not found; API key is scoped to organization ID %q",
+			name,
+			c.cachedOrgId,
+		)
 	}
 
 	orgs, err := c.ListOrganizations(ctx)
@@ -204,7 +218,11 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 		}}, nil
 	}
 
-	req, err := c.newRequest(ctx, http.MethodGet, fmt.Sprintf("/api/v1/session/organizations/%s/projects", orgId))
+	req, err := c.newRequest(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("/api/v1/session/organizations/%s/projects", orgId),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create projects request: %w", err)
 	}
@@ -234,7 +252,10 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 	return payload.Projects, nil
 }
 
-func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName string) (string, error) {
+func (c *APIClient) GetProjectByName(
+	ctx context.Context,
+	orgId, projectName string,
+) (string, error) {
 	projectName = strings.TrimSpace(projectName)
 	if projectName == "" {
 		return "", fmt.Errorf("project name cannot be empty")
@@ -242,10 +263,18 @@ func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName str
 
 	if c.isApiKeyMode {
 		if orgId != c.cachedOrgId {
-			return "", fmt.Errorf("API key is scoped to organization ID %q, not %q", c.cachedOrgId, orgId)
+			return "", fmt.Errorf(
+				"API key is scoped to organization ID %q, not %q",
+				c.cachedOrgId,
+				orgId,
+			)
 		}
 		if c.cachedProjectName != "" && !strings.EqualFold(projectName, c.cachedProjectName) {
-			return "", fmt.Errorf("project %q not found; API key is scoped to project %q", projectName, c.cachedProjectName)
+			return "", fmt.Errorf(
+				"project %q not found; API key is scoped to project %q",
+				projectName,
+				c.cachedProjectName,
+			)
 		}
 		if c.cachedProjectName != "" && strings.EqualFold(projectName, c.cachedProjectName) {
 			return c.cachedProjectId, nil
@@ -253,7 +282,11 @@ func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName str
 		if c.cachedProjectName == "" && strings.EqualFold(projectName, c.cachedProjectId) {
 			return c.cachedProjectId, nil
 		}
-		return "", fmt.Errorf("project %q not found; API key is scoped to project ID %q", projectName, c.cachedProjectId)
+		return "", fmt.Errorf(
+			"project %q not found; API key is scoped to project ID %q",
+			projectName,
+			c.cachedProjectId,
+		)
 	}
 
 	projects, err := c.ListProjects(ctx, orgId)
@@ -332,7 +365,10 @@ type TraceListOptions struct {
 	Environment   []string `url:"environment,omitempty"`
 }
 
-func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]TraceInfo, TraceMeta, error) {
+func (c *APIClient) ListTraces(
+	ctx context.Context,
+	opts TraceListOptions,
+) ([]TraceInfo, TraceMeta, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, "/api/public/traces")
 	if err != nil {
 		return nil, TraceMeta{}, fmt.Errorf("failed to create request: %w", err)
@@ -356,7 +392,10 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 		if msg != "" {
 			return nil, TraceMeta{}, errors.New(msg)
 		}
-		return nil, TraceMeta{}, fmt.Errorf("failed to list traces: server returned %s", resp.Status)
+		return nil, TraceMeta{}, fmt.Errorf(
+			"failed to list traces: server returned %s",
+			resp.Status,
+		)
 	}
 
 	var result traceListResponse
@@ -400,7 +439,10 @@ func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail,
 	return &trace, nil
 }
 
-func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName string) (string, string, error) {
+func (c *APIClient) GetProjectId(
+	ctx context.Context,
+	orgName, projectName string,
+) (string, string, error) {
 	orgName = strings.TrimSpace(orgName)
 	projectName = strings.TrimSpace(projectName)
 
@@ -421,9 +463,17 @@ func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName strin
 
 		if !orgMatch {
 			if c.cachedOrgName != "" {
-				return "", "", fmt.Errorf("organization %q not found; API key is scoped to organization %q", orgName, c.cachedOrgName)
+				return "", "", fmt.Errorf(
+					"organization %q not found; API key is scoped to organization %q",
+					orgName,
+					c.cachedOrgName,
+				)
 			}
-			return "", "", fmt.Errorf("organization %q not found; API key is scoped to organization ID %q", orgName, c.cachedOrgId)
+			return "", "", fmt.Errorf(
+				"organization %q not found; API key is scoped to organization ID %q",
+				orgName,
+				c.cachedOrgId,
+			)
 		}
 
 		projectMatch := false
@@ -435,9 +485,17 @@ func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName strin
 
 		if !projectMatch {
 			if c.cachedProjectName != "" {
-				return "", "", fmt.Errorf("project %q not found; API key is scoped to project %q", projectName, c.cachedProjectName)
+				return "", "", fmt.Errorf(
+					"project %q not found; API key is scoped to project %q",
+					projectName,
+					c.cachedProjectName,
+				)
 			}
-			return "", "", fmt.Errorf("project %q not found; API key is scoped to project ID %q", projectName, c.cachedProjectId)
+			return "", "", fmt.Errorf(
+				"project %q not found; API key is scoped to project ID %q",
+				projectName,
+				c.cachedProjectId,
+			)
 		}
 
 		return c.cachedOrgId, c.cachedProjectId, nil

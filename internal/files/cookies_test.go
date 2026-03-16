@@ -167,7 +167,12 @@ func TestLoadSessionCookies(t *testing.T) {
 				t.Errorf("cookie[%d].Secure = %v, want %v", i, cookie.Secure, expected[i].Secure)
 			}
 			if cookie.HttpOnly != expected[i].HttpOnly {
-				t.Errorf("cookie[%d].HttpOnly = %v, want %v", i, cookie.HttpOnly, expected[i].HttpOnly)
+				t.Errorf(
+					"cookie[%d].HttpOnly = %v, want %v",
+					i,
+					cookie.HttpOnly,
+					expected[i].HttpOnly,
+				)
 			}
 		}
 	})

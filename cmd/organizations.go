@@ -25,7 +25,10 @@ var organizationsListCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 
 		if apiKey != "" {
-			fmt.Fprintln(out, "Warning: API key authentication is ignored for organizations commands; using session cookies instead.")
+			fmt.Fprintln(
+				out,
+				"Warning: API key authentication is ignored for organizations commands; using session cookies instead.",
+			)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -63,7 +66,10 @@ var organizationsSelectCmd = &cobra.Command{
 		orgName := args[0]
 
 		if apiKey != "" {
-			fmt.Fprintln(out, "Warning: API key authentication is ignored for organizations commands; using session cookies instead.")
+			fmt.Fprintln(
+				out,
+				"Warning: API key authentication is ignored for organizations commands; using session cookies instead.",
+			)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)

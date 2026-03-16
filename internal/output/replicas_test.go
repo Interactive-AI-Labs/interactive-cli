@@ -204,7 +204,13 @@ func TestPrintReplicaDescribe(t *testing.T) {
 					Memory: "512Mi",
 				},
 				Events: []clients.ReplicaEvent{
-					{Type: "Warning", Reason: "OOMKilling", Count: 1, Message: "Memory limit exceeded", LastTimestamp: "2024-06-01T11:59:00Z"},
+					{
+						Type:          "Warning",
+						Reason:        "OOMKilling",
+						Count:         1,
+						Message:       "Memory limit exceeded",
+						LastTimestamp: "2024-06-01T11:59:00Z",
+					},
 				},
 			},
 			want: "\nName:          full-pod\n" +

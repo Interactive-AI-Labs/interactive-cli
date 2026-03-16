@@ -44,16 +44,22 @@ func ValidateService(input ServiceInput) error {
 		return fmt.Errorf("image type is required; please provide --image-type")
 	}
 	if input.ImageType != "internal" && input.ImageType != "external" {
-		return fmt.Errorf("image type must be either 'internal' or 'external'; please provide --image-type")
+		return fmt.Errorf(
+			"image type must be either 'internal' or 'external'; please provide --image-type",
+		)
 	}
 	if input.ImageType == "external" && input.ImageRepository == "" {
-		return fmt.Errorf("image repository is required for external images; please provide --image-repository")
+		return fmt.Errorf(
+			"image repository is required for external images; please provide --image-repository",
+		)
 	}
 	hasReplicas := input.Replicas > 0
 	hasAutoscaling := input.Autoscaling != nil && input.Autoscaling.Enabled
 
 	if hasReplicas && hasAutoscaling {
-		return fmt.Errorf("cannot specify both --replicas and --autoscaling-enabled; they are mutually exclusive")
+		return fmt.Errorf(
+			"cannot specify both --replicas and --autoscaling-enabled; they are mutually exclusive",
+		)
 	}
 
 	if !hasReplicas && !hasAutoscaling {
@@ -71,16 +77,24 @@ func ValidateService(input ServiceInput) error {
 
 func ValidateAutoscaling(config AutoscalingInput) error {
 	if config.MinReplicas <= 0 {
-		return fmt.Errorf("--autoscaling-min-replicas must be greater than zero when autoscaling is enabled")
+		return fmt.Errorf(
+			"--autoscaling-min-replicas must be greater than zero when autoscaling is enabled",
+		)
 	}
 	if config.MaxReplicas <= 0 {
-		return fmt.Errorf("--autoscaling-max-replicas must be greater than zero when autoscaling is enabled")
+		return fmt.Errorf(
+			"--autoscaling-max-replicas must be greater than zero when autoscaling is enabled",
+		)
 	}
 	if config.MinReplicas > config.MaxReplicas {
-		return fmt.Errorf("--autoscaling-min-replicas cannot be greater than --autoscaling-max-replicas")
+		return fmt.Errorf(
+			"--autoscaling-min-replicas cannot be greater than --autoscaling-max-replicas",
+		)
 	}
 	if config.CPUPercentage <= 0 && config.MemoryPercent <= 0 {
-		return fmt.Errorf("at least one of --autoscaling-cpu-percentage or --autoscaling-memory-percentage must be set when autoscaling is enabled")
+		return fmt.Errorf(
+			"at least one of --autoscaling-cpu-percentage or --autoscaling-memory-percentage must be set when autoscaling is enabled",
+		)
 	}
 	return nil
 }

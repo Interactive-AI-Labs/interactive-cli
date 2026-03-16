@@ -60,10 +60,18 @@ func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
 		fmt.Fprintf(out, "  Reason:      %s\n", status.LastTerminationState.Reason)
 		fmt.Fprintf(out, "  Exit Code:   %d\n", status.LastTerminationState.ExitCode)
 		if status.LastTerminationState.StartedAt != "" {
-			fmt.Fprintf(out, "  Started At:  %s\n", LocalTime(status.LastTerminationState.StartedAt))
+			fmt.Fprintf(
+				out,
+				"  Started At:  %s\n",
+				LocalTime(status.LastTerminationState.StartedAt),
+			)
 		}
 		if status.LastTerminationState.FinishedAt != "" {
-			fmt.Fprintf(out, "  Finished At: %s\n", LocalTime(status.LastTerminationState.FinishedAt))
+			fmt.Fprintf(
+				out,
+				"  Finished At: %s\n",
+				LocalTime(status.LastTerminationState.FinishedAt),
+			)
 		}
 	}
 

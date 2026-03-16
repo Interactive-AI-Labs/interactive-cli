@@ -58,7 +58,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -121,7 +126,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -202,7 +212,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			timeout = 0
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, timeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			timeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -251,19 +266,27 @@ The project is selected with --project or via 'iai projects select'.`,
 
 func init() {
 	// Flags for "replicas list"
-	replicasListCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
-	replicasListCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+	replicasListCmd.Flags().
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+	replicasListCmd.Flags().
+		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Flags for "replicas describe"
-	replicasDescribeCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
-	replicasDescribeCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+	replicasDescribeCmd.Flags().
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+	replicasDescribeCmd.Flags().
+		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Flags for "replicas logs"
-	replicasLogsCmd.Flags().StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
-	replicasLogsCmd.Flags().StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+	replicasLogsCmd.Flags().
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+	replicasLogsCmd.Flags().
+		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 	replicasLogsCmd.Flags().BoolVarP(&replicaLogsFollow, "follow", "f", false, "Follow log output")
-	replicasLogsCmd.Flags().StringVar(&replicaLogsSince, "since", "", "Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d")
-	replicasLogsCmd.Flags().StringVar(&replicaLogsStartTime, "start-time", "", "Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since")
+	replicasLogsCmd.Flags().
+		StringVar(&replicaLogsSince, "since", "", "Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d")
+	replicasLogsCmd.Flags().
+		StringVar(&replicaLogsStartTime, "start-time", "", "Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since")
 
 	replicasCmd.AddCommand(replicasListCmd)
 	replicasCmd.AddCommand(replicasDescribeCmd)

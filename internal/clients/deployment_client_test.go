@@ -8,7 +8,12 @@ import (
 
 func TestNewDeploymentClient(t *testing.T) {
 	t.Run("creates client with API key", func(t *testing.T) {
-		client, err := NewDeploymentClient("https://deploy.example.com", 30*time.Second, "test-key", nil)
+		client, err := NewDeploymentClient(
+			"https://deploy.example.com",
+			30*time.Second,
+			"test-key",
+			nil,
+		)
 		if err != nil {
 			t.Fatalf("NewDeploymentClient() error = %v", err)
 		}
@@ -22,7 +27,12 @@ func TestNewDeploymentClient(t *testing.T) {
 
 	t.Run("creates client with cookies", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewDeploymentClient("https://deploy.example.com", 30*time.Second, "", cookies)
+		client, err := NewDeploymentClient(
+			"https://deploy.example.com",
+			30*time.Second,
+			"",
+			cookies,
+		)
 		if err != nil {
 			t.Fatalf("NewDeploymentClient() error = %v", err)
 		}

@@ -138,7 +138,11 @@ func TestPrintLoadingDots(t *testing.T) {
 		lenAfter := buf.Len()
 
 		if lenAfter != lenBefore {
-			t.Errorf("expected no more output after done, but buffer grew from %d to %d bytes", lenBefore, lenAfter)
+			t.Errorf(
+				"expected no more output after done, but buffer grew from %d to %d bytes",
+				lenBefore,
+				lenAfter,
+			)
 		}
 	})
 }

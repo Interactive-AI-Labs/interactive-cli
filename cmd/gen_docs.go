@@ -84,6 +84,7 @@ var genDocsCmd = &cobra.Command{
 }
 
 func init() {
-	genDocsCmd.Flags().String("out-dir", defaultDocsOutDir, "Output directory for generated Markdown docs")
+	genDocsCmd.Flags().
+		String("out-dir", defaultDocsOutDir, "Output directory for generated Markdown docs")
 	rootCmd.AddCommand(genDocsCmd)
 }

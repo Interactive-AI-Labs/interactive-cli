@@ -117,7 +117,12 @@ All configuration is provided via flags. The project is selected with --project 
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -197,7 +202,8 @@ All configuration is provided via flags. The project is selected with --project 
 			}
 		}
 
-		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" || serviceScheduleTimezone != "" {
+		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" ||
+			serviceScheduleTimezone != "" {
 			reqBody.Schedule = &clients.Schedule{
 				Uptime:   serviceScheduleUptime,
 				Downtime: serviceScheduleDowntime,
@@ -208,7 +214,13 @@ All configuration is provided via flags. The project is selected with --project 
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service creation request...")
 
-		serverMessage, err := deployClient.CreateService(cmd.Context(), orgId, projectId, serviceName, reqBody)
+		serverMessage, err := deployClient.CreateService(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+			reqBody,
+		)
 		if err != nil {
 			return err
 		}
@@ -276,7 +288,12 @@ All configuration is provided via flags. The project is selected with --project 
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -356,7 +373,8 @@ All configuration is provided via flags. The project is selected with --project 
 			}
 		}
 
-		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" || serviceScheduleTimezone != "" {
+		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" ||
+			serviceScheduleTimezone != "" {
 			reqBody.Schedule = &clients.Schedule{
 				Uptime:   serviceScheduleUptime,
 				Downtime: serviceScheduleDowntime,
@@ -367,7 +385,13 @@ All configuration is provided via flags. The project is selected with --project 
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service update request...")
 
-		serverMessage, err := deployClient.UpdateService(cmd.Context(), orgId, projectId, serviceName, reqBody)
+		serverMessage, err := deployClient.UpdateService(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+			reqBody,
+		)
 		if err != nil {
 			return err
 		}
@@ -422,7 +446,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -469,7 +498,9 @@ The project is selected with --project or via 'iai projects select'.`,
 		}
 
 		if serviceName == "" {
-			return fmt.Errorf("service name is required; please provide the service name as an argument")
+			return fmt.Errorf(
+				"service name is required; please provide the service name as an argument",
+			)
 		}
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
@@ -487,7 +518,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -512,7 +548,12 @@ The project is selected with --project or via 'iai projects select'.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service deletion request...")
 
-		serverMessage, err := deployClient.DeleteService(cmd.Context(), orgId, projectId, serviceName)
+		serverMessage, err := deployClient.DeleteService(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+		)
 		if err != nil {
 			return err
 		}
@@ -552,7 +593,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -577,7 +623,12 @@ The project is selected with --project or via 'iai projects select'.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service restart request...")
 
-		serverMessage, err := deployClient.RestartService(cmd.Context(), orgId, projectId, serviceName)
+		serverMessage, err := deployClient.RestartService(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+		)
 		if err != nil {
 			return err
 		}
@@ -640,7 +691,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			timeout = 0
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, timeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			timeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -726,7 +782,12 @@ The project is selected with --project or via 'iai projects select', and the con
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -747,7 +808,14 @@ The project is selected with --project or via 'iai projects select', and the con
 		fmt.Fprint(out, "Syncing services")
 		done := output.PrintLoadingDots(out)
 
-		result, err := SyncServices(cmd.Context(), apiClient, deployClient, orgName, projectName, cfg)
+		result, err := SyncServices(
+			cmd.Context(),
+			apiClient,
+			deployClient,
+			orgName,
+			projectName,
+			cfg,
+		)
 		fmt.Fprintln(out)
 		close(done)
 		if err != nil {
@@ -828,91 +896,143 @@ func SyncServices(
 
 func init() {
 	// Flags for "services create"
-	servCCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to create the service in")
-	servCCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servCCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name to create the service in")
+	servCCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servCCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
-	servCCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)")
-	servCCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
+	servCCmd.Flags().
+		StringVar(&serviceImageType, "image-type", "", "Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)")
+	servCCmd.Flags().
+		StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servCCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
-	servCCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
-	servCCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)")
-	servCCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
+	servCCmd.Flags().
+		IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
+	servCCmd.Flags().
+		StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)")
+	servCCmd.Flags().
+		StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
 	_ = servCCmd.MarkFlagRequired("memory")
 	_ = servCCmd.MarkFlagRequired("cpu")
 
-	servCCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
-	servCCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
-	servCCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
-	servCCmd.Flags().IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
-	servCCmd.Flags().IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
+	servCCmd.Flags().
+		BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
+	servCCmd.Flags().
+		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
+	servCCmd.Flags().
+		IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+	servCCmd.Flags().
+		IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
+	servCCmd.Flags().
+		IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
 
-	servCCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
-	servCCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
-	servCCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
+	servCCmd.Flags().
+		StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servCCmd.Flags().
+		StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
+	servCCmd.Flags().
+		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
 
-	servCCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
-	servCCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
+	servCCmd.Flags().
+		StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
+	servCCmd.Flags().
+		IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
 
-	servCCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'")
-	servCCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
-	servCCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
+	servCCmd.Flags().
+		StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'")
+	servCCmd.Flags().
+		StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
+	servCCmd.Flags().
+		StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 
 	// Flags for "services update"
-	servUCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
-	servUCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servUCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name to update the service in")
+	servUCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servUCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
-	servUCmd.Flags().StringVar(&serviceImageType, "image-type", "", "Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)")
-	servUCmd.Flags().StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
+	servUCmd.Flags().
+		StringVar(&serviceImageType, "image-type", "", "Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)")
+	servUCmd.Flags().
+		StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
 	servUCmd.Flags().StringVar(&serviceImageTag, "image-tag", "", "Container image tag")
 
-	servUCmd.Flags().IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
-	servUCmd.Flags().StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)")
-	servUCmd.Flags().StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
+	servUCmd.Flags().
+		IntVar(&serviceReplicas, "replicas", 0, "Number of replicas for the service (mutually exclusive with autoscaling)")
+	servUCmd.Flags().
+		StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)")
+	servUCmd.Flags().
+		StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
 	_ = servUCmd.MarkFlagRequired("memory")
 	_ = servUCmd.MarkFlagRequired("cpu")
 
-	servUCmd.Flags().BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
-	servUCmd.Flags().IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
-	servUCmd.Flags().IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
-	servUCmd.Flags().IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
-	servUCmd.Flags().IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
+	servUCmd.Flags().
+		BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
+	servUCmd.Flags().
+		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
+	servUCmd.Flags().
+		IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+	servUCmd.Flags().
+		IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
+	servUCmd.Flags().
+		IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
 
-	servUCmd.Flags().StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
-	servUCmd.Flags().StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
-	servUCmd.Flags().BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
+	servUCmd.Flags().
+		StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+	servUCmd.Flags().
+		StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
+	servUCmd.Flags().
+		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
 
-	servUCmd.Flags().StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
-	servUCmd.Flags().IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
+	servUCmd.Flags().
+		StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
+	servUCmd.Flags().
+		IntVar(&serviceHealthcheckInitialDelay, "healthcheck-initial-delay", 0, "Initial delay in seconds before starting healthchecks")
 
-	servUCmd.Flags().StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'")
-	servUCmd.Flags().StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
-	servUCmd.Flags().StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
+	servUCmd.Flags().
+		StringVar(&serviceScheduleUptime, "schedule-uptime", "", "When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'")
+	servUCmd.Flags().
+		StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
+	servUCmd.Flags().
+		StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 
 	// Flags for "services list"
-	servListCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
-	servListCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servListCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
+	servListCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Flags for "services delete"
-	servDCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to delete the service from")
-	servDCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servDCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name to delete the service from")
+	servDCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Flags for "services restart"
-	servRestartCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name to restart the service in")
-	servRestartCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servRestartCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name to restart the service in")
+	servRestartCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Flags for "services logs"
-	servLogsCmd.Flags().StringVarP(&serviceProject, "project", "p", "", "Project name that owns the service")
-	servLogsCmd.Flags().StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servLogsCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name that owns the service")
+	servLogsCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servLogsCmd.Flags().BoolVarP(&servLogsFollow, "follow", "f", false, "Follow log output")
-	servLogsCmd.Flags().StringVar(&servLogsSince, "since", "", "Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d")
-	servLogsCmd.Flags().StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since")
+	servLogsCmd.Flags().
+		StringVar(&servLogsSince, "since", "", "Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d")
+	servLogsCmd.Flags().
+		StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since")
 
 	// Flags for "services sync"
-	servicesSyncCmd.Flags().StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
-	servicesSyncCmd.Flags().StringVarP(&syncOrganization, "organization", "o", "", "Organization name that owns the project")
+	servicesSyncCmd.Flags().
+		StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
+	servicesSyncCmd.Flags().
+		StringVarP(&syncOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)

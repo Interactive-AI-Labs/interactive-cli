@@ -32,7 +32,8 @@ Use the subcommands below to manage your organizations, projects, services, secr
 			if !strings.HasPrefix(hostname, "http://") && !strings.HasPrefix(hostname, "https://") {
 				hostname = "https://" + hostname
 			}
-			if !strings.HasPrefix(deploymentHostname, "http://") && !strings.HasPrefix(deploymentHostname, "https://") {
+			if !strings.HasPrefix(deploymentHostname, "http://") &&
+				!strings.HasPrefix(deploymentHostname, "https://") {
 				deploymentHostname = "https://" + deploymentHostname
 			}
 		},
@@ -63,7 +64,9 @@ func init() {
 	}
 
 	rootCmd.PersistentFlags().StringVar(&hostname, "hostname", hostname, "Hostname for the API")
-	rootCmd.PersistentFlags().StringVar(&deploymentHostname, "deployment-hostname", deploymentHostname, "Hostname for the deployment API")
+	rootCmd.PersistentFlags().
+		StringVar(&deploymentHostname, "deployment-hostname", deploymentHostname, "Hostname for the deployment API")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", apiKey, "API key for authentication")
-	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "cfg-file", "", "Path to YAML config file with organization, project, and optional service definitions")
+	rootCmd.PersistentFlags().
+		StringVar(&cfgFilePath, "cfg-file", "", "Path to YAML config file with organization, project, and optional service definitions")
 }
