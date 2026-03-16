@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,32 @@ var installInstructions string
 
 //go:embed templates/sync_config_example.md
 var syncConfigExample string
+
+//go:embed templates/schema_routines.md
+var schemaRoutines string
+
+//go:embed templates/schema_policies.md
+var schemaPolicies string
+
+//go:embed templates/schema_variables.md
+var schemaVariables string
+
+//go:embed templates/schema_glossary.md
+var schemaGlossary string
+
+//go:embed templates/schema_macros.md
+var schemaMacros string
+
+// promptSchemaInserts maps doc filenames to their markdown schema templates.
+// These replace the plain-text schema sections generated from the cobra Long
+// descriptions with properly fenced code blocks for the docs.
+var promptSchemaInserts = map[string]string{
+	"iai_routines.md":  schemaRoutines,
+	"iai_policies.md":  schemaPolicies,
+	"iai_variables.md": schemaVariables,
+	"iai_glossary.md":  schemaGlossary,
+	"iai_macros.md":    schemaMacros,
+}
 
 var genDocsCmd = &cobra.Command{
 	Use:    "gen-docs",
@@ -79,8 +106,53 @@ var genDocsCmd = &cobra.Command{
 			}
 		}
 
-		return os.WriteFile(rootDocPath, []byte(docContent), 0o644)
+		if err := os.WriteFile(rootDocPath, []byte(docContent), 0o644); err != nil {
+			return err
+		}
+
+		// Replace plain-text schema sections in prompt type docs with
+		// properly formatted markdown (fenced code blocks).
+		for filename, schemaDoc := range promptSchemaInserts {
+			if err := injectSchemaDoc(outDir, filename, schemaDoc); err != nil {
+				return fmt.Errorf("failed to inject schema into %s: %w", filename, err)
+			}
+		}
+
+		return nil
 	},
+}
+
+// injectSchemaDoc replaces the plain-text schema/example section in a
+// generated prompt type doc with a markdown-formatted version.
+func injectSchemaDoc(outDir, filename, schemaDoc string) error {
+	docPath := filepath.Join(outDir, filename)
+	content, err := os.ReadFile(docPath)
+	if err != nil {
+		return err
+	}
+
+	doc := string(content)
+
+	// Find the start of the schema section: "Schema:" or "No schema"
+	schemaStart := strings.Index(doc, "\nSchema:\n")
+	if schemaStart == -1 {
+		schemaStart = strings.Index(doc, "\nNo schema")
+	}
+	if schemaStart == -1 {
+		return nil
+	}
+
+	// Find "### Options" which follows the schema section
+	optionsMarker := "\n### Options"
+	optionsIdx := strings.Index(doc, optionsMarker)
+	if optionsIdx == -1 {
+		return nil
+	}
+
+	// Replace the plain-text section with the markdown template
+	doc = doc[:schemaStart] + "\n\n" + schemaDoc + optionsMarker + doc[optionsIdx+len(optionsMarker):]
+
+	return os.WriteFile(docPath, []byte(doc), 0o644)
 }
 
 func init() {
