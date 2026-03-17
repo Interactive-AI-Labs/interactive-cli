@@ -101,7 +101,11 @@ var loginCmd = &cobra.Command{
 			if err := files.SaveSessionCookies(cookies, cfgDirName, sessionFileName); err != nil {
 				return fmt.Errorf("login succeeded but failed to store session cookies: %w", err)
 			}
-			fmt.Fprintf(out, "Login successful. %d cookie(s) stored for future commands.\n", len(cookies))
+			fmt.Fprintf(
+				out,
+				"Login successful. %d cookie(s) stored for future commands.\n",
+				len(cookies),
+			)
 		}
 
 		return nil

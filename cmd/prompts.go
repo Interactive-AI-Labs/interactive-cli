@@ -391,7 +391,12 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					label,
 				)
 			} else {
-				err = apiClient.DeletePromptByName(cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name)
+				err = apiClient.DeletePromptByName(
+					cmd.Context(),
+					pCtx.projectId,
+					ptCfg.RouteSegment,
+					name,
+				)
 			}
 			if err != nil {
 				return err
