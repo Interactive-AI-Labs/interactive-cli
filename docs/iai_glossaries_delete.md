@@ -12,9 +12,9 @@ delete a specific version, or --label to delete versions with a specific label.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary delete finance-terms
-  iai glossary delete finance-terms --version 3
-  iai glossary delete finance-terms --label staging
+  iai glossaries delete finance-terms
+  iai glossaries delete finance-terms --version 3
+  iai glossaries delete finance-terms --label staging
 
 ```
 iai glossaries delete <name> [flags]

@@ -12,9 +12,9 @@ specific version number, or --label to resolve a different label.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary get finance-terms
-  iai glossary get finance-terms --version 3
-  iai glossary get finance-terms --label staging
+  iai glossaries get finance-terms
+  iai glossaries get finance-terms --version 3
+  iai glossaries get finance-terms --label staging
 
 ```
 iai glossaries get <name> [flags]

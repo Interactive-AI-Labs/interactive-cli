@@ -26,11 +26,11 @@ Example (glossary.json):
     {"name": "KYC", "description": "Know Your Customer"}
   ]}`,
 		HasSchema:    true,
-		RouteSegment: "glossary",
+		RouteSegment: "glossaries",
 		CreateLong: `Create a new glossary definition in an InteractiveAI project.
 
 Content is provided via a JSON file using the --file flag and must follow the
-glossary schema (see 'iai glossary --help'). Use --skip-schema to bypass validation.
+glossary schema (see 'iai glossaries --help'). Use --skip-schema to bypass validation.
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -39,9 +39,9 @@ the "production" label with --labels production.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary create finance-terms --file glossary.json
-  iai glossary create finance-terms --file glossary.json --labels production
-  iai glossary create finance-terms --file glossary.json --tags domain --skip-schema`,
+  iai glossaries create finance-terms --file glossary.json
+  iai glossaries create finance-terms --file glossary.json --labels production
+  iai glossaries create finance-terms --file glossary.json --tags domain --skip-schema`,
 		ListLong: `List glossary definitions in a specific project.
 
 Returns all glossary entries with their name, labels, tags, and last update time.
@@ -49,8 +49,8 @@ Returns all glossary entries with their name, labels, tags, and last update time
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary list
-  iai glossary list --page 2 --limit 10`,
+  iai glossaries list
+  iai glossaries list --page 2 --limit 10`,
 		GetLong: `Get details of a specific glossary definition, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
@@ -59,9 +59,9 @@ specific version number, or --label to resolve a different label.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary get finance-terms
-  iai glossary get finance-terms --version 3
-  iai glossary get finance-terms --label staging`,
+  iai glossaries get finance-terms
+  iai glossaries get finance-terms --version 3
+  iai glossaries get finance-terms --label staging`,
 		UpdateLong: `Update a glossary definition by creating a new version with updated content.
 
 This creates a new version of the glossary using the content from the provided file.
@@ -70,8 +70,8 @@ The previous versions are preserved and can still be accessed by version number.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary update finance-terms --file glossary.json
-  iai glossary update finance-terms --file glossary.json --labels production,staging`,
+  iai glossaries update finance-terms --file glossary.json
+  iai glossaries update finance-terms --file glossary.json --labels production,staging`,
 		DeleteLong: `Delete a glossary definition and all its versions, or delete specific versions.
 
 Without flags, deletes the glossary entry and all its versions. Use --version to
@@ -80,8 +80,8 @@ delete a specific version, or --label to delete versions with a specific label.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary delete finance-terms
-  iai glossary delete finance-terms --version 3
-  iai glossary delete finance-terms --label staging`,
+  iai glossaries delete finance-terms
+  iai glossaries delete finance-terms --version 3
+  iai glossaries delete finance-terms --label staging`,
 	})
 }

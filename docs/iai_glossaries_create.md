@@ -7,7 +7,7 @@ Create a glossary
 Create a new glossary definition in an InteractiveAI project.
 
 Content is provided via a JSON file using the --file flag and must follow the
-glossary schema (see 'iai glossary --help'). Use --skip-schema to bypass validation.
+glossary schema (see 'iai glossaries --help'). Use --skip-schema to bypass validation.
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -16,9 +16,9 @@ the "production" label with --labels production.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary create finance-terms --file glossary.json
-  iai glossary create finance-terms --file glossary.json --labels production
-  iai glossary create finance-terms --file glossary.json --tags domain --skip-schema
+  iai glossaries create finance-terms --file glossary.json
+  iai glossaries create finance-terms --file glossary.json --labels production
+  iai glossaries create finance-terms --file glossary.json --tags domain --skip-schema
 
 ```
 iai glossaries create <name> [flags]

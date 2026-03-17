@@ -11,8 +11,8 @@ Returns all glossary entries with their name, labels, tags, and last update time
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary list
-  iai glossary list --page 2 --limit 10
+  iai glossaries list
+  iai glossaries list --page 2 --limit 10
 
 ```
 iai glossaries list [flags]

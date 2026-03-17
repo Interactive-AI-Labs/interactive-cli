@@ -12,8 +12,8 @@ The previous versions are preserved and can still be accessed by version number.
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
-  iai glossary update finance-terms --file glossary.json
-  iai glossary update finance-terms --file glossary.json --labels production,staging
+  iai glossaries update finance-terms --file glossary.json
+  iai glossaries update finance-terms --file glossary.json --labels production,staging
 
 ```
 iai glossaries update <name> [flags]
