@@ -9,14 +9,34 @@ Update a variable definition by creating a new version with updated content.
 This creates a new version of the variable using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-The project is selected with --project or via 'iai projects select'.
 
-Examples:
-  iai variables update session-vars --file variables.json
-  iai variables update session-vars --file variables.json --labels production,staging
+### Schema
 
+```json
+{
+  "variables": [
+    {
+      "name": "<string>",
+      "type": "<boolean|string|number|array|object>",
+      "persistence": "<session|customer|global>",
+      "default_value": "<any>"
+    }
+  ]
+}
 ```
-iai variables update <name> [flags]
+
+> `name` and `type` are required. `persistence` defaults to `"session"`. `default_value` is optional.
+
+### Example
+
+```json
+{
+  "variables": [
+    {"name": "user_name", "type": "string"},
+    {"name": "is_authenticated", "type": "boolean", "default_value": false},
+    {"name": "preferences", "type": "object", "persistence": "customer"}
+  ]
+}
 ```
 
 ### Options

@@ -7,21 +7,31 @@ Create a policy
 Create a new policy in an InteractiveAI project.
 
 Content is provided via a YAML file using the --file flag and must follow the
-policy schema (see 'iai policies --help'). Use --skip-schema to bypass validation.
+policy schema below. Use --skip-schema to bypass validation.
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
 
-The project is selected with --project or via 'iai projects select'.
+### Schema
 
-Examples:
-  iai policies create safety-rules --file policy.yaml
-  iai policies create safety-rules --file policy.yaml --labels production
-  iai policies create safety-rules --file policy.yaml --tags compliance --skip-schema
-
+```yaml
+policies:                                    # required, array of policy rules
+  - id: <string>                             # required, unique identifier
+    condition: <string>                      # required, when this rule applies
+    action: <string>                         # required, what the agent should do
+    criticality: <HIGH|MEDIUM|LOW>           # optional, default MEDIUM
+    description: <string>                    # optional
+    tools: [<string>, ...]                   # optional, tools to use
+    prioritize_over: [<id>, ...]             # optional, policy IDs this overrides
 ```
-iai policies create <name> [flags]
+
+### Example
+
+```yaml
+# policy.yaml
+policies:
+  - id: p1
+    condition: user requests account deletion
+    action: confirm identity before proceeding
+    criticality: HIGH
 ```
 
 ### Options

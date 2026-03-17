@@ -9,14 +9,33 @@ Update a routine by creating a new version with updated content.
 This creates a new version of the routine using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-The project is selected with --project or via 'iai projects select'.
 
-Examples:
-  iai routines update onboarding-flow --file routine.yaml
-  iai routines update onboarding-flow --file routine.yaml --labels production,staging
+### Schema
 
+```yaml
+steps:                                       # required, array of steps
+  - step: <string>                           # required, step identifier
+    name: <string>                           # required, step display name
+    type: <node|branch|finish|branchnode>    # required
+    description: <string>                    # optional
+    tool: <string>                           # optional, tool to invoke
+    condition: <string>                      # optional, branching condition
+    input: <string>                          # optional
+    output: <string>                         # optional
 ```
-iai routines update <name> [flags]
+
+### Example
+
+```yaml
+# routine.yaml
+steps:
+  - step: "1"
+    name: Greet
+    type: node
+    description: "Welcome the user"
+  - step: "2"
+    name: Done
+    type: finish
 ```
 
 ### Options

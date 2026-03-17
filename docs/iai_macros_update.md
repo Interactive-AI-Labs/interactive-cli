@@ -9,14 +9,13 @@ Update a macro by creating a new version with updated content.
 This creates a new version of the macro using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-The project is selected with --project or via 'iai projects select'.
 
-Examples:
-  iai macros update disclaimer --file disclaimer.md
-  iai macros update disclaimer --file disclaimer.md --labels production,staging
+No schema validation is applied — any text content is accepted.
 
-```
-iai macros update <name> [flags]
+### Example
+
+```markdown
+**Disclaimer:** This is not financial advice. Consult a professional.
 ```
 
 ### Options

@@ -7,14 +7,7 @@ Manage macros
 Manage macros in InteractiveAI projects.
 
 Macros are reusable template replies and text snippets (Markdown/text format).
-
 No schema validation is applied — any text content is accepted.
-
-### Example
-
-```markdown
-**Disclaimer:** This is not financial advice. Consult a professional.
-```
 
 ### Options
 

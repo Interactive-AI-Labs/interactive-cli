@@ -9,14 +9,29 @@ Update a policy by creating a new version with updated content.
 This creates a new version of the policy using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-The project is selected with --project or via 'iai projects select'.
 
-Examples:
-  iai policies update safety-rules --file policy.yaml
-  iai policies update safety-rules --file policy.yaml --labels production,staging
+### Schema
 
+```yaml
+policies:                                    # required, array of policy rules
+  - id: <string>                             # required, unique identifier
+    condition: <string>                      # required, when this rule applies
+    action: <string>                         # required, what the agent should do
+    criticality: <HIGH|MEDIUM|LOW>           # optional, default MEDIUM
+    description: <string>                    # optional
+    tools: [<string>, ...]                   # optional, tools to use
+    prioritize_over: [<id>, ...]             # optional, policy IDs this overrides
 ```
-iai policies update <name> [flags]
+
+### Example
+
+```yaml
+# policy.yaml
+policies:
+  - id: p1
+    condition: user requests account deletion
+    action: confirm identity before proceeding
+    criticality: HIGH
 ```
 
 ### Options

@@ -9,7 +9,13 @@ func init() {
 		Long: `Manage policies in InteractiveAI projects.
 
 Policies are core behavior rules — condition-action pairs that govern agent
-responses (YAML format).
+responses (YAML format).`,
+		HasSchema:    true,
+		RouteSegment: "policies",
+		CreateLong: `Create a new policy in an InteractiveAI project.
+
+Content is provided via a YAML file using the --file flag and must follow the
+policy schema below. Use --skip-schema to bypass validation.
 
 Schema:
   policies:                       # required, array of policy rules
@@ -26,13 +32,7 @@ Example (policy.yaml):
     - id: p1
       condition: user requests account deletion
       action: confirm identity before proceeding
-      criticality: HIGH`,
-		HasSchema:    true,
-		RouteSegment: "policies",
-		CreateLong: `Create a new policy in an InteractiveAI project.
-
-Content is provided via a YAML file using the --file flag and must follow the
-policy schema (see 'iai policies --help'). Use --skip-schema to bypass validation.
+      criticality: HIGH
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -68,6 +68,23 @@ Examples:
 
 This creates a new version of the policy using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
+
+Schema:
+  policies:                       # required, array of policy rules
+    - id: <string>                # required, unique identifier
+      condition: <string>         # required, when this rule applies
+      action: <string>            # required, what the agent should do
+      criticality: <HIGH|MEDIUM|LOW>  # optional, default MEDIUM
+      description: <string>       # optional
+      tools: [<string>, ...]      # optional, tools to use
+      prioritize_over: [<id>, ...]  # optional, policy IDs this overrides
+
+Example (policy.yaml):
+  policies:
+    - id: p1
+      condition: user requests account deletion
+      action: confirm identity before proceeding
+      criticality: HIGH
 
 The project is selected with --project or via 'iai projects select'.
 

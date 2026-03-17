@@ -9,14 +9,32 @@ Update a glossary definition by creating a new version with updated content.
 This creates a new version of the glossary using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-The project is selected with --project or via 'iai projects select'.
 
-Examples:
-  iai glossaries update finance-terms --file glossary.json
-  iai glossaries update finance-terms --file glossary.json --labels production,staging
+### Schema
 
+```json
+{
+  "terms": [
+    {
+      "name": "<string>",
+      "description": "<string>",
+      "synonyms": ["<string>"]
+    }
+  ]
+}
 ```
-iai glossaries update <name> [flags]
+
+> `name` and `description` are required. `synonyms` is optional.
+
+### Example
+
+```json
+{
+  "terms": [
+    {"name": "APR", "description": "Annual Percentage Rate", "synonyms": ["annual rate"]},
+    {"name": "KYC", "description": "Know Your Customer"}
+  ]
+}
 ```
 
 ### Options

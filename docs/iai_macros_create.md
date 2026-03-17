@@ -8,19 +8,12 @@ Create a new macro in an InteractiveAI project.
 
 Content is provided via a text or markdown file using the --file flag.
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
+No schema validation is applied — any text content is accepted.
 
-The project is selected with --project or via 'iai projects select'.
+### Example
 
-Examples:
-  iai macros create disclaimer --file disclaimer.md
-  iai macros create disclaimer --file disclaimer.md --labels production
-  iai macros create disclaimer --file disclaimer.md --tags legal
-
-```
-iai macros create <name> [flags]
+```markdown
+**Disclaimer:** This is not financial advice. Consult a professional.
 ```
 
 ### Options

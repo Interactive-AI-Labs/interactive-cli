@@ -9,14 +9,15 @@ func init() {
 		Long: `Manage macros in InteractiveAI projects.
 
 Macros are reusable template replies and text snippets (Markdown/text format).
-No schema validation is applied — any text content is accepted.
-
-Example (disclaimer.md):
-  **Disclaimer:** This is not financial advice. Consult a professional.`,
+No schema validation is applied — any text content is accepted.`,
 		RouteSegment: "macros",
 		CreateLong: `Create a new macro in an InteractiveAI project.
 
 Content is provided via a text or markdown file using the --file flag.
+No schema validation is applied — any text content is accepted.
+
+Example (disclaimer.md):
+  **Disclaimer:** This is not financial advice. Consult a professional.
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -52,6 +53,11 @@ Examples:
 
 This creates a new version of the macro using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
+
+No schema validation is applied — any text content is accepted.
+
+Example (disclaimer.md):
+  **Disclaimer:** This is not financial advice. Consult a professional.
 
 The project is selected with --project or via 'iai projects select'.
 

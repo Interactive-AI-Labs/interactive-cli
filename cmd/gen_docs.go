@@ -38,11 +38,16 @@ var schemaMacros string
 // These replace the plain-text schema sections generated from the cobra Long
 // descriptions with properly fenced code blocks for the docs.
 var promptSchemaInserts = map[string]string{
-	"iai_routines.md":   schemaRoutines,
-	"iai_policies.md":   schemaPolicies,
-	"iai_variables.md":  schemaVariables,
-	"iai_glossaries.md": schemaGlossaries,
-	"iai_macros.md":     schemaMacros,
+	"iai_routines_create.md":   schemaRoutines,
+	"iai_routines_update.md":   schemaRoutines,
+	"iai_policies_create.md":   schemaPolicies,
+	"iai_policies_update.md":   schemaPolicies,
+	"iai_variables_create.md":  schemaVariables,
+	"iai_variables_update.md":  schemaVariables,
+	"iai_glossaries_create.md": schemaGlossaries,
+	"iai_glossaries_update.md": schemaGlossaries,
+	"iai_macros_create.md":     schemaMacros,
+	"iai_macros_update.md":     schemaMacros,
 }
 
 var genDocsCmd = &cobra.Command{

@@ -7,21 +7,36 @@ Create a variable
 Create a new variable definition in an InteractiveAI project.
 
 Content is provided via a JSON file using the --file flag and must follow the
-variable schema (see 'iai variables --help'). Use --skip-schema to bypass validation.
+variable schema below. Use --skip-schema to bypass validation.
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
 
-The project is selected with --project or via 'iai projects select'.
+### Schema
 
-Examples:
-  iai variables create session-vars --file variables.json
-  iai variables create session-vars --file variables.json --labels production
-  iai variables create session-vars --file variables.json --tags core --skip-schema
-
+```json
+{
+  "variables": [
+    {
+      "name": "<string>",
+      "type": "<boolean|string|number|array|object>",
+      "persistence": "<session|customer|global>",
+      "default_value": "<any>"
+    }
+  ]
+}
 ```
-iai variables create <name> [flags]
+
+> `name` and `type` are required. `persistence` defaults to `"session"`. `default_value` is optional.
+
+### Example
+
+```json
+{
+  "variables": [
+    {"name": "user_name", "type": "string"},
+    {"name": "is_authenticated", "type": "boolean", "default_value": false},
+    {"name": "preferences", "type": "object", "persistence": "customer"}
+  ]
+}
 ```
 
 ### Options

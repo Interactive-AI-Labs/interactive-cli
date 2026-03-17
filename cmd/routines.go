@@ -9,7 +9,13 @@ func init() {
 		Long: `Manage routines in InteractiveAI projects.
 
 Routines are step-by-step conversation flows with branching logic and terminal
-states (YAML format).
+states (YAML format).`,
+		HasSchema:    true,
+		RouteSegment: "routines",
+		CreateLong: `Create a new routine in an InteractiveAI project.
+
+Content is provided via a YAML file using the --file flag and must follow the
+routine schema below. Use --skip-schema to bypass validation.
 
 Schema:
   steps:                          # required, array of steps
@@ -30,13 +36,7 @@ Example (routine.yaml):
       description: "Welcome the user"
     - step: "2"
       name: Done
-      type: finish`,
-		HasSchema:    true,
-		RouteSegment: "routines",
-		CreateLong: `Create a new routine in an InteractiveAI project.
-
-Content is provided via a YAML file using the --file flag and must follow the
-routine schema (see 'iai routines --help'). Use --skip-schema to bypass validation.
+      type: finish
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -72,6 +72,27 @@ Examples:
 
 This creates a new version of the routine using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
+
+Schema:
+  steps:                          # required, array of steps
+    - step: <string>              # required, step identifier
+      name: <string>              # required, step display name
+      type: <node|branch|finish|branchnode>  # required
+      description: <string>       # optional
+      tool: <string>              # optional, tool to invoke
+      condition: <string>         # optional, branching condition
+      input: <string>             # optional
+      output: <string>            # optional
+
+Example (routine.yaml):
+  steps:
+    - step: "1"
+      name: Greet
+      type: node
+      description: "Welcome the user"
+    - step: "2"
+      name: Done
+      type: finish
 
 The project is selected with --project or via 'iai projects select'.
 
