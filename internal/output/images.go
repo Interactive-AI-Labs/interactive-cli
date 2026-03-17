@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func PrintImageList(out io.Writer, images []clients.ImageInfo) error {

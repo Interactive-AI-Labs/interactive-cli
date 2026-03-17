@@ -23,6 +23,7 @@ iai glossaries delete <name> [flags]
 ### Options
 
 ```
+  -f, --force                 Skip confirmation prompt
   -h, --help                  help for delete
       --label string          Delete versions with this label only
   -o, --organization string   Organization name that owns the project

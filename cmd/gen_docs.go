@@ -28,8 +28,8 @@ var schemaPolicies string
 //go:embed templates/schema_variables.md
 var schemaVariables string
 
-//go:embed templates/schema_glossary.md
-var schemaGlossary string
+//go:embed templates/schema_glossaries.md
+var schemaGlossaries string
 
 //go:embed templates/schema_macros.md
 var schemaMacros string
@@ -38,11 +38,11 @@ var schemaMacros string
 // These replace the plain-text schema sections generated from the cobra Long
 // descriptions with properly fenced code blocks for the docs.
 var promptSchemaInserts = map[string]string{
-	"iai_routines.md":  schemaRoutines,
-	"iai_policies.md":  schemaPolicies,
-	"iai_variables.md": schemaVariables,
-	"iai_glossary.md":  schemaGlossary,
-	"iai_macros.md":    schemaMacros,
+	"iai_routines.md":   schemaRoutines,
+	"iai_policies.md":   schemaPolicies,
+	"iai_variables.md":  schemaVariables,
+	"iai_glossaries.md": schemaGlossaries,
+	"iai_macros.md":     schemaMacros,
 }
 
 var genDocsCmd = &cobra.Command{
@@ -131,28 +131,28 @@ func injectSchemaDoc(outDir, filename, schemaDoc string) error {
 		return err
 	}
 
-	doc := string(content)
+	text := string(content)
 
 	// Find the start of the schema section: "Schema:" or "No schema"
-	schemaStart := strings.Index(doc, "\nSchema:\n")
+	schemaStart := strings.Index(text, "\nSchema:\n")
 	if schemaStart == -1 {
-		schemaStart = strings.Index(doc, "\nNo schema")
+		schemaStart = strings.Index(text, "\nNo schema")
 	}
 	if schemaStart == -1 {
-		return nil
+		return fmt.Errorf("schema section marker not found in %s", filename)
 	}
 
 	// Find "### Options" which follows the schema section
 	optionsMarker := "\n### Options"
-	optionsIdx := strings.Index(doc, optionsMarker)
+	optionsIdx := strings.Index(text, optionsMarker)
 	if optionsIdx == -1 {
-		return nil
+		return fmt.Errorf("options section marker not found in %s", filename)
 	}
 
 	// Replace the plain-text section with the markdown template
-	doc = doc[:schemaStart] + "\n\n" + schemaDoc + optionsMarker + doc[optionsIdx+len(optionsMarker):]
+	text = text[:schemaStart] + "\n\n" + schemaDoc + optionsMarker + text[optionsIdx+len(optionsMarker):]
 
-	return os.WriteFile(docPath, []byte(doc), 0o644)
+	return os.WriteFile(docPath, []byte(text), 0o644)
 }
 
 func init() {

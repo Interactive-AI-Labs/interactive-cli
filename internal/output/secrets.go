@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func PrintSecretList(out io.Writer, secrets []clients.SecretInfo) error {

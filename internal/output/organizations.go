@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func PrintOrganizationList(out io.Writer, orgs []clients.Organization, selectedOrg string) error {

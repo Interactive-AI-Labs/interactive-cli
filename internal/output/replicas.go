@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func PrintReplicaList(out io.Writer, replicas []clients.ReplicaInfo) error {

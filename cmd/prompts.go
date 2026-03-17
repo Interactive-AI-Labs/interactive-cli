@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"encoding/json"
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -32,14 +33,6 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 		Aliases: ptCfg.Aliases,
 		Short:   ptCfg.Short,
 		Long:    ptCfg.Long,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// Cobra doesn't chain PersistentPreRun hooks; call the parent's
-			// manually to preserve URL normalization.
-			if root := cmd.Root(); root != nil && root.PersistentPreRun != nil {
-				root.PersistentPreRun(cmd, args)
-			}
-			return nil
-		},
 	}
 
 	createCmd := makeCreateCmd(ptCfg)
@@ -50,14 +43,6 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 
 	parentCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, deleteCmd)
 	rootCmd.AddCommand(parentCmd)
-}
-
-func promptContent(content []byte) (json.RawMessage, error) {
-	encoded, err := json.Marshal(string(content))
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode prompt content: %w", err)
-	}
-	return json.RawMessage(encoded), nil
 }
 
 func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
@@ -79,24 +64,29 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
+			pCtx, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+			if err != nil {
+				return fmt.Errorf("failed to load session: %w", err)
+			}
+
+			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			if err != nil {
+				return fmt.Errorf("failed to create API client: %w", err)
+			}
+
 			content, err := os.ReadFile(file)
 			if err != nil {
 				return fmt.Errorf("failed to read file %q: %w", file, err)
 			}
 
-			pCtx, err := resolveProjectContext(cmd.Context(), org, project)
-			if err != nil {
-				return err
-			}
-
-			prompt, err := promptContent(content)
-			if err != nil {
-				return err
-			}
-
 			body := clients.CreatePromptBody{
 				Name:   name,
-				Prompt: prompt,
+				Prompt: string(content),
 				Labels: labels,
 				Tags:   tags,
 			}
@@ -104,7 +94,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			fmt.Fprintln(out)
 			fmt.Fprintf(out, "Creating %s %q...\n", ptCfg.TypeName, name)
 
-			result, err := pCtx.apiClient.CreatePrompt(
+			result, err := apiClient.CreatePrompt(
 				cmd.Context(),
 				pCtx.projectId,
 				ptCfg.RouteSegment,
@@ -152,9 +142,19 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 
-			pCtx, err := resolveProjectContext(cmd.Context(), org, project)
+			pCtx, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
+			}
+
+			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+			if err != nil {
+				return fmt.Errorf("failed to load session: %w", err)
+			}
+
+			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			if err != nil {
+				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			opts := clients.PromptListOptions{
@@ -162,7 +162,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				Limit: limit,
 			}
 
-			result, err := pCtx.apiClient.ListPrompts(
+			result, err := apiClient.ListPrompts(
 				cmd.Context(),
 				pCtx.projectId,
 				ptCfg.RouteSegment,
@@ -202,12 +202,22 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
-			pCtx, err := resolveProjectContext(cmd.Context(), org, project)
+			pCtx, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
 			}
 
-			result, err := pCtx.apiClient.GetPrompt(
+			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+			if err != nil {
+				return fmt.Errorf("failed to load session: %w", err)
+			}
+
+			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			if err != nil {
+				return fmt.Errorf("failed to create API client: %w", err)
+			}
+
+			result, err := apiClient.GetPrompt(
 				cmd.Context(),
 				pCtx.projectId,
 				ptCfg.RouteSegment,
@@ -251,24 +261,29 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
+			pCtx, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+			if err != nil {
+				return fmt.Errorf("failed to load session: %w", err)
+			}
+
+			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			if err != nil {
+				return fmt.Errorf("failed to create API client: %w", err)
+			}
+
 			content, err := os.ReadFile(file)
 			if err != nil {
 				return fmt.Errorf("failed to read file %q: %w", file, err)
 			}
 
-			pCtx, err := resolveProjectContext(cmd.Context(), org, project)
-			if err != nil {
-				return err
-			}
-
-			prompt, err := promptContent(content)
-			if err != nil {
-				return err
-			}
-
 			body := clients.CreatePromptBody{
 				Name:   name,
-				Prompt: prompt,
+				Prompt: string(content),
 				Labels: labels,
 				Tags:   tags,
 			}
@@ -278,7 +293,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 			// CreatePrompt is intentional: the API creates a new version when the
 			// prompt name already exists, so create and update use the same endpoint.
-			result, err := pCtx.apiClient.CreatePrompt(
+			result, err := apiClient.CreatePrompt(
 				cmd.Context(),
 				pCtx.projectId,
 				ptCfg.RouteSegment,
@@ -314,6 +329,7 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		version int
 		label   string
+		force   bool
 		project string
 		org     string
 	)
@@ -328,16 +344,45 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
-			pCtx, err := resolveProjectContext(cmd.Context(), org, project)
+			// Deleting all versions is destructive; require confirmation.
+			if version == 0 && label == "" && !force {
+				fmt.Fprintf(
+					out,
+					"This will delete %s %q and all its versions. Continue? [y/N] ",
+					ptCfg.TypeName,
+					name,
+				)
+				reader := bufio.NewReader(cmd.InOrStdin())
+				answer, err := reader.ReadString('\n')
+				if err != nil {
+					return fmt.Errorf("failed to read confirmation: %w", err)
+				}
+				if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+					fmt.Fprintln(out, "Aborted.")
+					return nil
+				}
+			}
+
+			pCtx, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
+			}
+
+			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+			if err != nil {
+				return fmt.Errorf("failed to load session: %w", err)
+			}
+
+			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			if err != nil {
+				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			fmt.Fprintln(out)
 			fmt.Fprintf(out, "Deleting %s %q...\n", ptCfg.TypeName, name)
 
 			if version > 0 || label != "" {
-				err = pCtx.apiClient.DeletePrompt(
+				err = apiClient.DeletePrompt(
 					cmd.Context(),
 					pCtx.projectId,
 					ptCfg.RouteSegment,
@@ -346,7 +391,7 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					label,
 				)
 			} else {
-				err = pCtx.apiClient.DeletePromptByName(cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name)
+				err = apiClient.DeletePromptByName(cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name)
 			}
 			if err != nil {
 				return err
@@ -360,6 +405,7 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 	cmd.Flags().IntVar(&version, "version", 0, "Delete a specific version only")
 	cmd.Flags().StringVar(&label, "label", "", "Delete versions with this label only")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation prompt")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 

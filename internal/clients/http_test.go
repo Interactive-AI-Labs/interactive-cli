@@ -1,4 +1,4 @@
-package internal
+package clients
 
 import (
 	"net/http"
@@ -82,20 +82,6 @@ func TestExtractServerMessage(t *testing.T) {
 				`{"detail":{"success":false,"error":{"code":"PLATFORM_ERROR","message":"Invalid request data"}}}`,
 			),
 			want: "Invalid request data",
-		},
-		{
-			name: "platform nested error - prompt not found",
-			body: []byte(
-				`{"detail":{"success":false,"error":{"code":"PROMPT_NOT_FOUND","message":"Prompt not found"}}}`,
-			),
-			want: "Prompt not found",
-		},
-		{
-			name: "platform nested error - forbidden",
-			body: []byte(
-				`{"detail":{"success":false,"error":{"code":"FORBIDDEN","message":"Insufficient permissions: requires prompts:read"}}}`,
-			),
-			want: "Insufficient permissions: requires prompts:read",
 		},
 	}
 

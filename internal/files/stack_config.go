@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"gopkg.in/yaml.v3"
 )
 

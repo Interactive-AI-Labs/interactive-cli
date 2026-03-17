@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func TestPrintPromptList(t *testing.T) {
@@ -30,8 +30,8 @@ func TestPrintPromptList(t *testing.T) {
 			name: "single prompt",
 			prompts: []clients.PromptInfo{
 				{
-					Name:          "welcome-message",
-					Type:          "text",
+					Name: "welcome-message",
+
 					Labels:        []string{"production"},
 					Tags:          []string{"onboarding"},
 					LastUpdatedAt: "2025-01-15T10:30:00Z",
@@ -44,15 +44,15 @@ func TestPrintPromptList(t *testing.T) {
 			name: "multiple prompts",
 			prompts: []clients.PromptInfo{
 				{
-					Name:          "escalation",
-					Type:          "policy",
+					Name: "escalation",
+
 					Labels:        nil,
 					Tags:          []string{"compliance"},
 					LastUpdatedAt: "2025-01-10T08:00:00Z",
 				},
 				{
-					Name:          "routing",
-					Type:          "policy",
+					Name: "routing",
+
 					Labels:        []string{"production"},
 					Tags:          []string{"core", "routing"},
 					LastUpdatedAt: "2025-01-20T14:00:00Z",
@@ -66,8 +66,8 @@ func TestPrintPromptList(t *testing.T) {
 			name: "truncates long labels list",
 			prompts: []clients.PromptInfo{
 				{
-					Name:          "my-prompt",
-					Type:          "text",
+					Name: "my-prompt",
+
 					Labels:        []string{"production", "staging", "dev", "test"},
 					Tags:          nil,
 					LastUpdatedAt: "2025-03-01T12:00:00Z",

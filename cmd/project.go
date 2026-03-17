@@ -4,17 +4,22 @@ import (
 	"context"
 	"fmt"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 )
 
 type projectContext struct {
-	apiClient *clients.APIClient
-	projectId string
+	orgId       string
+	orgName     string
+	projectId   string
+	projectName string
 }
 
-func resolveProjectContext(ctx context.Context, org, project string) (*projectContext, error) {
+func resolveProject(
+	ctx context.Context,
+	org, project string,
+) (*projectContext, error) {
 	cfg, err := files.LoadStackConfig(cfgFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config file: %w", err)
@@ -42,13 +47,15 @@ func resolveProjectContext(ctx context.Context, org, project string) (*projectCo
 		return nil, fmt.Errorf("failed to resolve project: %w", err)
 	}
 
-	_, projectId, err := apiClient.GetProjectId(ctx, orgName, projectName)
+	orgId, projectId, err := apiClient.GetProjectId(ctx, orgName, projectName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 	}
 
 	return &projectContext{
-		apiClient: apiClient,
-		projectId: projectId,
+		orgId:       orgId,
+		orgName:     orgName,
+		projectId:   projectId,
+		projectName: projectName,
 	}, nil
 }

@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func TestPrintSecretList(t *testing.T) {

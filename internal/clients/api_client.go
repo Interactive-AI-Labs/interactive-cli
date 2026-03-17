@@ -1,4 +1,4 @@
-package internal
+package clients
 
 import (
 	"context"
@@ -516,7 +516,6 @@ func (c *APIClient) GetProjectId(
 
 type PromptInfo struct {
 	Name          string   `json:"name"`
-	Type          string   `json:"type"`
 	Versions      []int    `json:"versions"`
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
@@ -539,10 +538,10 @@ type PromptDetail struct {
 }
 
 type CreatePromptBody struct {
-	Name   string          `json:"name"`
-	Prompt json.RawMessage `json:"prompt"`
-	Labels []string        `json:"labels,omitempty"`
-	Tags   []string        `json:"tags,omitempty"`
+	Name   string   `json:"name"`
+	Prompt string   `json:"prompt"`
+	Labels []string `json:"labels,omitempty"`
+	Tags   []string `json:"tags,omitempty"`
 }
 
 type promptAPIResponse struct {
@@ -561,16 +560,14 @@ type PromptListResponse struct {
 }
 
 type PromptListOptions struct {
-	Folder string
-	Type   string
-	Page   int
-	Limit  int
+	Page  int
+	Limit int
 }
 
 func promptBasePath(projectId, routeSegment string) string {
 	base := fmt.Sprintf("/api/platform/v1/projects/%s/prompts", url.PathEscape(projectId))
 	if routeSegment != "" {
-		return base + "/" + routeSegment
+		return base + "/" + url.PathEscape(routeSegment)
 	}
 	return base
 }
@@ -646,12 +643,6 @@ func (c *APIClient) ListPrompts(
 	}
 
 	q := req.URL.Query()
-	if opts.Folder != "" {
-		q.Set("folder", opts.Folder)
-	}
-	if opts.Type != "" {
-		q.Set("type", opts.Type)
-	}
 	if opts.Page > 0 {
 		q.Set("page", fmt.Sprintf("%d", opts.Page))
 	}
