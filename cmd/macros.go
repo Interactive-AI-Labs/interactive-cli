@@ -66,13 +66,15 @@ Examples:
   iai macros update disclaimer --file disclaimer.md --labels production,staging`,
 		DeleteLong: `Delete a macro and all its versions, or delete specific versions.
 
-Without flags, deletes the macro and all its versions. Use --version to delete
-a specific version, or --label to delete versions with a specific label.
+Without flags, deletes the macro and all its versions (requires confirmation).
+Use --version to delete a specific version, or --label to delete versions with a
+specific label. Use -f to skip the confirmation prompt.
 
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai macros delete disclaimer
+  iai macros delete disclaimer -f
   iai macros delete disclaimer --version 3
   iai macros delete disclaimer --label staging`,
 	})

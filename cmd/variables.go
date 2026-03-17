@@ -93,13 +93,15 @@ Examples:
   iai variables update session-vars --file variables.json --labels production,staging`,
 		DeleteLong: `Delete a variable definition and all its versions, or delete specific versions.
 
-Without flags, deletes the variable and all its versions. Use --version to delete
-a specific version, or --label to delete versions with a specific label.
+Without flags, deletes the variable and all its versions (requires confirmation).
+Use --version to delete a specific version, or --label to delete versions with a
+specific label. Use -f to skip the confirmation prompt.
 
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai variables delete session-vars
+  iai variables delete session-vars -f
   iai variables delete session-vars --version 3
   iai variables delete session-vars --label staging`,
 	})

@@ -6,13 +6,15 @@ Delete a glossary
 
 Delete a glossary definition and all its versions, or delete specific versions.
 
-Without flags, deletes the glossary entry and all its versions. Use --version to
-delete a specific version, or --label to delete versions with a specific label.
+Without flags, deletes the glossary entry and all its versions (requires
+confirmation). Use --version to delete a specific version, or --label to delete
+versions with a specific label. Use -f to skip the confirmation prompt.
 
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai glossaries delete finance-terms
+  iai glossaries delete finance-terms -f
   iai glossaries delete finance-terms --version 3
   iai glossaries delete finance-terms --label staging
 

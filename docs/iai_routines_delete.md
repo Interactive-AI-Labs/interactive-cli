@@ -6,13 +6,15 @@ Delete a routine
 
 Delete a routine and all its versions, or delete specific versions.
 
-Without flags, deletes the routine and all its versions. Use --version to delete
-a specific version, or --label to delete versions with a specific label.
+Without flags, deletes the routine and all its versions (requires confirmation).
+Use --version to delete a specific version, or --label to delete versions with a
+specific label. Use -f to skip the confirmation prompt.
 
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai routines delete onboarding-flow
+  iai routines delete onboarding-flow -f
   iai routines delete onboarding-flow --version 3
   iai routines delete onboarding-flow --label staging
 

@@ -6,13 +6,15 @@ Delete a policy
 
 Delete a policy and all its versions, or delete specific versions.
 
-Without flags, deletes the policy and all its versions. Use --version to delete
-a specific version, or --label to delete versions with a specific label.
+Without flags, deletes the policy and all its versions (requires confirmation).
+Use --version to delete a specific version, or --label to delete versions with a
+specific label. Use -f to skip the confirmation prompt.
 
 The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai policies delete safety-rules
+  iai policies delete safety-rules -f
   iai policies delete safety-rules --version 3
   iai policies delete safety-rules --label staging
 
