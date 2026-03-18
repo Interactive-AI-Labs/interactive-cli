@@ -142,6 +142,34 @@ func TestPrintPromptDetail(t *testing.T) {
 				"You are a helpful assistant.\n",
 		},
 		{
+			name: "non-string JSON prompt prints raw",
+			prompt: &clients.PromptDetail{
+				Name:    "structured-prompt",
+				Type:    "chat",
+				Version: 1,
+				Prompt:  json.RawMessage(`[{"role":"system","content":"Hello"}]`),
+			},
+			want: "Name:        structured-prompt\n" +
+				"Version:     1\n" +
+				"\n" +
+				"Content:\n" +
+				`[{"role":"system","content":"Hello"}]` + "\n",
+		},
+		{
+			name: "prompt content ending with newline has no double newline",
+			prompt: &clients.PromptDetail{
+				Name:    "trailing-nl",
+				Type:    "text",
+				Version: 1,
+				Prompt:  json.RawMessage(`"Already has newline\n"`),
+			},
+			want: "Name:        trailing-nl\n" +
+				"Version:     1\n" +
+				"\n" +
+				"Content:\n" +
+				"Already has newline\n",
+		},
+		{
 			name: "detail without content",
 			prompt: &clients.PromptDetail{
 				Name:    "empty-prompt",
