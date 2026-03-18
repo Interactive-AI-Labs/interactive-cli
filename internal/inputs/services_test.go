@@ -333,7 +333,11 @@ func TestValidateService(t *testing.T) {
 				if err == nil {
 					t.Errorf("ValidateService() expected error, got nil")
 				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
-					t.Errorf("ValidateService() error = %v, want error containing %q", err, tt.wantErrContains)
+					t.Errorf(
+						"ValidateService() error = %v, want error containing %q",
+						err,
+						tt.wantErrContains,
+					)
 				}
 			} else {
 				if err != nil {
@@ -437,7 +441,11 @@ func TestValidateAutoscaling(t *testing.T) {
 				if err == nil {
 					t.Errorf("ValidateAutoscaling() expected error, got nil")
 				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
-					t.Errorf("ValidateAutoscaling() error = %v, want error containing %q", err, tt.wantErrContains)
+					t.Errorf(
+						"ValidateAutoscaling() error = %v, want error containing %q",
+						err,
+						tt.wantErrContains,
+					)
 				}
 			} else {
 				if err != nil {
@@ -509,7 +517,11 @@ func TestValidateServiceEnvVars(t *testing.T) {
 				if err == nil {
 					t.Errorf("ValidateServiceEnvVars() expected error, got nil")
 				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
-					t.Errorf("ValidateServiceEnvVars() error = %v, want error containing %q", err, tt.wantErrContains)
+					t.Errorf(
+						"ValidateServiceEnvVars() error = %v, want error containing %q",
+						err,
+						tt.wantErrContains,
+					)
 				}
 			} else {
 				if err != nil {
@@ -570,7 +582,11 @@ func TestValidateServiceSecretRefs(t *testing.T) {
 				if err == nil {
 					t.Errorf("ValidateServiceSecretRefs() expected error, got nil")
 				} else if !strings.Contains(err.Error(), tt.wantErrContains) {
-					t.Errorf("ValidateServiceSecretRefs() error = %v, want error containing %q", err, tt.wantErrContains)
+					t.Errorf(
+						"ValidateServiceSecretRefs() error = %v, want error containing %q",
+						err,
+						tt.wantErrContains,
+					)
 				}
 			} else {
 				if err != nil {

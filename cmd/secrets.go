@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
-	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +57,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -109,7 +114,9 @@ When both are provided, --data values take precedence.`,
 		}
 
 		if strings.TrimSpace(secretName) == "" {
-			return fmt.Errorf("secret name is required; please provide --secret-name or positional argument")
+			return fmt.Errorf(
+				"secret name is required; please provide --secret-name or positional argument",
+			)
 		}
 		if len(secretDataKVs) == 0 && strings.TrimSpace(secretEnvFile) == "" {
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
@@ -130,7 +137,12 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -160,7 +172,13 @@ When both are provided, --data values take precedence.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting secret creation request...")
 
-		serverMessage, err := deployClient.CreateSecret(cmd.Context(), orgId, projectId, secretName, data)
+		serverMessage, err := deployClient.CreateSecret(
+			cmd.Context(),
+			orgId,
+			projectId,
+			secretName,
+			data,
+		)
 		if err != nil {
 			return err
 		}
@@ -234,7 +252,12 @@ Examples:
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -266,9 +289,19 @@ Examples:
 			var removedKeys []string
 			for _, keyName := range secretRemoveKeys {
 				keyName = strings.TrimSpace(keyName)
-				_, err := deployClient.DeleteSecretKey(cmd.Context(), orgId, projectId, secretName, keyName)
+				_, err := deployClient.DeleteSecretKey(
+					cmd.Context(),
+					orgId,
+					projectId,
+					secretName,
+					keyName,
+				)
 				if err != nil && len(removedKeys) > 0 {
-					fmt.Fprintf(out, "Partial failure: removed keys %s before error\n", strings.Join(removedKeys, ", "))
+					fmt.Fprintf(
+						out,
+						"Partial failure: removed keys %s before error\n",
+						strings.Join(removedKeys, ", "),
+					)
 				}
 				if err != nil {
 					return fmt.Errorf("failed to remove key %q: %w", keyName, err)
@@ -287,7 +320,13 @@ Examples:
 		if secretReplaceFlag {
 			fmt.Fprintln(out, "Submitting secret replace request...")
 
-			serverMessage, err := deployClient.ReplaceSecret(cmd.Context(), orgId, projectId, secretName, data)
+			serverMessage, err := deployClient.ReplaceSecret(
+				cmd.Context(),
+				orgId,
+				projectId,
+				secretName,
+				data,
+			)
 			if err != nil {
 				return err
 			}
@@ -308,9 +347,20 @@ Examples:
 
 		var updatedKeys []string
 		for _, keyName := range keys {
-			serverMessage, err := deployClient.UpdateSecretKey(cmd.Context(), orgId, projectId, secretName, keyName, data[keyName])
+			serverMessage, err := deployClient.UpdateSecretKey(
+				cmd.Context(),
+				orgId,
+				projectId,
+				secretName,
+				keyName,
+				data[keyName],
+			)
 			if err != nil && len(updatedKeys) > 0 {
-				fmt.Fprintf(out, "Partial failure: updated keys %s before error\n", strings.Join(updatedKeys, ", "))
+				fmt.Fprintf(
+					out,
+					"Partial failure: updated keys %s before error\n",
+					strings.Join(updatedKeys, ", "),
+				)
 			}
 			if err != nil {
 				return fmt.Errorf("failed to update key %q: %w", keyName, err)
@@ -357,7 +407,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -382,7 +437,12 @@ The project is selected with --project or via 'iai projects select'.`,
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting secret delete request...")
 
-		serverMessage, err := deployClient.DeleteSecret(cmd.Context(), orgId, projectId, secretToDelete)
+		serverMessage, err := deployClient.DeleteSecret(
+			cmd.Context(),
+			orgId,
+			projectId,
+			secretToDelete,
+		)
 		if err != nil {
 			return err
 		}
@@ -425,7 +485,12 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create deployment client: %w", err)
 		}
@@ -510,37 +575,59 @@ func mergeSecretData(pairs []string, envFilePath string) (map[string]string, err
 
 func init() {
 	// secrets list
-	secretsListCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsListCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsListCmd.Flags().
+		StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsListCmd.Flags().
+		StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// secrets create
-	secretsCreateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsCreateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsCreateCmd.Flags().
+		StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsCreateCmd.Flags().
+		StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 	secretsCreateCmd.Flags().StringVarP(&secretName, "secret-name", "s", "", "Name of the secret")
-	secretsCreateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
-	secretsCreateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
+	secretsCreateCmd.Flags().
+		StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
+	secretsCreateCmd.Flags().
+		StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
 
 	// secrets update
-	secretsUpdateCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsUpdateCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
-	secretsUpdateCmd.Flags().StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
-	secretsUpdateCmd.Flags().StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
-	secretsUpdateCmd.Flags().BoolVar(&secretReplaceFlag, "replace", false, "Replace all secret data (keys not provided will be deleted)")
-	secretsUpdateCmd.Flags().StringArrayVar(&secretRemoveKeys, "remove", nil, "Key name to remove from the secret (repeatable)")
+	secretsUpdateCmd.Flags().
+		StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsUpdateCmd.Flags().
+		StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsUpdateCmd.Flags().
+		StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
+	secretsUpdateCmd.Flags().
+		StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
+	secretsUpdateCmd.Flags().
+		BoolVar(&secretReplaceFlag, "replace", false, "Replace all secret data (keys not provided will be deleted)")
+	secretsUpdateCmd.Flags().
+		StringArrayVar(&secretRemoveKeys, "remove", nil, "Key name to remove from the secret (repeatable)")
 	secretsUpdateCmd.MarkFlagsOneRequired("data", "from-env-file", "remove")
 	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "data")
 	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "from-env-file")
 	secretsUpdateCmd.MarkFlagsMutuallyExclusive("remove", "replace")
 
 	// secrets delete
-	secretsDeleteCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsDeleteCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsDeleteCmd.Flags().
+		StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsDeleteCmd.Flags().
+		StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// secrets get
-	secretsGetCmd.Flags().StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
-	secretsGetCmd.Flags().StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsGetCmd.Flags().
+		StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
+	secretsGetCmd.Flags().
+		StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	// Wire up the command hierarchy
-	secretsCmd.AddCommand(secretsListCmd, secretsCreateCmd, secretsUpdateCmd, secretsDeleteCmd, secretsGetCmd)
+	secretsCmd.AddCommand(
+		secretsListCmd,
+		secretsCreateCmd,
+		secretsUpdateCmd,
+		secretsDeleteCmd,
+		secretsGetCmd,
+	)
 	rootCmd.AddCommand(secretsCmd)
 }

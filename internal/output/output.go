@@ -36,10 +36,17 @@ func TruncateList(items []string, maxVisible int) string {
 	return fmt.Sprintf("%s (+%d more)", visible, len(items)-maxVisible)
 }
 
-// LocalTime converts an RFC3339 timestamp to the user's local timezone.
+// LocalTime converts a timestamp to the user's local timezone.
 func LocalTime(s string) string {
-	if t, err := time.Parse(time.RFC3339, s); err == nil {
-		return t.Local().Format(time.RFC1123Z)
+	for _, layout := range []string{
+		time.RFC3339,
+		time.RFC3339Nano,
+		"2006-01-02T15:04:05.000000",
+		"2006-01-02T15:04:05",
+	} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.Local().Format(time.RFC1123Z)
+		}
 	}
 	return s
 }

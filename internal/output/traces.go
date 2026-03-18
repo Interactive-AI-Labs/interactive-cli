@@ -7,28 +7,42 @@ import (
 	"io"
 	"strings"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 var traceColumnMap = map[string]struct {
 	Header string
 	Value  func(t *clients.TraceInfo) string
 }{
-	"id":          {"ID", func(t *clients.TraceInfo) string { return t.ID }},
-	"name":        {"NAME", func(t *clients.TraceInfo) string { return t.Name }},
-	"timestamp":   {"TIMESTAMP", func(t *clients.TraceInfo) string { return LocalTime(t.Timestamp) }},
+	"id":   {"ID", func(t *clients.TraceInfo) string { return t.ID }},
+	"name": {"NAME", func(t *clients.TraceInfo) string { return t.Name }},
+	"timestamp": {
+		"TIMESTAMP",
+		func(t *clients.TraceInfo) string { return LocalTime(t.Timestamp) },
+	},
 	"user_id":     {"USER ID", func(t *clients.TraceInfo) string { return t.UserID }},
 	"session_id":  {"SESSION ID", func(t *clients.TraceInfo) string { return t.SessionID }},
 	"release":     {"RELEASE", func(t *clients.TraceInfo) string { return t.Release }},
 	"version":     {"VERSION", func(t *clients.TraceInfo) string { return t.Version }},
 	"environment": {"ENVIRONMENT", func(t *clients.TraceInfo) string { return t.Environment }},
-	"public":      {"PUBLIC", func(t *clients.TraceInfo) string { return fmt.Sprintf("%t", t.Public) }},
-	"latency":     {"LATENCY", func(t *clients.TraceInfo) string { return formatFloat(t.Latency, "s") }},
-	"cost":        {"COST", func(t *clients.TraceInfo) string { return formatCost(t.TotalCost) }},
-	"tags":        {"TAGS", func(t *clients.TraceInfo) string { return TruncateList(t.Tags, 3) }},
+	"public": {
+		"PUBLIC",
+		func(t *clients.TraceInfo) string { return fmt.Sprintf("%t", t.Public) },
+	},
+	"latency": {
+		"LATENCY",
+		func(t *clients.TraceInfo) string { return formatFloat(t.Latency, "s") },
+	},
+	"cost": {"COST", func(t *clients.TraceInfo) string { return formatCost(t.TotalCost) }},
+	"tags": {"TAGS", func(t *clients.TraceInfo) string { return TruncateList(t.Tags, 3) }},
 }
 
-func PrintTraceList(out io.Writer, traces []clients.TraceInfo, meta clients.TraceMeta, columns []string) error {
+func PrintTraceList(
+	out io.Writer,
+	traces []clients.TraceInfo,
+	meta clients.TraceMeta,
+	columns []string,
+) error {
 	if len(traces) == 0 {
 		fmt.Fprintln(out, "No traces found.")
 		return nil
@@ -52,7 +66,13 @@ func PrintTraceList(out io.Writer, traces []clients.TraceInfo, meta clients.Trac
 		return err
 	}
 
-	fmt.Fprintf(out, "\nPage %d of %d (%d total items)\n", meta.Page, meta.TotalPages, meta.TotalItems)
+	fmt.Fprintf(
+		out,
+		"\nPage %d of %d (%d total items)\n",
+		meta.Page,
+		meta.TotalPages,
+		meta.TotalItems,
+	)
 	return nil
 }
 

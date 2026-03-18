@@ -60,7 +60,11 @@ func ParseEnvFile(filePath string) (map[string]string, error) {
 	}
 
 	if len(errors) > 0 {
-		return nil, fmt.Errorf("failed to parse env file: found %d malformed lines:\n%s", len(errors), strings.Join(errors, "\n"))
+		return nil, fmt.Errorf(
+			"failed to parse env file: found %d malformed lines:\n%s",
+			len(errors),
+			strings.Join(errors, "\n"),
+		)
 	}
 
 	return result, nil

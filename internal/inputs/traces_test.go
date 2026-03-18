@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func TestValidateTraceID(t *testing.T) {
@@ -44,16 +44,48 @@ func TestValidateTraceListOptions(t *testing.T) {
 		{"zero page", clients.TraceListOptions{Page: 0}, true},
 		{"negative page", clients.TraceListOptions{Page: -1}, true},
 		{"negative limit", clients.TraceListOptions{Page: 1, Limit: -1}, true},
-		{"valid from-timestamp", clients.TraceListOptions{Page: 1, FromTimestamp: "2025-01-01T00:00:00Z"}, false},
-		{"valid to-timestamp", clients.TraceListOptions{Page: 1, ToTimestamp: "2025-12-31T23:59:59Z"}, false},
-		{"valid timestamp with offset", clients.TraceListOptions{Page: 1, FromTimestamp: "2025-01-01T00:00:00+02:00"}, false},
-		{"invalid from-timestamp", clients.TraceListOptions{Page: 1, FromTimestamp: "not-a-date"}, true},
-		{"invalid to-timestamp", clients.TraceListOptions{Page: 1, ToTimestamp: "2025-01-01"}, true},
+		{
+			"valid from-timestamp",
+			clients.TraceListOptions{Page: 1, FromTimestamp: "2025-01-01T00:00:00Z"},
+			false,
+		},
+		{
+			"valid to-timestamp",
+			clients.TraceListOptions{Page: 1, ToTimestamp: "2025-12-31T23:59:59Z"},
+			false,
+		},
+		{
+			"valid timestamp with offset",
+			clients.TraceListOptions{Page: 1, FromTimestamp: "2025-01-01T00:00:00+02:00"},
+			false,
+		},
+		{
+			"invalid from-timestamp",
+			clients.TraceListOptions{Page: 1, FromTimestamp: "not-a-date"},
+			true,
+		},
+		{
+			"invalid to-timestamp",
+			clients.TraceListOptions{Page: 1, ToTimestamp: "2025-01-01"},
+			true,
+		},
 		{"valid order-by", clients.TraceListOptions{Page: 1, OrderBy: "timestamp.desc"}, false},
 		{"valid order-by asc", clients.TraceListOptions{Page: 1, OrderBy: "name.asc"}, false},
-		{"order-by missing direction", clients.TraceListOptions{Page: 1, OrderBy: "timestamp"}, true},
-		{"order-by invalid field", clients.TraceListOptions{Page: 1, OrderBy: "unknown.desc"}, true},
-		{"order-by invalid direction", clients.TraceListOptions{Page: 1, OrderBy: "timestamp.up"}, true},
+		{
+			"order-by missing direction",
+			clients.TraceListOptions{Page: 1, OrderBy: "timestamp"},
+			true,
+		},
+		{
+			"order-by invalid field",
+			clients.TraceListOptions{Page: 1, OrderBy: "unknown.desc"},
+			true,
+		},
+		{
+			"order-by invalid direction",
+			clients.TraceListOptions{Page: 1, OrderBy: "timestamp.up"},
+			true,
+		},
 		{"order-by too many parts", clients.TraceListOptions{Page: 1, OrderBy: "a.b.c"}, true},
 	}
 

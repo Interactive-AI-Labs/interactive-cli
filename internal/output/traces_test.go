@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
@@ -373,8 +373,10 @@ func TestPrettyJSON(t *testing.T) {
 			want:     "{\n  \"comment\": \"Café résumé naïve\"\n}",
 		},
 		{
-			name:     "nested objects with arrays",
-			raw:      json.RawMessage(`{"info":{"name":"Alice","items":[{"color":"red","size":"M"}]}}`),
+			name: "nested objects with arrays",
+			raw: json.RawMessage(
+				`{"info":{"name":"Alice","items":[{"color":"red","size":"M"}]}}`,
+			),
 			unescape: false,
 			want:     "{\n  \"info\": {\n    \"items\": [\n      {\n        \"color\": \"red\",\n        \"size\": \"M\"\n      }\n    ],\n    \"name\": \"Alice\"\n  }\n}",
 		},

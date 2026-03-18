@@ -35,9 +35,9 @@ iai services update [service_name] [flags]
       --port int                            Service port to expose
   -p, --project string                      Project name to update the service in
       --replicas int                        Number of replicas for the service (mutually exclusive with autoscaling)
-      --schedule-downtime string            Downtime schedule for the service (e.g. Sat-Sun 00:00-24:00)
-      --schedule-timezone string            Timezone for the service schedule (e.g. America/New_York)
-      --schedule-uptime string              Uptime schedule for the service (e.g. Mon-Fri 07:30-20:30)
+      --schedule-downtime string            When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'
+      --schedule-timezone string            IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
+      --schedule-uptime string              When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'
       --secret stringArray                  Secrets to be loaded as env vars; can be repeated
 ```
 

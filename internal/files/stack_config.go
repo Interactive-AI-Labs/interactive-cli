@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"gopkg.in/yaml.v3"
 )
 
@@ -65,7 +65,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 			return nil, fmt.Errorf("service %q: image.type must be 'internal' or 'external'", name)
 		}
 		if svc.Image.Type == "external" && svc.Image.Repository == "" {
-			return nil, fmt.Errorf("service %q: image.repository is required for external images", name)
+			return nil, fmt.Errorf(
+				"service %q: image.repository is required for external images",
+				name,
+			)
 		}
 		if svc.Image.Name == "" {
 			return nil, fmt.Errorf("service %q: image.name is required", name)
@@ -78,7 +81,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		hasAutoscaling := svc.Autoscaling != nil && svc.Autoscaling.Enabled
 
 		if hasReplicas && hasAutoscaling {
-			return nil, fmt.Errorf("service %q: cannot set both replicas and autoscaling.enabled; only one scaling method can be configured", name)
+			return nil, fmt.Errorf(
+				"service %q: cannot set both replicas and autoscaling.enabled; only one scaling method can be configured",
+				name,
+			)
 		}
 
 		if !hasReplicas && !hasAutoscaling {
@@ -87,16 +93,28 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 
 		if svc.Autoscaling != nil && svc.Autoscaling.Enabled {
 			if svc.Autoscaling.MinReplicas <= 0 {
-				return nil, fmt.Errorf("service %q: autoscaling.minReplicas must be greater than zero when autoscaling is enabled", name)
+				return nil, fmt.Errorf(
+					"service %q: autoscaling.minReplicas must be greater than zero when autoscaling is enabled",
+					name,
+				)
 			}
 			if svc.Autoscaling.MaxReplicas <= 0 {
-				return nil, fmt.Errorf("service %q: autoscaling.maxReplicas must be greater than zero when autoscaling is enabled", name)
+				return nil, fmt.Errorf(
+					"service %q: autoscaling.maxReplicas must be greater than zero when autoscaling is enabled",
+					name,
+				)
 			}
 			if svc.Autoscaling.MinReplicas > svc.Autoscaling.MaxReplicas {
-				return nil, fmt.Errorf("service %q: autoscaling.minReplicas cannot be greater than autoscaling.maxReplicas", name)
+				return nil, fmt.Errorf(
+					"service %q: autoscaling.minReplicas cannot be greater than autoscaling.maxReplicas",
+					name,
+				)
 			}
 			if svc.Autoscaling.CPUPercentage <= 0 && svc.Autoscaling.MemoryPercentage <= 0 {
-				return nil, fmt.Errorf("service %q: at least one of autoscaling.cpuPercentage or autoscaling.memoryPercentage must be set when autoscaling is enabled", name)
+				return nil, fmt.Errorf(
+					"service %q: at least one of autoscaling.cpuPercentage or autoscaling.memoryPercentage must be set when autoscaling is enabled",
+					name,
+				)
 			}
 		}
 

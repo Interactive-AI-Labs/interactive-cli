@@ -41,7 +41,9 @@ func (s *Session) ResolveOrganization(cfgOrg, flagOrg string) (string, error) {
 		return selectedOrg, nil
 	}
 
-	return "", fmt.Errorf("organization is required: provide via --organization flag, --cfg-file, or run 'iai organizations select'")
+	return "", fmt.Errorf(
+		"organization is required: provide via --organization flag, --cfg-file, or run 'iai organizations select'",
+	)
 }
 
 // ResolveProject returns the project name using this precedence:
@@ -68,5 +70,7 @@ func (s *Session) ResolveProject(cfgProject, flagProject string) (string, error)
 		return selectedProject, nil
 	}
 
-	return "", fmt.Errorf("project is required: provide via --project flag, --cfg-file, or run 'iai projects select'")
+	return "", fmt.Errorf(
+		"project is required: provide via --project flag, --cfg-file, or run 'iai projects select'",
+	)
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func PrintVectorStoreDescribe(out io.Writer, store *clients.DescribeVectorStoreResponse) error {

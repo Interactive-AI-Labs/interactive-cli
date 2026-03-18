@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func TestPrintProjectList(t *testing.T) {

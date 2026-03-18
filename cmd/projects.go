@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
-	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +29,10 @@ var projectsListCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 
 		if apiKey != "" {
-			fmt.Fprintln(out, "Warning: API key authentication is ignored for projects commands; using session cookies instead.")
+			fmt.Fprintln(
+				out,
+				"Warning: API key authentication is ignored for projects commands; using session cookies instead.",
+			)
 		}
 
 		sess := session.NewSession(cfgDirName)
@@ -78,7 +81,10 @@ var projectsSelectCmd = &cobra.Command{
 		projectName := args[0]
 
 		if apiKey != "" {
-			fmt.Fprintln(out, "Warning: API key authentication is ignored for projects commands; using session cookies instead.")
+			fmt.Fprintln(
+				out,
+				"Warning: API key authentication is ignored for projects commands; using session cookies instead.",
+			)
 		}
 
 		sess := session.NewSession(cfgDirName)
@@ -118,8 +124,10 @@ var projectsSelectCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(projectsCmd)
 
-	projectsListCmd.Flags().StringVarP(&projectsOrganization, "organization", "o", "", "Organization name that owns the projects")
-	projectsSelectCmd.Flags().StringVarP(&projectsOrganization, "organization", "o", "", "Organization name that owns the project")
+	projectsListCmd.Flags().
+		StringVarP(&projectsOrganization, "organization", "o", "", "Organization name that owns the projects")
+	projectsSelectCmd.Flags().
+		StringVarP(&projectsOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	projectsCmd.AddCommand(projectsListCmd)
 	projectsCmd.AddCommand(projectsSelectCmd)

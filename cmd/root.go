@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	version            = "0.9.0"
+	version            = "0.10.0"
 	cfgDirName         = ".interactiveai"
 	sessionFileName    = "session_cookies.json"
 	defaultHTTPTimeout = 15 * time.Second
@@ -26,13 +26,14 @@ var (
 		Version: version,
 		Long: `InteractiveAI's CLI to interact with its platform.
 
-Use the subcommands below to manage your organizations, projects, services, secrets, and other components.`,
+Use the subcommands below to manage your organizations, projects, services, secrets, prompts, routines, policies, variables, glossary, macros, and other components.`,
 		SilenceUsage: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if !strings.HasPrefix(hostname, "http://") && !strings.HasPrefix(hostname, "https://") {
 				hostname = "https://" + hostname
 			}
-			if !strings.HasPrefix(deploymentHostname, "http://") && !strings.HasPrefix(deploymentHostname, "https://") {
+			if !strings.HasPrefix(deploymentHostname, "http://") &&
+				!strings.HasPrefix(deploymentHostname, "https://") {
 				deploymentHostname = "https://" + deploymentHostname
 			}
 		},
@@ -63,7 +64,9 @@ func init() {
 	}
 
 	rootCmd.PersistentFlags().StringVar(&hostname, "hostname", hostname, "Hostname for the API")
-	rootCmd.PersistentFlags().StringVar(&deploymentHostname, "deployment-hostname", deploymentHostname, "Hostname for the deployment API")
+	rootCmd.PersistentFlags().
+		StringVar(&deploymentHostname, "deployment-hostname", deploymentHostname, "Hostname for the deployment API")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", apiKey, "API key for authentication")
-	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "cfg-file", "", "Path to YAML config file with organization, project, and optional service definitions")
+	rootCmd.PersistentFlags().
+		StringVar(&cfgFilePath, "cfg-file", "", "Path to YAML config file with organization, project, and optional service definitions")
 }

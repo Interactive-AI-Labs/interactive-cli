@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	clients "github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
-	output "github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
@@ -59,7 +59,12 @@ var imageListCmd = &cobra.Command{
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(deploymentHostname, defaultHTTPTimeout, apiKey, cookies)
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -116,7 +121,10 @@ Dockerfile, and build context.`,
 		}
 
 		if _, err := exec.LookPath("docker"); err != nil {
-			return fmt.Errorf("docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w", err)
+			return fmt.Errorf(
+				"docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w",
+				err,
+			)
 		}
 
 		imageRef := fmt.Sprintf("%s:%s", imageName, imageBuildTag)
@@ -191,7 +199,10 @@ var imagePushCmd = &cobra.Command{
 		}
 
 		if _, err := exec.LookPath("docker"); err != nil {
-			return fmt.Errorf("docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w", err)
+			return fmt.Errorf(
+				"docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w",
+				err,
+			)
 		}
 
 		imageRef := fmt.Sprintf("%s:%s", imageName, imagePushTag)
@@ -300,26 +311,38 @@ func validateImageArchitecture(imageRef string) error {
 
 	arch := strings.TrimSpace(string(output))
 	if arch != "amd64" && arch != "x86_64" {
-		return fmt.Errorf("unsupported architecture %q detected in image; only amd64 images are supported on this platform", arch)
+		return fmt.Errorf(
+			"unsupported architecture %q detected in image; only amd64 images are supported on this platform",
+			arch,
+		)
 	}
 
 	return nil
 }
 
 func init() {
-	imageBuildCmd.Flags().StringVarP(&imageBuildTag, "tag", "t", "", "Tag suffix to append to the fixed registry (e.g. 1.2.3)")
-	imageBuildCmd.Flags().StringVarP(&imageBuildFile, "file", "f", "Dockerfile", "Path to the Dockerfile (default: ./Dockerfile)")
-	imageBuildCmd.Flags().StringVarP(&imageBuildContext, "context", "c", ".", "Build context directory (default: current directory)")
-	imageBuildCmd.Flags().StringVar(&imageBuildPlatform, "platform", "linux/amd64", "Target platform for the build (currently only linux/amd64 is supported)")
+	imageBuildCmd.Flags().
+		StringVarP(&imageBuildTag, "tag", "t", "", "Tag suffix to append to the fixed registry (e.g. 1.2.3)")
+	imageBuildCmd.Flags().
+		StringVarP(&imageBuildFile, "file", "f", "Dockerfile", "Path to the Dockerfile (default: ./Dockerfile)")
+	imageBuildCmd.Flags().
+		StringVarP(&imageBuildContext, "context", "c", ".", "Build context directory (default: current directory)")
+	imageBuildCmd.Flags().
+		StringVar(&imageBuildPlatform, "platform", "linux/amd64", "Target platform for the build (currently only linux/amd64 is supported)")
 
 	_ = imageBuildCmd.MarkFlagRequired("tag")
 
-	imageListCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
-	imageListCmd.Flags().StringVarP(&imageProject, "project", "p", "", "Project name to list images for")
+	imageListCmd.Flags().
+		StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
+	imageListCmd.Flags().
+		StringVarP(&imageProject, "project", "p", "", "Project name to list images for")
 
-	imagePushCmd.Flags().StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
-	imagePushCmd.Flags().StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
-	imagePushCmd.Flags().StringVarP(&imageProject, "project", "p", "", "Project name the image belongs to")
+	imagePushCmd.Flags().
+		StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
+	imagePushCmd.Flags().
+		StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
+	imagePushCmd.Flags().
+		StringVarP(&imageProject, "project", "p", "", "Project name the image belongs to")
 	_ = imagePushCmd.MarkFlagRequired("tag")
 
 	rootCmd.AddCommand(imageCmd)

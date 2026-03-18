@@ -79,8 +79,28 @@ func TestLocalTime(t *testing.T) {
 		want  string
 	}{
 		{
-			name:  "converts UTC to local timezone in RFC1123Z format",
+			name:  "RFC3339 converts UTC to local timezone",
 			input: "2025-06-15T10:30:00Z",
+			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+		},
+		{
+			name:  "RFC3339 with offset",
+			input: "2025-06-15T10:30:00+03:00",
+			want:  "Sun, 15 Jun 2025 09:30:00 +0200",
+		},
+		{
+			name:  "RFC3339Nano",
+			input: "2025-06-15T10:30:00.123456789Z",
+			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+		},
+		{
+			name:  "microsecond precision format",
+			input: "2025-06-15T10:30:00.123456",
+			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+		},
+		{
+			name:  "bare datetime without fractional seconds",
+			input: "2025-06-15T10:30:00",
 			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
 		},
 		{
@@ -138,7 +158,11 @@ func TestPrintLoadingDots(t *testing.T) {
 		lenAfter := buf.Len()
 
 		if lenAfter != lenBefore {
-			t.Errorf("expected no more output after done, but buffer grew from %d to %d bytes", lenBefore, lenAfter)
+			t.Errorf(
+				"expected no more output after done, but buffer grew from %d to %d bytes",
+				lenBefore,
+				lenAfter,
+			)
 		}
 	})
 }

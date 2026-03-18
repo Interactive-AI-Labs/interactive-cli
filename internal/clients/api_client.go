@@ -1,4 +1,4 @@
-package internal
+package clients
 
 import (
 	"context"
@@ -39,7 +39,12 @@ type Project struct {
 	Role string `json:"role"`
 }
 
-func NewAPIClient(hostname string, timeout time.Duration, apiKey string, cookies []*http.Cookie) (*APIClient, error) {
+func NewAPIClient(
+	hostname string,
+	timeout time.Duration,
+	apiKey string,
+	cookies []*http.Cookie,
+) (*APIClient, error) {
 	if apiKey == "" && len(cookies) == 0 {
 		return nil, fmt.Errorf("no authentication method available: provide an API key or log in")
 	}
@@ -70,12 +75,14 @@ func (c *APIClient) do(req *http.Request) (*http.Response, error) {
 	return c.httpClient.Do(req)
 }
 
-func (c *APIClient) newRequest(ctx context.Context, method, path string) (*http.Request, error) {
+func (c *APIClient) newRequest(ctx context.Context, method, rawPath string) (*http.Request, error) {
 	u, err := url.Parse(c.hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse API hostname: %w", err)
 	}
-	u.Path = path
+	decodedPath, _ := url.PathUnescape(rawPath)
+	u.Path = decodedPath
+	u.RawPath = rawPath
 	return http.NewRequestWithContext(ctx, method, u.String(), nil)
 }
 
@@ -104,7 +111,8 @@ func (c *APIClient) validateApiKey(ctx context.Context) error {
 	c.cachedProjectName = resp.Header.Get("x-project-name")
 	c.cachedProjectId = resp.Header.Get("x-project-id")
 
-	if c.cachedOrgId == "" || c.cachedOrgName == "" || c.cachedProjectId == "" || c.cachedProjectName == "" {
+	if c.cachedOrgId == "" || c.cachedOrgName == "" || c.cachedProjectId == "" ||
+		c.cachedProjectName == "" {
 		return fmt.Errorf("API key validation failed")
 	}
 
@@ -157,7 +165,11 @@ func (c *APIClient) GetOrgIdByName(ctx context.Context, name string) (string, er
 
 	if c.isApiKeyMode {
 		if c.cachedOrgName != "" && !strings.EqualFold(name, c.cachedOrgName) {
-			return "", fmt.Errorf("organization %q not found; API key is scoped to organization %q", name, c.cachedOrgName)
+			return "", fmt.Errorf(
+				"organization %q not found; API key is scoped to organization %q",
+				name,
+				c.cachedOrgName,
+			)
 		}
 		if c.cachedOrgName != "" && strings.EqualFold(name, c.cachedOrgName) {
 			return c.cachedOrgId, nil
@@ -165,7 +177,11 @@ func (c *APIClient) GetOrgIdByName(ctx context.Context, name string) (string, er
 		if c.cachedOrgName == "" && strings.EqualFold(name, c.cachedOrgId) {
 			return c.cachedOrgId, nil
 		}
-		return "", fmt.Errorf("organization %q not found; API key is scoped to organization ID %q", name, c.cachedOrgId)
+		return "", fmt.Errorf(
+			"organization %q not found; API key is scoped to organization ID %q",
+			name,
+			c.cachedOrgId,
+		)
 	}
 
 	orgs, err := c.ListOrganizations(ctx)
@@ -202,7 +218,11 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 		}}, nil
 	}
 
-	req, err := c.newRequest(ctx, http.MethodGet, fmt.Sprintf("/api/v1/session/organizations/%s/projects", orgId))
+	req, err := c.newRequest(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("/api/v1/session/organizations/%s/projects", orgId),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create projects request: %w", err)
 	}
@@ -232,7 +252,10 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 	return payload.Projects, nil
 }
 
-func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName string) (string, error) {
+func (c *APIClient) GetProjectByName(
+	ctx context.Context,
+	orgId, projectName string,
+) (string, error) {
 	projectName = strings.TrimSpace(projectName)
 	if projectName == "" {
 		return "", fmt.Errorf("project name cannot be empty")
@@ -240,10 +263,18 @@ func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName str
 
 	if c.isApiKeyMode {
 		if orgId != c.cachedOrgId {
-			return "", fmt.Errorf("API key is scoped to organization ID %q, not %q", c.cachedOrgId, orgId)
+			return "", fmt.Errorf(
+				"API key is scoped to organization ID %q, not %q",
+				c.cachedOrgId,
+				orgId,
+			)
 		}
 		if c.cachedProjectName != "" && !strings.EqualFold(projectName, c.cachedProjectName) {
-			return "", fmt.Errorf("project %q not found; API key is scoped to project %q", projectName, c.cachedProjectName)
+			return "", fmt.Errorf(
+				"project %q not found; API key is scoped to project %q",
+				projectName,
+				c.cachedProjectName,
+			)
 		}
 		if c.cachedProjectName != "" && strings.EqualFold(projectName, c.cachedProjectName) {
 			return c.cachedProjectId, nil
@@ -251,7 +282,11 @@ func (c *APIClient) GetProjectByName(ctx context.Context, orgId, projectName str
 		if c.cachedProjectName == "" && strings.EqualFold(projectName, c.cachedProjectId) {
 			return c.cachedProjectId, nil
 		}
-		return "", fmt.Errorf("project %q not found; API key is scoped to project ID %q", projectName, c.cachedProjectId)
+		return "", fmt.Errorf(
+			"project %q not found; API key is scoped to project ID %q",
+			projectName,
+			c.cachedProjectId,
+		)
 	}
 
 	projects, err := c.ListProjects(ctx, orgId)
@@ -330,7 +365,10 @@ type TraceListOptions struct {
 	Environment   []string `url:"environment,omitempty"`
 }
 
-func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]TraceInfo, TraceMeta, error) {
+func (c *APIClient) ListTraces(
+	ctx context.Context,
+	opts TraceListOptions,
+) ([]TraceInfo, TraceMeta, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, "/api/public/traces")
 	if err != nil {
 		return nil, TraceMeta{}, fmt.Errorf("failed to create request: %w", err)
@@ -354,7 +392,10 @@ func (c *APIClient) ListTraces(ctx context.Context, opts TraceListOptions) ([]Tr
 		if msg != "" {
 			return nil, TraceMeta{}, errors.New(msg)
 		}
-		return nil, TraceMeta{}, fmt.Errorf("failed to list traces: server returned %s", resp.Status)
+		return nil, TraceMeta{}, fmt.Errorf(
+			"failed to list traces: server returned %s",
+			resp.Status,
+		)
 	}
 
 	var result traceListResponse
@@ -398,7 +439,10 @@ func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail,
 	return &trace, nil
 }
 
-func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName string) (string, string, error) {
+func (c *APIClient) GetProjectId(
+	ctx context.Context,
+	orgName, projectName string,
+) (string, string, error) {
 	orgName = strings.TrimSpace(orgName)
 	projectName = strings.TrimSpace(projectName)
 
@@ -419,9 +463,17 @@ func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName strin
 
 		if !orgMatch {
 			if c.cachedOrgName != "" {
-				return "", "", fmt.Errorf("organization %q not found; API key is scoped to organization %q", orgName, c.cachedOrgName)
+				return "", "", fmt.Errorf(
+					"organization %q not found; API key is scoped to organization %q",
+					orgName,
+					c.cachedOrgName,
+				)
 			}
-			return "", "", fmt.Errorf("organization %q not found; API key is scoped to organization ID %q", orgName, c.cachedOrgId)
+			return "", "", fmt.Errorf(
+				"organization %q not found; API key is scoped to organization ID %q",
+				orgName,
+				c.cachedOrgId,
+			)
 		}
 
 		projectMatch := false
@@ -433,9 +485,17 @@ func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName strin
 
 		if !projectMatch {
 			if c.cachedProjectName != "" {
-				return "", "", fmt.Errorf("project %q not found; API key is scoped to project %q", projectName, c.cachedProjectName)
+				return "", "", fmt.Errorf(
+					"project %q not found; API key is scoped to project %q",
+					projectName,
+					c.cachedProjectName,
+				)
 			}
-			return "", "", fmt.Errorf("project %q not found; API key is scoped to project ID %q", projectName, c.cachedProjectId)
+			return "", "", fmt.Errorf(
+				"project %q not found; API key is scoped to project ID %q",
+				projectName,
+				c.cachedProjectId,
+			)
 		}
 
 		return c.cachedOrgId, c.cachedProjectId, nil
@@ -452,4 +512,306 @@ func (c *APIClient) GetProjectId(ctx context.Context, orgName, projectName strin
 	}
 
 	return orgId, projectId, nil
+}
+
+type PromptInfo struct {
+	Name          string   `json:"name"`
+	Versions      []int    `json:"versions"`
+	Labels        []string `json:"labels"`
+	Tags          []string `json:"tags"`
+	LastUpdatedAt string   `json:"lastUpdatedAt"`
+}
+
+type PromptDetail struct {
+	Id             string          `json:"id"`
+	Name           string          `json:"name"`
+	Type           string          `json:"type"`
+	Version        int             `json:"version"`
+	ProjectId      string          `json:"projectId"`
+	Prompt         json.RawMessage `json:"prompt"`
+	Config         json.RawMessage `json:"config"`
+	Labels         []string        `json:"labels"`
+	Tags           []string        `json:"tags"`
+	CreatedAt      string          `json:"createdAt"`
+	UpdatedAt      string          `json:"updatedAt"`
+	ExpectedFormat string          `json:"expectedFormat"`
+}
+
+type CreatePromptBody struct {
+	Name   string   `json:"name"`
+	Prompt string   `json:"prompt"`
+	Labels []string `json:"labels,omitempty"`
+	Tags   []string `json:"tags,omitempty"`
+}
+
+type promptAPIResponse struct {
+	Success bool            `json:"success"`
+	Data    json.RawMessage `json:"data"`
+}
+
+type promptListData struct {
+	Prompts    []PromptInfo `json:"prompts"`
+	TotalCount int          `json:"totalCount"`
+}
+
+type PromptListResponse struct {
+	Prompts    []PromptInfo
+	TotalCount int
+}
+
+type PromptListOptions struct {
+	Page  int
+	Limit int
+}
+
+func promptBasePath(projectId, routeSegment string) string {
+	base := fmt.Sprintf("/api/platform/v1/projects/%s/prompts", url.PathEscape(projectId))
+	if routeSegment != "" {
+		return base + "/" + url.PathEscape(routeSegment)
+	}
+	return base
+}
+
+func (c *APIClient) CreatePrompt(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	body CreatePromptBody,
+	skipSchema bool,
+) (*PromptDetail, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := promptBasePath(projectId, routeSegment)
+	req, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	if skipSchema {
+		q := req.URL.Query()
+		q.Set("skip_schema", "true")
+		req.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt creation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("prompt creation failed with status %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt response: %w", err)
+	}
+
+	var result PromptDetail
+	if err := json.Unmarshal(envelope.Data, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt data: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *APIClient) ListPrompts(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	opts PromptListOptions,
+) (*PromptListResponse, error) {
+	path := promptBasePath(projectId, routeSegment)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if opts.Page > 0 {
+		q.Set("page", fmt.Sprintf("%d", opts.Page))
+	}
+	if opts.Limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list prompts: server returned %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompts response: %w", err)
+	}
+
+	var listData promptListData
+	if err := json.Unmarshal(envelope.Data, &listData); err != nil {
+		return nil, fmt.Errorf("failed to decode prompts data: %w", err)
+	}
+
+	return &PromptListResponse{
+		Prompts:    listData.Prompts,
+		TotalCount: listData.TotalCount,
+	}, nil
+}
+
+func (c *APIClient) GetPrompt(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+	version int,
+	label string,
+) (*PromptDetail, error) {
+	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if version > 0 {
+		q.Set("version", fmt.Sprintf("%d", version))
+	}
+	if label != "" {
+		q.Set("label", label)
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt get request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to get prompt: server returned %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt response: %w", err)
+	}
+
+	var result PromptDetail
+	if err := json.Unmarshal(envelope.Data, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt data: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *APIClient) DeletePrompt(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+	version int,
+	label string,
+) error {
+	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	q := req.URL.Query()
+	if version > 0 {
+		q.Set("version", fmt.Sprintf("%d", version))
+	}
+	if label != "" {
+		q.Set("label", label)
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return fmt.Errorf("prompt deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return fmt.Errorf("%s", msg)
+		}
+		return fmt.Errorf("prompt deletion failed with status %s", resp.Status)
+	}
+
+	return nil
+}
+
+func (c *APIClient) DeletePromptByName(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+) error {
+	path := promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return fmt.Errorf("prompt deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return fmt.Errorf("%s", msg)
+		}
+		return fmt.Errorf("prompt deletion failed with status %s", resp.Status)
+	}
+
+	return nil
 }

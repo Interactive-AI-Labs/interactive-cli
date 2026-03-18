@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/spf13/cobra"
 )
 

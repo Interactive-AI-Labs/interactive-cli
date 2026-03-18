@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	files "github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -65,7 +65,12 @@ var loginCmd = &cobra.Command{
 		}
 
 		url := fmt.Sprintf("%s/api/v1/auth/signin", hostname)
-		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodPost, url, bytes.NewReader(bodyBytes))
+		req, err := http.NewRequestWithContext(
+			cmd.Context(),
+			http.MethodPost,
+			url,
+			bytes.NewReader(bodyBytes),
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
@@ -88,12 +93,19 @@ var loginCmd = &cobra.Command{
 
 		cookies := resp.Cookies()
 		if len(cookies) == 0 {
-			fmt.Fprintln(out, "Warning: login succeeded but no cookies were returned by the server.")
+			fmt.Fprintln(
+				out,
+				"Warning: login succeeded but no cookies were returned by the server.",
+			)
 		} else {
 			if err := files.SaveSessionCookies(cookies, cfgDirName, sessionFileName); err != nil {
 				return fmt.Errorf("login succeeded but failed to store session cookies: %w", err)
 			}
-			fmt.Fprintf(out, "Login successful. %d cookie(s) stored for future commands.\n", len(cookies))
+			fmt.Fprintf(
+				out,
+				"Login successful. %d cookie(s) stored for future commands.\n",
+				len(cookies),
+			)
 		}
 
 		return nil
