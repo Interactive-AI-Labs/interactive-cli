@@ -31,9 +31,21 @@ services:
     schedule:
       uptime: "Mon-Fri 07:30-20:30"
       timezone: "Europe/Berlin"
+
+vector-stores:
+  knowledge-base:
+    resources:
+      cpu: 2
+      memory: 4
+    storage:
+      size: 50
+      autoResize: true
+      autoResizeLimit: 200
+    ha: false
+    backups: true
 ```
 
-> **Note:** `replicas` and `autoscaling` are mutually exclusive. To use autoscaling instead:
+> **Note:** `replicas` and `autoscaling` are mutually exclusive for services. To use autoscaling instead:
 
 ```yaml
     autoscaling:
