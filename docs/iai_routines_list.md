@@ -8,8 +8,6 @@ List routines in a specific project.
 
 Returns all routines with their name, labels, tags, and last update time.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai routines list
   iai routines list --page 2 --limit 10

@@ -10,8 +10,6 @@ Without flags, deletes the variable and all its versions (requires confirmation)
 Use --version to delete a specific version, or --label to delete versions with a
 specific label. Use -f to skip the confirmation prompt.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai variables delete session-vars
   iai variables delete session-vars -f

@@ -66,8 +66,7 @@ var servCCmd = &cobra.Command{
 	Aliases: []string{"new"},
 	Short:   "Create a service in a project",
 	Long: `Create a service in a specific project using the deployment service.
-
-All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.`,
+`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -237,8 +236,7 @@ var servUCmd = &cobra.Command{
 	Use:   "update [service_name]",
 	Short: "Update a service in a project",
 	Long: `Update a service in a specific project using the deployment service.
-
-All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.`,
+`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -424,10 +422,8 @@ var servListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List services in a project",
-	Long: `List services in a specific project using the deployment service.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.NoArgs,
+	Long:    `List services in a specific project using the deployment service.`,
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -485,10 +481,8 @@ The project is selected with --project or via 'iai projects select'.`,
 var servDCmd = &cobra.Command{
 	Use:   "delete [service_name]",
 	Short: "Delete a service from a project",
-	Long: `Delete a service from a specific project using the deployment service.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.RangeArgs(0, 1),
+	Long:  `Delete a service from a specific project using the deployment service.`,
+	Args:  cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -569,10 +563,8 @@ The project is selected with --project or via 'iai projects select'.`,
 var servRestartCmd = &cobra.Command{
 	Use:   "restart <service_name>",
 	Short: "Restart a service in a project",
-	Long: `Restart a service in a specific project using the deployment service.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:  `Restart a service in a specific project using the deployment service.`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -645,6 +637,7 @@ var (
 	servLogsFollow    bool
 	servLogsSince     string
 	servLogsStartTime string
+	servLogsEndTime   string
 )
 
 var servLogsCmd = &cobra.Command{
@@ -652,9 +645,7 @@ var servLogsCmd = &cobra.Command{
 	Short: "Show logs for a service",
 	Long: `Show logs for all replicas of a service in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.
-
-The project is selected with --project or via 'iai projects select'.`,
+Returns up to 5000 log entries in chronological order.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -722,6 +713,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			Follow:    servLogsFollow,
 			Since:     servLogsSince,
 			StartTime: servLogsStartTime,
+			EndTime:   servLogsEndTime,
 		}
 
 		logsResp, err := deployClient.GetServiceLogs(ctx, orgId, projectId, serviceName, opts)
@@ -1022,11 +1014,14 @@ func init() {
 		StringVarP(&serviceProject, "project", "p", "", "Project name that owns the service")
 	servLogsCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
-	servLogsCmd.Flags().BoolVarP(&servLogsFollow, "follow", "f", false, "Follow log output")
 	servLogsCmd.Flags().
-		StringVar(&servLogsSince, "since", "", "Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d")
+		BoolVarP(&servLogsFollow, "follow", "f", false, "Stream new log entries as they arrive; mutually exclusive with --end-time")
 	servLogsCmd.Flags().
-		StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since")
+		StringVar(&servLogsSince, "since", "", "Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time")
+	servLogsCmd.Flags().
+		StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+	servLogsCmd.Flags().
+		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 
 	// Flags for "services sync"
 	servicesSyncCmd.Flags().

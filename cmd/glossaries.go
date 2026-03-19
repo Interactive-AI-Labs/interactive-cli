@@ -36,8 +36,6 @@ The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
 the "production" label with --labels production.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai glossaries create finance-terms --file glossary.json
   iai glossaries create finance-terms --file glossary.json --labels production
@@ -46,8 +44,6 @@ Examples:
 
 Returns all glossary entries with their name, labels, tags, and last update time.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai glossaries list
   iai glossaries list --page 2 --limit 10`,
@@ -55,8 +51,6 @@ Examples:
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
-
-The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai glossaries get finance-terms
@@ -82,8 +76,6 @@ Example (glossary.json):
     {"name": "KYC", "description": "Know Your Customer"}
   ]}
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai glossaries update finance-terms --file glossary.json
   iai glossaries update finance-terms --file glossary.json --labels production,staging`,
@@ -92,8 +84,6 @@ Examples:
 Without flags, deletes the glossary entry and all its versions (requires
 confirmation). Use --version to delete a specific version, or --label to delete
 versions with a specific label. Use -f to skip the confirmation prompt.
-
-The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai glossaries delete finance-terms

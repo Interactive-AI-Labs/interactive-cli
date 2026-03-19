@@ -100,7 +100,7 @@ func PrintLogStream(out io.Writer, r io.Reader, showReplica bool, meta LogsMeta)
 	}
 
 	if meta.Truncated {
-		msg := "Warning: output was truncated by the server (max 5000 lines). Use --since or --start-time to narrow the time range."
+		msg := "Warning: output was truncated by the server (max 5000 lines). Use --since or --start-time/--end-time to narrow the time range."
 		if isTerminal(os.Stderr) {
 			fmt.Fprintf(os.Stderr, "\n\033[91m%s%s\n", msg, colorReset)
 		} else {

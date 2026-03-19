@@ -1130,6 +1130,7 @@ type LogsOptions struct {
 	Follow    bool
 	Since     string
 	StartTime string
+	EndTime   string
 }
 
 // LogsResponse wraps the log body stream together with metadata returned by the server.
@@ -1191,6 +1192,9 @@ func (c *DeploymentClient) fetchLogs(
 	}
 	if opts.StartTime != "" {
 		q.Set("start-time", opts.StartTime)
+	}
+	if opts.EndTime != "" {
+		q.Set("end-time", opts.EndTime)
 	}
 	req.URL.RawQuery = q.Encode()
 

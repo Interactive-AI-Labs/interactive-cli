@@ -6,8 +6,6 @@ Describe a vector store in detail
 
 Show detailed information about a specific vector store including status, resources, storage, HA, and backup settings.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai vector-stores describe <vectorStoreName> [flags]
 ```

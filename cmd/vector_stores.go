@@ -34,10 +34,8 @@ var vsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List vector stores in a project",
-	Long: `List vector stores in a specific project.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.NoArgs,
+	Long:    `List vector stores in a specific project.`,
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -96,10 +94,8 @@ var vsDescribeCmd = &cobra.Command{
 	Use:     "describe <vectorStoreName>",
 	Aliases: []string{"desc"},
 	Short:   "Describe a vector store in detail",
-	Long: `Show detailed information about a specific vector store including status, resources, storage, HA, and backup settings.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:    `Show detailed information about a specific vector store including status, resources, storage, HA, and backup settings.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -164,10 +160,8 @@ The project is selected with --project or via 'iai projects select'.`,
 var vsCreateCmd = &cobra.Command{
 	Use:   "create <vectorStoreName>",
 	Short: "Create a vector store",
-	Long: `Create a vector store in a specific project.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:  `Create a vector store in a specific project.`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -259,10 +253,8 @@ var vsDeleteCmd = &cobra.Command{
 	Use:     "delete <vectorStoreName>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a vector store",
-	Long: `Delete a vector store in a specific project.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:    `Delete a vector store in a specific project.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

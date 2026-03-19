@@ -6,8 +6,6 @@ List replicas for a service
 
 List pods backing a service in a specific project.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai replicas list [service_name] [flags]
 ```

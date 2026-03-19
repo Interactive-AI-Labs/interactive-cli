@@ -9,8 +9,6 @@ Get details of a specific glossary definition, including its full content.
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai glossaries get finance-terms
   iai glossaries get finance-terms --version 3

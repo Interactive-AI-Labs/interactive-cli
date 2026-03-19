@@ -30,10 +30,8 @@ var replicasListCmd = &cobra.Command{
 	Use:     "list [service_name]",
 	Aliases: []string{"ls"},
 	Short:   "List replicas for a service",
-	Long: `List pods backing a service in a specific project.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:    `List pods backing a service in a specific project.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -98,10 +96,8 @@ var replicasDescribeCmd = &cobra.Command{
 	Use:     "describe <replica_name>",
 	Aliases: []string{"desc"},
 	Short:   "Describe a replica in detail",
-	Long: `Show detailed information about a specific replica including status, resources, healthcheck configuration, and events.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:    `Show detailed information about a specific replica including status, resources, healthcheck configuration, and events.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -166,6 +162,7 @@ var (
 	replicaLogsFollow    bool
 	replicaLogsSince     string
 	replicaLogsStartTime string
+	replicaLogsEndTime   string
 )
 
 var replicasLogsCmd = &cobra.Command{
@@ -173,9 +170,7 @@ var replicasLogsCmd = &cobra.Command{
 	Short: "Show logs for a specific replica",
 	Long: `Show logs for a specific replica in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.
-
-The project is selected with --project or via 'iai projects select'.`,
+Returns up to 5000 log entries in chronological order.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -243,6 +238,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			Follow:    replicaLogsFollow,
 			Since:     replicaLogsSince,
 			StartTime: replicaLogsStartTime,
+			EndTime:   replicaLogsEndTime,
 		}
 
 		logsResp, err := deployClient.GetReplicaLogs(ctx, orgId, projectId, replicaName, opts)
@@ -282,11 +278,14 @@ func init() {
 		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
 	replicasLogsCmd.Flags().
 		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
-	replicasLogsCmd.Flags().BoolVarP(&replicaLogsFollow, "follow", "f", false, "Follow log output")
 	replicasLogsCmd.Flags().
-		StringVar(&replicaLogsSince, "since", "", "Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d")
+		BoolVarP(&replicaLogsFollow, "follow", "f", false, "Stream new log entries as they arrive; mutually exclusive with --end-time")
 	replicasLogsCmd.Flags().
-		StringVar(&replicaLogsStartTime, "start-time", "", "Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since")
+		StringVar(&replicaLogsSince, "since", "", "Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time")
+	replicasLogsCmd.Flags().
+		StringVar(&replicaLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+	replicasLogsCmd.Flags().
+		StringVar(&replicaLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 
 	replicasCmd.AddCommand(replicasListCmd)
 	replicasCmd.AddCommand(replicasDescribeCmd)

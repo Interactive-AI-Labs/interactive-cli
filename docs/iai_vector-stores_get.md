@@ -6,8 +6,6 @@ Get status of a vector store
 
 Get the status of a specific vector store.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai vector-stores get <vectorStoreName> [flags]
 ```
@@ -32,4 +30,3 @@ iai vector-stores get <vectorStoreName> [flags]
 ### SEE ALSO
 
 * [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores
-

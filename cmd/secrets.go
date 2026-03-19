@@ -35,10 +35,8 @@ var secretsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List secrets in a project",
-	Long: `List secrets in a specific project.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.NoArgs,
+	Long:    `List secrets in a specific project.`,
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -97,8 +95,6 @@ var secretsCreateCmd = &cobra.Command{
 	Use:   "create [secret_name]",
 	Short: "Create a secret in a project",
 	Long: `Create a secret in a specific project using the deployment service.
-
-The project is selected with --project or via 'iai projects select'.
 
 Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
@@ -204,8 +200,6 @@ data will be permanently deleted.
 
 With --remove, the specified keys are deleted from the secret. Cannot be
 combined with --data, --from-env-file, or --replace.
-
-The project is selected with --project or via 'iai projects select'.
 
 Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
@@ -380,10 +374,8 @@ var secretsDeleteCmd = &cobra.Command{
 	Use:     "delete <secret_name>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a secret in a project",
-	Long: `Delete a secret in a specific project using the deployment service.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:    `Delete a secret in a specific project using the deployment service.`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -458,10 +450,8 @@ The project is selected with --project or via 'iai projects select'.`,
 var secretsGetCmd = &cobra.Command{
 	Use:   "get <secret_name>",
 	Short: "Get a secret in a project",
-	Long: `Get a secret in a specific project using the deployment service.
-
-The project is selected with --project or via 'iai projects select'.`,
-	Args: cobra.ExactArgs(1),
+	Long:  `Get a secret in a specific project using the deployment service.`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

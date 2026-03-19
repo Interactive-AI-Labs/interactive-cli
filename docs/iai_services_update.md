@@ -6,7 +6,6 @@ Update a service in a project
 
 Update a service in a specific project using the deployment service.
 
-All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.
 
 ```
 iai services update [service_name] [flags]

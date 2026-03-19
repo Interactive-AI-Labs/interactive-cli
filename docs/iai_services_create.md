@@ -6,7 +6,6 @@ Create a service in a project
 
 Create a service in a specific project using the deployment service.
 
-All configuration is provided via flags. The project is selected with --project or via 'iai projects select'.
 
 ```
 iai services create [service_name] [flags]

@@ -15,8 +15,6 @@ data will be permanently deleted.
 With --remove, the specified keys are deleted from the secret. Cannot be
 combined with --data, --from-env-file, or --replace.
 
-The project is selected with --project or via 'iai projects select'.
-
 Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)

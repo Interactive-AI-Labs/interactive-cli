@@ -23,8 +23,6 @@ The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
 the "production" label with --labels production.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai macros create disclaimer --file disclaimer.md
   iai macros create disclaimer --file disclaimer.md --labels production
@@ -33,8 +31,6 @@ Examples:
 
 Returns all macros with their name, labels, tags, and last update time.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai macros list
   iai macros list --page 2 --limit 10`,
@@ -42,8 +38,6 @@ Examples:
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
-
-The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai macros get disclaimer
@@ -59,8 +53,6 @@ No schema validation is applied — any text content is accepted.
 Example (disclaimer.md):
   **Disclaimer:** This is not financial advice. Consult a professional.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai macros update disclaimer --file disclaimer.md
   iai macros update disclaimer --file disclaimer.md --labels production,staging`,
@@ -69,8 +61,6 @@ Examples:
 Without flags, deletes the macro and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions with a
 specific label. Use -f to skip the confirmation prompt.
-
-The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai macros delete disclaimer

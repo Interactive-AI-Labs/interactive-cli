@@ -42,8 +42,6 @@ The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
 the "production" label with --labels production.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai routines create onboarding-flow --file routine.yaml
   iai routines create onboarding-flow --file routine.yaml --labels production
@@ -52,8 +50,6 @@ Examples:
 
 Returns all routines with their name, labels, tags, and last update time.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai routines list
   iai routines list --page 2 --limit 10`,
@@ -61,8 +57,6 @@ Examples:
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
-
-The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai routines get onboarding-flow
@@ -94,8 +88,6 @@ Example (routine.yaml):
       name: Done
       type: finish
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai routines update onboarding-flow --file routine.yaml
   iai routines update onboarding-flow --file routine.yaml --labels production,staging`,
@@ -104,8 +96,6 @@ Examples:
 Without flags, deletes the routine and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions with a
 specific label. Use -f to skip the confirmation prompt.
-
-The project is selected with --project or via 'iai projects select'.
 
 Examples:
   iai routines delete onboarding-flow
