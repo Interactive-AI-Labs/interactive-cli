@@ -68,6 +68,7 @@ iai --help
 * [iai routines](iai_routines.md)	 - Manage routines
 * [iai secrets](iai_secrets.md)	 - Manage secrets
 * [iai services](iai_services.md)	 - Manage services
+* [iai sync](iai_sync.md)	 - Sync services and vector stores from a stack config file
 * [iai traces](iai_traces.md)	 - Manage traces
 * [iai variables](iai_variables.md)	 - Manage variables
 * [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores
