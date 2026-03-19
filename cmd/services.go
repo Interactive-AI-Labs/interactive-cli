@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -731,161 +730,6 @@ Returns up to 5000 log entries in chronological order.`,
 	},
 }
 
-var (
-	syncProject      string
-	syncOrganization string
-)
-
-var servicesSyncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "Sync services in a project from a stack config file",
-	Long: `Sync services in a specific project from a stack configuration file.
-
-The sync command will:
-- Create services that exist in the config but not in the project
-- Update services that exist in both the config and the project
-- Delete services that exist in the project but not in the config (for the specified stack)
-
-The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
-	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-
-		if cfgFilePath == "" {
-			return fmt.Errorf("config file is required; please provide --cfg-file")
-		}
-
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load stack config: %w", err)
-		}
-
-		if len(cfg.Services) == 0 {
-			return fmt.Errorf("services are required in config file for sync command")
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, syncOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, syncProject)
-		if err != nil {
-			return err
-		}
-
-		fmt.Fprintln(out)
-		fmt.Fprint(out, "Syncing services")
-		done := output.PrintLoadingDots(out)
-
-		result, err := SyncServices(
-			cmd.Context(),
-			apiClient,
-			deployClient,
-			orgName,
-			projectName,
-			cfg,
-		)
-		fmt.Fprintln(out)
-		close(done)
-		if err != nil {
-			return err
-		}
-
-		output.PrintSyncResult(out, result.Created, result.Updated, result.Deleted)
-
-		return nil
-	},
-}
-
-type SyncResult struct {
-	Created []string
-	Updated []string
-	Deleted []string
-}
-
-func SyncServices(
-	ctx context.Context,
-	apiClient *clients.APIClient,
-	deployClient *clients.DeploymentClient,
-	orgName,
-	projectName string,
-	cfg *files.StackConfig,
-) (*SyncResult, error) {
-	orgId, projectId, err := apiClient.GetProjectId(ctx, orgName, projectName)
-	if err != nil {
-		return nil, err
-	}
-
-	existing, err := deployClient.ListServices(ctx, orgId, projectId, cfg.StackId)
-	if err != nil {
-		return nil, err
-	}
-
-	existingByName := make(map[string]clients.ServiceOutput)
-	for _, svc := range existing {
-		existingByName[svc.Name] = svc
-	}
-
-	result := &SyncResult{
-		Created: []string{},
-		Updated: []string{},
-		Deleted: []string{},
-	}
-
-	for name, svcCfg := range cfg.Services {
-		req := svcCfg.ToCreateRequest(cfg.StackId)
-
-		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateService(ctx, orgId, projectId, name, req)
-			if err != nil {
-				return nil, err
-			}
-			result.Created = append(result.Created, name)
-		} else {
-			_, err := deployClient.UpdateService(ctx, orgId, projectId, name, req)
-			if err != nil {
-				return nil, err
-			}
-			result.Updated = append(result.Updated, name)
-		}
-	}
-
-	for name := range existingByName {
-		if _, desired := cfg.Services[name]; !desired {
-			_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
-			if err != nil {
-				return nil, err
-			}
-			result.Deleted = append(result.Deleted, name)
-		}
-	}
-
-	return result, nil
-}
-
 func init() {
 	// Flags for "services create"
 	servCCmd.Flags().
@@ -1023,12 +867,6 @@ func init() {
 	servLogsCmd.Flags().
 		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 
-	// Flags for "services sync"
-	servicesSyncCmd.Flags().
-		StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
-	servicesSyncCmd.Flags().
-		StringVarP(&syncOrganization, "organization", "o", "", "Organization name that owns the project")
-
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)
 	servicesCmd.AddCommand(servCCmd)
@@ -1037,5 +875,4 @@ func init() {
 	servicesCmd.AddCommand(servDCmd)
 	servicesCmd.AddCommand(servRestartCmd)
 	servicesCmd.AddCommand(servLogsCmd)
-	servicesCmd.AddCommand(servicesSyncCmd)
 }
