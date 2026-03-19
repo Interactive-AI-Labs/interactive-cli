@@ -581,7 +581,6 @@ func (c *APIClient) CreatePrompt(
 	projectId string,
 	routeSegment string,
 	body CreatePromptBody,
-	skipSchema bool,
 ) (*PromptDetail, error) {
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
@@ -596,12 +595,6 @@ func (c *APIClient) CreatePrompt(
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
-
-	if skipSchema {
-		q := req.URL.Query()
-		q.Set("skip_schema", "true")
-		req.URL.RawQuery = q.Encode()
-	}
 
 	resp, err := c.do(req)
 	if err != nil {

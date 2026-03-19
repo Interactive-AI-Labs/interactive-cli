@@ -10,12 +10,11 @@ func init() {
 
 Routines are step-by-step conversation flows with branching logic and terminal
 states (YAML format).`,
-		HasSchema:    true,
 		RouteSegment: "routines",
 		CreateLong: `Create a new routine in an InteractiveAI project.
 
 Content is provided via a YAML file using the --file flag and must follow the
-routine schema below. Use --skip-schema to bypass validation.
+routine schema below.
 
 Schema:
   steps:                          # required, array of steps
@@ -45,7 +44,7 @@ the "production" label with --labels production.
 Examples:
   iai routines create onboarding-flow --file routine.yaml
   iai routines create onboarding-flow --file routine.yaml --labels production
-  iai routines create onboarding-flow --file routine.yaml --tags v2,experimental --skip-schema`,
+  iai routines create onboarding-flow --file routine.yaml --tags v2,experimental`,
 		ListLong: `List routines in a specific project.
 
 Returns all routines with their name, labels, tags, and last update time.

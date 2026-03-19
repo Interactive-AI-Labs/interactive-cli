@@ -18,7 +18,6 @@ type PromptTypeConfig struct {
 	Aliases      []string // command aliases, e.g. ["routine"]
 	Short        string   // short description for the parent command
 	Long         string   // long description for the parent command
-	HasSchema    bool     // whether this type has server-side schema validation
 	RouteSegment string   // API URL segment for type-specific routes, e.g. "routines"
 	CreateLong   string   // long description for the create subcommand
 	ListLong     string   // long description for the list subcommand
@@ -47,12 +46,11 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 
 func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
-		file       string
-		labels     []string
-		tags       []string
-		skipSchema bool
-		project    string
-		org        string
+		file    string
+		labels  []string
+		tags    []string
+		project string
+		org     string
 	)
 
 	cmd := &cobra.Command{
@@ -99,7 +97,6 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				pCtx.projectId,
 				ptCfg.RouteSegment,
 				body,
-				skipSchema,
 			)
 			if err != nil {
 				return err
@@ -114,10 +111,6 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
-	if ptCfg.HasSchema {
-		cmd.Flags().
-			BoolVar(&skipSchema, "skip-schema", false, "Skip schema validation (allows draft/WIP content)")
-	}
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 	_ = cmd.MarkFlagRequired("file")
@@ -244,12 +237,11 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
-		file       string
-		labels     []string
-		tags       []string
-		skipSchema bool
-		project    string
-		org        string
+		file    string
+		labels  []string
+		tags    []string
+		project string
+		org     string
 	)
 
 	cmd := &cobra.Command{
@@ -298,7 +290,6 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				pCtx.projectId,
 				ptCfg.RouteSegment,
 				body,
-				skipSchema,
 			)
 			if err != nil {
 				return err
@@ -314,10 +305,6 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the new prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
-	if ptCfg.HasSchema {
-		cmd.Flags().
-			BoolVar(&skipSchema, "skip-schema", false, "Skip schema validation (allows draft/WIP content)")
-	}
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 	_ = cmd.MarkFlagRequired("file")

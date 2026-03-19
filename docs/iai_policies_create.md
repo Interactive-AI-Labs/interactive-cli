@@ -7,7 +7,7 @@ Create a policy
 Create a new policy in an InteractiveAI project.
 
 Content is provided via a YAML file using the --file flag and must follow the
-policy schema below. Use --skip-schema to bypass validation.
+policy schema below.
 
 
 ### Schema
@@ -42,7 +42,6 @@ policies:
       --labels strings        Labels for the prompt version (comma-separated)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
-      --skip-schema           Skip schema validation (allows draft/WIP content)
       --tags strings          Tags for the prompt (comma-separated)
 ```
 
