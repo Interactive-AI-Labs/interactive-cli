@@ -105,7 +105,13 @@ The project is selected with --project or via 'iai projects select', and the con
 				return err
 			}
 
-			output.PrintSyncResult(out, "services", svcResult.Created, svcResult.Updated, svcResult.Deleted)
+			output.PrintSyncResult(
+				out,
+				"services",
+				svcResult.Created,
+				svcResult.Updated,
+				svcResult.Deleted,
+			)
 		}
 
 		if len(cfg.VectorStores) > 0 {
@@ -221,7 +227,13 @@ func syncVectorStores(
 
 	for name, vsCfg := range cfg.VectorStores {
 		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateVectorStore(ctx, orgId, projectId, name, vsCfg.ToCreateRequest(cfg.StackId))
+			_, err := deployClient.CreateVectorStore(
+				ctx,
+				orgId,
+				projectId,
+				name,
+				vsCfg.ToCreateRequest(cfg.StackId),
+			)
 			if err != nil {
 				return nil, err
 			}
