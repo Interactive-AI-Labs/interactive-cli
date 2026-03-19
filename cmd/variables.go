@@ -10,12 +10,11 @@ func init() {
 
 Variables are persistent data fields that survive across conversation sessions
 (JSON format).`,
-		HasSchema:    true,
 		RouteSegment: "variables",
 		CreateLong: `Create a new variable definition in an InteractiveAI project.
 
 Content is provided via a JSON file using the --file flag and must follow the
-variable schema below. Use --skip-schema to bypass validation.
+variable schema below.
 
 Schema:
   {"variables": [                 // required, array of variable definitions
@@ -41,7 +40,7 @@ the "production" label with --labels production.
 Examples:
   iai variables create session-vars --file variables.json
   iai variables create session-vars --file variables.json --labels production
-  iai variables create session-vars --file variables.json --tags core --skip-schema`,
+  iai variables create session-vars --file variables.json --tags core`,
 		ListLong: `List variables in a specific project.
 
 Returns all variables with their name, labels, tags, and last update time.

@@ -46,7 +46,6 @@ steps:
       --labels strings        Labels for the new prompt version (comma-separated)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
-      --skip-schema           Skip schema validation (allows draft/WIP content)
       --tags strings          Tags for the prompt (comma-separated)
 ```
 

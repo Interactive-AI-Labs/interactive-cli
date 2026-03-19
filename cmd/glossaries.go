@@ -10,12 +10,11 @@ func init() {
 
 Glossary entries are domain-specific terms with descriptions and synonyms (JSON
 format).`,
-		HasSchema:    true,
 		RouteSegment: "glossaries",
 		CreateLong: `Create a new glossary definition in an InteractiveAI project.
 
 Content is provided via a JSON file using the --file flag and must follow the
-glossary schema below. Use --skip-schema to bypass validation.
+glossary schema below.
 
 Schema:
   {"terms": [                     // required, array of glossary terms
@@ -39,7 +38,7 @@ the "production" label with --labels production.
 Examples:
   iai glossaries create finance-terms --file glossary.json
   iai glossaries create finance-terms --file glossary.json --labels production
-  iai glossaries create finance-terms --file glossary.json --tags domain --skip-schema`,
+  iai glossaries create finance-terms --file glossary.json --tags domain`,
 		ListLong: `List glossary definitions in a specific project.
 
 Returns all glossary entries with their name, labels, tags, and last update time.

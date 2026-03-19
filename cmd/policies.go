@@ -10,12 +10,11 @@ func init() {
 
 Policies are core behavior rules — condition-action pairs that govern agent
 responses (YAML format).`,
-		HasSchema:    true,
 		RouteSegment: "policies",
 		CreateLong: `Create a new policy in an InteractiveAI project.
 
 Content is provided via a YAML file using the --file flag and must follow the
-policy schema below. Use --skip-schema to bypass validation.
+policy schema below.
 
 Schema:
   policies:                       # required, array of policy rules
@@ -41,7 +40,7 @@ the "production" label with --labels production.
 Examples:
   iai policies create safety-rules --file policy.yaml
   iai policies create safety-rules --file policy.yaml --labels production
-  iai policies create safety-rules --file policy.yaml --tags compliance --skip-schema`,
+  iai policies create safety-rules --file policy.yaml --tags compliance`,
 		ListLong: `List policies in a specific project.
 
 Returns all policies with their name, labels, tags, and last update time.
