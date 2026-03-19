@@ -6,8 +6,6 @@ List services in a project
 
 List services in a specific project using the deployment service.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai services list [flags]
 ```

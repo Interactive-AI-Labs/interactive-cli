@@ -6,8 +6,6 @@ List secrets in a project
 
 List secrets in a specific project.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai secrets list [flags]
 ```

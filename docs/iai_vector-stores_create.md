@@ -6,8 +6,6 @@ Create a vector store
 
 Create a vector store in a specific project.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai vector-stores create <vectorStoreName> [flags]
 ```

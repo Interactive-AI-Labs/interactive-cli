@@ -6,8 +6,6 @@ Restart a service in a project
 
 Restart a service in a specific project using the deployment service.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai services restart <service_name> [flags]
 ```

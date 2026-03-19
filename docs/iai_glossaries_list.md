@@ -8,8 +8,6 @@ List glossary definitions in a specific project.
 
 Returns all glossary entries with their name, labels, tags, and last update time.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai glossaries list
   iai glossaries list --page 2 --limit 10

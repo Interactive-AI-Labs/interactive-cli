@@ -6,8 +6,6 @@ List vector stores in a project
 
 List vector stores in a specific project.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai vector-stores list [flags]
 ```

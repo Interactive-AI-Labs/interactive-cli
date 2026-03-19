@@ -6,8 +6,6 @@ Delete a vector store
 
 Delete a vector store in a specific project.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai vector-stores delete <vectorStoreName> [flags]
 ```

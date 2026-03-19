@@ -6,8 +6,6 @@ Create a secret in a project
 
 Create a secret in a specific project using the deployment service.
 
-The project is selected with --project or via 'iai projects select'.
-
 Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)

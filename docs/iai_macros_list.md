@@ -8,8 +8,6 @@ List macros in a specific project.
 
 Returns all macros with their name, labels, tags, and last update time.
 
-The project is selected with --project or via 'iai projects select'.
-
 Examples:
   iai macros list
   iai macros list --page 2 --limit 10

@@ -6,8 +6,6 @@ Describe a replica in detail
 
 Show detailed information about a specific replica including status, resources, healthcheck configuration, and events.
 
-The project is selected with --project or via 'iai projects select'.
-
 ```
 iai replicas describe <replica_name> [flags]
 ```

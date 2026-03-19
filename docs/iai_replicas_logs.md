@@ -6,9 +6,7 @@ Show logs for a specific replica
 
 Show logs for a specific replica in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.
-
-The project is selected with --project or via 'iai projects select'.
+Returns up to 5000 log entries in chronological order.
 
 ```
 iai replicas logs <replica_name> [flags]
@@ -17,12 +15,13 @@ iai replicas logs <replica_name> [flags]
 ### Options
 
 ```
-  -f, --follow                Follow log output
+      --end-time string       Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow
+  -f, --follow                Stream new log entries as they arrive; mutually exclusive with --end-time
   -h, --help                  help for logs
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the service
-      --since string          Relative duration to look back (e.g. 5m, 1h, 3d); default 1h, max 3d
-      --start-time string     Absolute RFC3339 timestamp to start from (e.g. 2026-02-24T10:00:00Z); max 3d ago, mutually exclusive with --since
+      --since string          Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time
+      --start-time string     Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window
 ```
 
 ### Options inherited from parent commands
