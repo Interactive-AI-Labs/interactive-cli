@@ -178,9 +178,13 @@ vector-stores:
 				Services: map[string]ServiceConfig{
 					"api": {
 						ServicePort: 8080,
-						Image:       clients.ImageSpec{Type: "internal", Name: "myapp", Tag: "latest"},
-						Resources:   clients.Resources{Memory: "256M", CPU: "1"},
-						Replicas:    1,
+						Image: clients.ImageSpec{
+							Type: "internal",
+							Name: "myapp",
+							Tag:  "latest",
+						},
+						Resources: clients.Resources{Memory: "256M", CPU: "1"},
+						Replicas:  1,
 					},
 				},
 				VectorStores: map[string]VectorStoreConfig{
@@ -216,9 +220,13 @@ vector-stores:
 				VectorStores: map[string]VectorStoreConfig{
 					"vs": {
 						Resources: clients.VectorStoreResources{CPU: 4, Memory: 8},
-						Storage:   clients.VectorStoreStorage{Size: 100, AutoResize: true, AutoResizeLimit: 500},
-						HA:        true,
-						Backups:   true,
+						Storage: clients.VectorStoreStorage{
+							Size:            100,
+							AutoResize:      true,
+							AutoResizeLimit: 500,
+						},
+						HA:      true,
+						Backups: true,
 					},
 				},
 			},

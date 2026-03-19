@@ -52,7 +52,9 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	}
 
 	if (len(cfg.Services) > 0 || len(cfg.VectorStores) > 0) && cfg.StackId == "" {
-		return nil, fmt.Errorf("stack-id is required when services or vector stores are defined in config file")
+		return nil, fmt.Errorf(
+			"stack-id is required when services or vector stores are defined in config file",
+		)
 	}
 
 	if cfg.Services == nil {
