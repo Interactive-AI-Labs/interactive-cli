@@ -83,7 +83,7 @@ The project is selected with --project or via 'iai projects select'.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		stores, err := deployClient.ListVectorStores(cmd.Context(), orgId, projectId)
+		stores, err := deployClient.ListVectorStores(cmd.Context(), orgId, projectId, "")
 		if err != nil {
 			return err
 		}
