@@ -85,10 +85,8 @@ func (cs *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request)
 	state := r.URL.Query().Get("state")
 	errParam := r.URL.Query().Get("error")
 
-	isError := false
 	cs.once.Do(func() {
 		if code == "" {
-			isError = true
 			msg := "no authorization code in callback"
 			if errParam != "" {
 				msg = fmt.Sprintf("authorization error: %s", errParam)
@@ -101,7 +99,9 @@ func (cs *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	if isError {
+	// Determine which page to show based on this request's own query params
+	// (no shared mutable state — safe for concurrent requests)
+	if code == "" {
 		fmt.Fprint(w, errorPageHTML)
 	} else {
 		fmt.Fprint(w, successPageHTML)

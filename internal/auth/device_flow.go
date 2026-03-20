@@ -103,7 +103,7 @@ func RunDeviceFlow(
 		case <-timeoutCtx.Done():
 			return nil, fmt.Errorf("login session expired. Please run 'iai login' again")
 		case <-ticker.C:
-			result, status, err := pollDeviceToken(httpClient, hostname, deviceResp.DeviceCode)
+			result, status, err := pollDeviceToken(timeoutCtx, hostname, deviceResp.DeviceCode)
 			if err != nil {
 				return nil, err
 			}
@@ -129,7 +129,7 @@ func RunDeviceFlow(
 }
 
 func pollDeviceToken(
-	client *http.Client,
+	ctx context.Context,
 	hostname, deviceCode string,
 ) (*DeviceFlowResult, string, error) {
 	reqBody := map[string]string{"device_code": deviceCode}
@@ -146,11 +146,15 @@ func pollDeviceToken(
 		},
 	}
 
-	resp, err := noRedirectClient.Post(
+	pollReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/device/token",
-		"application/json",
 		bytes.NewReader(body),
 	)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create poll request: %w", err)
+	}
+	pollReq.Header.Set("Content-Type", "application/json")
+	resp, err := noRedirectClient.Do(pollReq)
 	if err != nil {
 		return nil, "", fmt.Errorf("polling failed: %w", err)
 	}
