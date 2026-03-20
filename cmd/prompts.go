@@ -64,7 +64,9 @@ This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 
-			result, err := clients.GetPromptSchema(cmd.Context(), hostname, defaultHTTPTimeout, ptCfg.TypeName)
+			result, err := clients.GetPromptSchema(
+				cmd.Context(), hostname, defaultHTTPTimeout, ptCfg.TypeName,
+			)
 			if err != nil {
 				return err
 			}

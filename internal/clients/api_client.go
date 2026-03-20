@@ -787,7 +787,12 @@ type SchemaResponse struct {
 
 // GetPromptSchema fetches the JSON Schema for a prompt type from the public
 // schemas endpoint. No authentication is required.
-func GetPromptSchema(ctx context.Context, hostname string, timeout time.Duration, typeName string) (*SchemaResponse, error) {
+func GetPromptSchema(
+	ctx context.Context,
+	hostname string,
+	timeout time.Duration,
+	typeName string,
+) (*SchemaResponse, error) {
 	u, err := url.Parse(hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse hostname: %w", err)
