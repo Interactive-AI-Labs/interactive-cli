@@ -6,34 +6,21 @@ Create a glossary
 
 Create a new glossary definition in an InteractiveAI project.
 
-Content is provided via a JSON file using the --file flag and must follow the
-glossary schema below.
+Content is provided via a JSON file using the --file flag.
 
-
-### Schema
-
-```json
-{
-  "terms": [
-    {
-      "name": "<string>",
-      "description": "<string>",
-      "synonyms": ["<string>"]
-    }
-  ]
-}
-```
-
-> `name` and `description` are required. `synonyms` is optional.
+Run `iai glossaries schema` to see the current field definitions.
 
 ### Example
 
 ```json
 {
-  "terms": [
-    {"name": "APR", "description": "Annual Percentage Rate", "synonyms": ["annual rate"]},
-    {"name": "KYC", "description": "Know Your Customer"}
-  ]
+  "terms": {
+    "aht": {
+      "name": "AHT",
+      "description": "Average Handle Time",
+      "synonyms": ["handle time"]
+    }
+  }
 }
 ```
 

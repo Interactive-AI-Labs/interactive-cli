@@ -10,32 +10,18 @@ This creates a new version of the variable using the content from the provided f
 The previous versions are preserved and can still be accessed by version number.
 
 
-### Schema
-
-```json
-{
-  "variables": [
-    {
-      "name": "<string>",
-      "type": "<boolean|string|number|array|object>",
-      "persistence": "<session|customer|global>",
-      "default_value": "<any>"
-    }
-  ]
-}
-```
-
-> `name` and `type` are required. `persistence` defaults to `"session"`. `default_value` is optional.
+Run `iai variables schema` to see the current field definitions.
 
 ### Example
 
 ```json
 {
-  "variables": [
-    {"name": "user_name", "type": "string"},
-    {"name": "is_authenticated", "type": "boolean", "default_value": false},
-    {"name": "preferences", "type": "object", "persistence": "customer"}
-  ]
+  "variables": {
+    "user_name": {
+      "description": "The user's display name",
+      "default_value": "Guest"
+    }
+  }
 }
 ```
 

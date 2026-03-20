@@ -11,25 +11,22 @@ func init() {
 Glossary entries are domain-specific terms with descriptions and synonyms (JSON
 format).`,
 		RouteSegment: "glossaries",
+		HasSchema:    true,
 		CreateLong: `Create a new glossary definition in an InteractiveAI project.
 
-Content is provided via a JSON file using the --file flag and must follow the
-glossary schema below.
-
-Schema:
-  {"terms": [                     // required, array of glossary terms
-    {
-      "name": "<string>",         // required, the term
-      "description": "<string>",  // required, definition of the term
-      "synonyms": ["<string>"]    // optional, alternative names
-    }
-  ]}
+Content is provided via a JSON file using the --file flag.
+Run 'iai glossaries schema' to see the current field definitions.
 
 Example (glossary.json):
-  {"terms": [
-    {"name": "APR", "description": "Annual Percentage Rate", "synonyms": ["annual rate"]},
-    {"name": "KYC", "description": "Know Your Customer"}
-  ]}
+  {
+    "terms": {
+      "aht": {
+        "name": "AHT",
+        "description": "Average Handle Time",
+        "synonyms": ["handle time"]
+      }
+    }
+  }
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -60,20 +57,18 @@ Examples:
 This creates a new version of the glossary using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-Schema:
-  {"terms": [                     // required, array of glossary terms
-    {
-      "name": "<string>",         // required, the term
-      "description": "<string>",  // required, definition of the term
-      "synonyms": ["<string>"]    // optional, alternative names
-    }
-  ]}
+Run 'iai glossaries schema' to see the current field definitions.
 
 Example (glossary.json):
-  {"terms": [
-    {"name": "APR", "description": "Annual Percentage Rate", "synonyms": ["annual rate"]},
-    {"name": "KYC", "description": "Know Your Customer"}
-  ]}
+  {
+    "terms": {
+      "aht": {
+        "name": "AHT",
+        "description": "Average Handle Time",
+        "synonyms": ["handle time"]
+      }
+    }
+  }
 
 Examples:
   iai glossaries update finance-terms --file glossary.json

@@ -6,36 +6,25 @@ Create a routine
 
 Create a new routine in an InteractiveAI project.
 
-Content is provided via a YAML file using the --file flag and must follow the
-routine schema below.
+Content is provided via a YAML file using the --file flag.
 
-
-### Schema
-
-```yaml
-steps:                                       # required, array of steps
-  - step: <string>                           # required, step identifier
-    name: <string>                           # required, step display name
-    type: <node|branch|finish|branchnode>    # required
-    description: <string>                    # optional
-    tool: <string>                           # optional, tool to invoke
-    condition: <string>                      # optional, branching condition
-    input: <string>                          # optional
-    output: <string>                         # optional
-```
+Run `iai routines schema` to see the current field definitions.
 
 ### Example
 
 ```yaml
 # routine.yaml
+title: My Routine
+conditions: When user needs help
+description: Handles user support requests
 steps:
-  - step: "1"
-    name: Greet
-    type: node
-    description: "Welcome the user"
-  - step: "2"
-    name: Done
-    type: finish
+  - id: greet
+    description: Welcome the user
+    chat_state: Say hello
+  - id: lookup
+    source: greet
+    tools: crm:get_user
+    tool_instruction: Fetch user data
 ```
 
 ### Options

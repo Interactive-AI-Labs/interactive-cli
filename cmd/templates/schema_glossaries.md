@@ -1,26 +1,15 @@
-### Schema
-
-```json
-{
-  "terms": [
-    {
-      "name": "<string>",
-      "description": "<string>",
-      "synonyms": ["<string>"]
-    }
-  ]
-}
-```
-
-> `name` and `description` are required. `synonyms` is optional.
+Run `iai glossaries schema` to see the current field definitions.
 
 ### Example
 
 ```json
 {
-  "terms": [
-    {"name": "APR", "description": "Annual Percentage Rate", "synonyms": ["annual rate"]},
-    {"name": "KYC", "description": "Know Your Customer"}
-  ]
+  "terms": {
+    "aht": {
+      "name": "AHT",
+      "description": "Average Handle Time",
+      "synonyms": ["handle time"]
+    }
+  }
 }
 ```
