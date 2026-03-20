@@ -36,15 +36,24 @@ type deviceTokenResponse struct {
 // RunDeviceFlow performs the device authorization flow (US-010).
 // It displays the user code, then polls until authorization completes or times out.
 // The printFn is called to display messages to the user.
-func RunDeviceFlow(ctx context.Context, hostname string, timeout time.Duration, printFn func(string)) (*DeviceFlowResult, error) {
+func RunDeviceFlow(
+	ctx context.Context,
+	hostname string,
+	timeout time.Duration,
+	printFn func(string),
+) (*DeviceFlowResult, error) {
 	httpClient := &http.Client{Timeout: 15 * time.Second}
 
 	// 1. Request device code
-	resp, err := httpClient.Post(
+	deviceReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/device/authorize",
-		"application/json",
 		bytes.NewReader([]byte("{}")),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create device authorize request: %w", err)
+	}
+	deviceReq.Header.Set("Content-Type", "application/json")
+	resp, err := httpClient.Do(deviceReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request device code: %w", err)
 	}
@@ -52,7 +61,11 @@ func RunDeviceFlow(ctx context.Context, hostname string, timeout time.Duration, 
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("device authorize failed (%d): %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf(
+			"device authorize failed (%d): %s",
+			resp.StatusCode,
+			string(respBody),
+		)
 	}
 
 	var deviceResp deviceAuthorizeResponse
@@ -61,9 +74,16 @@ func RunDeviceFlow(ctx context.Context, hostname string, timeout time.Duration, 
 	}
 
 	// 2. Display instructions
-	printFn(fmt.Sprintf("\nTo sign in, open this URL on any device:\n  %s\n", deviceResp.VerificationURI))
+	printFn(
+		fmt.Sprintf(
+			"\nTo sign in, open this URL on any device:\n  %s\n",
+			deviceResp.VerificationURI,
+		),
+	)
 	printFn(fmt.Sprintf("Then enter this code: %s\n", deviceResp.UserCode))
-	printFn(fmt.Sprintf("\nOr open this link directly:\n  %s\n", deviceResp.VerificationURIComplete))
+	printFn(
+		fmt.Sprintf("\nOr open this link directly:\n  %s\n", deviceResp.VerificationURIComplete),
+	)
 	printFn("\nWaiting for authorization... (press Ctrl+C to cancel)\n")
 
 	// 3. Poll
@@ -108,7 +128,10 @@ func RunDeviceFlow(ctx context.Context, hostname string, timeout time.Duration, 
 	}
 }
 
-func pollDeviceToken(client *http.Client, hostname, deviceCode string) (*DeviceFlowResult, string, error) {
+func pollDeviceToken(
+	client *http.Client,
+	hostname, deviceCode string,
+) (*DeviceFlowResult, string, error) {
 	reqBody := map[string]string{"device_code": deviceCode}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
@@ -166,6 +189,10 @@ func pollDeviceToken(client *http.Client, hostname, deviceCode string) (*DeviceF
 		return nil, "", fmt.Errorf("device code not found")
 
 	default:
-		return nil, "", fmt.Errorf("unexpected response (%d): %s", resp.StatusCode, string(respBody))
+		return nil, "", fmt.Errorf(
+			"unexpected response (%d): %s",
+			resp.StatusCode,
+			string(respBody),
+		)
 	}
 }

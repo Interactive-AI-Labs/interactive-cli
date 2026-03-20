@@ -12,13 +12,21 @@ const verifierChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234
 // GenerateCodeVerifier generates a cryptographically random code verifier (43-128 chars).
 func GenerateCodeVerifier() (string, error) {
 	const length = 64
-	buf := make([]byte, length)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
-	}
+	n := len(verifierChars)
+	// Rejection threshold to avoid modulo bias: discard bytes >= maxValid
+	maxValid := byte(256 - 256%n)
+
 	out := make([]byte, length)
-	for i := range buf {
-		out[i] = verifierChars[int(buf[i])%len(verifierChars)]
+	buf := make([]byte, 1)
+	for i := 0; i < length; {
+		if _, err := rand.Read(buf); err != nil {
+			return "", err
+		}
+		if buf[0] >= maxValid {
+			continue // reject to avoid bias
+		}
+		out[i] = verifierChars[buf[0]%byte(n)]
+		i++
 	}
 	return string(out), nil
 }

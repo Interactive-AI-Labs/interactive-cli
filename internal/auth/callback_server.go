@@ -83,10 +83,17 @@ func (cs *CallbackServer) Shutdown(ctx context.Context) {
 func (cs *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
+	errParam := r.URL.Query().Get("error")
 
+	isError := false
 	cs.once.Do(func() {
 		if code == "" {
-			cs.result <- CallbackResult{Err: fmt.Errorf("no authorization code in callback")}
+			isError = true
+			msg := "no authorization code in callback"
+			if errParam != "" {
+				msg = fmt.Sprintf("authorization error: %s", errParam)
+			}
+			cs.result <- CallbackResult{Err: fmt.Errorf("%s", msg)}
 		} else {
 			cs.result <- CallbackResult{Code: code, State: state}
 		}
@@ -94,8 +101,45 @@ func (cs *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, successPageHTML)
+	if isError {
+		fmt.Fprint(w, errorPageHTML)
+	} else {
+		fmt.Fprint(w, successPageHTML)
+	}
 }
+
+const errorPageHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login Failed - Interactive CLI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+display:flex;align-items:center;justify-content:center;min-height:100vh;
+background:#f8fafc;color:#1e293b}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+padding:48px;text-align:center;max-width:420px;width:100%}
+.icon{width:64px;height:64px;border-radius:50%;background:#fde8e8;
+display:flex;align-items:center;justify-content:center;margin:0 auto 24px}
+.icon svg{width:32px;height:32px;color:#E80F13}
+h1{font-size:20px;font-weight:600;margin-bottom:8px}
+p{font-size:14px;color:#64748b;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="icon">
+<svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+</svg>
+</div>
+<h1>Login failed</h1>
+<p>Authentication was not completed.<br>Please return to the terminal and try again.</p>
+</div>
+</body>
+</html>`
 
 const successPageHTML = `<!DOCTYPE html>
 <html lang="en">

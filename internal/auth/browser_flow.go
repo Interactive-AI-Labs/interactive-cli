@@ -34,7 +34,11 @@ type tokenResponse struct {
 // It returns the session cookies on success, or an error.
 // If the browser fails to open, it returns a *BrowserOpenError so the caller
 // can fall back to the device flow.
-func RunBrowserFlow(ctx context.Context, hostname string, timeout time.Duration) (*BrowserFlowResult, error) {
+func RunBrowserFlow(
+	ctx context.Context,
+	hostname string,
+	timeout time.Duration,
+) (*BrowserFlowResult, error) {
 	// 1. Generate PKCE parameters
 	codeVerifier, err := GenerateCodeVerifier()
 	if err != nil {
@@ -70,11 +74,15 @@ func RunBrowserFlow(ctx context.Context, hostname string, timeout time.Duration)
 	}
 
 	httpClient := &http.Client{Timeout: 15 * time.Second}
-	resp, err := httpClient.Post(
+	authorizeReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/authorize",
-		"application/json",
 		bytes.NewReader(body),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create authorize request: %w", err)
+	}
+	authorizeReq.Header.Set("Content-Type", "application/json")
+	resp, err := httpClient.Do(authorizeReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate auth: %w", err)
 	}
@@ -92,6 +100,7 @@ func RunBrowserFlow(ctx context.Context, hostname string, timeout time.Duration)
 
 	// 4. Open browser
 	if err := OpenBrowser(authResp.AuthURL); err != nil {
+		callbackServer.Shutdown(context.Background())
 		return nil, &BrowserOpenError{Err: err}
 	}
 
@@ -114,10 +123,13 @@ func RunBrowserFlow(ctx context.Context, hostname string, timeout time.Duration)
 	}
 
 	// 8. Exchange authorization code for session cookies
-	return exchangeCode(httpClient, hostname, result.Code, codeVerifier, authResp.CliAuthCode)
+	return exchangeCode(ctx, hostname, result.Code, codeVerifier, authResp.CliAuthCode)
 }
 
-func exchangeCode(client *http.Client, hostname, code, codeVerifier, cliAuthCode string) (*BrowserFlowResult, error) {
+func exchangeCode(
+	ctx context.Context,
+	hostname, code, codeVerifier, cliAuthCode string,
+) (*BrowserFlowResult, error) {
 	tokenReq := map[string]string{
 		"code":          code,
 		"code_verifier": codeVerifier,
@@ -136,11 +148,15 @@ func exchangeCode(client *http.Client, hostname, code, codeVerifier, cliAuthCode
 		},
 	}
 
-	resp, err := noRedirectClient.Post(
+	tokenReqHTTP, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/token",
-		"application/json",
 		bytes.NewReader(body),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create token request: %w", err)
+	}
+	tokenReqHTTP.Header.Set("Content-Type", "application/json")
+	resp, err := noRedirectClient.Do(tokenReqHTTP)
 	if err != nil {
 		return nil, fmt.Errorf("token exchange failed: %w", err)
 	}

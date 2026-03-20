@@ -56,7 +56,7 @@ iai --help
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
 * [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
 * [iai images](iai_images.md)	 - Build and manage container images
-* [iai login](iai_login.md)	 - Log in to InteractiveAI with a email and password
+* [iai login](iai_login.md)	 - Log in to InteractiveAI
 * [iai logout](iai_logout.md)	 - Log out of InteractiveAI
 * [iai macros](iai_macros.md)	 - Manage macros
 * [iai organizations](iai_organizations.md)	 - Manage organizations
