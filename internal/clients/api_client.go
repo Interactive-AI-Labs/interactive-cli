@@ -792,7 +792,10 @@ func GetPromptSchema(ctx context.Context, hostname string, timeout time.Duration
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse hostname: %w", err)
 	}
-	u.Path = fmt.Sprintf("/api/platform/v1/prompts/schemas/%s", url.PathEscape(typeName))
+	rawPath := fmt.Sprintf("/api/platform/v1/prompts/schemas/%s", url.PathEscape(typeName))
+	decodedPath, _ := url.PathUnescape(rawPath)
+	u.Path = decodedPath
+	u.RawPath = rawPath
 
 	httpClient := &http.Client{Timeout: timeout}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -802,7 +805,7 @@ func GetPromptSchema(ctx context.Context, hostname string, timeout time.Duration
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("could not fetch schema. Ensure --hostname is correct")
+		return nil, fmt.Errorf("Could not fetch schema. Ensure --hostname is correct: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -824,6 +827,10 @@ func GetPromptSchema(ctx context.Context, hostname string, timeout time.Duration
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
 		return nil, fmt.Errorf("failed to decode schema response: %w", err)
+	}
+
+	if !envelope.Success {
+		return nil, fmt.Errorf("schema endpoint returned success=false")
 	}
 
 	return &envelope.Data, nil
