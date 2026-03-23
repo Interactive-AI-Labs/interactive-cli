@@ -31,7 +31,11 @@ var loginCmd = &cobra.Command{
 	Long: `Log in to InteractiveAI.
 
 By default, opens your browser for SSO login (Google, GitHub, or email/password).
-Use --device for headless/SSH environments (displays a code to enter on another device).
+If the browser cannot be opened, the CLI automatically falls back to the device flow.
+
+Use --device for headless/SSH environments. This displays a scannable QR code
+and a verification code to enter on another device.
+
 Use --interactive (or -i) for the classic email/password prompt.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		switch {
