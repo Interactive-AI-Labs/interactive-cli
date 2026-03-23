@@ -53,6 +53,7 @@ iai --help
 
 ### SEE ALSO
 
+* [iai agents](iai_agents.md)	 - Manage agents
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
 * [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
 * [iai images](iai_images.md)	 - Build and manage container images
