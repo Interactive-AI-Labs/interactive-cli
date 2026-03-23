@@ -31,5 +31,6 @@ format).
 * [iai glossaries delete](iai_glossaries_delete.md)	 - Delete a glossary
 * [iai glossaries get](iai_glossaries_get.md)	 - Get details of a glossary
 * [iai glossaries list](iai_glossaries_list.md)	 - List glossaries in a project
+* [iai glossaries schema](iai_glossaries_schema.md)	 - Display the JSON Schema for glossaries
 * [iai glossaries update](iai_glossaries_update.md)	 - Update a glossary (creates a new version)
 

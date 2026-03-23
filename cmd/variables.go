@@ -11,27 +11,21 @@ func init() {
 Variables are persistent data fields that survive across conversation sessions
 (JSON format).`,
 		RouteSegment: "variables",
+		HasSchema:    true,
 		CreateLong: `Create a new variable definition in an InteractiveAI project.
 
-Content is provided via a JSON file using the --file flag and must follow the
-variable schema below.
-
-Schema:
-  {"variables": [                 // required, array of variable definitions
-    {
-      "name": "<string>",         // required
-      "type": "<boolean|string|number|array|object>",  // required
-      "persistence": "<session|customer|global>",      // optional, default "session"
-      "default_value": <any>      // optional
-    }
-  ]}
+Content is provided via a JSON file using the --file flag.
+Run 'iai variables schema' to see the current field definitions.
 
 Example (variables.json):
-  {"variables": [
-    {"name": "user_name", "type": "string"},
-    {"name": "is_authenticated", "type": "boolean", "default_value": false},
-    {"name": "preferences", "type": "object", "persistence": "customer"}
-  ]}
+  {
+    "variables": {
+      "user_name": {
+        "description": "The user's display name",
+        "default_value": "Guest"
+      }
+    }
+  }
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -62,22 +56,17 @@ Examples:
 This creates a new version of the variable using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-Schema:
-  {"variables": [                 // required, array of variable definitions
-    {
-      "name": "<string>",         // required
-      "type": "<boolean|string|number|array|object>",  // required
-      "persistence": "<session|customer|global>",      // optional, default "session"
-      "default_value": <any>      // optional
-    }
-  ]}
+Run 'iai variables schema' to see the current field definitions.
 
 Example (variables.json):
-  {"variables": [
-    {"name": "user_name", "type": "string"},
-    {"name": "is_authenticated", "type": "boolean", "default_value": false},
-    {"name": "preferences", "type": "object", "persistence": "customer"}
-  ]}
+  {
+    "variables": {
+      "user_name": {
+        "description": "The user's display name",
+        "default_value": "Guest"
+      }
+    }
+  }
 
 Examples:
   iai variables update session-vars --file variables.json

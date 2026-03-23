@@ -138,10 +138,23 @@ func injectSchemaDoc(outDir, filename, schemaDoc string) error {
 
 	text := string(content)
 
-	// Find the start of the schema section: "Schema:" or "No schema"
-	schemaStart := strings.Index(text, "\nSchema:\n")
-	if schemaStart == -1 {
-		schemaStart = strings.Index(text, "\nNo schema")
+	// Find the start of the schema section. The marker text may appear
+	// mid-line (e.g. "...follow the routine schema. Run 'iai ..."), so we
+	// search for the containing line and use its start.
+	markers := []string{"Run 'iai", "No schema"}
+	schemaStart := -1
+	for _, m := range markers {
+		idx := strings.Index(text, m)
+		if idx == -1 {
+			continue
+		}
+		// Walk back to the start of the line.
+		lineStart := strings.LastIndex(text[:idx], "\n")
+		if lineStart == -1 {
+			lineStart = 0
+		}
+		schemaStart = lineStart
+		break
 	}
 	if schemaStart == -1 {
 		return fmt.Errorf("schema section marker not found in %s", filename)

@@ -1,32 +1,30 @@
-## iai policies update
+## iai prompts update
 
-Update a policy (creates a new version)
+Update a prompt (creates a new version)
 
 ### Synopsis
 
-Update a policy by creating a new version with updated content.
+Update a prompt by creating a new version with updated content.
 
-This creates a new version of the policy using the content from the provided file.
-The previous versions are preserved and can still be accessed by version number.
+This creates a new version of the prompt using the content from the provided
+file or inline string. Previous versions are preserved and can still be accessed
+by version number.
 
+Exactly one of --file or --content must be specified.
 
-Run `iai policies schema` to see the current field definitions.
+Examples:
+  iai prompts update greeting --content "Hello! How may I assist you today?"
+  iai prompts update greeting --file greeting.txt
+  iai prompts update greeting --file greeting.txt --labels production,staging
 
-### Example
-
-```yaml
-# policy.yaml
-policies:
-  - id: escalate
-    name: Escalation Policy
-    condition: User requests human agent
-    action: Transfer to human
-    criticality: HIGH
+```
+iai prompts update <name> [flags]
 ```
 
 ### Options
 
 ```
+      --content string        Inline updated prompt content string
       --file string           Path to the file containing the updated prompt content
   -h, --help                  help for update
       --labels strings        Labels for the new prompt version (comma-separated)
@@ -46,5 +44,5 @@ policies:
 
 ### SEE ALSO
 
-* [iai policies](iai_policies.md)	 - Manage policies
+* [iai prompts](iai_prompts.md)	 - Manage prompts
 

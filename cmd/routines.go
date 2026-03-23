@@ -11,31 +11,24 @@ func init() {
 Routines are step-by-step conversation flows with branching logic and terminal
 states (YAML format).`,
 		RouteSegment: "routines",
+		HasSchema:    true,
 		CreateLong: `Create a new routine in an InteractiveAI project.
 
-Content is provided via a YAML file using the --file flag and must follow the
-routine schema below.
-
-Schema:
-  steps:                          # required, array of steps
-    - step: <string>              # required, step identifier
-      name: <string>              # required, step display name
-      type: <node|branch|finish|branchnode>  # required
-      description: <string>       # optional
-      tool: <string>              # optional, tool to invoke
-      condition: <string>         # optional, branching condition
-      input: <string>             # optional
-      output: <string>            # optional
+Content is provided via a YAML file using the --file flag.
+Run 'iai routines schema' to see the current field definitions.
 
 Example (routine.yaml):
+  title: My Routine
+  conditions: When user needs help
+  description: Handles user support requests
   steps:
-    - step: "1"
-      name: Greet
-      type: node
-      description: "Welcome the user"
-    - step: "2"
-      name: Done
-      type: finish
+    - id: greet
+      description: Welcome the user
+      chat_state: Say hello
+    - id: lookup
+      source: greet
+      tools: crm:get_user
+      tool_instruction: Fetch user data
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -66,26 +59,20 @@ Examples:
 This creates a new version of the routine using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-Schema:
-  steps:                          # required, array of steps
-    - step: <string>              # required, step identifier
-      name: <string>              # required, step display name
-      type: <node|branch|finish|branchnode>  # required
-      description: <string>       # optional
-      tool: <string>              # optional, tool to invoke
-      condition: <string>         # optional, branching condition
-      input: <string>             # optional
-      output: <string>            # optional
+Run 'iai routines schema' to see the current field definitions.
 
 Example (routine.yaml):
+  title: My Routine
+  conditions: When user needs help
+  description: Handles user support requests
   steps:
-    - step: "1"
-      name: Greet
-      type: node
-      description: "Welcome the user"
-    - step: "2"
-      name: Done
-      type: finish
+    - id: greet
+      description: Welcome the user
+      chat_state: Say hello
+    - id: lookup
+      source: greet
+      tools: crm:get_user
+      tool_instruction: Fetch user data
 
 Examples:
   iai routines update onboarding-flow --file routine.yaml

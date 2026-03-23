@@ -31,5 +31,6 @@ responses (YAML format).
 * [iai policies delete](iai_policies_delete.md)	 - Delete a policy
 * [iai policies get](iai_policies_get.md)	 - Get details of a policy
 * [iai policies list](iai_policies_list.md)	 - List policies in a project
+* [iai policies schema](iai_policies_schema.md)	 - Display the JSON Schema for policies
 * [iai policies update](iai_policies_update.md)	 - Update a policy (creates a new version)
 

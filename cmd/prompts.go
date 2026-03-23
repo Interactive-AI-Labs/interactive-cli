@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -19,6 +21,7 @@ type PromptTypeConfig struct {
 	Short        string   // short description for the parent command
 	Long         string   // long description for the parent command
 	RouteSegment string   // API URL segment for type-specific routes, e.g. "routines"
+	HasSchema    bool     // whether this type supports the schema subcommand
 	CreateLong   string   // long description for the create subcommand
 	ListLong     string   // long description for the list subcommand
 	GetLong      string   // long description for the get subcommand
@@ -41,7 +44,44 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 	deleteCmd := makeDeleteCmd(ptCfg)
 
 	parentCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, deleteCmd)
+
+	if ptCfg.HasSchema {
+		schemaCmd := makeSchemaCmd(ptCfg)
+		parentCmd.AddCommand(schemaCmd)
+	}
+
 	rootCmd.AddCommand(parentCmd)
+}
+
+func makeSchemaCmd(ptCfg PromptTypeConfig) *cobra.Command {
+	return &cobra.Command{
+		Use:   "schema",
+		Short: fmt.Sprintf("Display the JSON Schema for %s", ptCfg.Plural),
+		Long: fmt.Sprintf(`Fetch and display the current JSON Schema for %s from the backend API.
+
+This is a public endpoint and does not require authentication.`, ptCfg.Plural),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+
+			result, err := clients.GetPromptSchema(
+				cmd.Context(), hostname, defaultHTTPTimeout, ptCfg.TypeName,
+			)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
+
+			var indented bytes.Buffer
+			if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
+				return fmt.Errorf("failed to format schema: %w", err)
+			}
+			fmt.Fprintln(out, indented.String())
+
+			return nil
+		},
+	}
 }
 
 func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {

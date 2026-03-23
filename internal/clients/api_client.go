@@ -542,10 +542,11 @@ type PromptDetail struct {
 }
 
 type CreatePromptBody struct {
-	Name   string   `json:"name"`
-	Prompt string   `json:"prompt"`
-	Labels []string `json:"labels,omitempty"`
-	Tags   []string `json:"tags,omitempty"`
+	Name       string   `json:"name"`
+	Prompt     string   `json:"prompt"`
+	Labels     []string `json:"labels,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+	PromptType string   `json:"promptType,omitempty"`
 }
 
 type promptAPIResponse struct {
@@ -564,8 +565,9 @@ type PromptListResponse struct {
 }
 
 type PromptListOptions struct {
-	Page  int
-	Limit int
+	Page   int
+	Limit  int
+	Folder string
 }
 
 func promptBasePath(projectId, routeSegment string) string {
@@ -640,11 +642,36 @@ func (c *APIClient) ListPrompts(
 	}
 
 	q := req.URL.Query()
-	if opts.Page > 0 {
-		q.Set("page", fmt.Sprintf("%d", opts.Page))
-	}
-	if opts.Limit > 0 {
-		q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+
+	// The generic /prompts endpoint (empty routeSegment) expects all query
+	// parameters encoded as a JSON object in a single "input" query param.
+	// Typed endpoints use flat query parameters.
+	if routeSegment == "" {
+		inputMap := map[string]interface{}{
+			"filter":  []interface{}{},
+			"orderBy": map[string]interface{}{},
+		}
+		if opts.Folder != "" {
+			inputMap["folder"] = opts.Folder
+		}
+		if opts.Page > 0 {
+			inputMap["page"] = opts.Page
+		}
+		if opts.Limit > 0 {
+			inputMap["limit"] = opts.Limit
+		}
+		inputBytes, err := json.Marshal(inputMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode list parameters: %w", err)
+		}
+		q.Set("input", string(inputBytes))
+	} else {
+		if opts.Page > 0 {
+			q.Set("page", fmt.Sprintf("%d", opts.Page))
+		}
+		if opts.Limit > 0 {
+			q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+		}
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -778,6 +805,67 @@ func (c *APIClient) DeletePrompt(
 	}
 
 	return nil
+}
+
+type SchemaResponse struct {
+	Schema        json.RawMessage `json:"schema"`
+	SchemaVersion string          `json:"schemaVersion"`
+}
+
+// GetPromptSchema fetches the JSON Schema for a prompt type from the public
+// schemas endpoint. No authentication is required.
+func GetPromptSchema(
+	ctx context.Context,
+	hostname string,
+	timeout time.Duration,
+	typeName string,
+) (*SchemaResponse, error) {
+	u, err := url.Parse(hostname)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse hostname: %w", err)
+	}
+	rawPath := fmt.Sprintf("/api/platform/v1/prompts/schemas/%s", url.PathEscape(typeName))
+	decodedPath, _ := url.PathUnescape(rawPath)
+	u.Path = decodedPath
+	u.RawPath = rawPath
+
+	httpClient := &http.Client{Timeout: timeout}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create schema request: %w", err)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Could not fetch schema. Ensure --hostname is correct: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read schema response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(body); msg != "" {
+			return nil, fmt.Errorf("failed to fetch schema: %s", msg)
+		}
+		return nil, fmt.Errorf("failed to fetch schema: server returned %s", resp.Status)
+	}
+
+	var envelope struct {
+		Success bool           `json:"success"`
+		Data    SchemaResponse `json:"data"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode schema response: %w", err)
+	}
+
+	if !envelope.Success {
+		return nil, fmt.Errorf("schema endpoint returned success=false")
+	}
+
+	return &envelope.Data, nil
 }
 
 func (c *APIClient) DeletePromptByName(

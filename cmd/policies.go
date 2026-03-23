@@ -11,26 +11,18 @@ func init() {
 Policies are core behavior rules — condition-action pairs that govern agent
 responses (YAML format).`,
 		RouteSegment: "policies",
+		HasSchema:    true,
 		CreateLong: `Create a new policy in an InteractiveAI project.
 
-Content is provided via a YAML file using the --file flag and must follow the
-policy schema below.
-
-Schema:
-  policies:                       # required, array of policy rules
-    - id: <string>                # required, unique identifier
-      condition: <string>         # required, when this rule applies
-      action: <string>            # required, what the agent should do
-      criticality: <HIGH|MEDIUM|LOW>  # optional, default MEDIUM
-      description: <string>       # optional
-      tools: [<string>, ...]      # optional, tools to use
-      prioritize_over: [<id>, ...]  # optional, policy IDs this overrides
+Content is provided via a YAML file using the --file flag.
+Run 'iai policies schema' to see the current field definitions.
 
 Example (policy.yaml):
   policies:
-    - id: p1
-      condition: user requests account deletion
-      action: confirm identity before proceeding
+    - id: escalate
+      name: Escalation Policy
+      condition: User requests human agent
+      action: Transfer to human
       criticality: HIGH
 
 The server automatically assigns the "latest" label to new versions. To make a
@@ -62,21 +54,14 @@ Examples:
 This creates a new version of the policy using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-Schema:
-  policies:                       # required, array of policy rules
-    - id: <string>                # required, unique identifier
-      condition: <string>         # required, when this rule applies
-      action: <string>            # required, what the agent should do
-      criticality: <HIGH|MEDIUM|LOW>  # optional, default MEDIUM
-      description: <string>       # optional
-      tools: [<string>, ...]      # optional, tools to use
-      prioritize_over: [<id>, ...]  # optional, policy IDs this overrides
+Run 'iai policies schema' to see the current field definitions.
 
 Example (policy.yaml):
   policies:
-    - id: p1
-      condition: user requests account deletion
-      action: confirm identity before proceeding
+    - id: escalate
+      name: Escalation Policy
+      condition: User requests human agent
+      action: Transfer to human
       criticality: HIGH
 
 Examples:

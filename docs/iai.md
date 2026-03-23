@@ -53,6 +53,7 @@ iai --help
 
 ### SEE ALSO
 
+* [iai agents](iai_agents.md)	 - Manage agents
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
 * [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
 * [iai images](iai_images.md)	 - Build and manage container images
@@ -62,6 +63,7 @@ iai --help
 * [iai organizations](iai_organizations.md)	 - Manage organizations
 * [iai policies](iai_policies.md)	 - Manage policies
 * [iai projects](iai_projects.md)	 - Manage projects
+* [iai prompts](iai_prompts.md)	 - Manage prompts
 * [iai replicas](iai_replicas.md)	 - Manage service replicas
 * [iai routines](iai_routines.md)	 - Manage routines
 * [iai secrets](iai_secrets.md)	 - Manage secrets

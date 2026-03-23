@@ -6,31 +6,19 @@ Create a policy
 
 Create a new policy in an InteractiveAI project.
 
-Content is provided via a YAML file using the --file flag and must follow the
-policy schema below.
+Content is provided via a YAML file using the --file flag.
 
-
-### Schema
-
-```yaml
-policies:                                    # required, array of policy rules
-  - id: <string>                             # required, unique identifier
-    condition: <string>                      # required, when this rule applies
-    action: <string>                         # required, what the agent should do
-    criticality: <HIGH|MEDIUM|LOW>           # optional, default MEDIUM
-    description: <string>                    # optional
-    tools: [<string>, ...]                   # optional, tools to use
-    prioritize_over: [<id>, ...]             # optional, policy IDs this overrides
-```
+Run `iai policies schema` to see the current field definitions.
 
 ### Example
 
 ```yaml
 # policy.yaml
 policies:
-  - id: p1
-    condition: user requests account deletion
-    action: confirm identity before proceeding
+  - id: escalate
+    name: Escalation Policy
+    condition: User requests human agent
+    action: Transfer to human
     criticality: HIGH
 ```
 
