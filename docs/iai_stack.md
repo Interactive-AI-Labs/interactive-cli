@@ -1,15 +1,15 @@
-## iai organizations
+## iai stack
 
-Manage organizations
+Manage stacks
 
 ### Synopsis
 
-Manage organizations associated with your account.
+Manage stacks and their resources (services, vector stores) from stack configuration files.
 
 ### Options
 
 ```
-  -h, --help   help for organizations
+  -h, --help   help for stack
 ```
 
 ### Options inherited from parent commands
@@ -24,6 +24,5 @@ Manage organizations associated with your account.
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai organizations list](iai_organizations_list.md)	 - List organizations
-* [iai organizations select](iai_organizations_select.md)	 - Select an organization for subsequent commands
+* [iai stack sync](iai_stack_sync.md)	 - Sync services and vector stores from a stack config file
 

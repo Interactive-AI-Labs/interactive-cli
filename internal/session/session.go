@@ -46,6 +46,30 @@ func (s *Session) ResolveOrganization(cfgOrg, flagOrg string) (string, error) {
 	)
 }
 
+// ResolveOrganizationFromConfig returns the organization name using this precedence:
+// cfgOrg > selectedOrg.
+// Returns error if both are empty.
+func (s *Session) ResolveOrganizationFromConfig(cfgOrg string) (string, error) {
+	cfgOrg = strings.TrimSpace(cfgOrg)
+	if cfgOrg != "" {
+		return cfgOrg, nil
+	}
+
+	selectedOrg, err := files.GetSelectedOrg(s.cfgDirName)
+	if err != nil {
+		return "", fmt.Errorf("failed to load selected organization: %w", err)
+	}
+
+	selectedOrg = strings.TrimSpace(selectedOrg)
+	if selectedOrg != "" {
+		return selectedOrg, nil
+	}
+
+	return "", fmt.Errorf(
+		"organization is required: provide it in the config file or run 'iai organizations select'",
+	)
+}
+
 // ResolveProject returns the project name using this precedence:
 // flagProject > cfgProject > selectedProject.
 // Returns error if all are empty.
@@ -72,5 +96,29 @@ func (s *Session) ResolveProject(cfgProject, flagProject string) (string, error)
 
 	return "", fmt.Errorf(
 		"project is required: provide via --project flag, --cfg-file, or run 'iai projects select'",
+	)
+}
+
+// ResolveProjectFromConfig returns the project name using this precedence:
+// cfgProject > selectedProject.
+// Returns error if both are empty.
+func (s *Session) ResolveProjectFromConfig(cfgProject string) (string, error) {
+	cfgProject = strings.TrimSpace(cfgProject)
+	if cfgProject != "" {
+		return cfgProject, nil
+	}
+
+	selectedProject, err := files.GetSelectedProject(s.cfgDirName)
+	if err != nil {
+		return "", fmt.Errorf("failed to load selected project: %w", err)
+	}
+
+	selectedProject = strings.TrimSpace(selectedProject)
+	if selectedProject != "" {
+		return selectedProject, nil
+	}
+
+	return "", fmt.Errorf(
+		"project is required: provide it in the config file or run 'iai projects select'",
 	)
 }
