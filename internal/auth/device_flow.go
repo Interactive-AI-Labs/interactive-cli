@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/mdp/qrterminal/v3"
 )
 
 // DeviceFlowResult holds the session cookies after a successful device login.
@@ -74,22 +77,23 @@ func RunDeviceFlow(
 	}
 
 	// 2. Display instructions
-	printFn(
-		fmt.Sprintf(
-			"\nTo sign in, open this URL on any device:\n  %s\n",
-			deviceResp.VerificationURI,
-		),
-	)
-	printFn(fmt.Sprintf("Then enter this code: %s\n", deviceResp.UserCode))
-	printFn(
-		fmt.Sprintf("\nOr open this link directly:\n  %s\n", deviceResp.VerificationURIComplete),
-	)
-	printFn("\nWaiting for authorization... (press Ctrl+C to cancel)\n")
+	printFn("\n")
+	printFn("  Scan the QR code or open the link to sign in:\n\n")
+	qrterminal.GenerateWithConfig(deviceResp.VerificationURIComplete, qrterminal.Config{
+		Level:      qrterminal.L,
+		Writer:     os.Stdout,
+		HalfBlocks: true,
+		QuietZone:  1,
+	})
+	printFn(fmt.Sprintf("\n  Your code: %s\n\n", deviceResp.UserCode))
+	printFn(fmt.Sprintf("  Verification URL:  %s\n", deviceResp.VerificationURI))
+	printFn(fmt.Sprintf("  Direct link:       %s\n", deviceResp.VerificationURIComplete))
+	printFn("\n  Waiting for authorization... (press Ctrl+C to cancel)\n")
 
-	// 3. Poll
+	// 3. Poll — use server-provided interval with a 2s floor for responsiveness
 	interval := time.Duration(deviceResp.Interval) * time.Second
-	if interval < 5*time.Second {
-		interval = 5 * time.Second
+	if interval < 2*time.Second {
+		interval = 2 * time.Second
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
