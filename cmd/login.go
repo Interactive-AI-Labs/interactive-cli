@@ -81,11 +81,7 @@ func runBrowserLogin(cmd *cobra.Command) error {
 func runDeviceLogin(cmd *cobra.Command) error {
 	out := cmd.OutOrStdout()
 
-	printFn := func(msg string) {
-		fmt.Fprint(out, msg)
-	}
-
-	result, err := auth.RunDeviceFlow(cmd.Context(), hostname, loginTimeout, printFn)
+	result, err := auth.RunDeviceFlow(cmd.Context(), hostname, loginTimeout, out)
 	if err != nil {
 		return fmt.Errorf("login failed: %w", err)
 	}

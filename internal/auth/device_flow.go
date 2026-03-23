@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/mdp/qrterminal/v3"
@@ -38,12 +37,12 @@ type deviceTokenResponse struct {
 
 // RunDeviceFlow performs the device authorization flow (US-010).
 // It displays the user code, then polls until authorization completes or times out.
-// The printFn is called to display messages to the user.
+// All output is written to the provided io.Writer.
 func RunDeviceFlow(
 	ctx context.Context,
 	hostname string,
 	timeout time.Duration,
-	printFn func(string),
+	out io.Writer,
 ) (*DeviceFlowResult, error) {
 	httpClient := &http.Client{Timeout: 15 * time.Second}
 
@@ -77,18 +76,18 @@ func RunDeviceFlow(
 	}
 
 	// 2. Display instructions
-	printFn("\n")
-	printFn("  Scan the QR code or open the link to sign in:\n\n")
+	fmt.Fprint(out, "\n")
+	fmt.Fprint(out, "  Scan the QR code or open the link to sign in:\n\n")
 	qrterminal.GenerateWithConfig(deviceResp.VerificationURIComplete, qrterminal.Config{
 		Level:      qrterminal.L,
-		Writer:     os.Stdout,
+		Writer:     out,
 		HalfBlocks: true,
 		QuietZone:  1,
 	})
-	printFn(fmt.Sprintf("\n  Your code: %s\n\n", deviceResp.UserCode))
-	printFn(fmt.Sprintf("  Verification URL:  %s\n", deviceResp.VerificationURI))
-	printFn(fmt.Sprintf("  Direct link:       %s\n", deviceResp.VerificationURIComplete))
-	printFn("\n  Waiting for authorization... (press Ctrl+C to cancel)\n")
+	fmt.Fprintf(out, "\n  Your code: %s\n\n", deviceResp.UserCode)
+	fmt.Fprintf(out, "  Verification URL:  %s\n", deviceResp.VerificationURI)
+	fmt.Fprintf(out, "  Direct link:       %s\n", deviceResp.VerificationURIComplete)
+	fmt.Fprint(out, "\n  Waiting for authorization... (press Ctrl+C to cancel)\n")
 
 	// 3. Poll — use server-provided interval with a 2s floor for responsiveness
 	interval := time.Duration(deviceResp.Interval) * time.Second
