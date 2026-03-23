@@ -542,10 +542,11 @@ type PromptDetail struct {
 }
 
 type CreatePromptBody struct {
-	Name   string   `json:"name"`
-	Prompt string   `json:"prompt"`
-	Labels []string `json:"labels,omitempty"`
-	Tags   []string `json:"tags,omitempty"`
+	Name       string   `json:"name"`
+	Prompt     string   `json:"prompt"`
+	Labels     []string `json:"labels,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+	PromptType string   `json:"promptType,omitempty"`
 }
 
 type promptAPIResponse struct {
@@ -564,8 +565,9 @@ type PromptListResponse struct {
 }
 
 type PromptListOptions struct {
-	Page  int
-	Limit int
+	Page   int
+	Limit  int
+	Folder string
 }
 
 func promptBasePath(projectId, routeSegment string) string {
@@ -640,11 +642,36 @@ func (c *APIClient) ListPrompts(
 	}
 
 	q := req.URL.Query()
-	if opts.Page > 0 {
-		q.Set("page", fmt.Sprintf("%d", opts.Page))
-	}
-	if opts.Limit > 0 {
-		q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+
+	// The generic /prompts endpoint (empty routeSegment) expects all query
+	// parameters encoded as a JSON object in a single "input" query param.
+	// Typed endpoints use flat query parameters.
+	if routeSegment == "" {
+		inputMap := map[string]interface{}{
+			"filter":  []interface{}{},
+			"orderBy": map[string]interface{}{},
+		}
+		if opts.Folder != "" {
+			inputMap["folder"] = opts.Folder
+		}
+		if opts.Page > 0 {
+			inputMap["page"] = opts.Page
+		}
+		if opts.Limit > 0 {
+			inputMap["limit"] = opts.Limit
+		}
+		inputBytes, err := json.Marshal(inputMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode list parameters: %w", err)
+		}
+		q.Set("input", string(inputBytes))
+	} else {
+		if opts.Page > 0 {
+			q.Set("page", fmt.Sprintf("%d", opts.Page))
+		}
+		if opts.Limit > 0 {
+			q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+		}
 	}
 	req.URL.RawQuery = q.Encode()
 
