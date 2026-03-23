@@ -62,6 +62,7 @@ iai --help
 * [iai organizations](iai_organizations.md)	 - Manage organizations
 * [iai policies](iai_policies.md)	 - Manage policies
 * [iai projects](iai_projects.md)	 - Manage projects
+* [iai prompts](iai_prompts.md)	 - Manage prompts
 * [iai replicas](iai_replicas.md)	 - Manage service replicas
 * [iai routines](iai_routines.md)	 - Manage routines
 * [iai secrets](iai_secrets.md)	 - Manage secrets
