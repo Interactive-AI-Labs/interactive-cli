@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -114,13 +115,15 @@ The organization and project are read from the config file or resolved via 'iai 
 			close(done)
 			fmt.Fprintln(out)
 			if err != nil {
-				output.PrintSyncResult(
-					out,
-					"services (partial)",
-					svcResult.Created,
-					svcResult.Updated,
-					svcResult.Deleted,
-				)
+				if svcResult != nil {
+					output.PrintSyncResult(
+						out,
+						"services (partial)",
+						svcResult.Created,
+						svcResult.Updated,
+						svcResult.Deleted,
+					)
+				}
 				return err
 			}
 
@@ -152,13 +155,15 @@ The organization and project are read from the config file or resolved via 'iai 
 			close(done)
 			fmt.Fprintln(out)
 			if err != nil {
-				output.PrintSyncResult(
-					out,
-					"vector stores (partial)",
-					vsResult.Created,
-					vsResult.Updated,
-					vsResult.Deleted,
-				)
+				if vsResult != nil {
+					output.PrintSyncResult(
+						out,
+						"vector stores (partial)",
+						vsResult.Created,
+						vsResult.Updated,
+						vsResult.Deleted,
+					)
+				}
 				return err
 			}
 
@@ -169,6 +174,13 @@ The organization and project are read from the config file or resolved via 'iai 
 				vsResult.Updated,
 				vsResult.Deleted,
 			)
+
+			if len(vsResult.Skipped) > 0 {
+				fmt.Fprintf(out,
+					"Warning: vector stores already exist and cannot be updated: %s\n",
+					strings.Join(vsResult.Skipped, ", "),
+				)
+			}
 		}
 
 		return nil

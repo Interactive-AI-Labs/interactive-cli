@@ -1237,6 +1237,7 @@ type SyncResult struct {
 	Created []string
 	Updated []string
 	Deleted []string
+	Skipped []string
 }
 
 // SyncServices creates, updates, and deletes services to match the desired state.
@@ -1345,6 +1346,8 @@ func (c *DeploymentClient) SyncVectorStores(
 				return result, fmt.Errorf("failed to create vector store %q: %w", name, err)
 			}
 			result.Created = append(result.Created, name)
+		} else {
+			result.Skipped = append(result.Skipped, name)
 		}
 	}
 

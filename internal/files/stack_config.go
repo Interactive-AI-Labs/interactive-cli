@@ -63,9 +63,6 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	}
 
 	for name, vs := range cfg.VectorStores {
-		if name == "" {
-			return nil, fmt.Errorf("vector store name cannot be empty")
-		}
 		if vs.Resources.CPU <= 0 {
 			return nil, fmt.Errorf("vector store %q: resources.cpu must be greater than zero", name)
 		}
@@ -84,9 +81,6 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	}
 
 	for name, svc := range cfg.Services {
-		if name == "" {
-			return nil, fmt.Errorf("service name cannot be empty")
-		}
 		if svc.ServicePort <= 0 {
 			return nil, fmt.Errorf("service %q: servicePort must be greater than zero", name)
 		}
