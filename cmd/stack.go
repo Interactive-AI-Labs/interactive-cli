@@ -152,11 +152,23 @@ The organization and project are read from the config file or resolved via 'iai 
 			close(done)
 			fmt.Fprintln(out)
 			if err != nil {
-				output.PrintSyncResult(out, "vector stores (partial)", vsResult.Created, vsResult.Updated, vsResult.Deleted)
+				output.PrintSyncResult(
+					out,
+					"vector stores (partial)",
+					vsResult.Created,
+					vsResult.Updated,
+					vsResult.Deleted,
+				)
 				return err
 			}
 
-			output.PrintSyncResult(out, "vector stores", vsResult.Created, vsResult.Updated, vsResult.Deleted)
+			output.PrintSyncResult(
+				out,
+				"vector stores",
+				vsResult.Created,
+				vsResult.Updated,
+				vsResult.Deleted,
+			)
 		}
 
 		return nil
