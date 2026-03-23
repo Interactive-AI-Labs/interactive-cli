@@ -148,7 +148,7 @@ The organization and project are read from the config file or resolved via 'iai 
 				return err
 			}
 
-			output.PrintSyncResult(out, "vector stores", vsResult.Created, nil, vsResult.Deleted)
+			output.PrintSyncResult(out, "vector stores", vsResult.Created, vsResult.Updated, vsResult.Deleted)
 		}
 
 		return nil

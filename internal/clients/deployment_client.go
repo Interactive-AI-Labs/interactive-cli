@@ -1281,7 +1281,7 @@ func (c *DeploymentClient) SyncServices(
 	}
 
 	for name := range existingByName {
-		if _, desired := desired[name]; !desired {
+		if _, ok := desired[name]; !ok {
 			_, err := c.DeleteService(ctx, orgId, projectId, name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete service %q: %w", name, err)
@@ -1325,11 +1325,10 @@ func (c *DeploymentClient) SyncVectorStores(
 			}
 			result.Created = append(result.Created, name)
 		}
-		// no update: vector stores have no update endpoint yet
 	}
 
 	for name := range existingByName {
-		if _, desired := desired[name]; !desired {
+		if _, ok := desired[name]; !ok {
 			_, err := c.DeleteVectorStore(ctx, orgId, projectId, name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete vector store %q: %w", name, err)
