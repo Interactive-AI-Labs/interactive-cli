@@ -96,8 +96,8 @@ var genDocsCmd = &cobra.Command{
 			}
 		}
 
-		// Insert config example into the sync doc
-		syncDocPath := filepath.Join(outDir, "iai_sync.md")
+		// Insert config example into the stack sync doc
+		syncDocPath := filepath.Join(outDir, "iai_stack_sync.md")
 		syncContent, err := os.ReadFile(syncDocPath)
 		if err != nil {
 			return err

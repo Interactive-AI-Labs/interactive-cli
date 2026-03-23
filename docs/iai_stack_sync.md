@@ -1,4 +1,4 @@
-## iai sync
+## iai stack sync
 
 Sync services and vector stores from a stack config file
 
@@ -15,10 +15,10 @@ For vector stores, sync will:
 - Create vector stores that exist in the config but not in the project
 - Delete vector stores that exist in the project but not in the config (for the specified stack)
 
-The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.
+The organization and project are read from the config file or resolved via 'iai organizations select' / 'iai projects select'.
 
 ```
-iai sync [flags]
+iai stack sync [flags]
 ```
 
 ### Example config file
@@ -83,21 +83,20 @@ vector-stores:
 ### Options
 
 ```
-  -h, --help                  help for sync
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name to sync in
+  -f, --file string   Path to stack configuration file
+  -h, --help          help for sync
 ```
 
 ### Options inherited from parent commands
 
 ```
       --api-key string               API key for authentication
-      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
+      --cfg-file string              Path to YAML config file with organization, project, and optional resource definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
 ```
 
 ### SEE ALSO
 
-* [iai](iai.md)	 - InteractiveAI's CLI
+* [iai stack](iai_stack.md)	 - Manage stacks
 

@@ -1227,3 +1227,112 @@ func (c *DeploymentClient) fetchLogs(
 		Empty:     resp.Header.Get("X-Log-Empty") == "true",
 	}, nil
 }
+
+// SyncResult holds the outcome of a sync operation.
+type SyncResult struct {
+	Created []string
+	Updated []string
+	Deleted []string
+}
+
+// SyncServices creates, updates, and deletes services to match the desired state.
+// It is scoped to the given stackId.
+func (c *DeploymentClient) SyncServices(
+	ctx context.Context,
+	orgId,
+	projectId,
+	stackId string,
+	desired map[string]CreateServiceBody,
+) (*SyncResult, error) {
+	existing, err := c.ListServices(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list services: %w", err)
+	}
+
+	existingByName := make(map[string]ServiceOutput)
+	for _, svc := range existing {
+		existingByName[svc.Name] = svc
+	}
+
+	result := &SyncResult{
+		Created: []string{},
+		Updated: []string{},
+		Deleted: []string{},
+	}
+
+	for name, body := range desired {
+		if _, exists := existingByName[name]; !exists {
+			_, err := c.CreateService(ctx, orgId, projectId, name, body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create service %q: %w", name, err)
+			}
+			result.Created = append(result.Created, name)
+		} else {
+			_, err := c.UpdateService(ctx, orgId, projectId, name, body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update service %q: %w", name, err)
+			}
+			result.Updated = append(result.Updated, name)
+		}
+	}
+
+	for name := range existingByName {
+		if _, desired := desired[name]; !desired {
+			_, err := c.DeleteService(ctx, orgId, projectId, name)
+			if err != nil {
+				return nil, fmt.Errorf("failed to delete service %q: %w", name, err)
+			}
+			result.Deleted = append(result.Deleted, name)
+		}
+	}
+
+	return result, nil
+}
+
+// SyncVectorStores creates and deletes vector stores to match the desired state.
+// Updates are not supported (no update endpoint). Scoped to the given stackId.
+func (c *DeploymentClient) SyncVectorStores(
+	ctx context.Context,
+	orgId,
+	projectId,
+	stackId string,
+	desired map[string]CreateVectorStoreBody,
+) (*SyncResult, error) {
+	existing, err := c.ListVectorStores(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list vector stores: %w", err)
+	}
+
+	existingByName := make(map[string]VectorStoreInfo)
+	for _, vs := range existing {
+		existingByName[vs.VectorStoreName] = vs
+	}
+
+	result := &SyncResult{
+		Created: []string{},
+		Deleted: []string{},
+	}
+
+	for name, body := range desired {
+		if _, exists := existingByName[name]; !exists {
+			_, err := c.CreateVectorStore(ctx, orgId, projectId, name, body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create vector store %q: %w", name, err)
+			}
+			result.Created = append(result.Created, name)
+		}
+		// no update: vector stores have no update endpoint yet
+	}
+
+	for name := range existingByName {
+		if _, desired := desired[name]; !desired {
+			_, err := c.DeleteVectorStore(ctx, orgId, projectId, name)
+			if err != nil {
+				return nil, fmt.Errorf("failed to delete vector store %q: %w", name, err)
+			}
+			result.Deleted = append(result.Deleted, name)
+		}
+	}
+
+	return result, nil
+}
