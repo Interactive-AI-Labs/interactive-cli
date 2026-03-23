@@ -1264,27 +1264,40 @@ func (c *DeploymentClient) SyncServices(
 		Deleted: []string{},
 	}
 
-	for name, body := range desired {
+	desiredNames := make([]string, 0, len(desired))
+	for name := range desired {
+		desiredNames = append(desiredNames, name)
+	}
+	sort.Strings(desiredNames)
+
+	for _, name := range desiredNames {
+		body := desired[name]
 		if _, exists := existingByName[name]; !exists {
 			_, err := c.CreateService(ctx, orgId, projectId, name, body)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create service %q: %w", name, err)
+				return result, fmt.Errorf("failed to create service %q: %w", name, err)
 			}
 			result.Created = append(result.Created, name)
 		} else {
 			_, err := c.UpdateService(ctx, orgId, projectId, name, body)
 			if err != nil {
-				return nil, fmt.Errorf("failed to update service %q: %w", name, err)
+				return result, fmt.Errorf("failed to update service %q: %w", name, err)
 			}
 			result.Updated = append(result.Updated, name)
 		}
 	}
 
+	existingNames := make([]string, 0, len(existingByName))
 	for name := range existingByName {
+		existingNames = append(existingNames, name)
+	}
+	sort.Strings(existingNames)
+
+	for _, name := range existingNames {
 		if _, ok := desired[name]; !ok {
 			_, err := c.DeleteService(ctx, orgId, projectId, name)
 			if err != nil {
-				return nil, fmt.Errorf("failed to delete service %q: %w", name, err)
+				return result, fmt.Errorf("failed to delete service %q: %w", name, err)
 			}
 			result.Deleted = append(result.Deleted, name)
 		}
@@ -1314,24 +1327,38 @@ func (c *DeploymentClient) SyncVectorStores(
 
 	result := &SyncResult{
 		Created: []string{},
+		Updated: []string{},
 		Deleted: []string{},
 	}
 
-	for name, body := range desired {
+	desiredNames := make([]string, 0, len(desired))
+	for name := range desired {
+		desiredNames = append(desiredNames, name)
+	}
+	sort.Strings(desiredNames)
+
+	for _, name := range desiredNames {
+		body := desired[name]
 		if _, exists := existingByName[name]; !exists {
 			_, err := c.CreateVectorStore(ctx, orgId, projectId, name, body)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create vector store %q: %w", name, err)
+				return result, fmt.Errorf("failed to create vector store %q: %w", name, err)
 			}
 			result.Created = append(result.Created, name)
 		}
 	}
 
+	existingNames := make([]string, 0, len(existingByName))
 	for name := range existingByName {
+		existingNames = append(existingNames, name)
+	}
+	sort.Strings(existingNames)
+
+	for _, name := range existingNames {
 		if _, ok := desired[name]; !ok {
 			_, err := c.DeleteVectorStore(ctx, orgId, projectId, name)
 			if err != nil {
-				return nil, fmt.Errorf("failed to delete vector store %q: %w", name, err)
+				return result, fmt.Errorf("failed to delete vector store %q: %w", name, err)
 			}
 			result.Deleted = append(result.Deleted, name)
 		}

@@ -38,9 +38,6 @@ type ServiceConfig struct {
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
-	if path == "" {
-		return &StackConfig{}, nil
-	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -63,6 +60,27 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 
 	if cfg.VectorStores == nil {
 		cfg.VectorStores = make(map[string]VectorStoreConfig)
+	}
+
+	for name, vs := range cfg.VectorStores {
+		if name == "" {
+			return nil, fmt.Errorf("vector store name cannot be empty")
+		}
+		if vs.Resources.CPU <= 0 {
+			return nil, fmt.Errorf("vector store %q: resources.cpu must be greater than zero", name)
+		}
+		if vs.Resources.Memory <= 0 {
+			return nil, fmt.Errorf(
+				"vector store %q: resources.memory must be greater than zero",
+				name,
+			)
+		}
+		if vs.Storage.Size <= 0 {
+			return nil, fmt.Errorf(
+				"vector store %q: storage.size must be greater than zero",
+				name,
+			)
+		}
 	}
 
 	for name, svc := range cfg.Services {
