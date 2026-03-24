@@ -3,7 +3,6 @@ package output
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -103,7 +102,7 @@ func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error
 	fmt.Fprintf(out, "Model: %s\n", obs.Model)
 	if len(obs.ModelParameters) > 0 && string(obs.ModelParameters) != "null" {
 		isTTY := isTerminal(out)
-		fmt.Fprintf(out, "Parameters:\n%s\n", indentLines(prettyJSON(obs.ModelParameters, isTTY), "  "))
+		fmt.Fprintf(out, "Parameters:\n%s\n", indentLines(prettyJSONUnwrapString(obs.ModelParameters, isTTY), "  "))
 	}
 
 	// Metrics
@@ -115,13 +114,13 @@ func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error
 	fmt.Fprintf(out, "Total Cost:    %s\n", formatCost(obs.TotalCost))
 
 	// Prompt
-	if obs.PromptName != "" || obs.PromptVersion != "" {
+	if obs.PromptName != "" || obs.PromptVersion != nil {
 		fmt.Fprintf(out, "\n--- Prompt ---\n")
 		if obs.PromptName != "" {
 			fmt.Fprintf(out, "Prompt Name:    %s\n", obs.PromptName)
 		}
-		if obs.PromptVersion != "" {
-			fmt.Fprintf(out, "Prompt Version: %s\n", obs.PromptVersion)
+		if obs.PromptVersion != nil {
+			fmt.Fprintf(out, "Prompt Version: %d\n", *obs.PromptVersion)
 		}
 	}
 
@@ -159,14 +158,3 @@ func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error
 	return nil
 }
 
-func formatIntTokens(v *int) string {
-	if v == nil {
-		return "-"
-	}
-	return fmt.Sprintf("%d", *v)
-}
-
-// formatObsColumns returns the available observation columns as a formatted string.
-func formatObsColumns(columns []string) string {
-	return strings.Join(columns, ", ")
-}

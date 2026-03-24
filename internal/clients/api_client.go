@@ -350,8 +350,8 @@ type TraceDetail struct {
 type TraceMeta struct {
 	Page       int `json:"page"`
 	Limit      int `json:"limit"`
-	TotalItems int `json:"totalItems"`
-	TotalPages int `json:"totalPages"`
+	TotalItems int `json:"total_items"`
+	TotalPages int `json:"total_pages"`
 }
 
 type traceListResponse struct {
@@ -398,21 +398,21 @@ type TraceListOptions struct {
 
 // ObservationInfo represents an observation returned by the list endpoint.
 type ObservationInfo struct {
-	ID                  string   `json:"id"`
-	TraceID             string   `json:"traceId"`
-	Type                string   `json:"type"`
-	Name                string   `json:"name"`
-	StartTime           string   `json:"startTime"`
-	EndTime             string   `json:"endTime"`
-	ParentObservationID string   `json:"parentObservationId"`
-	Level               string   `json:"level"`
-	StatusMessage       string   `json:"statusMessage"`
-	Model               string   `json:"model"`
-	InputTokens         *int     `json:"inputTokens"`
-	OutputTokens        *int     `json:"outputTokens"`
-	TotalTokens         *int     `json:"totalTokens"`
-	TotalCost           *float64 `json:"totalCost"`
-	LatencyMs           *float64 `json:"latencyMs"`
+	ID                  string          `json:"id"`
+	TraceID             string          `json:"trace_id"`
+	Type                string          `json:"type"`
+	Name                string          `json:"name"`
+	StartTime           string          `json:"start_time"`
+	EndTime             string          `json:"end_time"`
+	ParentObservationID string          `json:"parent_observation_id"`
+	Level               string          `json:"level"`
+	StatusMessage       string          `json:"status_message"`
+	Model               string          `json:"model"`
+	InputTokens         *int            `json:"input_tokens"`
+	OutputTokens        *int            `json:"output_tokens"`
+	TotalTokens         *int            `json:"total_tokens"`
+	TotalCost           *float64        `json:"total_cost"`
+	LatencyMs           *float64        `json:"latency_ms"`
 	Input               json.RawMessage `json:"input,omitempty"`
 	Output              json.RawMessage `json:"output,omitempty"`
 	Metadata            json.RawMessage `json:"metadata,omitempty"`
@@ -421,9 +421,9 @@ type ObservationInfo struct {
 // ObservationDetail represents a single observation from the get endpoint.
 type ObservationDetail struct {
 	ObservationInfo
-	ModelParameters json.RawMessage `json:"modelParameters,omitempty"`
-	PromptName      string          `json:"promptName"`
-	PromptVersion   string          `json:"promptVersion"`
+	ModelParameters json.RawMessage `json:"model_parameters,omitempty"`
+	PromptName      string          `json:"prompt_name"`
+	PromptVersion   *int            `json:"prompt_version"`
 }
 
 type observationListResponse struct {

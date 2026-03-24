@@ -231,6 +231,21 @@ func formatInt(v *int) string {
 // re-processing replaced text, so \\n correctly becomes literal \n (not a newline).
 var jsonUnescaper = strings.NewReplacer(`\\`, `\`, `\n`, "\n", `\t`, "\t", `\"`, `"`)
 
+// prettyJSONUnwrapString handles the case where a json.RawMessage contains a
+// JSON-encoded string that itself is valid JSON (e.g. "{\"temperature\": 0.7}").
+// It unwraps the outer string and pretty-prints the inner JSON.
+func prettyJSONUnwrapString(raw json.RawMessage, unescape bool) string {
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		// s is a plain string — check if it's valid JSON
+		var inner json.RawMessage
+		if json.Unmarshal([]byte(s), &inner) == nil {
+			return prettyJSON(inner, unescape)
+		}
+	}
+	return prettyJSON(raw, unescape)
+}
+
 func prettyJSON(raw json.RawMessage, unescape bool) string {
 	var decoded any
 	if err := json.Unmarshal(raw, &decoded); err != nil {
