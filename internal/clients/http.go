@@ -84,7 +84,7 @@ func ExtractServerMessage(body []byte) string {
 	}
 
 	var pa platformAPIError
-	if err := json.Unmarshal(body, &pa); err == nil {
+	if err := json.Unmarshal(body, &pa); err == nil && !pa.Success {
 		if msg := strings.TrimSpace(pa.Error.Message); msg != "" {
 			return msg
 		}

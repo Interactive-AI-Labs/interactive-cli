@@ -457,7 +457,10 @@ func (c *APIClient) ListTraces(
 		return nil, TraceMeta{}, nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	q, _ := query.Values(opts)
+	q, err := query.Values(opts)
+	if err != nil {
+		return nil, TraceMeta{}, nil, fmt.Errorf("failed to encode query parameters: %w", err)
+	}
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.do(req)
@@ -484,6 +487,13 @@ func (c *APIClient) ListTraces(
 	var result traceListResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, TraceMeta{}, nil, fmt.Errorf("failed to decode traces response: %w", err)
+	}
+
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, TraceMeta{}, nil, errors.New(msg)
+		}
+		return nil, TraceMeta{}, nil, fmt.Errorf("traces list returned success=false")
 	}
 
 	return result.Data.Traces, result.Data.Meta, respBody, nil
@@ -532,6 +542,13 @@ func (c *APIClient) GetTrace(
 	var result traceGetResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, nil, fmt.Errorf("failed to decode trace response: %w", err)
+	}
+
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf("trace get returned success=false")
 	}
 
 	return &result.Data.Trace, respBody, nil
@@ -586,6 +603,13 @@ func (c *APIClient) ListObservations(
 		return nil, nil, fmt.Errorf("failed to decode observations response: %w", err)
 	}
 
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf("observations list returned success=false")
+	}
+
 	return result.Data.Observations, respBody, nil
 }
 
@@ -629,6 +653,13 @@ func (c *APIClient) GetObservation(
 	var result observationGetResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, nil, fmt.Errorf("failed to decode observation response: %w", err)
+	}
+
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf("observation get returned success=false")
 	}
 
 	return &result.Data.Observation, respBody, nil

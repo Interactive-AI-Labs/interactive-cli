@@ -67,14 +67,18 @@ func PrintTraceList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = traceColumnMap[col].Header
+		if def, ok := traceColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(traces))
 	for i, t := range traces {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = traceColumnMap[col].Value(&t)
+			if def, ok := traceColumnMap[col]; ok {
+				row[j] = def.Value(&t)
+			}
 		}
 		rows[i] = row
 	}

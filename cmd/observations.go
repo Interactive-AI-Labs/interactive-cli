@@ -12,11 +12,15 @@ import (
 )
 
 var (
-	obsTraceID   string
-	obsIncludeIO bool
-	obsColumns   []string
-	obsListJSON  bool
-	obsGetJSON   bool
+	obsTraceID     string
+	obsIncludeIO   bool
+	obsColumns     []string
+	obsListJSON    bool
+	obsGetJSON     bool
+	obsListOrg     string
+	obsListProject string
+	obsGetOrg      string
+	obsGetProject  string
 )
 
 var observationsCmd = &cobra.Command{
@@ -48,14 +52,6 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var org, project string
-		if f := cmd.Flags().Lookup("organization"); f != nil {
-			org = f.Value.String()
-		}
-		if f := cmd.Flags().Lookup("project"); f != nil {
-			project = f.Value.String()
-		}
-
 		traceID := strings.TrimSpace(obsTraceID)
 		if traceID == "" {
 			return fmt.Errorf("--trace-id is required")
@@ -74,7 +70,7 @@ Examples:
 			}
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), org, project)
+		pCtx, err := resolveProject(cmd.Context(), obsListOrg, obsListProject)
 		if err != nil {
 			return err
 		}
@@ -118,20 +114,12 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var org, project string
-		if f := cmd.Flags().Lookup("organization"); f != nil {
-			org = f.Value.String()
-		}
-		if f := cmd.Flags().Lookup("project"); f != nil {
-			project = f.Value.String()
-		}
-
 		observationID := strings.TrimSpace(args[0])
 		if err := inputs.ValidateObservationID(observationID); err != nil {
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), org, project)
+		pCtx, err := resolveProject(cmd.Context(), obsGetOrg, obsGetProject)
 		if err != nil {
 			return err
 		}
@@ -170,14 +158,18 @@ func init() {
 	obsListCmd.Flags().BoolVar(&obsListJSON, "json", false, "Output raw API response as JSON")
 	obsListCmd.Flags().
 		StringSliceVar(&obsColumns, "columns", nil, "Columns to display (comma-separated, default: id,type,name,model,latency_ms,total_cost,total_tokens)\nAvailable: id,trace_id,type,name,start_time,end_time,parent_observation_id,level,status_message,model,input_tokens,output_tokens,total_tokens,total_cost,latency_ms")
-	obsListCmd.Flags().StringP("organization", "o", "", "Organization name that owns the project")
-	obsListCmd.Flags().StringP("project", "p", "", "Project name")
+	obsListCmd.Flags().
+		StringVarP(&obsListOrg, "organization", "o", "", "Organization name that owns the project")
+	obsListCmd.Flags().
+		StringVarP(&obsListProject, "project", "p", "", "Project name")
 	_ = obsListCmd.MarkFlagRequired("trace-id")
 
 	// observations get flags
 	obsGetCmd.Flags().BoolVar(&obsGetJSON, "json", false, "Output raw API response as JSON")
-	obsGetCmd.Flags().StringP("organization", "o", "", "Organization name that owns the project")
-	obsGetCmd.Flags().StringP("project", "p", "", "Project name")
+	obsGetCmd.Flags().
+		StringVarP(&obsGetOrg, "organization", "o", "", "Organization name that owns the project")
+	obsGetCmd.Flags().
+		StringVarP(&obsGetProject, "project", "p", "", "Project name")
 
 	observationsCmd.AddCommand(obsListCmd, obsGetCmd)
 	rootCmd.AddCommand(observationsCmd)

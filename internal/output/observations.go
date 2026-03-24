@@ -67,14 +67,18 @@ func PrintObservationList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = observationColumnMap[col].Header
+		if def, ok := observationColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(observations))
 	for i, o := range observations {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = observationColumnMap[col].Value(&o)
+			if def, ok := observationColumnMap[col]; ok {
+				row[j] = def.Value(&o)
+			}
 		}
 		rows[i] = row
 	}

@@ -69,7 +69,11 @@ func TestValidateTraceListOptions(t *testing.T) {
 			clients.TraceListOptions{Page: 1, ToTimestamp: "2025-01-01"},
 			true,
 		},
-		{"valid order-by timestamp", clients.TraceListOptions{Page: 1, OrderBy: "timestamp"}, false},
+		{
+			"valid order-by timestamp",
+			clients.TraceListOptions{Page: 1, OrderBy: "timestamp"},
+			false,
+		},
 		{"valid order-by name", clients.TraceListOptions{Page: 1, OrderBy: "name"}, false},
 		{"valid order-by cost", clients.TraceListOptions{Page: 1, OrderBy: "cost"}, false},
 		{"valid order-by latency", clients.TraceListOptions{Page: 1, OrderBy: "latency"}, false},
@@ -86,6 +90,59 @@ func TestValidateTraceListOptions(t *testing.T) {
 		{"valid order asc", clients.TraceListOptions{Page: 1, Order: "asc"}, false},
 		{"valid order desc", clients.TraceListOptions{Page: 1, Order: "desc"}, false},
 		{"invalid order", clients.TraceListOptions{Page: 1, Order: "up"}, true},
+		// Cost filters
+		{"negative min-cost", clients.TraceListOptions{Page: 1, MinCost: ptrFloat(-1)}, true},
+		{"negative max-cost", clients.TraceListOptions{Page: 1, MaxCost: ptrFloat(-1)}, true},
+		{
+			"min-cost > max-cost",
+			clients.TraceListOptions{Page: 1, MinCost: ptrFloat(5), MaxCost: ptrFloat(1)},
+			true,
+		},
+		{
+			"valid cost range",
+			clients.TraceListOptions{Page: 1, MinCost: ptrFloat(0.01), MaxCost: ptrFloat(1)},
+			false,
+		},
+		// Latency filters
+		{"negative min-latency", clients.TraceListOptions{Page: 1, MinLatency: ptrFloat(-1)}, true},
+		{"negative max-latency", clients.TraceListOptions{Page: 1, MaxLatency: ptrFloat(-1)}, true},
+		{
+			"min-latency > max-latency",
+			clients.TraceListOptions{Page: 1, MinLatency: ptrFloat(10), MaxLatency: ptrFloat(1)},
+			true,
+		},
+		{
+			"valid latency range",
+			clients.TraceListOptions{Page: 1, MinLatency: ptrFloat(0), MaxLatency: ptrFloat(60)},
+			false,
+		},
+		// Token filters
+		{"negative min-tokens", clients.TraceListOptions{Page: 1, MinTokens: ptrInt(-1)}, true},
+		{"negative max-tokens", clients.TraceListOptions{Page: 1, MaxTokens: ptrInt(-1)}, true},
+		{
+			"min-tokens > max-tokens",
+			clients.TraceListOptions{Page: 1, MinTokens: ptrInt(100), MaxTokens: ptrInt(10)},
+			true,
+		},
+		{
+			"valid tokens range",
+			clients.TraceListOptions{Page: 1, MinTokens: ptrInt(0), MaxTokens: ptrInt(1000)},
+			false,
+		},
+		// Level
+		{"valid level DEBUG", clients.TraceListOptions{Page: 1, Level: "DEBUG"}, false},
+		{"valid level ERROR", clients.TraceListOptions{Page: 1, Level: "ERROR"}, false},
+		{"invalid level", clients.TraceListOptions{Page: 1, Level: "UNKNOWN"}, true},
+		// Search
+		{"search within limit", clients.TraceListOptions{Page: 1, Search: "hello"}, false},
+		{
+			"search exceeds limit",
+			clients.TraceListOptions{Page: 1, Search: strings.Repeat("a", 201)},
+			true,
+		},
+		// Fields
+		{"valid fields", clients.TraceListOptions{Page: 1, Fields: "core,metrics"}, false},
+		{"invalid fields", clients.TraceListOptions{Page: 1, Fields: "unknown"}, true},
 	}
 
 	for _, tt := range tests {
@@ -120,3 +177,6 @@ func TestValidateTraceColumns(t *testing.T) {
 		})
 	}
 }
+
+func ptrFloat(v float64) *float64 { return &v }
+func ptrInt(v int) *int           { return &v }

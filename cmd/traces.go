@@ -41,6 +41,10 @@ var (
 	tracesJSON          bool
 	tracesGetFields     string
 	tracesGetJSON       bool
+	tracesListOrg       string
+	tracesListProject   string
+	tracesGetOrg        string
+	tracesGetProject    string
 )
 
 var tracesCmd = &cobra.Command{
@@ -82,14 +86,6 @@ Examples:
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-
-		var org, project string
-		if f := cmd.Flags().Lookup("organization"); f != nil {
-			org = f.Value.String()
-		}
-		if f := cmd.Flags().Lookup("project"); f != nil {
-			project = f.Value.String()
-		}
 
 		columns := tracesColumns
 		if len(columns) == 0 {
@@ -153,7 +149,7 @@ Examples:
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), org, project)
+		pCtx, err := resolveProject(cmd.Context(), tracesListOrg, tracesListProject)
 		if err != nil {
 			return err
 		}
@@ -198,14 +194,6 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		var org, project string
-		if f := cmd.Flags().Lookup("organization"); f != nil {
-			org = f.Value.String()
-		}
-		if f := cmd.Flags().Lookup("project"); f != nil {
-			project = f.Value.String()
-		}
-
 		traceID := strings.TrimSpace(args[0])
 		if err := inputs.ValidateTraceID(traceID); err != nil {
 			return err
@@ -214,7 +202,7 @@ Examples:
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), org, project)
+		pCtx, err := resolveProject(cmd.Context(), tracesGetOrg, tracesGetProject)
 		if err != nil {
 			return err
 		}
@@ -292,15 +280,18 @@ func init() {
 
 	// Org/project flags
 	tracesListCmd.Flags().
-		StringP("organization", "o", "", "Organization name that owns the project")
-	tracesListCmd.Flags().StringP("project", "p", "", "Project name")
+		StringVarP(&tracesListOrg, "organization", "o", "", "Organization name that owns the project")
+	tracesListCmd.Flags().
+		StringVarP(&tracesListProject, "project", "p", "", "Project name")
 
 	// traces get flags
 	tracesGetCmd.Flags().
 		StringVar(&tracesGetFields, "fields", "core,io,metrics", "Field groups to include: core, io, metrics (comma-separated)")
 	tracesGetCmd.Flags().BoolVar(&tracesGetJSON, "json", false, "Output raw API response as JSON")
-	tracesGetCmd.Flags().StringP("organization", "o", "", "Organization name that owns the project")
-	tracesGetCmd.Flags().StringP("project", "p", "", "Project name")
+	tracesGetCmd.Flags().
+		StringVarP(&tracesGetOrg, "organization", "o", "", "Organization name that owns the project")
+	tracesGetCmd.Flags().
+		StringVarP(&tracesGetProject, "project", "p", "", "Project name")
 
 	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd)
 	rootCmd.AddCommand(tracesCmd)
