@@ -27,9 +27,12 @@ var observationColumnMap = map[string]struct {
 		"PARENT ID",
 		func(o *clients.ObservationInfo) string { return o.ParentObservationID },
 	},
-	"level":          {"LEVEL", func(o *clients.ObservationInfo) string { return o.Level }},
-	"status_message": {"STATUS", func(o *clients.ObservationInfo) string { return o.StatusMessage }},
-	"model":          {"MODEL", func(o *clients.ObservationInfo) string { return o.Model }},
+	"level": {"LEVEL", func(o *clients.ObservationInfo) string { return o.Level }},
+	"status_message": {
+		"STATUS",
+		func(o *clients.ObservationInfo) string { return o.StatusMessage },
+	},
+	"model": {"MODEL", func(o *clients.ObservationInfo) string { return o.Model }},
 	"input_tokens": {
 		"INPUT TOKENS",
 		func(o *clients.ObservationInfo) string { return formatInt(o.InputTokens) },
@@ -102,7 +105,11 @@ func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error
 	fmt.Fprintf(out, "Model: %s\n", obs.Model)
 	if len(obs.ModelParameters) > 0 && string(obs.ModelParameters) != "null" {
 		isTTY := isTerminal(out)
-		fmt.Fprintf(out, "Parameters:\n%s\n", indentLines(prettyJSONUnwrapString(obs.ModelParameters, isTTY), "  "))
+		fmt.Fprintf(
+			out,
+			"Parameters:\n%s\n",
+			indentLines(prettyJSONUnwrapString(obs.ModelParameters, isTTY), "  "),
+		)
 	}
 
 	// Metrics
@@ -157,4 +164,3 @@ func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error
 
 	return nil
 }
-

@@ -291,7 +291,8 @@ func init() {
 		StringSliceVar(&tracesColumns, "columns", nil, "Columns to display (comma-separated, default: id,name,timestamp,latency,cost,tags)\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level")
 
 	// Org/project flags
-	tracesListCmd.Flags().StringP("organization", "o", "", "Organization name that owns the project")
+	tracesListCmd.Flags().
+		StringP("organization", "o", "", "Organization name that owns the project")
 	tracesListCmd.Flags().StringP("project", "p", "", "Project name")
 
 	// traces get flags
@@ -304,4 +305,3 @@ func init() {
 	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd)
 	rootCmd.AddCommand(tracesCmd)
 }
-

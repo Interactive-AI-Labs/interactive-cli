@@ -33,10 +33,12 @@ var AllTraceColumns = []string{
 	"level",
 }
 
-var validOrderByFields = []string{"timestamp", "latency", "cost", "name"}
-var validOrderDirections = []string{"asc", "desc"}
-var validLevels = []string{"DEBUG", "DEFAULT", "WARNING", "ERROR"}
-var validFieldGroups = []string{"core", "io", "metrics"}
+var (
+	validOrderByFields   = []string{"timestamp", "latency", "cost", "name"}
+	validOrderDirections = []string{"asc", "desc"}
+	validLevels          = []string{"DEBUG", "DEFAULT", "WARNING", "ERROR"}
+	validFieldGroups     = []string{"core", "io", "metrics"}
+)
 
 const maxSearchLength = 200
 
@@ -101,7 +103,11 @@ func ValidateTraceListOptions(opts clients.TraceListOptions) error {
 		return err
 	}
 	if len(opts.Search) > maxSearchLength {
-		return fmt.Errorf("--search must be at most %d characters, got %d", maxSearchLength, len(opts.Search))
+		return fmt.Errorf(
+			"--search must be at most %d characters, got %d",
+			maxSearchLength,
+			len(opts.Search),
+		)
 	}
 	if err := ValidateFieldGroups(opts.Fields); err != nil {
 		return err

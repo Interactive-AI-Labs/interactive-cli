@@ -163,8 +163,10 @@ Examples:
 
 func init() {
 	// observations list flags
-	obsListCmd.Flags().StringVar(&obsTraceID, "trace-id", "", "Trace ID to list observations for (required)")
-	obsListCmd.Flags().BoolVar(&obsIncludeIO, "include-io", false, "Include input/output/metadata in response")
+	obsListCmd.Flags().
+		StringVar(&obsTraceID, "trace-id", "", "Trace ID to list observations for (required)")
+	obsListCmd.Flags().
+		BoolVar(&obsIncludeIO, "include-io", false, "Include input/output/metadata in response")
 	obsListCmd.Flags().BoolVar(&obsListJSON, "json", false, "Output raw API response as JSON")
 	obsListCmd.Flags().
 		StringSliceVar(&obsColumns, "columns", nil, "Columns to display (comma-separated, default: id,type,name,model,latency_ms,total_cost,total_tokens)\nAvailable: id,trace_id,type,name,start_time,end_time,parent_observation_id,level,status_message,model,input_tokens,output_tokens,total_tokens,total_cost,latency_ms")
