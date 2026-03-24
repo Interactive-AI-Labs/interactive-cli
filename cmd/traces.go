@@ -198,10 +198,6 @@ Examples:
 		if err := inputs.ValidateTraceID(traceID); err != nil {
 			return err
 		}
-		if err := inputs.ValidateFieldGroups(tracesGetFields); err != nil {
-			return err
-		}
-
 		pCtx, err := resolveProject(cmd.Context(), tracesGetOrg, tracesGetProject)
 		if err != nil {
 			return err

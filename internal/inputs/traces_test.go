@@ -69,27 +69,16 @@ func TestValidateTraceListOptions(t *testing.T) {
 			clients.TraceListOptions{Page: 1, ToTimestamp: "2025-01-01"},
 			true,
 		},
+		// Enum values (order-by, order, level, fields) are passed through to
+		// the server for validation — no client-side checks.
 		{
-			"valid order-by timestamp",
-			clients.TraceListOptions{Page: 1, OrderBy: "timestamp"},
+			"order-by passed through",
+			clients.TraceListOptions{Page: 1, OrderBy: "anything"},
 			false,
 		},
-		{"valid order-by name", clients.TraceListOptions{Page: 1, OrderBy: "name"}, false},
-		{"valid order-by cost", clients.TraceListOptions{Page: 1, OrderBy: "cost"}, false},
-		{"valid order-by latency", clients.TraceListOptions{Page: 1, OrderBy: "latency"}, false},
-		{
-			"order-by invalid field",
-			clients.TraceListOptions{Page: 1, OrderBy: "unknown"},
-			true,
-		},
-		{
-			"order-by old format rejected",
-			clients.TraceListOptions{Page: 1, OrderBy: "timestamp.desc"},
-			true,
-		},
-		{"valid order asc", clients.TraceListOptions{Page: 1, Order: "asc"}, false},
-		{"valid order desc", clients.TraceListOptions{Page: 1, Order: "desc"}, false},
-		{"invalid order", clients.TraceListOptions{Page: 1, Order: "up"}, true},
+		{"order passed through", clients.TraceListOptions{Page: 1, Order: "anything"}, false},
+		{"level passed through", clients.TraceListOptions{Page: 1, Level: "UNKNOWN"}, false},
+		{"fields passed through", clients.TraceListOptions{Page: 1, Fields: "unknown"}, false},
 		// Cost filters
 		{"negative min-cost", clients.TraceListOptions{Page: 1, MinCost: ptrFloat(-1)}, true},
 		{"negative max-cost", clients.TraceListOptions{Page: 1, MaxCost: ptrFloat(-1)}, true},
@@ -129,20 +118,13 @@ func TestValidateTraceListOptions(t *testing.T) {
 			clients.TraceListOptions{Page: 1, MinTokens: ptrInt(0), MaxTokens: ptrInt(1000)},
 			false,
 		},
-		// Level
-		{"valid level DEBUG", clients.TraceListOptions{Page: 1, Level: "DEBUG"}, false},
-		{"valid level ERROR", clients.TraceListOptions{Page: 1, Level: "ERROR"}, false},
-		{"invalid level", clients.TraceListOptions{Page: 1, Level: "UNKNOWN"}, true},
-		// Search
+		// Search length
 		{"search within limit", clients.TraceListOptions{Page: 1, Search: "hello"}, false},
 		{
 			"search exceeds limit",
 			clients.TraceListOptions{Page: 1, Search: strings.Repeat("a", 201)},
 			true,
 		},
-		// Fields
-		{"valid fields", clients.TraceListOptions{Page: 1, Fields: "core,metrics"}, false},
-		{"invalid fields", clients.TraceListOptions{Page: 1, Fields: "unknown"}, true},
 	}
 
 	for _, tt := range tests {

@@ -33,13 +33,6 @@ var AllTraceColumns = []string{
 	"level",
 }
 
-var (
-	validOrderByFields   = []string{"timestamp", "latency", "cost", "name"}
-	validOrderDirections = []string{"asc", "desc"}
-	validLevels          = []string{"DEBUG", "DEFAULT", "WARNING", "ERROR"}
-	validFieldGroups     = []string{"core", "io", "metrics"}
-)
-
 const maxSearchLength = 200
 
 func ValidateTraceID(id string) error {
@@ -53,6 +46,9 @@ func ValidateTraceID(id string) error {
 	return nil
 }
 
+// ValidateTraceListOptions validates structural constraints on trace list
+// options. Enum-style validations (--level, --order-by, --order, --fields) are
+// delegated to the server to avoid client/server divergence.
 func ValidateTraceListOptions(opts clients.TraceListOptions) error {
 	if opts.Page < 1 {
 		return fmt.Errorf("page must be >= 1, got %d", opts.Page)
@@ -64,12 +60,6 @@ func ValidateTraceListOptions(opts clients.TraceListOptions) error {
 		return err
 	}
 	if err := validateTimestamp(opts.ToTimestamp, "to-timestamp"); err != nil {
-		return err
-	}
-	if err := validateOrderBy(opts.OrderBy); err != nil {
-		return err
-	}
-	if err := validateOrder(opts.Order); err != nil {
 		return err
 	}
 	if opts.MinCost != nil && *opts.MinCost < 0 {
@@ -99,35 +89,12 @@ func ValidateTraceListOptions(opts clients.TraceListOptions) error {
 	if opts.MinTokens != nil && opts.MaxTokens != nil && *opts.MinTokens > *opts.MaxTokens {
 		return fmt.Errorf("--min-tokens cannot be greater than --max-tokens")
 	}
-	if err := validateLevel(opts.Level); err != nil {
-		return err
-	}
 	if len(opts.Search) > maxSearchLength {
 		return fmt.Errorf(
 			"--search must be at most %d characters, got %d",
 			maxSearchLength,
 			len(opts.Search),
 		)
-	}
-	if err := ValidateFieldGroups(opts.Fields); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ValidateFieldGroups(fields string) error {
-	if fields == "" {
-		return nil
-	}
-	for _, f := range strings.Split(fields, ",") {
-		f = strings.TrimSpace(f)
-		if !slices.Contains(validFieldGroups, f) {
-			return fmt.Errorf(
-				"invalid field group %q (valid: %s)",
-				f,
-				strings.Join(validFieldGroups, ", "),
-			)
-		}
 	}
 	return nil
 }
@@ -141,44 +108,6 @@ func validateTimestamp(value, name string) error {
 			"invalid %s %q: must be ISO 8601 format (e.g. 2025-01-01T00:00:00Z)",
 			name,
 			value,
-		)
-	}
-	return nil
-}
-
-func validateOrderBy(value string) error {
-	if value == "" {
-		return nil
-	}
-	if !slices.Contains(validOrderByFields, value) {
-		return fmt.Errorf(
-			"invalid --order-by %q (valid: %s)",
-			value,
-			strings.Join(validOrderByFields, ", "),
-		)
-	}
-	return nil
-}
-
-func validateOrder(value string) error {
-	if value == "" {
-		return nil
-	}
-	if !slices.Contains(validOrderDirections, value) {
-		return fmt.Errorf("invalid --order %q: must be asc or desc", value)
-	}
-	return nil
-}
-
-func validateLevel(value string) error {
-	if value == "" {
-		return nil
-	}
-	if !slices.Contains(validLevels, value) {
-		return fmt.Errorf(
-			"invalid --level %q (valid: %s)",
-			value,
-			strings.Join(validLevels, ", "),
 		)
 	}
 	return nil
