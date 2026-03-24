@@ -1,26 +1,24 @@
-## iai traces get
+## iai observations get
 
-Get a specific trace
+Get a specific observation
 
 ### Synopsis
 
-Get detailed information about a specific trace.
+Get detailed information about a specific observation.
 
 Uses the platform API with dual authentication (API key or session).
 
 Examples:
-  iai traces get abc123
-  iai traces get abc123 --fields core,io,metrics
-  iai traces get abc123 --json | jq '.data.trace'
+  iai observations get obs-abc123
+  iai observations get obs-abc123 --json | jq '.data.observation'
 
 ```
-iai traces get <trace-id> [flags]
+iai observations get <observation-id> [flags]
 ```
 
 ### Options
 
 ```
-      --fields string         Field groups to include: core, io, metrics (comma-separated) (default "core,io,metrics")
   -h, --help                  help for get
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
@@ -38,5 +36,5 @@ iai traces get <trace-id> [flags]
 
 ### SEE ALSO
 
-* [iai traces](iai_traces.md)	 - Manage traces
+* [iai observations](iai_observations.md)	 - Manage observations
 

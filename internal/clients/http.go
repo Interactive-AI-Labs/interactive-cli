@@ -28,6 +28,14 @@ type platformError struct {
 	} `json:"detail"`
 }
 
+type platformAPIError struct {
+	Success bool `json:"success"`
+	Error   struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
 type simpleError struct {
 	Detail string `json:"detail"`
 }
@@ -71,6 +79,13 @@ func ExtractServerMessage(body []byte) string {
 		}
 
 		if msg != "" {
+			return msg
+		}
+	}
+
+	var pa platformAPIError
+	if err := json.Unmarshal(body, &pa); err == nil {
+		if msg := strings.TrimSpace(pa.Error.Message); msg != "" {
 			return msg
 		}
 	}

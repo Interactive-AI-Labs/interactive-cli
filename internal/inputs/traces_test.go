@@ -69,24 +69,23 @@ func TestValidateTraceListOptions(t *testing.T) {
 			clients.TraceListOptions{Page: 1, ToTimestamp: "2025-01-01"},
 			true,
 		},
-		{"valid order-by", clients.TraceListOptions{Page: 1, OrderBy: "timestamp.desc"}, false},
-		{"valid order-by asc", clients.TraceListOptions{Page: 1, OrderBy: "name.asc"}, false},
-		{
-			"order-by missing direction",
-			clients.TraceListOptions{Page: 1, OrderBy: "timestamp"},
-			true,
-		},
+		{"valid order-by timestamp", clients.TraceListOptions{Page: 1, OrderBy: "timestamp"}, false},
+		{"valid order-by name", clients.TraceListOptions{Page: 1, OrderBy: "name"}, false},
+		{"valid order-by cost", clients.TraceListOptions{Page: 1, OrderBy: "cost"}, false},
+		{"valid order-by latency", clients.TraceListOptions{Page: 1, OrderBy: "latency"}, false},
 		{
 			"order-by invalid field",
-			clients.TraceListOptions{Page: 1, OrderBy: "unknown.desc"},
+			clients.TraceListOptions{Page: 1, OrderBy: "unknown"},
 			true,
 		},
 		{
-			"order-by invalid direction",
-			clients.TraceListOptions{Page: 1, OrderBy: "timestamp.up"},
+			"order-by old format rejected",
+			clients.TraceListOptions{Page: 1, OrderBy: "timestamp.desc"},
 			true,
 		},
-		{"order-by too many parts", clients.TraceListOptions{Page: 1, OrderBy: "a.b.c"}, true},
+		{"valid order asc", clients.TraceListOptions{Page: 1, Order: "asc"}, false},
+		{"valid order desc", clients.TraceListOptions{Page: 1, Order: "desc"}, false},
+		{"invalid order", clients.TraceListOptions{Page: 1, Order: "up"}, true},
 	}
 
 	for _, tt := range tests {

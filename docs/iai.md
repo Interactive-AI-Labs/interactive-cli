@@ -60,6 +60,7 @@ iai --help
 * [iai login](iai_login.md)	 - Log in to InteractiveAI
 * [iai logout](iai_logout.md)	 - Log out of InteractiveAI
 * [iai macros](iai_macros.md)	 - Manage macros
+* [iai observations](iai_observations.md)	 - Manage observations
 * [iai organizations](iai_organizations.md)	 - Manage organizations
 * [iai policies](iai_policies.md)	 - Manage policies
 * [iai projects](iai_projects.md)	 - Manage projects
