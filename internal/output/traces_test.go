@@ -10,7 +10,7 @@ import (
 )
 
 func TestPrintTraceList(t *testing.T) {
-	latency := 1.5
+	latencyMs := 1500.0
 	cost := 0.012345
 
 	tests := []struct {
@@ -41,7 +41,7 @@ func TestPrintTraceList(t *testing.T) {
 					ID:        "abc123",
 					Name:      "my-trace",
 					Timestamp: "2025-01-01",
-					Latency:   &latency,
+					LatencyMs: &latencyMs,
 					TotalCost: &cost,
 					Tags:      []string{"tag1"},
 				},
@@ -138,7 +138,7 @@ func TestPrintTraceList(t *testing.T) {
 }
 
 func TestPrintTraceDetail(t *testing.T) {
-	latency := 2.5
+	latencyMs := 2500.0
 	cost := 0.05
 
 	tests := []struct {
@@ -159,7 +159,7 @@ func TestPrintTraceDetail(t *testing.T) {
 					Release:     "v1.0",
 					Version:     "1",
 					Public:      true,
-					Latency:     &latency,
+					LatencyMs:   &latencyMs,
 					TotalCost:   &cost,
 					Tags:        []string{"tag1", "tag2"},
 					HtmlPath:    "/project/traces/abc123",
@@ -177,9 +177,14 @@ func TestPrintTraceDetail(t *testing.T) {
 				"Release:     v1.0\n" +
 				"Version:     1\n" +
 				"Public:      true\n" +
-				"Latency:     2.50s\n" +
-				"Total Cost:  $0.050000\n" +
-				"Tags:        tag1, tag2\n" +
+				"\n--- Metrics ---\n" +
+				"Latency:           2.50s\n" +
+				"Total Cost:        $0.050000\n" +
+				"Observation Count: -\n" +
+				"Input Tokens:      -\n" +
+				"Output Tokens:     -\n" +
+				"Total Tokens:      -\n" +
+				"\nTags:        tag1, tag2\n" +
 				"URL Path:    /project/traces/abc123\n" +
 				"\nInput:\n  {\n    \"role\": \"user\"\n  }\n" +
 				"\nOutput:\n  \"hello\"\n" +
@@ -203,8 +208,13 @@ func TestPrintTraceDetail(t *testing.T) {
 				"Release:     \n" +
 				"Version:     \n" +
 				"Public:      false\n" +
-				"Latency:     -\n" +
-				"Total Cost:  -\n",
+				"\n--- Metrics ---\n" +
+				"Latency:           -\n" +
+				"Total Cost:        -\n" +
+				"Observation Count: -\n" +
+				"Input Tokens:      -\n" +
+				"Output Tokens:     -\n" +
+				"Total Tokens:      -\n",
 		},
 		{
 			name: "null json fields are hidden",
@@ -226,8 +236,13 @@ func TestPrintTraceDetail(t *testing.T) {
 				"Release:     \n" +
 				"Version:     \n" +
 				"Public:      false\n" +
-				"Latency:     -\n" +
-				"Total Cost:  -\n",
+				"\n--- Metrics ---\n" +
+				"Latency:           -\n" +
+				"Total Cost:        -\n" +
+				"Observation Count: -\n" +
+				"Input Tokens:      -\n" +
+				"Output Tokens:     -\n" +
+				"Total Tokens:      -\n",
 		},
 	}
 

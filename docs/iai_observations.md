@@ -1,15 +1,15 @@
-## iai traces
+## iai observations
 
-Manage traces
+Manage observations
 
 ### Synopsis
 
-Manage traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.
+Manage observations within traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.
 
 ### Options
 
 ```
-  -h, --help   help for traces
+  -h, --help   help for observations
 ```
 
 ### Options inherited from parent commands
@@ -24,6 +24,6 @@ Manage traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session 
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai traces get](iai_traces_get.md)	 - Get a specific trace
-* [iai traces list](iai_traces_list.md)	 - List traces
+* [iai observations get](iai_observations_get.md)	 - Get a specific observation
+* [iai observations list](iai_observations_list.md)	 - List observations for a trace
 

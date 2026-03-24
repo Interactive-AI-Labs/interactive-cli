@@ -26,7 +26,14 @@ var AllTraceColumns = []string{
 	"latency",
 	"cost",
 	"tags",
+	"observation_count",
+	"input_tokens",
+	"output_tokens",
+	"total_tokens",
+	"level",
 }
+
+const maxSearchLength = 200
 
 func ValidateTraceID(id string) error {
 	id = strings.TrimSpace(id)
@@ -39,19 +46,9 @@ func ValidateTraceID(id string) error {
 	return nil
 }
 
-var validOrderByFields = []string{
-	"id",
-	"name",
-	"timestamp",
-	"userId",
-	"sessionId",
-	"release",
-	"version",
-	"public",
-}
-
-var validOrderByDirections = []string{"asc", "desc"}
-
+// ValidateTraceListOptions validates structural constraints on trace list
+// options. Enum-style validations (--level, --order-by, --order, --fields) are
+// delegated to the server to avoid client/server divergence.
 func ValidateTraceListOptions(opts clients.TraceListOptions) error {
 	if opts.Page < 1 {
 		return fmt.Errorf("page must be >= 1, got %d", opts.Page)
@@ -65,8 +62,39 @@ func ValidateTraceListOptions(opts clients.TraceListOptions) error {
 	if err := validateTimestamp(opts.ToTimestamp, "to-timestamp"); err != nil {
 		return err
 	}
-	if err := validateOrderBy(opts.OrderBy); err != nil {
-		return err
+	if opts.MinCost != nil && *opts.MinCost < 0 {
+		return fmt.Errorf("--min-cost must be >= 0")
+	}
+	if opts.MaxCost != nil && *opts.MaxCost < 0 {
+		return fmt.Errorf("--max-cost must be >= 0")
+	}
+	if opts.MinCost != nil && opts.MaxCost != nil && *opts.MinCost > *opts.MaxCost {
+		return fmt.Errorf("--min-cost cannot be greater than --max-cost")
+	}
+	if opts.MinLatency != nil && *opts.MinLatency < 0 {
+		return fmt.Errorf("--min-latency must be >= 0")
+	}
+	if opts.MaxLatency != nil && *opts.MaxLatency < 0 {
+		return fmt.Errorf("--max-latency must be >= 0")
+	}
+	if opts.MinLatency != nil && opts.MaxLatency != nil && *opts.MinLatency > *opts.MaxLatency {
+		return fmt.Errorf("--min-latency cannot be greater than --max-latency")
+	}
+	if opts.MinTokens != nil && *opts.MinTokens < 0 {
+		return fmt.Errorf("--min-tokens must be >= 0")
+	}
+	if opts.MaxTokens != nil && *opts.MaxTokens < 0 {
+		return fmt.Errorf("--max-tokens must be >= 0")
+	}
+	if opts.MinTokens != nil && opts.MaxTokens != nil && *opts.MinTokens > *opts.MaxTokens {
+		return fmt.Errorf("--min-tokens cannot be greater than --max-tokens")
+	}
+	if len(opts.Search) > maxSearchLength {
+		return fmt.Errorf(
+			"--search must be at most %d characters, got %d",
+			maxSearchLength,
+			len(opts.Search),
+		)
 	}
 	return nil
 }
@@ -81,30 +109,6 @@ func validateTimestamp(value, name string) error {
 			name,
 			value,
 		)
-	}
-	return nil
-}
-
-func validateOrderBy(value string) error {
-	if value == "" {
-		return nil
-	}
-	parts := strings.Split(value, ".")
-	if len(parts) != 2 {
-		return fmt.Errorf(
-			"invalid order-by %q: must be field.direction (e.g. timestamp.desc)",
-			value,
-		)
-	}
-	if !slices.Contains(validOrderByFields, parts[0]) {
-		return fmt.Errorf(
-			"invalid order-by field %q (available: %s)",
-			parts[0],
-			strings.Join(validOrderByFields, ", "),
-		)
-	}
-	if !slices.Contains(validOrderByDirections, parts[1]) {
-		return fmt.Errorf("invalid order-by direction %q: must be asc or desc", parts[1])
 	}
 	return nil
 }

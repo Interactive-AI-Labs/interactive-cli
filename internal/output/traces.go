@@ -31,10 +31,27 @@ var traceColumnMap = map[string]struct {
 	},
 	"latency": {
 		"LATENCY",
-		func(t *clients.TraceInfo) string { return formatFloat(t.Latency, "s") },
+		func(t *clients.TraceInfo) string { return formatLatencyMs(t.LatencyMs) },
 	},
-	"cost": {"COST", func(t *clients.TraceInfo) string { return formatCost(t.TotalCost) }},
-	"tags": {"TAGS", func(t *clients.TraceInfo) string { return TruncateList(t.Tags, 3) }},
+	"cost":  {"COST", func(t *clients.TraceInfo) string { return formatCost(t.TotalCost) }},
+	"tags":  {"TAGS", func(t *clients.TraceInfo) string { return TruncateList(t.Tags, 3) }},
+	"level": {"LEVEL", func(t *clients.TraceInfo) string { return t.Level }},
+	"observation_count": {
+		"OBSERVATIONS",
+		func(t *clients.TraceInfo) string { return formatInt(t.ObservationCount) },
+	},
+	"input_tokens": {
+		"INPUT TOKENS",
+		func(t *clients.TraceInfo) string { return formatInt(t.InputTokens) },
+	},
+	"output_tokens": {
+		"OUTPUT TOKENS",
+		func(t *clients.TraceInfo) string { return formatInt(t.OutputTokens) },
+	},
+	"total_tokens": {
+		"TOTAL TOKENS",
+		func(t *clients.TraceInfo) string { return formatInt(t.TotalTokens) },
+	},
 }
 
 func PrintTraceList(
@@ -50,14 +67,18 @@ func PrintTraceList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = traceColumnMap[col].Header
+		if def, ok := traceColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(traces))
 	for i, t := range traces {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = traceColumnMap[col].Value(&t)
+			if def, ok := traceColumnMap[col]; ok {
+				row[j] = def.Value(&t)
+			}
 		}
 		rows[i] = row
 	}
@@ -80,6 +101,7 @@ const (
 	colorGreen  = "\033[32m"
 	colorRed    = "\033[91m"
 	colorOrange = "\033[33m"
+	colorCyan   = "\033[36m"
 )
 
 func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
@@ -92,11 +114,21 @@ func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
 	fmt.Fprintf(out, "Release:     %s\n", trace.Release)
 	fmt.Fprintf(out, "Version:     %s\n", trace.Version)
 	fmt.Fprintf(out, "Public:      %t\n", trace.Public)
-	fmt.Fprintf(out, "Latency:     %s\n", formatFloat(trace.Latency, "s"))
-	fmt.Fprintf(out, "Total Cost:  %s\n", formatCost(trace.TotalCost))
+
+	// Aggregated metrics section
+	fmt.Fprintf(out, "\n--- Metrics ---\n")
+	fmt.Fprintf(out, "Latency:           %s\n", formatLatencyMs(trace.LatencyMs))
+	fmt.Fprintf(out, "Total Cost:        %s\n", formatCost(trace.TotalCost))
+	fmt.Fprintf(out, "Observation Count: %s\n", formatInt(trace.ObservationCount))
+	fmt.Fprintf(out, "Input Tokens:      %s\n", formatInt(trace.InputTokens))
+	fmt.Fprintf(out, "Output Tokens:     %s\n", formatInt(trace.OutputTokens))
+	fmt.Fprintf(out, "Total Tokens:      %s\n", formatInt(trace.TotalTokens))
+	if trace.Level != "" {
+		fmt.Fprintf(out, "Level:             %s\n", trace.Level)
+	}
 
 	if len(trace.Tags) > 0 {
-		fmt.Fprintf(out, "Tags:        %s\n", strings.Join(trace.Tags, ", "))
+		fmt.Fprintf(out, "\nTags:        %s\n", strings.Join(trace.Tags, ", "))
 	}
 
 	if trace.HtmlPath != "" {
@@ -136,6 +168,20 @@ func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
 	return nil
 }
 
+// PrintRawJSON writes pretty-printed JSON to the writer.
+// Used by --json flag across trace and observation commands.
+func PrintRawJSON(out io.Writer, raw json.RawMessage) error {
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, raw, "", "  "); err != nil {
+		// fallback: write raw
+		_, err = out.Write(raw)
+		return err
+	}
+	buf.WriteByte('\n')
+	_, err := buf.WriteTo(out)
+	return err
+}
+
 func indentLines(s, prefix string) string {
 	lines := strings.Split(s, "\n")
 	for i, line := range lines {
@@ -165,10 +211,44 @@ func formatCost(v *float64) string {
 	return fmt.Sprintf("$%.6f", *v)
 }
 
+// formatLatencyMs formats a latency value given in milliseconds.
+// If <= 1000ms, shows as "Xms"; otherwise converts to seconds "X.XXs".
+func formatLatencyMs(v *float64) string {
+	if v == nil {
+		return "-"
+	}
+	if *v <= 1000 {
+		return fmt.Sprintf("%.0fms", *v)
+	}
+	return fmt.Sprintf("%.2fs", *v/1000)
+}
+
+func formatInt(v *int) string {
+	if v == nil {
+		return "-"
+	}
+	return fmt.Sprintf("%d", *v)
+}
+
 // jsonUnescaper performs a single-pass unescape of JSON escape sequences for
 // human-readable terminal output. NewReplacer matches left-to-right without
 // re-processing replaced text, so \\n correctly becomes literal \n (not a newline).
 var jsonUnescaper = strings.NewReplacer(`\\`, `\`, `\n`, "\n", `\t`, "\t", `\"`, `"`)
+
+// prettyJSONUnwrapString handles the case where a json.RawMessage contains a
+// JSON-encoded string that itself is valid JSON (e.g. "{\"temperature\": 0.7}").
+// It unwraps the outer string and pretty-prints the inner JSON.
+func prettyJSONUnwrapString(raw json.RawMessage, unescape bool) string {
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		// s is a plain string — check if it's valid JSON
+		var inner json.RawMessage
+		if json.Unmarshal([]byte(s), &inner) == nil {
+			return prettyJSON(inner, unescape)
+		}
+	}
+	return prettyJSON(raw, unescape)
+}
 
 func prettyJSON(raw json.RawMessage, unescape bool) string {
 	var decoded any

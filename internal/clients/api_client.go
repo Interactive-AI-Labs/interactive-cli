@@ -320,19 +320,24 @@ func (c *APIClient) GetProjectByName(
 }
 
 type TraceInfo struct {
-	ID          string   `json:"id"`
-	Timestamp   string   `json:"timestamp"`
-	Name        string   `json:"name"`
-	SessionID   string   `json:"sessionId"`
-	UserID      string   `json:"userId"`
-	Release     string   `json:"release"`
-	Version     string   `json:"version"`
-	Public      bool     `json:"public"`
-	Environment string   `json:"environment"`
-	Tags        []string `json:"tags"`
-	HtmlPath    string   `json:"htmlPath"`
-	Latency     *float64 `json:"latency"`
-	TotalCost   *float64 `json:"totalCost"`
+	ID               string   `json:"id"`
+	Timestamp        string   `json:"timestamp"`
+	Name             string   `json:"name"`
+	SessionID        string   `json:"session_id"`
+	UserID           string   `json:"user_id"`
+	Release          string   `json:"release"`
+	Version          string   `json:"version"`
+	Public           bool     `json:"public"`
+	Environment      string   `json:"environment"`
+	Tags             []string `json:"tags"`
+	HtmlPath         string   `json:"html_path"`
+	LatencyMs        *float64 `json:"latency_ms"`
+	TotalCost        *float64 `json:"total_cost"`
+	ObservationCount *int     `json:"observation_count"`
+	InputTokens      *int     `json:"input_tokens"`
+	OutputTokens     *int     `json:"output_tokens"`
+	TotalTokens      *int     `json:"total_tokens"`
+	Level            string   `json:"level"`
 }
 
 type TraceDetail struct {
@@ -345,102 +350,319 @@ type TraceDetail struct {
 type TraceMeta struct {
 	Page       int `json:"page"`
 	Limit      int `json:"limit"`
-	TotalItems int `json:"totalItems"`
-	TotalPages int `json:"totalPages"`
+	TotalItems int `json:"total_items"`
+	TotalPages int `json:"total_pages"`
 }
 
 type traceListResponse struct {
-	Data []TraceInfo `json:"data"`
-	Meta TraceMeta   `json:"meta"`
+	Success bool `json:"success"`
+	Data    struct {
+		Traces []TraceInfo `json:"traces"`
+		Meta   TraceMeta   `json:"meta"`
+	} `json:"data"`
+}
+
+type traceGetResponse struct {
+	Success bool `json:"success"`
+	Data    struct {
+		Trace TraceDetail `json:"trace"`
+	} `json:"data"`
 }
 
 type TraceListOptions struct {
 	Page          int      `url:"page,omitempty"`
 	Limit         int      `url:"limit,omitempty"`
-	UserID        string   `url:"userId,omitempty"`
+	UserID        string   `url:"user_id,omitempty"`
 	Name          string   `url:"name,omitempty"`
-	SessionID     string   `url:"sessionId,omitempty"`
-	FromTimestamp string   `url:"fromTimestamp,omitempty"`
-	ToTimestamp   string   `url:"toTimestamp,omitempty"`
-	OrderBy       string   `url:"orderBy,omitempty"`
+	SessionID     string   `url:"session_id,omitempty"`
+	FromTimestamp string   `url:"from_timestamp,omitempty"`
+	ToTimestamp   string   `url:"to_timestamp,omitempty"`
+	OrderBy       string   `url:"order_by,omitempty"`
+	Order         string   `url:"order,omitempty"`
 	Tags          []string `url:"tags,omitempty"`
 	Version       string   `url:"version,omitempty"`
 	Release       string   `url:"release,omitempty"`
 	Environment   []string `url:"environment,omitempty"`
+	MinCost       *float64 `url:"min_cost,omitempty"`
+	MaxCost       *float64 `url:"max_cost,omitempty"`
+	MinLatency    *float64 `url:"min_latency,omitempty"`
+	MaxLatency    *float64 `url:"max_latency,omitempty"`
+	MinTokens     *int     `url:"min_tokens,omitempty"`
+	MaxTokens     *int     `url:"max_tokens,omitempty"`
+	Model         string   `url:"model,omitempty"`
+	HasError      *bool    `url:"has_error,omitempty"`
+	Level         string   `url:"level,omitempty"`
+	Search        string   `url:"search,omitempty"`
+	Fields        string   `url:"fields,omitempty"`
 }
 
+// ObservationInfo represents an observation returned by the list endpoint.
+type ObservationInfo struct {
+	ID                  string          `json:"id"`
+	TraceID             string          `json:"trace_id"`
+	Type                string          `json:"type"`
+	Name                string          `json:"name"`
+	StartTime           string          `json:"start_time"`
+	EndTime             string          `json:"end_time"`
+	ParentObservationID string          `json:"parent_observation_id"`
+	Level               string          `json:"level"`
+	StatusMessage       string          `json:"status_message"`
+	Model               string          `json:"model"`
+	InputTokens         *int            `json:"input_tokens"`
+	OutputTokens        *int            `json:"output_tokens"`
+	TotalTokens         *int            `json:"total_tokens"`
+	TotalCost           *float64        `json:"total_cost"`
+	LatencyMs           *float64        `json:"latency_ms"`
+	Input               json.RawMessage `json:"input,omitempty"`
+	Output              json.RawMessage `json:"output,omitempty"`
+	Metadata            json.RawMessage `json:"metadata,omitempty"`
+}
+
+// ObservationDetail represents a single observation from the get endpoint.
+type ObservationDetail struct {
+	ObservationInfo
+	ModelParameters json.RawMessage `json:"model_parameters,omitempty"`
+	PromptName      string          `json:"prompt_name"`
+	PromptVersion   *int            `json:"prompt_version"`
+}
+
+type observationListResponse struct {
+	Success bool `json:"success"`
+	Data    struct {
+		Observations []ObservationInfo `json:"observations"`
+	} `json:"data"`
+}
+
+type observationGetResponse struct {
+	Success bool `json:"success"`
+	Data    struct {
+		Observation ObservationDetail `json:"observation"`
+	} `json:"data"`
+}
+
+// ListTraces calls the platform trace exploration API.
+// orgID and projectID are required for the new endpoint path.
 func (c *APIClient) ListTraces(
 	ctx context.Context,
+	orgID, projectID string,
 	opts TraceListOptions,
-) ([]TraceInfo, TraceMeta, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, "/api/public/traces")
+) ([]TraceInfo, TraceMeta, json.RawMessage, error) {
+	path := fmt.Sprintf(
+		"/api/platform/v1/organizations/%s/projects/%s/traces",
+		url.PathEscape(orgID),
+		url.PathEscape(projectID),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
-		return nil, TraceMeta{}, fmt.Errorf("failed to create request: %w", err)
+		return nil, TraceMeta{}, nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	q, _ := query.Values(opts)
+	q, err := query.Values(opts)
+	if err != nil {
+		return nil, TraceMeta{}, nil, fmt.Errorf("failed to encode query parameters: %w", err)
+	}
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.do(req)
 	if err != nil {
-		return nil, TraceMeta{}, fmt.Errorf("traces list request failed: %w", err)
+		return nil, TraceMeta{}, nil, fmt.Errorf("traces list request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, TraceMeta{}, nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, TraceMeta{}, fmt.Errorf("failed to read error response: %w", err)
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, TraceMeta{}, nil, errors.New(msg)
 		}
-		msg := ExtractServerMessage(respBody)
-		if msg != "" {
-			return nil, TraceMeta{}, errors.New(msg)
-		}
-		return nil, TraceMeta{}, fmt.Errorf(
+		return nil, TraceMeta{}, nil, fmt.Errorf(
 			"failed to list traces: server returned %s",
 			resp.Status,
 		)
 	}
 
 	var result traceListResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, TraceMeta{}, fmt.Errorf("failed to decode traces response: %w", err)
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, TraceMeta{}, nil, fmt.Errorf("failed to decode traces response: %w", err)
 	}
 
-	return result.Data, result.Meta, nil
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, TraceMeta{}, nil, errors.New(msg)
+		}
+		return nil, TraceMeta{}, nil, fmt.Errorf("traces list returned success=false")
+	}
+
+	return result.Data.Traces, result.Data.Meta, respBody, nil
 }
 
-func (c *APIClient) GetTrace(ctx context.Context, traceID string) (*TraceDetail, error) {
-	path := fmt.Sprintf("/api/public/traces/%s", url.PathEscape(traceID))
+// GetTrace retrieves a single trace from the platform API.
+func (c *APIClient) GetTrace(
+	ctx context.Context,
+	orgID, projectID, traceID, fields string,
+) (*TraceDetail, json.RawMessage, error) {
+	path := fmt.Sprintf(
+		"/api/platform/v1/organizations/%s/projects/%s/traces/%s",
+		url.PathEscape(orgID),
+		url.PathEscape(projectID),
+		url.PathEscape(traceID),
+	)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if fields != "" {
+		q := req.URL.Query()
+		q.Set("fields", fields)
+		req.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := c.do(req)
 	if err != nil {
-		return nil, fmt.Errorf("trace get request failed: %w", err)
+		return nil, nil, fmt.Errorf("trace get request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read error response: %w", err)
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
 		}
-		msg := ExtractServerMessage(respBody)
-		if msg != "" {
-			return nil, errors.New(msg)
-		}
-		return nil, fmt.Errorf("failed to get trace: server returned %s", resp.Status)
+		return nil, nil, fmt.Errorf("failed to get trace: server returned %s", resp.Status)
 	}
 
-	var trace TraceDetail
-	if err := json.NewDecoder(resp.Body).Decode(&trace); err != nil {
-		return nil, fmt.Errorf("failed to decode trace response: %w", err)
+	var result traceGetResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, nil, fmt.Errorf("failed to decode trace response: %w", err)
 	}
 
-	return &trace, nil
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf("trace get returned success=false")
+	}
+
+	return &result.Data.Trace, respBody, nil
+}
+
+// ListObservations retrieves observations for a trace.
+func (c *APIClient) ListObservations(
+	ctx context.Context,
+	orgID, projectID, traceID string,
+	includeIO bool,
+) ([]ObservationInfo, json.RawMessage, error) {
+	path := fmt.Sprintf(
+		"/api/platform/v1/organizations/%s/projects/%s/traces/%s/observations",
+		url.PathEscape(orgID),
+		url.PathEscape(projectID),
+		url.PathEscape(traceID),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if includeIO {
+		q := req.URL.Query()
+		q.Set("include_io", "true")
+		req.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("observations list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf(
+			"failed to list observations: server returned %s",
+			resp.Status,
+		)
+	}
+
+	var result observationListResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, nil, fmt.Errorf("failed to decode observations response: %w", err)
+	}
+
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf("observations list returned success=false")
+	}
+
+	return result.Data.Observations, respBody, nil
+}
+
+// GetObservation retrieves a single observation by ID.
+func (c *APIClient) GetObservation(
+	ctx context.Context,
+	orgID, projectID, observationID string,
+) (*ObservationDetail, json.RawMessage, error) {
+	path := fmt.Sprintf(
+		"/api/platform/v1/organizations/%s/projects/%s/observations/%s",
+		url.PathEscape(orgID),
+		url.PathEscape(projectID),
+		url.PathEscape(observationID),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("observation get request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf(
+			"failed to get observation: server returned %s",
+			resp.Status,
+		)
+	}
+
+	var result observationGetResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, nil, fmt.Errorf("failed to decode observation response: %w", err)
+	}
+
+	if !result.Success {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, nil, errors.New(msg)
+		}
+		return nil, nil, fmt.Errorf("observation get returned success=false")
+	}
+
+	return &result.Data.Observation, respBody, nil
 }
 
 func (c *APIClient) GetProjectId(
