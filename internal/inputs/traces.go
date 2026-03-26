@@ -2,14 +2,11 @@ package inputs
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
-
-const maxTraceIDLength = 256
 
 var DefaultTraceColumns = []string{"id", "name", "timestamp", "latency", "cost", "tags"}
 
@@ -34,17 +31,6 @@ var AllTraceColumns = []string{
 }
 
 const maxSearchLength = 200
-
-func ValidateTraceID(id string) error {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return fmt.Errorf("trace ID cannot be empty")
-	}
-	if len(id) > maxTraceIDLength {
-		return fmt.Errorf("trace ID is too long (max %d characters)", maxTraceIDLength)
-	}
-	return nil
-}
 
 // ValidateTraceListOptions validates structural constraints on trace list
 // options. Enum-style validations (--level, --order-by, --order, --fields) are
@@ -113,15 +99,20 @@ func validateTimestamp(value, name string) error {
 	return nil
 }
 
-func ValidateTraceColumns(columns []string) error {
-	for _, col := range columns {
-		if !slices.Contains(AllTraceColumns, col) {
-			return fmt.Errorf(
-				"unknown column %q (available: %s)",
-				col,
-				strings.Join(AllTraceColumns, ", "),
-			)
-		}
+func ValidateTraceDeleteInput(traceID string, ids []string) error {
+	traceID = strings.TrimSpace(traceID)
+
+	if traceID != "" && len(ids) > 0 {
+		return fmt.Errorf("positional trace ID and --ids are mutually exclusive")
 	}
+
+	if traceID == "" && len(ids) == 0 {
+		return fmt.Errorf("trace ID is required; provide a positional trace ID or --ids")
+	}
+
+	if len(ids) > 500 {
+		return fmt.Errorf("bulk delete supports at most 500 trace IDs, got %d", len(ids))
+	}
+
 	return nil
 }

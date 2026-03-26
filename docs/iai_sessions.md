@@ -1,15 +1,15 @@
-## iai observations
+## iai sessions
 
-Manage observations
+Manage sessions
 
 ### Synopsis
 
-Manage observations within traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.
+Manage trace-derived sessions. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.
 
 ### Options
 
 ```
-  -h, --help   help for observations
+  -h, --help   help for sessions
 ```
 
 ### Options inherited from parent commands
@@ -24,6 +24,6 @@ Manage observations within traces. Works with API key (--api-key or INTERACTIVE_
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai observations get](iai_observations_get.md)	 - Get a specific observation
-* [iai observations list](iai_observations_list.md)	 - List observations
+* [iai sessions get](iai_sessions_get.md)	 - Get a specific session
+* [iai sessions list](iai_sessions_list.md)	 - List sessions
 

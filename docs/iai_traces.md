@@ -24,6 +24,7 @@ Manage traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session 
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
+* [iai traces delete](iai_traces_delete.md)	 - Delete one or more traces
 * [iai traces get](iai_traces_get.md)	 - Get a specific trace
 * [iai traces list](iai_traces_list.md)	 - List traces
 

@@ -2,14 +2,23 @@ package inputs
 
 import (
 	"fmt"
-	"slices"
-	"strings"
-)
 
-const maxObservationIDLength = 256
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+)
 
 var DefaultObservationColumns = []string{
 	"id", "type", "name", "model", "latency_ms", "total_cost", "total_tokens",
+}
+
+var DefaultStandaloneObservationColumns = []string{
+	"id",
+	"trace_id",
+	"type",
+	"name",
+	"model",
+	"latency_ms",
+	"total_cost",
+	"total_tokens",
 }
 
 var AllObservationColumns = []string{
@@ -30,26 +39,36 @@ var AllObservationColumns = []string{
 	"latency_ms",
 }
 
-func ValidateObservationID(id string) error {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return fmt.Errorf("observation ID cannot be empty")
-	}
-	if len(id) > maxObservationIDLength {
-		return fmt.Errorf("observation ID is too long (max %d characters)", maxObservationIDLength)
-	}
-	return nil
+var AllStandaloneObservationColumns = []string{
+	"id",
+	"trace_id",
+	"type",
+	"name",
+	"model",
+	"environment",
+	"user_id",
+	"version",
+	"start_time",
+	"end_time",
+	"parent_observation_id",
+	"level",
+	"status_message",
+	"input_tokens",
+	"output_tokens",
+	"total_tokens",
+	"total_cost",
+	"latency_ms",
 }
 
-func ValidateObservationColumns(columns []string) error {
-	for _, col := range columns {
-		if !slices.Contains(AllObservationColumns, col) {
-			return fmt.Errorf(
-				"unknown column %q (available: %s)",
-				col,
-				strings.Join(AllObservationColumns, ", "),
-			)
-		}
+func ValidateObservationSearchOptions(opts clients.ObservationSearchOptions) error {
+	if err := validateTimestamp(opts.FromTimestamp, "from-timestamp"); err != nil {
+		return err
+	}
+	if err := validateTimestamp(opts.ToTimestamp, "to-timestamp"); err != nil {
+		return err
+	}
+	if opts.Limit < 0 {
+		return fmt.Errorf("limit must be non-negative, got %d", opts.Limit)
 	}
 	return nil
 }

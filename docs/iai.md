@@ -60,6 +60,7 @@ iai --help
 * [iai login](iai_login.md)	 - Log in to InteractiveAI
 * [iai logout](iai_logout.md)	 - Log out of InteractiveAI
 * [iai macros](iai_macros.md)	 - Manage macros
+* [iai metrics](iai_metrics.md)	 - Manage observability metrics
 * [iai observations](iai_observations.md)	 - Manage observations
 * [iai organizations](iai_organizations.md)	 - Manage organizations
 * [iai policies](iai_policies.md)	 - Manage policies
@@ -67,8 +68,10 @@ iai --help
 * [iai prompts](iai_prompts.md)	 - Manage prompts
 * [iai replicas](iai_replicas.md)	 - Manage service replicas
 * [iai routines](iai_routines.md)	 - Manage routines
+* [iai scores](iai_scores.md)	 - Manage scores
 * [iai secrets](iai_secrets.md)	 - Manage secrets
 * [iai services](iai_services.md)	 - Manage services
+* [iai sessions](iai_sessions.md)	 - Manage sessions
 * [iai traces](iai_traces.md)	 - Manage traces
 * [iai variables](iai_variables.md)	 - Manage variables
 * [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores

@@ -7,32 +7,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
-func TestValidateTraceID(t *testing.T) {
-	tests := []struct {
-		name    string
-		id      string
-		wantErr bool
-	}{
-		{"valid 32-char hex", "5778886310644bbba99b55ea6a3d40ba", false},
-		{"valid UUID with hyphens", "d1c7fb08-4cea-4afb-8d64-e3571bd3902d", false},
-		{"valid UUID without hyphens", "d1c7fb084cea4afb8d64e3571bd3902d", false},
-		{"valid custom string ID", "my-trace-123", false},
-		{"empty string", "", true},
-		{"whitespace only", "   ", true},
-		{"too long", strings.Repeat("a", 257), true},
-		{"max length is valid", strings.Repeat("a", 256), false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateTraceID(tt.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateTraceID(%q) error = %v, wantErr %v", tt.id, err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestValidateTraceListOptions(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -152,7 +126,7 @@ func TestValidateTraceColumns(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateTraceColumns(tt.columns)
+			err := ValidateColumns(tt.columns, AllTraceColumns)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateTraceColumns() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -162,3 +136,35 @@ func TestValidateTraceColumns(t *testing.T) {
 
 func ptrFloat(v float64) *float64 { return &v }
 func ptrInt(v int) *int           { return &v }
+
+func TestValidateTraceDeleteInput(t *testing.T) {
+	tests := []struct {
+		name    string
+		traceID string
+		ids     []string
+		wantErr bool
+	}{
+		{name: "single trace ID", traceID: "trace-1", wantErr: false},
+		{name: "bulk IDs", ids: []string{"trace-1", "trace-2"}, wantErr: false},
+		{name: "missing input", wantErr: true},
+		{name: "mutually exclusive", traceID: "trace-1", ids: []string{"trace-2"}, wantErr: true},
+		{name: "too many IDs", ids: make([]string, 501), wantErr: true},
+	}
+
+	for i := range tests {
+		if tests[i].name == "too many IDs" {
+			for j := range tests[i].ids {
+				tests[i].ids[j] = "trace-id"
+			}
+		}
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateTraceDeleteInput(tt.traceID, tt.ids)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateTraceDeleteInput() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

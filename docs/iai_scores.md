@@ -1,15 +1,15 @@
-## iai observations
+## iai scores
 
-Manage observations
+Manage scores
 
 ### Synopsis
 
-Manage observations within traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.
+Manage observability scores. Read commands work with API key or session login; write commands currently require API key authentication.
 
 ### Options
 
 ```
-  -h, --help   help for observations
+  -h, --help   help for scores
 ```
 
 ### Options inherited from parent commands
@@ -24,6 +24,7 @@ Manage observations within traces. Works with API key (--api-key or INTERACTIVE_
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai observations get](iai_observations_get.md)	 - Get a specific observation
-* [iai observations list](iai_observations_list.md)	 - List observations
+* [iai scores create](iai_scores_create.md)	 - Create a score
+* [iai scores delete](iai_scores_delete.md)	 - Delete a score
+* [iai scores list](iai_scores_list.md)	 - List scores
 
