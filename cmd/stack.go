@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -122,6 +121,7 @@ The organization and project are read from the config file or resolved via 'iai 
 						svcResult.Created,
 						svcResult.Updated,
 						svcResult.Deleted,
+						svcResult.Skipped,
 					)
 				}
 				return err
@@ -133,6 +133,7 @@ The organization and project are read from the config file or resolved via 'iai 
 				svcResult.Created,
 				svcResult.Updated,
 				svcResult.Deleted,
+				svcResult.Skipped,
 			)
 		}
 
@@ -162,6 +163,7 @@ The organization and project are read from the config file or resolved via 'iai 
 						vsResult.Created,
 						vsResult.Updated,
 						vsResult.Deleted,
+						vsResult.Skipped,
 					)
 				}
 				return err
@@ -173,14 +175,8 @@ The organization and project are read from the config file or resolved via 'iai 
 				vsResult.Created,
 				vsResult.Updated,
 				vsResult.Deleted,
+				vsResult.Skipped,
 			)
-
-			if len(vsResult.Skipped) > 0 {
-				fmt.Fprintf(out,
-					"Warning: vector stores already exist and cannot be updated: %s\n",
-					strings.Join(vsResult.Skipped, ", "),
-				)
-			}
 		}
 
 		return nil

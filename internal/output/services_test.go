@@ -73,6 +73,7 @@ func TestPrintSyncResult(t *testing.T) {
 		created []string
 		updated []string
 		deleted []string
+		skipped []string
 		want    string
 	}{
 		{
@@ -86,6 +87,7 @@ func TestPrintSyncResult(t *testing.T) {
 			created: []string{},
 			updated: []string{},
 			deleted: []string{},
+			skipped: []string{},
 			want:    "No changes required; services already match config.\n",
 		},
 		{
@@ -129,12 +131,26 @@ func TestPrintSyncResult(t *testing.T) {
 			label: "vector stores",
 			want:  "No changes required; vector stores already match config.\n",
 		},
+		{
+			name:    "skipped only",
+			label:   "vector stores",
+			skipped: []string{"my-store"},
+			want:    "Skipped vector stores (already exist, updates not supported): my-store\n",
+		},
+		{
+			name:    "created and skipped",
+			label:   "vector stores",
+			created: []string{"new-vs"},
+			skipped: []string{"existing-vs"},
+			want: "Created vector stores: new-vs\n" +
+				"Skipped vector stores (already exist, updates not supported): existing-vs\n",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			PrintSyncResult(&buf, tt.label, tt.created, tt.updated, tt.deleted)
+			PrintSyncResult(&buf, tt.label, tt.created, tt.updated, tt.deleted, tt.skipped)
 			if got := buf.String(); got != tt.want {
 				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
 			}
