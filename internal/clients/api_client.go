@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -105,7 +106,7 @@ func (c *APIClient) newJSONRequest(
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode request body: %w", err)
 		}
-		req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 	}
 
@@ -1556,7 +1557,7 @@ func (c *APIClient) CreatePrompt(
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	resp, err := c.do(req)
 	if err != nil {
