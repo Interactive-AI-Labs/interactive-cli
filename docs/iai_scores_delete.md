@@ -1,15 +1,23 @@
-## iai observations
+## iai scores delete
 
-Manage observations
+Delete a score
 
 ### Synopsis
 
-Manage observations within traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.
+Delete a score by ID.
+
+This command currently requires API key authentication.
+
+```
+iai scores delete <score-id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for observations
+  -h, --help                  help for delete
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name
 ```
 
 ### Options inherited from parent commands
@@ -23,7 +31,5 @@ Manage observations within traces. Works with API key (--api-key or INTERACTIVE_
 
 ### SEE ALSO
 
-* [iai](iai.md)	 - InteractiveAI's CLI
-* [iai observations get](iai_observations_get.md)	 - Get a specific observation
-* [iai observations list](iai_observations_list.md)	 - List observations
+* [iai scores](iai_scores.md)	 - Manage scores
 

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"strings"
 	"time"
@@ -45,19 +46,18 @@ var (
 	tracesListProject   string
 	tracesGetOrg        string
 	tracesGetProject    string
+	tracesDeleteIDs     []string
+	tracesDeleteForce   bool
+	tracesDeleteOrg     string
+	tracesDeleteProject string
 )
 
 var tracesCmd = &cobra.Command{
-	Use:     "traces",
-	Aliases: []string{"trace"},
-	Short:   "Manage traces",
-	Long:    `Manage traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Cobra doesn't chain PersistentPreRun hooks; call the parent's manually to preserve URL normalization.
-		if root := cmd.Root(); root != nil && root.PersistentPreRun != nil {
-			root.PersistentPreRun(cmd, args)
-		}
-	},
+	Use:              "traces",
+	Aliases:          []string{"trace"},
+	Short:            "Manage traces",
+	Long:             `Manage traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
+	PersistentPreRun: chainRootPersistentPreRun,
 }
 
 var tracesListCmd = &cobra.Command{
@@ -92,7 +92,7 @@ Examples:
 			columns = inputs.DefaultTraceColumns
 		}
 		if !tracesJSON {
-			if err := inputs.ValidateTraceColumns(columns); err != nil {
+			if err := inputs.ValidateColumns(columns, inputs.AllTraceColumns); err != nil {
 				return err
 			}
 		}
@@ -159,7 +159,9 @@ Examples:
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(
+			hostname, defaultHTTPTimeout, apiKey, cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -195,9 +197,6 @@ Examples:
 		out := cmd.OutOrStdout()
 
 		traceID := strings.TrimSpace(args[0])
-		if err := inputs.ValidateTraceID(traceID); err != nil {
-			return err
-		}
 		pCtx, err := resolveProject(cmd.Context(), tracesGetOrg, tracesGetProject)
 		if err != nil {
 			return err
@@ -208,7 +207,9 @@ Examples:
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(
+			hostname, defaultHTTPTimeout, apiKey, cookies,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -225,6 +226,92 @@ Examples:
 		}
 
 		return output.PrintTraceDetail(out, trace)
+	},
+}
+
+var tracesDeleteCmd = &cobra.Command{
+	Use:     "delete [trace-id]",
+	Aliases: []string{"rm"},
+	Short:   "Delete one or more traces",
+	Long: `Delete a single trace or bulk delete multiple traces.
+
+This command currently requires API key authentication.
+
+Examples:
+  iai traces delete trace-123
+  iai traces delete --ids trace-1,trace-2
+  iai traces delete --ids trace-1 --ids trace-2 -f`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		traceID := ""
+		if len(args) == 1 {
+			traceID = strings.TrimSpace(args[0])
+		}
+		deleteIDs := tracesDeleteIDs
+		if err := inputs.ValidateTraceDeleteInput(traceID, deleteIDs); err != nil {
+			return err
+		}
+
+		if traceID == "" && !tracesDeleteForce {
+			fmt.Fprintf(
+				out,
+				"This will delete %d traces. Continue? [y/N] ",
+				len(deleteIDs),
+			)
+			reader := bufio.NewReader(cmd.InOrStdin())
+			answer, err := reader.ReadString('\n')
+			if err != nil {
+				return fmt.Errorf("failed to read confirmation: %w", err)
+			}
+			if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+				fmt.Fprintln(out, "Aborted.")
+				return nil
+			}
+		}
+
+		pCtx, err := resolveProject(cmd.Context(), tracesDeleteOrg, tracesDeleteProject)
+		if err != nil {
+			return err
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(
+			hostname, defaultHTTPTimeout, apiKey, cookies,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		if traceID != "" {
+			message, err := apiClient.DeleteTrace(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+				traceID,
+			)
+			if err != nil {
+				return err
+			}
+			return output.PrintDeleteSuccess(out, traceID, "trace", message)
+		}
+
+		message, err := apiClient.DeleteTraces(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			clients.BulkTraceDeleteBody{IDs: deleteIDs},
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintDeleteSuccess(out, strings.Join(deleteIDs, ","), "traces", message)
 	},
 }
 
@@ -289,6 +376,15 @@ func init() {
 	tracesGetCmd.Flags().
 		StringVarP(&tracesGetProject, "project", "p", "", "Project name")
 
-	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd)
+	tracesDeleteCmd.Flags().
+		StringSliceVar(&tracesDeleteIDs, "ids", nil, "Trace IDs to delete (comma-separated or repeatable)")
+	tracesDeleteCmd.Flags().
+		BoolVarP(&tracesDeleteForce, "force", "f", false, "Skip bulk delete confirmation")
+	tracesDeleteCmd.Flags().
+		StringVarP(&tracesDeleteOrg, "organization", "o", "", "Organization name that owns the project")
+	tracesDeleteCmd.Flags().
+		StringVarP(&tracesDeleteProject, "project", "p", "", "Project name")
+
+	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd, tracesDeleteCmd)
 	rootCmd.AddCommand(tracesCmd)
 }

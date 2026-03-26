@@ -40,6 +40,15 @@ Use the subcommands below to manage your organizations, projects, services, secr
 	}
 )
 
+// chainRootPersistentPreRun calls the root command's PersistentPreRun manually.
+// Cobra doesn't chain PersistentPreRun hooks, so subcommands that define their
+// own must call this to preserve URL normalization.
+var chainRootPersistentPreRun = func(cmd *cobra.Command, args []string) {
+	if root := cmd.Root(); root != nil && root.PersistentPreRun != nil {
+		root.PersistentPreRun(cmd, args)
+	}
+}
+
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
