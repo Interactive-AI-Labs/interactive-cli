@@ -103,6 +103,11 @@ func PrintDeleteSuccess(out io.Writer, resourceID, resourceType, message string)
 	return err
 }
 
+func PrintActionSuccess(out io.Writer, message string) error {
+	_, err := fmt.Fprintln(out, message)
+	return err
+}
+
 func formatScoreValue(raw json.RawMessage) string {
 	if len(raw) == 0 || string(raw) == "null" {
 		return "-"

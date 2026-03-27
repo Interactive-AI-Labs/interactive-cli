@@ -17,7 +17,7 @@ import (
 func (c *APIClient) doAndRead(req *http.Request, action string) ([]byte, error) {
 	resp, err := c.do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%s request failed: %w", action, err)
+		return nil, fmt.Errorf("failed to %s: %w", action, err)
 	}
 	defer resp.Body.Close()
 

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -197,8 +196,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		fmt.Fprintln(out, message)
-		return nil
+		return output.PrintActionSuccess(out, message)
 	},
 }
 
@@ -235,8 +233,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		fmt.Fprintln(out, message)
-		return nil
+		return output.PrintActionSuccess(out, message)
 	},
 }
 
