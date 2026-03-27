@@ -1,7 +1,6 @@
 package inputs
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -27,9 +26,6 @@ var AllRunItemColumns = []string{
 }
 
 func ValidateRunItemListOptions(opts clients.DatasetRunItemListOptions) error {
-	if strings.TrimSpace(opts.RunName) == "" && strings.TrimSpace(opts.DatasetName) == "" {
-		return fmt.Errorf("at least one of --run-name or --dataset-name is required")
-	}
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 

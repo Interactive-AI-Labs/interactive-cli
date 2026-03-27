@@ -290,6 +290,9 @@ func (c *APIClient) CreateDataset(
 	orgID, projectID string,
 	body DatasetCreateBody,
 ) (*DatasetInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := evalBasePath(orgID, projectID) + "/datasets"
 	data, raw, err := doCreate[datasetWrapper](c, ctx, path, body, "create dataset")
 	if err != nil {
@@ -374,6 +377,9 @@ func (c *APIClient) CreateDatasetItem(
 	orgID, projectID string,
 	body DatasetItemCreateBody,
 ) (*DatasetItemInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := evalBasePath(orgID, projectID) + "/dataset-items"
 	data, raw, err := doCreate[datasetItemWrapper](c, ctx, path, body, "create dataset item")
 	if err != nil {
@@ -386,6 +392,9 @@ func (c *APIClient) DeleteDatasetItem(
 	ctx context.Context,
 	orgID, projectID, itemID string,
 ) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
 	path := evalBasePath(orgID, projectID) + "/dataset-items/" + url.PathEscape(itemID)
 	return c.doDelete(ctx, path, "delete dataset item")
 }
@@ -450,6 +459,9 @@ func (c *APIClient) DeleteDatasetRun(
 	ctx context.Context,
 	orgID, projectID, datasetName, runName string,
 ) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
 	path := evalBasePath(orgID, projectID) + "/datasets/" +
 		url.PathEscape(datasetName) + "/runs/" + url.PathEscape(runName)
 	return c.doDelete(ctx, path, "delete dataset run")
@@ -516,6 +528,9 @@ func (c *APIClient) CreateDatasetRunItem(
 	orgID, projectID string,
 	body DatasetRunItemCreateBody,
 ) (*DatasetRunItemInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := evalBasePath(orgID, projectID) + "/dataset-run-items"
 	data, raw, err := doCreate[datasetRunItemWrapper](
 		c, ctx, path, body, "create dataset run item",
@@ -592,6 +607,9 @@ func (c *APIClient) CreateAnnotationQueue(
 	orgID, projectID string,
 	body AnnotationQueueCreateBody,
 ) (*AnnotationQueueInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := evalBasePath(orgID, projectID) + "/annotation-queues"
 	data, raw, err := doCreate[annotationQueueWrapper](
 		c, ctx, path, body, "create annotation queue",
@@ -607,6 +625,9 @@ func (c *APIClient) AssignQueue(
 	ctx context.Context,
 	orgID, projectID, queueID, userID string,
 ) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
 	path := evalBasePath(orgID, projectID) + "/annotation-queues/" +
 		url.PathEscape(queueID) + "/assignments"
 	body := map[string]string{"user_id": userID}
@@ -636,6 +657,9 @@ func (c *APIClient) UnassignQueue(
 	ctx context.Context,
 	orgID, projectID, queueID, userID string,
 ) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
 	path := evalBasePath(orgID, projectID) + "/annotation-queues/" +
 		url.PathEscape(queueID) + "/assignments"
 	body := map[string]string{"user_id": userID}
@@ -736,6 +760,9 @@ func (c *APIClient) CreateQueueItem(
 	orgID, projectID, queueID string,
 	body QueueItemCreateBody,
 ) (*QueueItemInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := queueItemsPath(orgID, projectID, queueID)
 	data, raw, err := doCreate[queueItemWrapper](c, ctx, path, body, "create queue item")
 	if err != nil {
@@ -749,6 +776,9 @@ func (c *APIClient) UpdateQueueItem(
 	orgID, projectID, queueID, itemID string,
 	body QueueItemUpdateBody,
 ) (*QueueItemInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := queueItemsPath(orgID, projectID, queueID) + "/" + url.PathEscape(itemID)
 	data, raw, err := doUpdate[queueItemWrapper](c, ctx, path, body, "update queue item")
 	if err != nil {
@@ -761,6 +791,9 @@ func (c *APIClient) DeleteQueueItem(
 	ctx context.Context,
 	orgID, projectID, queueID, itemID string,
 ) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
 	path := queueItemsPath(orgID, projectID, queueID) + "/" + url.PathEscape(itemID)
 	return c.doDelete(ctx, path, "delete queue item")
 }
@@ -835,6 +868,9 @@ func (c *APIClient) CreateComment(
 	orgID, projectID string,
 	body CommentCreateBody,
 ) (*CommentInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := evalBasePath(orgID, projectID) + "/comments"
 	data, raw, err := doCreate[commentWrapper](c, ctx, path, body, "create comment")
 	if err != nil {
@@ -922,6 +958,9 @@ func (c *APIClient) CreateScoreConfig(
 	orgID, projectID string,
 	body ScoreConfigCreateBody,
 ) (*ScoreConfigInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := evalBasePath(orgID, projectID) + "/score-configs"
 	data, raw, err := doCreate[scoreConfigWrapper](c, ctx, path, body, "create score config")
 	if err != nil {
@@ -935,6 +974,9 @@ func (c *APIClient) UpdateScoreConfig(
 	orgID, projectID, configID string,
 	body ScoreConfigUpdateBody,
 ) (*ScoreConfigInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
+	}
 	path := evalBasePath(orgID, projectID) + "/score-configs/" +
 		url.PathEscape(configID)
 	data, raw, err := doUpdate[scoreConfigWrapper](c, ctx, path, body, "update score config")
