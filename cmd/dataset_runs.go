@@ -175,7 +175,7 @@ func init() {
 	_ = datasetRunsListCmd.MarkFlagRequired("dataset-name")
 	datasetRunsListCmd.Flags().
 		IntVar(&datasetRunsListPage, "page", 1, "Page number (starts at 1)")
-	datasetRunsListCmd.Flags().IntVar(&datasetRunsListLimit, "limit", 50, "Items per page")
+	datasetRunsListCmd.Flags().IntVar(&datasetRunsListLimit, "limit", 0, "Items per page")
 	datasetRunsListCmd.Flags().
 		StringSliceVar(&datasetRunsListColumns, "columns", nil, "Columns to display (comma-separated)")
 	datasetRunsListCmd.Flags().

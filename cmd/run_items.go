@@ -139,7 +139,7 @@ func init() {
 	runItemsListCmd.Flags().
 		StringVar(&runItemsListDatasetName, "dataset-name", "", "Filter by dataset name")
 	runItemsListCmd.Flags().IntVar(&runItemsListPage, "page", 1, "Page number (starts at 1)")
-	runItemsListCmd.Flags().IntVar(&runItemsListLimit, "limit", 50, "Items per page")
+	runItemsListCmd.Flags().IntVar(&runItemsListLimit, "limit", 0, "Items per page")
 	runItemsListCmd.Flags().
 		StringSliceVar(&runItemsListColumns, "columns", nil, "Columns to display (comma-separated)")
 	runItemsListCmd.Flags().

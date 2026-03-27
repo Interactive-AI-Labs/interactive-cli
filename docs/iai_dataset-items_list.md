@@ -17,7 +17,7 @@ iai dataset-items list [flags]
       --dataset-name string            Dataset name (required)
   -h, --help                           help for list
       --json                           Output raw API response as JSON
-      --limit int                      Items per page (default 50)
+      --limit int                      Items per page
   -o, --organization string            Organization name that owns the project
       --page int                       Page number (starts at 1) (default 1)
   -p, --project string                 Project name

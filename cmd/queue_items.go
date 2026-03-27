@@ -278,7 +278,7 @@ func init() {
 		StringVar(&queueItemsListStatus, "status", "", "Filter by status (PENDING/COMPLETED)")
 	queueItemsListCmd.Flags().
 		IntVar(&queueItemsListPage, "page", 1, "Page number (starts at 1)")
-	queueItemsListCmd.Flags().IntVar(&queueItemsListLimit, "limit", 50, "Items per page")
+	queueItemsListCmd.Flags().IntVar(&queueItemsListLimit, "limit", 0, "Items per page")
 	queueItemsListCmd.Flags().
 		StringSliceVar(&queueItemsListColumns, "columns", nil, "Columns to display (comma-separated)")
 	queueItemsListCmd.Flags().

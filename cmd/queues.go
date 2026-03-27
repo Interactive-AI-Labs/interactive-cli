@@ -242,7 +242,7 @@ This command requires API key authentication.`,
 
 func init() {
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
-	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 50, "Items per page")
+	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page")
 	queuesListCmd.Flags().
 		StringSliceVar(&queuesListColumns, "columns", nil, "Columns to display (comma-separated)")
 	queuesListCmd.Flags().
