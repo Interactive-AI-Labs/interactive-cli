@@ -156,14 +156,18 @@ func PrintStandaloneObservationList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = standaloneObservationColumnMap[col].Header
+		if def, ok := standaloneObservationColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(observations))
 	for i, observation := range observations {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = standaloneObservationColumnMap[col].Value(&observation)
+			if def, ok := standaloneObservationColumnMap[col]; ok {
+				row[j] = def.Value(&observation)
+			}
 		}
 		rows[i] = row
 	}

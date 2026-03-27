@@ -48,14 +48,18 @@ func PrintScoreList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = scoreColumnMap[col].Header
+		if def, ok := scoreColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(scores))
 	for i, score := range scores {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = scoreColumnMap[col].Value(&score)
+			if def, ok := scoreColumnMap[col]; ok {
+				row[j] = def.Value(&score)
+			}
 		}
 		rows[i] = row
 	}
@@ -96,6 +100,11 @@ func PrintDeleteSuccess(out io.Writer, resourceID, resourceType, message string)
 	}
 
 	_, err := fmt.Fprintf(out, "Deleted %s %q.\n", resourceType, resourceID)
+	return err
+}
+
+func PrintActionSuccess(out io.Writer, message string) error {
+	_, err := fmt.Fprintln(out, message)
 	return err
 }
 

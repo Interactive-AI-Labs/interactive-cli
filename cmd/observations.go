@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -93,19 +91,7 @@ Examples:
 				return err
 			}
 
-			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-			if err != nil {
-				return fmt.Errorf("failed to load session: %w", err)
-			}
-
-			apiClient, err := clients.NewAPIClient(
-				hostname, defaultHTTPTimeout, apiKey, cookies,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create API client: %w", err)
-			}
-
-			observations, rawJSON, err := apiClient.ListObservations(
+			observations, rawJSON, err := pCtx.apiClient.ListObservations(
 				cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, obsIncludeIO,
 			)
 			if err != nil {
@@ -162,19 +148,7 @@ Examples:
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		observations, meta, rawJSON, err := apiClient.SearchObservations(
+		observations, meta, rawJSON, err := pCtx.apiClient.SearchObservations(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -213,19 +187,7 @@ Examples:
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		obs, rawJSON, err := apiClient.GetObservation(
+		obs, rawJSON, err := pCtx.apiClient.GetObservation(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, observationID,
 		)
 		if err != nil {

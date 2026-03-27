@@ -21,6 +21,7 @@ iai scores create [flags]
       --environment string      Target environment
   -h, --help                    help for create
       --id string               Explicit score ID
+      --json                    Output raw API response as JSON
       --metadata-json string    Metadata as JSON object
       --name string             Score name
       --observation-id string   Target observation ID

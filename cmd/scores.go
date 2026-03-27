@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -50,6 +48,7 @@ var (
 	scoreCreateEnvironment  string
 	scoreCreateConfigID     string
 	scoreCreateQueueID      string
+	scoreCreateJSON         bool
 	scoreCreateOrg          string
 	scoreCreateProject      string
 
@@ -129,19 +128,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		scores, meta, rawJSON, err := apiClient.ListScores(
+		scores, meta, rawJSON, err := pCtx.apiClient.ListScores(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -192,21 +179,15 @@ This command currently requires API key authentication.`,
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
+		score, rawJSON, err := pCtx.apiClient.CreateScore(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, body,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
+			return err
 		}
 
-		score, err := apiClient.CreateScore(cmd.Context(), pCtx.orgId, pCtx.projectId, body)
-		if err != nil {
-			return err
+		if scoreCreateJSON {
+			return output.PrintRawJSON(out, rawJSON)
 		}
 
 		return output.PrintScoreCreateResult(out, score)
@@ -231,19 +212,7 @@ This command currently requires API key authentication.`,
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		message, err := apiClient.DeleteScore(
+		message, err := pCtx.apiClient.DeleteScore(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -316,6 +285,8 @@ func init() {
 		StringVar(&scoreCreateEnvironment, "environment", "", "Target environment")
 	scoresCreateCmd.Flags().StringVar(&scoreCreateConfigID, "config-id", "", "Related config ID")
 	scoresCreateCmd.Flags().StringVar(&scoreCreateQueueID, "queue-id", "", "Related queue ID")
+	scoresCreateCmd.Flags().
+		BoolVar(&scoreCreateJSON, "json", false, "Output raw API response as JSON")
 	scoresCreateCmd.Flags().
 		StringVarP(&scoreCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	scoresCreateCmd.Flags().

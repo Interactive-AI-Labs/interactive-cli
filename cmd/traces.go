@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -154,19 +153,7 @@ Examples:
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		traces, meta, rawJSON, err := apiClient.ListTraces(
+		traces, meta, rawJSON, err := pCtx.apiClient.ListTraces(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, opts,
 		)
 		if err != nil {
@@ -202,19 +189,7 @@ Examples:
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		trace, rawJSON, err := apiClient.GetTrace(
+		trace, rawJSON, err := pCtx.apiClient.GetTrace(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, tracesGetFields,
 		)
 		if err != nil {
@@ -276,20 +251,8 @@ Examples:
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
 		if traceID != "" {
-			message, err := apiClient.DeleteTrace(
+			message, err := pCtx.apiClient.DeleteTrace(
 				cmd.Context(),
 				pCtx.orgId,
 				pCtx.projectId,
@@ -301,7 +264,7 @@ Examples:
 			return output.PrintDeleteSuccess(out, traceID, "trace", message)
 		}
 
-		message, err := apiClient.DeleteTraces(
+		message, err := pCtx.apiClient.DeleteTraces(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
