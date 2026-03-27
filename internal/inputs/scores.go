@@ -154,4 +154,3 @@ func parseScoreValue(dataType, raw string) (any, error) {
 		return raw, nil
 	}
 }
-
