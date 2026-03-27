@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -79,19 +77,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		sessions, meta, rawJSON, err := apiClient.ListSessions(
+		sessions, meta, rawJSON, err := pCtx.apiClient.ListSessions(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -127,19 +113,7 @@ Uses the platform API with dual authentication (API key or session).`,
 			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(
-			hostname, defaultHTTPTimeout, apiKey, cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		session, rawJSON, err := apiClient.GetSession(
+		session, rawJSON, err := pCtx.apiClient.GetSession(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

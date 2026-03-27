@@ -1,7 +1,6 @@
 package inputs
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -75,11 +74,6 @@ func PrepareScoreListOptions(opts clients.ScoreListOptions) (clients.ScoreListOp
 }
 
 func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, error) {
-	name := strings.TrimSpace(input.Name)
-	if name == "" {
-		return clients.ScoreCreateBody{}, fmt.Errorf("--name is required")
-	}
-
 	targetCount := 0
 	if strings.TrimSpace(input.TraceID) != "" {
 		targetCount++
@@ -97,9 +91,6 @@ func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, erro
 	}
 
 	valueRaw := strings.TrimSpace(input.Value)
-	if valueRaw == "" {
-		return clients.ScoreCreateBody{}, fmt.Errorf("--value is required")
-	}
 
 	dataType := strings.ToUpper(strings.TrimSpace(input.DataType))
 	if dataType == "" {
@@ -113,7 +104,7 @@ func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, erro
 
 	body := clients.ScoreCreateBody{
 		ID:            strings.TrimSpace(input.ID),
-		Name:          name,
+		Name:          strings.TrimSpace(input.Name),
 		TraceID:       strings.TrimSpace(input.TraceID),
 		ObservationID: strings.TrimSpace(input.ObservationID),
 		SessionID:     strings.TrimSpace(input.SessionID),
@@ -126,7 +117,10 @@ func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, erro
 	}
 
 	if strings.TrimSpace(input.MetadataJSON) != "" {
-		metadata, err := parseJSONObject(input.MetadataJSON)
+		metadata, err := parseJSONObject(
+			input.MetadataJSON,
+			"--metadata-json",
+		)
 		if err != nil {
 			return clients.ScoreCreateBody{}, err
 		}
@@ -161,13 +155,3 @@ func parseScoreValue(dataType, raw string) (any, error) {
 	}
 }
 
-func parseJSONObject(raw string) (map[string]any, error) {
-	var value map[string]any
-	if err := json.Unmarshal([]byte(raw), &value); err != nil {
-		return nil, fmt.Errorf("invalid --metadata-json: must be a valid JSON object")
-	}
-	if value == nil {
-		return nil, fmt.Errorf("invalid --metadata-json: must be a JSON object")
-	}
-	return value, nil
-}

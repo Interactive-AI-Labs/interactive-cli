@@ -328,7 +328,7 @@ func TestAPIClientCreateScoreRequiresAPIKey(t *testing.T) {
 		t.Fatalf("NewAPIClient() error = %v", err)
 	}
 
-	_, err = client.CreateScore(context.Background(), "org-1", "proj-1", ScoreCreateBody{
+	_, _, err = client.CreateScore(context.Background(), "org-1", "proj-1", ScoreCreateBody{
 		Name:  "quality",
 		Value: 1,
 	})
@@ -378,7 +378,7 @@ func TestAPIClientCreateScoreAndDeleteTraces(t *testing.T) {
 		t.Fatalf("NewAPIClient() error = %v", err)
 	}
 
-	score, err := client.CreateScore(context.Background(), "org-1", "proj-1", ScoreCreateBody{
+	score, _, err := client.CreateScore(context.Background(), "org-1", "proj-1", ScoreCreateBody{
 		Name:    "quality",
 		TraceID: "trace-1",
 		Value:   1,

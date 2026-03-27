@@ -19,3 +19,14 @@ func ValidateColumns(columns, allowed []string) error {
 	}
 	return nil
 }
+
+// ValidatePagination validates common page-based pagination parameters.
+func ValidatePagination(page, limit int) error {
+	if page < 1 {
+		return fmt.Errorf("page must be >= 1, got %d", page)
+	}
+	if limit < 0 {
+		return fmt.Errorf("limit must be non-negative, got %d", limit)
+	}
+	return nil
+}

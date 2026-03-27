@@ -51,6 +51,11 @@ func LocalTime(s string) string {
 	return s
 }
 
+// PrintPageMeta prints the standard "Page X of Y (Z total items)" footer.
+func PrintPageMeta(out io.Writer, page, totalPages, totalItems int) {
+	fmt.Fprintf(out, "\nPage %d of %d (%d total items)\n", page, totalPages, totalItems)
+}
+
 func PrintLoadingDots(out io.Writer) chan struct{} {
 	done := make(chan struct{})
 	go func() {
