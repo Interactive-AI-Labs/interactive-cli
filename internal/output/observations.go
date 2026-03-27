@@ -55,6 +55,63 @@ var observationColumnMap = map[string]struct {
 	},
 }
 
+var standaloneObservationColumnMap = map[string]struct {
+	Header string
+	Value  func(o *clients.StandaloneObservationInfo) string
+}{
+	"id": {"ID", func(o *clients.StandaloneObservationInfo) string { return o.ID }},
+	"trace_id": {
+		"TRACE ID",
+		func(o *clients.StandaloneObservationInfo) string { return o.TraceID },
+	},
+	"type":  {"TYPE", func(o *clients.StandaloneObservationInfo) string { return o.Type }},
+	"name":  {"NAME", func(o *clients.StandaloneObservationInfo) string { return o.Name }},
+	"model": {"MODEL", func(o *clients.StandaloneObservationInfo) string { return o.Model }},
+	"environment": {
+		"ENVIRONMENT",
+		func(o *clients.StandaloneObservationInfo) string { return o.Environment },
+	},
+	"user_id": {"USER ID", func(o *clients.StandaloneObservationInfo) string { return o.UserID }},
+	"version": {"VERSION", func(o *clients.StandaloneObservationInfo) string { return o.Version }},
+	"start_time": {
+		"START TIME",
+		func(o *clients.StandaloneObservationInfo) string { return LocalTime(o.StartTime) },
+	},
+	"end_time": {
+		"END TIME",
+		func(o *clients.StandaloneObservationInfo) string { return LocalTime(o.EndTime) },
+	},
+	"parent_observation_id": {
+		"PARENT ID",
+		func(o *clients.StandaloneObservationInfo) string { return o.ParentObservationID },
+	},
+	"level": {"LEVEL", func(o *clients.StandaloneObservationInfo) string { return o.Level }},
+	"status_message": {
+		"STATUS",
+		func(o *clients.StandaloneObservationInfo) string { return o.StatusMessage },
+	},
+	"input_tokens": {
+		"INPUT TOKENS",
+		func(o *clients.StandaloneObservationInfo) string { return formatInt(o.InputTokens) },
+	},
+	"output_tokens": {
+		"OUTPUT TOKENS",
+		func(o *clients.StandaloneObservationInfo) string { return formatInt(o.OutputTokens) },
+	},
+	"total_tokens": {
+		"TOTAL TOKENS",
+		func(o *clients.StandaloneObservationInfo) string { return formatInt(o.TotalTokens) },
+	},
+	"total_cost": {
+		"COST",
+		func(o *clients.StandaloneObservationInfo) string { return formatCost(o.TotalCost) },
+	},
+	"latency_ms": {
+		"LATENCY (ms)",
+		func(o *clients.StandaloneObservationInfo) string { return formatFloat(o.LatencyMs, "ms") },
+	},
+}
+
 func PrintObservationList(
 	out io.Writer,
 	observations []clients.ObservationInfo,
@@ -84,6 +141,42 @@ func PrintObservationList(
 	}
 
 	return PrintTable(out, headers, rows)
+}
+
+func PrintStandaloneObservationList(
+	out io.Writer,
+	observations []clients.StandaloneObservationInfo,
+	meta clients.CursorMeta,
+	columns []string,
+) error {
+	if len(observations) == 0 {
+		fmt.Fprintln(out, "No observations found.")
+		return nil
+	}
+
+	headers := make([]string, len(columns))
+	for i, col := range columns {
+		headers[i] = standaloneObservationColumnMap[col].Header
+	}
+
+	rows := make([][]string, len(observations))
+	for i, observation := range observations {
+		row := make([]string, len(columns))
+		for j, col := range columns {
+			row[j] = standaloneObservationColumnMap[col].Value(&observation)
+		}
+		rows[i] = row
+	}
+
+	if err := PrintTable(out, headers, rows); err != nil {
+		return err
+	}
+
+	if meta.NextCursor != "" {
+		fmt.Fprintf(out, "\nNext cursor: %s\n", meta.NextCursor)
+	}
+
+	return nil
 }
 
 func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error {

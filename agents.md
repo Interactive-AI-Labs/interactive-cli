@@ -123,7 +123,83 @@ The platform is the source of truth. The CLI should not implement “agent brain
 
 ---
 
-## 5. Summary for agents
+## 5. CLI verb and flag conventions
+
+### Verbs
+
+Use a consistent, minimal set of verbs across all resource commands:
+
+| Verb | Alias | Purpose |
+|------|-------|---------|
+| `list` | `ls` | List/search/filter resources. **Never add a `search` verb** — filtering belongs on `list` via flags. |
+| `get` | `describe`, `desc` | Retrieve a single resource by ID or name |
+| `create` | — | Create a new resource |
+| `update` | — | Update an existing resource |
+| `delete` | `rm` | Delete a resource |
+| `schema` | — | Display JSON schema (for agents, routines, policies, etc.) |
+
+Do **not** introduce new verbs (e.g. `search`, `daily`, `inspect`, `show`) unless there is no way to express the functionality through the existing verb set with flags.
+
+### Parent command aliases
+
+Every parent command should have a singular alias:
+
+```go
+Use:     "observations",
+Aliases: []string{"obs", "observation"},
+```
+
+### Flags
+
+**Naming:**
+- Hyphen-separated: `--trace-id`, `--user-id`, `--from-timestamp`
+- Range filters: `--min-cost`, `--max-cost`, `--min-latency`, `--max-latency`
+- Repeatable flags: plural form (`--tags`), use `StringArrayVar`
+- Single-value filters: singular form (`--name`, `--model`, `--level`)
+
+**Standard flags present on most commands:**
+- `-o, --organization` — Organization name
+- `-p, --project` — Project name
+- `--json` — Output raw API response as JSON
+- `--columns` — Customize displayed table columns (`StringSliceVar`)
+
+**Pagination (pick one per command, never both):**
+- Page-based: `--page` (default 1), `--limit`
+- Cursor-based: `--cursor`, `--limit`
+
+**Timestamps:**
+- Always `--from-timestamp` and `--to-timestamp` (ISO 8601 / RFC3339)
+
+### Behavioral flags over new verbs
+
+When a command has multiple modes or granularities, use a flag instead of a new subcommand:
+
+```bash
+# Good: flag controls granularity
+iai metrics list --daily
+
+# Bad: new verb for each granularity
+iai metrics daily
+iai metrics monthly
+```
+
+```bash
+# Good: --trace-id scopes behavior on list
+iai observations list --trace-id abc123
+iai observations list --type GENERATION
+
+# Bad: separate search command
+iai observations search --type GENERATION
+```
+
+### Documentation
+
+- Docs in `docs/` are markdown files named `iai_<resource>_<verb>.md`.
+- When adding or renaming commands, update the parent doc's SEE ALSO section and create/rename the command doc accordingly.
+
+---
+
+## 6. Summary for agents
 
 - Treat `interactive-cli` as a **thin, reliable client**:
   - Parse input → call backend → print response.

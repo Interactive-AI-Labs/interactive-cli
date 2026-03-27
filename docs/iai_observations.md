@@ -25,5 +25,5 @@ Manage observations within traces. Works with API key (--api-key or INTERACTIVE_
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai observations get](iai_observations_get.md)	 - Get a specific observation
-* [iai observations list](iai_observations_list.md)	 - List observations for a trace
+* [iai observations list](iai_observations_list.md)	 - List observations
 

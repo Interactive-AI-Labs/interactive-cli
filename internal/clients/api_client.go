@@ -1,17 +1,15 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/google/go-querystring/query"
 )
 
 type APIClient struct {
@@ -88,6 +86,38 @@ func (c *APIClient) newRequest(ctx context.Context, method, rawPath string) (*ht
 	u.Path = decodedPath
 	u.RawPath = rawPath
 	return http.NewRequestWithContext(ctx, method, u.String(), nil)
+}
+
+func (c *APIClient) newJSONRequest(
+	ctx context.Context,
+	method, rawPath string,
+	body any,
+) (*http.Request, error) {
+	req, err := c.newRequest(ctx, method, rawPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode request body: %w", err)
+		}
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	return req, nil
+}
+
+func (c *APIClient) requireAPIKeyMode() error {
+	if c.isApiKeyMode {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"this command currently requires --api-key or INTERACTIVE_API_KEY; session login currently supports reads only for this resource",
+	)
 }
 
 func (c *APIClient) validateApiKey(ctx context.Context) error {
@@ -354,19 +384,13 @@ type TraceMeta struct {
 	TotalPages int `json:"total_pages"`
 }
 
-type traceListResponse struct {
-	Success bool `json:"success"`
-	Data    struct {
-		Traces []TraceInfo `json:"traces"`
-		Meta   TraceMeta   `json:"meta"`
-	} `json:"data"`
+type traceListData struct {
+	Traces []TraceInfo `json:"traces"`
+	Meta   TraceMeta   `json:"meta"`
 }
 
-type traceGetResponse struct {
-	Success bool `json:"success"`
-	Data    struct {
-		Trace TraceDetail `json:"trace"`
-	} `json:"data"`
+type traceWrapper struct {
+	Trace TraceDetail `json:"trace"`
 }
 
 type TraceListOptions struct {
@@ -426,77 +450,236 @@ type ObservationDetail struct {
 	PromptVersion   *int            `json:"prompt_version"`
 }
 
-type observationListResponse struct {
-	Success bool `json:"success"`
-	Data    struct {
-		Observations []ObservationInfo `json:"observations"`
-	} `json:"data"`
+type observationListData struct {
+	Observations []ObservationInfo `json:"observations"`
 }
 
-type observationGetResponse struct {
-	Success bool `json:"success"`
-	Data    struct {
-		Observation ObservationDetail `json:"observation"`
-	} `json:"data"`
+type observationWrapper struct {
+	Observation ObservationDetail `json:"observation"`
+}
+
+type CursorMeta struct {
+	NextCursor string `json:"next_cursor"`
+}
+
+type PageMeta struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalItems int `json:"total_items"`
+	TotalPages int `json:"total_pages"`
+}
+
+type StandaloneObservationInfo struct {
+	ID                  string   `json:"id"`
+	TraceID             string   `json:"trace_id"`
+	Type                string   `json:"type"`
+	Name                string   `json:"name"`
+	Model               string   `json:"model"`
+	Environment         string   `json:"environment"`
+	UserID              string   `json:"user_id"`
+	Version             string   `json:"version"`
+	StartTime           string   `json:"start_time"`
+	EndTime             string   `json:"end_time"`
+	ParentObservationID string   `json:"parent_observation_id"`
+	Level               string   `json:"level"`
+	StatusMessage       string   `json:"status_message"`
+	InputTokens         *int     `json:"input_tokens"`
+	OutputTokens        *int     `json:"output_tokens"`
+	TotalTokens         *int     `json:"total_tokens"`
+	TotalCost           *float64 `json:"total_cost"`
+	LatencyMs           *float64 `json:"latency_ms"`
+}
+
+type ObservationSearchOptions struct {
+	FromTimestamp       string `url:"from_start_time,omitempty"`
+	ToTimestamp         string `url:"to_start_time,omitempty"`
+	Cursor              string `url:"cursor,omitempty"`
+	Limit               int    `url:"limit,omitempty"`
+	Fields              string `url:"fields,omitempty"`
+	Type                string `url:"type,omitempty"`
+	Name                string `url:"name,omitempty"`
+	Level               string `url:"level,omitempty"`
+	Model               string `url:"model,omitempty"`
+	Environment         string `url:"environment,omitempty"`
+	TraceID             string `url:"trace_id,omitempty"`
+	ParentObservationID string `url:"parent_observation_id,omitempty"`
+	Version             string `url:"version,omitempty"`
+	UserID              string `url:"user_id,omitempty"`
+}
+
+type observationSearchData struct {
+	Observations []StandaloneObservationInfo `json:"observations"`
+	Meta         CursorMeta                  `json:"meta"`
+}
+
+type SessionInfo struct {
+	ID              string   `json:"id"`
+	CreatedAt       string   `json:"created_at"`
+	UpdatedAt       string   `json:"updated_at"`
+	Environment     string   `json:"environment"`
+	UserID          string   `json:"user_id"`
+	TraceCount      *int     `json:"trace_count"`
+	DurationSeconds *float64 `json:"duration_seconds"`
+	TotalCost       *float64 `json:"total_cost"`
+	InputTokens     *int     `json:"input_tokens"`
+	OutputTokens    *int     `json:"output_tokens"`
+	TotalTokens     *int     `json:"total_tokens"`
+}
+
+type SessionTraceSummary struct {
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	Timestamp        string   `json:"timestamp"`
+	LatencyMs        *float64 `json:"latency_ms"`
+	TotalCost        *float64 `json:"total_cost"`
+	ObservationCount *int     `json:"observation_count"`
+	TotalTokens      *int     `json:"total_tokens"`
+	Level            string   `json:"level"`
+}
+
+type SessionDetail struct {
+	SessionInfo
+	Traces []SessionTraceSummary `json:"traces"`
+}
+
+type SessionListOptions struct {
+	FromTimestamp string `url:"from_timestamp,omitempty"`
+	ToTimestamp   string `url:"to_timestamp,omitempty"`
+	Page          int    `url:"page,omitempty"`
+	Limit         int    `url:"limit,omitempty"`
+	Environment   string `url:"environment,omitempty"`
+}
+
+type sessionListData struct {
+	Sessions []SessionInfo `json:"sessions"`
+	Meta     PageMeta      `json:"meta"`
+}
+
+type sessionWrapper struct {
+	Session SessionDetail `json:"session"`
+}
+
+type ScoreInfo struct {
+	ID            string          `json:"id"`
+	Name          string          `json:"name"`
+	DataType      string          `json:"data_type"`
+	Value         json.RawMessage `json:"value"`
+	Source        string          `json:"source"`
+	Timestamp     string          `json:"timestamp"`
+	TraceID       string          `json:"trace_id"`
+	ObservationID string          `json:"observation_id"`
+	SessionID     string          `json:"session_id"`
+	Environment   string          `json:"environment"`
+	ConfigID      string          `json:"config_id"`
+	QueueID       string          `json:"queue_id"`
+	UserID        string          `json:"user_id"`
+	Comment       string          `json:"comment"`
+	Metadata      json.RawMessage `json:"metadata"`
+}
+
+type ScoreListOptions struct {
+	FromTimestamp string   `url:"from_timestamp,omitempty"`
+	ToTimestamp   string   `url:"to_timestamp,omitempty"`
+	Cursor        string   `url:"cursor,omitempty"`
+	Limit         int      `url:"limit,omitempty"`
+	Fields        string   `url:"fields,omitempty"`
+	Name          string   `url:"name,omitempty"`
+	TraceID       string   `url:"trace_id,omitempty"`
+	ObservationID string   `url:"observation_id,omitempty"`
+	SessionID     string   `url:"session_id,omitempty"`
+	Source        string   `url:"source,omitempty"`
+	DataType      string   `url:"data_type,omitempty"`
+	Environment   string   `url:"environment,omitempty"`
+	ConfigID      string   `url:"config_id,omitempty"`
+	MinValue      *float64 `url:"min_value,omitempty"`
+	MaxValue      *float64 `url:"max_value,omitempty"`
+	ScoreIDs      []string `url:"score_id,omitempty"`
+	UserID        string   `url:"user_id,omitempty"`
+	TraceTags     []string `url:"trace_tag,omitempty"`
+	Value         string   `url:"value,omitempty"`
+	Operator      string   `url:"operator,omitempty"`
+}
+
+type ScoreCreateBody struct {
+	ID            string `json:"id,omitempty"`
+	Name          string `json:"name"`
+	TraceID       string `json:"trace_id,omitempty"`
+	ObservationID string `json:"observation_id,omitempty"`
+	SessionID     string `json:"session_id,omitempty"`
+	DataType      string `json:"data_type,omitempty"`
+	Value         any    `json:"value"`
+	Comment       string `json:"comment,omitempty"`
+	Metadata      any    `json:"metadata,omitempty"`
+	Environment   string `json:"environment,omitempty"`
+	ConfigID      string `json:"config_id,omitempty"`
+	QueueID       string `json:"queue_id,omitempty"`
+}
+
+type ScoreCreateResult struct {
+	Score ScoreInfo `json:"score"`
+}
+
+type scoreListData struct {
+	Scores []ScoreInfo `json:"scores"`
+	Meta   CursorMeta  `json:"meta"`
+}
+
+type scoreWrapper struct {
+	Score ScoreInfo `json:"score"`
+}
+
+type DailyMetric struct {
+	Date              string       `json:"date"`
+	CountTraces       *int         `json:"count_traces"`
+	CountObservations *int         `json:"count_observations"`
+	TotalCost         *float64     `json:"total_cost"`
+	TotalTokens       *int         `json:"total_tokens"`
+	Models            []ModelUsage `json:"models"`
+}
+
+type ModelUsage struct {
+	Model             string   `json:"model"`
+	CountObservations *int     `json:"count_observations"`
+	TotalCost         *float64 `json:"total_cost"`
+	TotalTokens       *int     `json:"total_tokens"`
+}
+
+type MetricsDailyOptions struct {
+	FromTimestamp string   `url:"from_timestamp,omitempty"`
+	ToTimestamp   string   `url:"to_timestamp,omitempty"`
+	Page          int      `url:"page,omitempty"`
+	Limit         int      `url:"limit,omitempty"`
+	TraceName     string   `url:"trace_name,omitempty"`
+	UserID        string   `url:"user_id,omitempty"`
+	Tags          []string `url:"tags,omitempty"`
+	Environment   string   `url:"environment,omitempty"`
+}
+
+type metricsDailyData struct {
+	Metrics []DailyMetric `json:"metrics"`
+	Meta    PageMeta      `json:"meta"`
+}
+
+type DeleteMessageResponse struct {
+	Message string `json:"message"`
+}
+
+type BulkTraceDeleteBody struct {
+	IDs []string `json:"ids"`
 }
 
 // ListTraces calls the platform trace exploration API.
-// orgID and projectID are required for the new endpoint path.
 func (c *APIClient) ListTraces(
 	ctx context.Context,
 	orgID, projectID string,
 	opts TraceListOptions,
 ) ([]TraceInfo, TraceMeta, json.RawMessage, error) {
-	path := fmt.Sprintf(
-		"/api/platform/v1/organizations/%s/projects/%s/traces",
-		url.PathEscape(orgID),
-		url.PathEscape(projectID),
-	)
-	req, err := c.newRequest(ctx, http.MethodGet, path)
+	path := evalBasePath(orgID, projectID) + "/traces"
+	data, raw, err := doList[traceListData](c, ctx, path, opts, "list traces")
 	if err != nil {
-		return nil, TraceMeta{}, nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, TraceMeta{}, nil, err
 	}
-
-	q, err := query.Values(opts)
-	if err != nil {
-		return nil, TraceMeta{}, nil, fmt.Errorf("failed to encode query parameters: %w", err)
-	}
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := c.do(req)
-	if err != nil {
-		return nil, TraceMeta{}, nil, fmt.Errorf("traces list request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, TraceMeta{}, nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, TraceMeta{}, nil, errors.New(msg)
-		}
-		return nil, TraceMeta{}, nil, fmt.Errorf(
-			"failed to list traces: server returned %s",
-			resp.Status,
-		)
-	}
-
-	var result traceListResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, TraceMeta{}, nil, fmt.Errorf("failed to decode traces response: %w", err)
-	}
-
-	if !result.Success {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, TraceMeta{}, nil, errors.New(msg)
-		}
-		return nil, TraceMeta{}, nil, fmt.Errorf("traces list returned success=false")
-	}
-
-	return result.Data.Traces, result.Data.Meta, respBody, nil
+	return data.Traces, data.Meta, raw, nil
 }
 
 // GetTrace retrieves a single trace from the platform API.
@@ -504,54 +687,25 @@ func (c *APIClient) GetTrace(
 	ctx context.Context,
 	orgID, projectID, traceID, fields string,
 ) (*TraceDetail, json.RawMessage, error) {
-	path := fmt.Sprintf(
-		"/api/platform/v1/organizations/%s/projects/%s/traces/%s",
-		url.PathEscape(orgID),
-		url.PathEscape(projectID),
-		url.PathEscape(traceID),
-	)
+	path := evalBasePath(orgID, projectID) + "/traces/" + url.PathEscape(traceID)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
-
 	if fields != "" {
 		q := req.URL.Query()
 		q.Set("fields", fields)
 		req.URL.RawQuery = q.Encode()
 	}
-
-	resp, err := c.do(req)
+	body, err := c.doAndRead(req, "get trace")
 	if err != nil {
-		return nil, nil, fmt.Errorf("trace get request failed: %w", err)
+		return nil, nil, err
 	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
+	data, err := decodeSuccess[traceWrapper](body, "get trace")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, nil, err
 	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, nil, errors.New(msg)
-		}
-		return nil, nil, fmt.Errorf("failed to get trace: server returned %s", resp.Status)
-	}
-
-	var result traceGetResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, nil, fmt.Errorf("failed to decode trace response: %w", err)
-	}
-
-	if !result.Success {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, nil, errors.New(msg)
-		}
-		return nil, nil, fmt.Errorf("trace get returned success=false")
-	}
-
-	return &result.Data.Trace, respBody, nil
+	return &data.Trace, json.RawMessage(body), nil
 }
 
 // ListObservations retrieves observations for a trace.
@@ -560,57 +714,26 @@ func (c *APIClient) ListObservations(
 	orgID, projectID, traceID string,
 	includeIO bool,
 ) ([]ObservationInfo, json.RawMessage, error) {
-	path := fmt.Sprintf(
-		"/api/platform/v1/organizations/%s/projects/%s/traces/%s/observations",
-		url.PathEscape(orgID),
-		url.PathEscape(projectID),
-		url.PathEscape(traceID),
-	)
+	path := evalBasePath(orgID, projectID) + "/traces/" +
+		url.PathEscape(traceID) + "/observations"
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
-
 	if includeIO {
 		q := req.URL.Query()
 		q.Set("include_io", "true")
 		req.URL.RawQuery = q.Encode()
 	}
-
-	resp, err := c.do(req)
+	body, err := c.doAndRead(req, "list observations")
 	if err != nil {
-		return nil, nil, fmt.Errorf("observations list request failed: %w", err)
+		return nil, nil, err
 	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
+	data, err := decodeSuccess[observationListData](body, "list observations")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, nil, err
 	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, nil, errors.New(msg)
-		}
-		return nil, nil, fmt.Errorf(
-			"failed to list observations: server returned %s",
-			resp.Status,
-		)
-	}
-
-	var result observationListResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, nil, fmt.Errorf("failed to decode observations response: %w", err)
-	}
-
-	if !result.Success {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, nil, errors.New(msg)
-		}
-		return nil, nil, fmt.Errorf("observations list returned success=false")
-	}
-
-	return result.Data.Observations, respBody, nil
+	return data.Observations, json.RawMessage(body), nil
 }
 
 // GetObservation retrieves a single observation by ID.
@@ -618,51 +741,159 @@ func (c *APIClient) GetObservation(
 	ctx context.Context,
 	orgID, projectID, observationID string,
 ) (*ObservationDetail, json.RawMessage, error) {
-	path := fmt.Sprintf(
-		"/api/platform/v1/organizations/%s/projects/%s/observations/%s",
-		url.PathEscape(orgID),
-		url.PathEscape(projectID),
-		url.PathEscape(observationID),
+	path := evalBasePath(orgID, projectID) + "/observations/" +
+		url.PathEscape(observationID)
+	data, raw, err := doGet[observationWrapper](c, ctx, path, "get observation")
+	if err != nil {
+		return nil, nil, err
+	}
+	return &data.Observation, raw, nil
+}
+
+// SearchObservations queries observations across all traces.
+func (c *APIClient) SearchObservations(
+	ctx context.Context,
+	orgID, projectID string,
+	opts ObservationSearchOptions,
+) ([]StandaloneObservationInfo, CursorMeta, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/observations"
+	data, raw, err := doList[observationSearchData](
+		c, ctx, path, opts, "search observations",
 	)
+	if err != nil {
+		return nil, CursorMeta{}, nil, err
+	}
+	return data.Observations, data.Meta, raw, nil
+}
+
+// ListSessions retrieves paginated sessions for a project.
+func (c *APIClient) ListSessions(
+	ctx context.Context,
+	orgID, projectID string,
+	opts SessionListOptions,
+) ([]SessionInfo, PageMeta, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/sessions"
+	data, raw, err := doList[sessionListData](c, ctx, path, opts, "list sessions")
+	if err != nil {
+		return nil, PageMeta{}, nil, err
+	}
+	return data.Sessions, data.Meta, raw, nil
+}
+
+// GetSession retrieves a single session with optional trace summaries.
+func (c *APIClient) GetSession(
+	ctx context.Context,
+	orgID, projectID, sessionID, fields string,
+) (*SessionDetail, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/sessions/" + url.PathEscape(sessionID)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
-
-	resp, err := c.do(req)
+	if fields != "" {
+		q := req.URL.Query()
+		q.Set("fields", fields)
+		req.URL.RawQuery = q.Encode()
+	}
+	body, err := c.doAndRead(req, "get session")
 	if err != nil {
-		return nil, nil, fmt.Errorf("observation get request failed: %w", err)
+		return nil, nil, err
 	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
+	data, err := decodeSuccess[sessionWrapper](body, "get session")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, nil, err
 	}
+	return &data.Session, json.RawMessage(body), nil
+}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, nil, errors.New(msg)
-		}
-		return nil, nil, fmt.Errorf(
-			"failed to get observation: server returned %s",
-			resp.Status,
-		)
+// ListScores retrieves scores with cursor-based pagination.
+func (c *APIClient) ListScores(
+	ctx context.Context,
+	orgID, projectID string,
+	opts ScoreListOptions,
+) ([]ScoreInfo, CursorMeta, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/scores"
+	data, raw, err := doList[scoreListData](c, ctx, path, opts, "list scores")
+	if err != nil {
+		return nil, CursorMeta{}, nil, err
 	}
+	return data.Scores, data.Meta, raw, nil
+}
 
-	var result observationGetResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, nil, fmt.Errorf("failed to decode observation response: %w", err)
+// CreateScore creates a score. Requires API key authentication.
+func (c *APIClient) CreateScore(
+	ctx context.Context,
+	orgID, projectID string,
+	body ScoreCreateBody,
+) (*ScoreInfo, json.RawMessage, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return nil, nil, err
 	}
-
-	if !result.Success {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, nil, errors.New(msg)
-		}
-		return nil, nil, fmt.Errorf("observation get returned success=false")
+	path := evalBasePath(orgID, projectID) + "/scores"
+	data, raw, err := doCreate[scoreWrapper](c, ctx, path, body, "create score")
+	if err != nil {
+		return nil, nil, err
 	}
+	return &data.Score, raw, nil
+}
 
-	return &result.Data.Observation, respBody, nil
+// DeleteScore deletes a score by ID. Requires API key authentication.
+func (c *APIClient) DeleteScore(
+	ctx context.Context,
+	orgID, projectID, scoreID string,
+) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
+	path := evalBasePath(orgID, projectID) + "/scores/" + url.PathEscape(scoreID)
+	return c.doDelete(ctx, path, "delete score")
+}
+
+// ListMetricsDaily retrieves daily metrics with optional per-model breakdown.
+func (c *APIClient) ListMetricsDaily(
+	ctx context.Context,
+	orgID, projectID string,
+	opts MetricsDailyOptions,
+) ([]DailyMetric, PageMeta, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/metrics/daily"
+	data, raw, err := doList[metricsDailyData](c, ctx, path, opts, "list daily metrics")
+	if err != nil {
+		return nil, PageMeta{}, nil, err
+	}
+	return data.Metrics, data.Meta, raw, nil
+}
+
+// DeleteTrace deletes a single trace. Requires API key authentication.
+func (c *APIClient) DeleteTrace(
+	ctx context.Context,
+	orgID, projectID, traceID string,
+) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
+	path := evalBasePath(orgID, projectID) + "/traces/" + url.PathEscape(traceID)
+	return c.doDelete(ctx, path, "delete trace")
+}
+
+// DeleteTraces bulk-deletes up to 500 traces. Requires API key authentication.
+func (c *APIClient) DeleteTraces(
+	ctx context.Context,
+	orgID, projectID string,
+	body BulkTraceDeleteBody,
+) (string, error) {
+	if err := c.requireAPIKeyMode(); err != nil {
+		return "", err
+	}
+	path := evalBasePath(orgID, projectID) + "/traces"
+	req, err := c.newJSONRequest(ctx, http.MethodDelete, path, body)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	respBody, err := c.doAndRead(req, "delete traces")
+	if err != nil {
+		return "", err
+	}
+	return checkSuccess(respBody, "delete traces")
 }
 
 func (c *APIClient) GetProjectId(
@@ -818,7 +1049,7 @@ func (c *APIClient) CreatePrompt(
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	resp, err := c.do(req)
 	if err != nil {

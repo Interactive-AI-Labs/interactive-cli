@@ -14,6 +14,7 @@ type projectContext struct {
 	orgName     string
 	projectId   string
 	projectName string
+	apiClient   *clients.APIClient
 }
 
 func resolveProject(
@@ -57,5 +58,6 @@ func resolveProject(
 		orgName:     orgName,
 		projectId:   projectId,
 		projectName: projectName,
+		apiClient:   apiClient,
 	}, nil
 }

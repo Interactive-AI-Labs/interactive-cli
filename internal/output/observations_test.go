@@ -182,3 +182,57 @@ func TestPrintObservationDetail(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintStandaloneObservationList(t *testing.T) {
+	cost := 0.0081
+	latency := 9321.0
+	tokens := 7474
+
+	tests := []struct {
+		name         string
+		observations []clients.StandaloneObservationInfo
+		meta         clients.CursorMeta
+		columns      []string
+		want         string
+	}{
+		{
+			name:         "empty list prints message",
+			observations: nil,
+			columns:      inputs.DefaultStandaloneObservationColumns,
+			want:         "No observations found.\n",
+		},
+		{
+			name: "default columns with cursor",
+			observations: []clients.StandaloneObservationInfo{
+				{
+					ID:          "obs-123",
+					TraceID:     "trace-456",
+					Type:        "GENERATION",
+					Name:        "ChatGPT",
+					Model:       "gpt-4",
+					LatencyMs:   &latency,
+					TotalCost:   &cost,
+					TotalTokens: &tokens,
+				},
+			},
+			meta:    clients.CursorMeta{NextCursor: "cursor-2"},
+			columns: inputs.DefaultStandaloneObservationColumns,
+			want: "ID        TRACE ID    TYPE         NAME      MODEL   LATENCY (ms)   COST        TOTAL TOKENS\n" +
+				"obs-123   trace-456   GENERATION   ChatGPT   gpt-4   9321.00ms      $0.008100   7474\n" +
+				"\nNext cursor: cursor-2\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintStandaloneObservationList(&buf, tt.observations, tt.meta, tt.columns)
+			if err != nil {
+				t.Fatalf("PrintStandaloneObservationList() error = %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			}
+		})
+	}
+}

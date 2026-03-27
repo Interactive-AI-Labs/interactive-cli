@@ -54,21 +54,32 @@ iai --help
 ### SEE ALSO
 
 * [iai agents](iai_agents.md)	 - Manage agents
+* [iai comments](iai_comments.md)	 - Manage comments
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
+* [iai dataset-items](iai_dataset-items.md)	 - Manage dataset items
+* [iai dataset-runs](iai_dataset-runs.md)	 - Manage dataset runs
+* [iai datasets](iai_datasets.md)	 - Manage evaluation datasets
 * [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
 * [iai images](iai_images.md)	 - Build and manage container images
 * [iai login](iai_login.md)	 - Log in to InteractiveAI
 * [iai logout](iai_logout.md)	 - Log out of InteractiveAI
 * [iai macros](iai_macros.md)	 - Manage macros
+* [iai metrics](iai_metrics.md)	 - Manage observability metrics
 * [iai observations](iai_observations.md)	 - Manage observations
 * [iai organizations](iai_organizations.md)	 - Manage organizations
 * [iai policies](iai_policies.md)	 - Manage policies
 * [iai projects](iai_projects.md)	 - Manage projects
 * [iai prompts](iai_prompts.md)	 - Manage prompts
+* [iai queue-items](iai_queue-items.md)	 - Manage annotation queue items
+* [iai queues](iai_queues.md)	 - Manage annotation queues
 * [iai replicas](iai_replicas.md)	 - Manage service replicas
 * [iai routines](iai_routines.md)	 - Manage routines
+* [iai run-items](iai_run-items.md)	 - Manage dataset run items
+* [iai score-configs](iai_score-configs.md)	 - Manage score configs
+* [iai scores](iai_scores.md)	 - Manage scores
 * [iai secrets](iai_secrets.md)	 - Manage secrets
 * [iai services](iai_services.md)	 - Manage services
+* [iai sessions](iai_sessions.md)	 - Manage sessions
 * [iai traces](iai_traces.md)	 - Manage traces
 * [iai variables](iai_variables.md)	 - Manage variables
 * [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores
