@@ -44,14 +44,18 @@ func PrintMetricsDaily(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = metricsDailyColumnMap[col].Header
+		if def, ok := metricsDailyColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(metrics))
 	for i, metric := range metrics {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = metricsDailyColumnMap[col].Value(&metric)
+			if def, ok := metricsDailyColumnMap[col]; ok {
+				row[j] = def.Value(&metric)
+			}
 		}
 		rows[i] = row
 	}

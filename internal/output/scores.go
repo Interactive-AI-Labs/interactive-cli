@@ -48,14 +48,18 @@ func PrintScoreList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = scoreColumnMap[col].Header
+		if def, ok := scoreColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(scores))
 	for i, score := range scores {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = scoreColumnMap[col].Value(&score)
+			if def, ok := scoreColumnMap[col]; ok {
+				row[j] = def.Value(&score)
+			}
 		}
 		rows[i] = row
 	}

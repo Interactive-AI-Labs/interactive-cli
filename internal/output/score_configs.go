@@ -61,14 +61,18 @@ func PrintScoreConfigList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = scoreConfigColumnMap[col].Header
+		if def, ok := scoreConfigColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(configs))
 	for i, cfg := range configs {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = scoreConfigColumnMap[col].Value(&cfg)
+			if def, ok := scoreConfigColumnMap[col]; ok {
+				row[j] = def.Value(&cfg)
+			}
 		}
 		rows[i] = row
 	}

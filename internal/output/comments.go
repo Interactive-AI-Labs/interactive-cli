@@ -52,14 +52,18 @@ func PrintCommentList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = commentColumnMap[col].Header
+		if def, ok := commentColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(comments))
 	for i, comment := range comments {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = commentColumnMap[col].Value(&comment)
+			if def, ok := commentColumnMap[col]; ok {
+				row[j] = def.Value(&comment)
+			}
 		}
 		rows[i] = row
 	}

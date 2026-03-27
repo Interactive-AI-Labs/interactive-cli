@@ -64,14 +64,18 @@ func PrintSessionList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = sessionColumnMap[col].Header
+		if def, ok := sessionColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(sessions))
 	for i, session := range sessions {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = sessionColumnMap[col].Value(&session)
+			if def, ok := sessionColumnMap[col]; ok {
+				row[j] = def.Value(&session)
+			}
 		}
 		rows[i] = row
 	}

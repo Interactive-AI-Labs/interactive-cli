@@ -44,14 +44,18 @@ func PrintDatasetRunList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = datasetRunColumnMap[col].Header
+		if def, ok := datasetRunColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(runs))
 	for i, run := range runs {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = datasetRunColumnMap[col].Value(&run)
+			if def, ok := datasetRunColumnMap[col]; ok {
+				row[j] = def.Value(&run)
+			}
 		}
 		rows[i] = row
 	}

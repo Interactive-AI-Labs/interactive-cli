@@ -37,14 +37,18 @@ func PrintDatasetList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = datasetColumnMap[col].Header
+		if def, ok := datasetColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(datasets))
 	for i, ds := range datasets {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = datasetColumnMap[col].Value(&ds)
+			if def, ok := datasetColumnMap[col]; ok {
+				row[j] = def.Value(&ds)
+			}
 		}
 		rows[i] = row
 	}

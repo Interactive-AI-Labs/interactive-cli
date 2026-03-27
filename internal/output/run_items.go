@@ -51,14 +51,18 @@ func PrintRunItemList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = runItemColumnMap[col].Header
+		if def, ok := runItemColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(items))
 	for i, item := range items {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = runItemColumnMap[col].Value(&item)
+			if def, ok := runItemColumnMap[col]; ok {
+				row[j] = def.Value(&item)
+			}
 		}
 		rows[i] = row
 	}

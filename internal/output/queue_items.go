@@ -42,14 +42,18 @@ func PrintQueueItemList(
 
 	headers := make([]string, len(columns))
 	for i, col := range columns {
-		headers[i] = queueItemColumnMap[col].Header
+		if def, ok := queueItemColumnMap[col]; ok {
+			headers[i] = def.Header
+		}
 	}
 
 	rows := make([][]string, len(items))
 	for i, item := range items {
 		row := make([]string, len(columns))
 		for j, col := range columns {
-			row[j] = queueItemColumnMap[col].Value(&item)
+			if def, ok := queueItemColumnMap[col]; ok {
+				row[j] = def.Value(&item)
+			}
 		}
 		rows[i] = row
 	}
