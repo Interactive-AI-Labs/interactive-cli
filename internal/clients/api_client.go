@@ -13,6 +13,7 @@ import (
 )
 
 type APIClient struct {
+	token             string
 	apiKey            string
 	cookies           []*http.Cookie
 	httpClient        *http.Client
@@ -40,19 +41,23 @@ type Project struct {
 func NewAPIClient(
 	hostname string,
 	timeout time.Duration,
+	token string,
 	apiKey string,
 	cookies []*http.Cookie,
 ) (*APIClient, error) {
-	if apiKey == "" && len(cookies) == 0 {
-		return nil, fmt.Errorf("no authentication method available: provide an API key or log in")
+	if token == "" && apiKey == "" && len(cookies) == 0 {
+		return nil, fmt.Errorf(
+			"no authentication method available: provide a token, API key, or log in",
+		)
 	}
 
 	client := &APIClient{
+		token:        token,
 		apiKey:       apiKey,
 		cookies:      cookies,
 		httpClient:   &http.Client{Timeout: timeout},
 		hostname:     hostname,
-		isApiKeyMode: apiKey != "",
+		isApiKeyMode: apiKey != "" && token == "",
 	}
 
 	if client.isApiKeyMode {
@@ -67,7 +72,7 @@ func NewAPIClient(
 }
 
 func (c *APIClient) do(req *http.Request) (*http.Response, error) {
-	if err := ApplyAuth(req, c.apiKey, c.cookies); err != nil {
+	if err := ApplyAuth(req, c.token, c.apiKey, c.cookies); err != nil {
 		return nil, err
 	}
 	resp, err := c.httpClient.Do(req)
@@ -116,7 +121,7 @@ func (c *APIClient) requireAPIKeyMode() error {
 	}
 
 	return fmt.Errorf(
-		"this command currently requires --api-key or INTERACTIVE_API_KEY; session login currently supports reads only for this resource",
+		"this command requires API key authentication (--api-key or INTERACTIVE_API_KEY)",
 	)
 }
 

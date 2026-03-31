@@ -94,7 +94,7 @@ Examples:
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname, defaultHTTPTimeout, apiKey, cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
@@ -179,7 +179,7 @@ Examples:
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname, defaultHTTPTimeout, apiKey, cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
@@ -252,7 +252,7 @@ Examples:
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname, defaultHTTPTimeout, apiKey, cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
@@ -333,7 +333,7 @@ Examples:
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname, defaultHTTPTimeout, apiKey, cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
@@ -440,7 +440,7 @@ Examples:
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname, defaultHTTPTimeout, apiKey, cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)

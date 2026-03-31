@@ -13,6 +13,7 @@ import (
 )
 
 type DeploymentClient struct {
+	token      string
 	apiKey     string
 	cookies    []*http.Cookie
 	httpClient *http.Client
@@ -103,14 +104,18 @@ type ReplicaEvent struct {
 func NewDeploymentClient(
 	hostname string,
 	timeout time.Duration,
+	token string,
 	apiKey string,
 	cookies []*http.Cookie,
 ) (*DeploymentClient, error) {
-	if apiKey == "" && len(cookies) == 0 {
-		return nil, fmt.Errorf("no authentication method available: provide an API key or log in")
+	if token == "" && apiKey == "" && len(cookies) == 0 {
+		return nil, fmt.Errorf(
+			"no authentication method available: provide a token, API key, or log in",
+		)
 	}
 
 	return &DeploymentClient{
+		token:      token,
 		apiKey:     apiKey,
 		cookies:    cookies,
 		httpClient: &http.Client{Timeout: timeout},
@@ -119,7 +124,7 @@ func NewDeploymentClient(
 }
 
 func (c *DeploymentClient) do(req *http.Request) (*http.Response, error) {
-	if err := ApplyAuth(req, c.apiKey, c.cookies); err != nil {
+	if err := ApplyAuth(req, c.token, c.apiKey, c.cookies); err != nil {
 		return nil, err
 	}
 	resp, err := c.httpClient.Do(req)

@@ -49,7 +49,7 @@ var vsListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -57,6 +57,7 @@ var vsListCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -111,7 +112,7 @@ var vsDescribeCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -119,6 +120,7 @@ var vsDescribeCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -181,7 +183,7 @@ var vsCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -189,6 +191,7 @@ var vsCreateCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -270,7 +273,7 @@ var vsDeleteCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -278,6 +281,7 @@ var vsDeleteCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)

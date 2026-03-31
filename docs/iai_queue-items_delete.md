@@ -26,6 +26,7 @@ iai queue-items delete <item-id> [flags]
       --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
+      --token string                 JWT Bearer token for user-level auth, issued via OAuth or copilot token exchange (env: INTERACTIVE_TOKEN)
 ```
 
 ### SEE ALSO

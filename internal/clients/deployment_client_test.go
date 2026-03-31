@@ -11,6 +11,7 @@ func TestNewDeploymentClient(t *testing.T) {
 		client, err := NewDeploymentClient(
 			"https://deploy.example.com",
 			30*time.Second,
+			"",
 			"test-key",
 			nil,
 		)
@@ -25,11 +26,31 @@ func TestNewDeploymentClient(t *testing.T) {
 		}
 	})
 
+	t.Run("creates client with token", func(t *testing.T) {
+		client, err := NewDeploymentClient(
+			"https://deploy.example.com",
+			30*time.Second,
+			"fake-token",
+			"",
+			nil,
+		)
+		if err != nil {
+			t.Fatalf("NewDeploymentClient() error = %v", err)
+		}
+		if client == nil {
+			t.Fatal("expected non-nil client")
+		}
+		if client.token != "fake-token" {
+			t.Errorf("token = %q, want %q", client.token, "fake-token")
+		}
+	})
+
 	t.Run("creates client with cookies", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
 		client, err := NewDeploymentClient(
 			"https://deploy.example.com",
 			30*time.Second,
+			"",
 			"",
 			cookies,
 		)
@@ -45,7 +66,7 @@ func TestNewDeploymentClient(t *testing.T) {
 	})
 
 	t.Run("returns error with no auth", func(t *testing.T) {
-		_, err := NewDeploymentClient("https://deploy.example.com", 30*time.Second, "", nil)
+		_, err := NewDeploymentClient("https://deploy.example.com", 30*time.Second, "", "", nil)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -53,7 +74,7 @@ func TestNewDeploymentClient(t *testing.T) {
 
 	t.Run("stores hostname correctly", func(t *testing.T) {
 		hostname := "https://deploy.example.com"
-		client, err := NewDeploymentClient(hostname, 30*time.Second, "test-key", nil)
+		client, err := NewDeploymentClient(hostname, 30*time.Second, "", "test-key", nil)
 		if err != nil {
 			t.Fatalf("NewDeploymentClient() error = %v", err)
 		}

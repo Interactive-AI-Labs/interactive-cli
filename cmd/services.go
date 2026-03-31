@@ -111,7 +111,7 @@ var servCCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -119,6 +119,7 @@ var servCCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -281,7 +282,7 @@ var servUCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -289,6 +290,7 @@ var servUCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -437,7 +439,7 @@ var servListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -445,6 +447,7 @@ var servListCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -507,7 +510,7 @@ var servDCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -515,6 +518,7 @@ var servDCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -580,7 +584,7 @@ var servRestartCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -588,6 +592,7 @@ var servRestartCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -672,7 +677,7 @@ Returns up to 5000 log entries in chronological order.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -685,6 +690,7 @@ Returns up to 5000 log entries in chronological order.`,
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			timeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -769,7 +775,7 @@ The project is selected with --project or via 'iai projects select', and the con
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -777,6 +783,7 @@ The project is selected with --project or via 'iai projects select', and the con
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
