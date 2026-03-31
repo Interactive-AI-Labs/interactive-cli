@@ -49,7 +49,6 @@ iai --help
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
   -h, --help                         help for iai
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
-      --token string                 JWT Bearer token for user-level auth, issued via OAuth or copilot token exchange (env: INTERACTIVE_TOKEN)
 ```
 
 ### SEE ALSO
