@@ -50,7 +50,7 @@ var secretsListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -58,6 +58,7 @@ var secretsListCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -128,7 +129,7 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -136,6 +137,7 @@ When both are provided, --data values take precedence.`,
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -241,7 +243,7 @@ Examples:
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -249,6 +251,7 @@ Examples:
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -394,7 +397,7 @@ var secretsDeleteCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -402,6 +405,7 @@ var secretsDeleteCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -470,7 +474,7 @@ var secretsGetCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
@@ -478,6 +482,7 @@ var secretsGetCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)

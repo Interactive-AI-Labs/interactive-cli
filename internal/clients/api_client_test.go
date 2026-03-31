@@ -14,7 +14,7 @@ import (
 func TestNewAPIClient(t *testing.T) {
 	t.Run("creates client with cookies", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -26,8 +26,47 @@ func TestNewAPIClient(t *testing.T) {
 		}
 	})
 
+	t.Run("creates client with token", func(t *testing.T) {
+		client, err := NewAPIClient(
+			"https://api.example.com",
+			30*time.Second,
+			"fake-token",
+			"",
+			nil,
+		)
+		if err != nil {
+			t.Fatalf("NewAPIClient() error = %v", err)
+		}
+		if client == nil {
+			t.Fatal("expected non-nil client")
+		}
+		if client.token != "fake-token" {
+			t.Errorf("token = %q, want %q", client.token, "fake-token")
+		}
+		if client.isApiKeyMode {
+			t.Error("expected isApiKeyMode to be false when using token")
+		}
+	})
+
+	t.Run("token disables api key mode even with api key present", func(t *testing.T) {
+		// When both token and api key are provided, token takes precedence
+		// and isApiKeyMode should be false (skipping validateApiKey call).
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatal("no HTTP calls expected when token is present")
+		}))
+		defer server.Close()
+
+		client, err := NewAPIClient(server.URL, 5*time.Second, "fake-token", "fake-api-key", nil)
+		if err != nil {
+			t.Fatalf("NewAPIClient() error = %v", err)
+		}
+		if client.isApiKeyMode {
+			t.Error("expected isApiKeyMode to be false when token is set")
+		}
+	})
+
 	t.Run("returns error with no auth", func(t *testing.T) {
-		_, err := NewAPIClient("https://api.example.com", 30*time.Second, "", nil)
+		_, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", nil)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -40,7 +79,7 @@ func TestNewAPIClient(t *testing.T) {
 func TestAPIClientGetOrgIdByName(t *testing.T) {
 	t.Run("returns error for empty name", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -57,7 +96,7 @@ func TestAPIClientGetOrgIdByName(t *testing.T) {
 
 	t.Run("trims whitespace", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -76,7 +115,7 @@ func TestAPIClientGetOrgIdByName(t *testing.T) {
 func TestAPIClientGetProjectByName(t *testing.T) {
 	t.Run("returns error for empty name", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -93,7 +132,7 @@ func TestAPIClientGetProjectByName(t *testing.T) {
 
 	t.Run("trims whitespace", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -112,7 +151,7 @@ func TestAPIClientGetProjectByName(t *testing.T) {
 func TestAPIClientGetProjectId(t *testing.T) {
 	t.Run("returns error for empty org name", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -129,7 +168,7 @@ func TestAPIClientGetProjectId(t *testing.T) {
 
 	t.Run("returns error for empty project name", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -146,7 +185,7 @@ func TestAPIClientGetProjectId(t *testing.T) {
 
 	t.Run("trims whitespace", func(t *testing.T) {
 		cookies := []*http.Cookie{{Name: "session", Value: "abc123"}}
-		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", cookies)
+		client, err := NewAPIClient("https://api.example.com", 30*time.Second, "", "", cookies)
 		if err != nil {
 			t.Fatalf("NewAPIClient() error = %v", err)
 		}
@@ -188,6 +227,7 @@ func TestAPIClientSearchObservations(t *testing.T) {
 	client, err := NewAPIClient(
 		server.URL,
 		5*time.Second,
+		"",
 		"",
 		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)
@@ -237,6 +277,7 @@ func TestAPIClientListSessions(t *testing.T) {
 	client, err := NewAPIClient(
 		server.URL,
 		5*time.Second,
+		"",
 		"",
 		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)
@@ -290,6 +331,7 @@ func TestAPIClientListScores(t *testing.T) {
 		server.URL,
 		5*time.Second,
 		"",
+		"",
 		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)
 	if err != nil {
@@ -321,6 +363,7 @@ func TestAPIClientCreateScoreRequiresAPIKey(t *testing.T) {
 	client, err := NewAPIClient(
 		"https://api.example.com",
 		5*time.Second,
+		"",
 		"",
 		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)
@@ -373,7 +416,7 @@ func TestAPIClientCreateScoreAndDeleteTraces(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewAPIClient(server.URL, 5*time.Second, "api-key", nil)
+	client, err := NewAPIClient(server.URL, 5*time.Second, "", "api-key", nil)
 	if err != nil {
 		t.Fatalf("NewAPIClient() error = %v", err)
 	}
@@ -434,6 +477,7 @@ func TestAPIClientGetSession(t *testing.T) {
 		server.URL,
 		5*time.Second,
 		"",
+		"",
 		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)
 	if err != nil {
@@ -475,7 +519,7 @@ func TestAPIClientDeleteScore(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewAPIClient(server.URL, 5*time.Second, "api-key", nil)
+	client, err := NewAPIClient(server.URL, 5*time.Second, "", "api-key", nil)
 	if err != nil {
 		t.Fatalf("NewAPIClient() error = %v", err)
 	}
@@ -506,7 +550,7 @@ func TestAPIClientDeleteTrace(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewAPIClient(server.URL, 5*time.Second, "api-key", nil)
+	client, err := NewAPIClient(server.URL, 5*time.Second, "", "api-key", nil)
 	if err != nil {
 		t.Fatalf("NewAPIClient() error = %v", err)
 	}
@@ -546,6 +590,7 @@ func TestAPIClientListMetricsDailySuccess(t *testing.T) {
 		server.URL,
 		5*time.Second,
 		"",
+		"",
 		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)
 	if err != nil {
@@ -582,6 +627,7 @@ func TestAPIClientListMetricsDailyReturnsServerMessage(t *testing.T) {
 	client, err := NewAPIClient(
 		server.URL,
 		5*time.Second,
+		"",
 		"",
 		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)

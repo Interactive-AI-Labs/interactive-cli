@@ -105,9 +105,14 @@ func ExtractServerMessage(body []byte) string {
 }
 
 // ApplyAuth adds authentication to an HTTP request.
-// If apiKey is provided, it sets Basic Auth with the API key, if not, it adds cookies if available.
-// Returns an error if neither authentication method is available.
-func ApplyAuth(req *http.Request, apiKey string, cookies []*http.Cookie) error {
+// Priority: Bearer token > API key (Basic) > session cookies.
+// Returns an error if no authentication method is available.
+func ApplyAuth(req *http.Request, token string, apiKey string, cookies []*http.Cookie) error {
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+		return nil
+	}
+
 	if apiKey != "" {
 		encoded := base64.StdEncoding.EncodeToString([]byte(apiKey))
 		req.Header.Set("Authorization", "Basic "+encoded)
@@ -123,5 +128,5 @@ func ApplyAuth(req *http.Request, apiKey string, cookies []*http.Cookie) error {
 		return nil
 	}
 
-	return fmt.Errorf("no authentication method available: provide an API key or log in")
+	return fmt.Errorf("no authentication method available: provide a token, API key, or log in")
 }

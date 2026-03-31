@@ -54,7 +54,7 @@ var imageListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -62,6 +62,7 @@ var imageListCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -176,7 +177,7 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -257,7 +258,7 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to create request: %w", err)
 		}
 
-		if err := clients.ApplyAuth(req, apiKey, cookies); err != nil {
+		if err := clients.ApplyAuth(req, token, apiKey, cookies); err != nil {
 			return err
 		}
 

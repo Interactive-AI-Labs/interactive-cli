@@ -112,7 +112,13 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return fmt.Errorf("failed to load session: %w", err)
 			}
 
-			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			apiClient, err := clients.NewAPIClient(
+				hostname,
+				defaultHTTPTimeout,
+				token,
+				apiKey,
+				cookies,
+			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
@@ -185,7 +191,13 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return fmt.Errorf("failed to load session: %w", err)
 			}
 
-			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			apiClient, err := clients.NewAPIClient(
+				hostname,
+				defaultHTTPTimeout,
+				token,
+				apiKey,
+				cookies,
+			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
@@ -245,7 +257,13 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return fmt.Errorf("failed to load session: %w", err)
 			}
 
-			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			apiClient, err := clients.NewAPIClient(
+				hostname,
+				defaultHTTPTimeout,
+				token,
+				apiKey,
+				cookies,
+			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
@@ -303,7 +321,13 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return fmt.Errorf("failed to load session: %w", err)
 			}
 
-			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			apiClient, err := clients.NewAPIClient(
+				hostname,
+				defaultHTTPTimeout,
+				token,
+				apiKey,
+				cookies,
+			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
@@ -400,7 +424,13 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return fmt.Errorf("failed to load session: %w", err)
 			}
 
-			apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+			apiClient, err := clients.NewAPIClient(
+				hostname,
+				defaultHTTPTimeout,
+				token,
+				apiKey,
+				cookies,
+			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}

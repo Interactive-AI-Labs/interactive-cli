@@ -18,6 +18,7 @@ const (
 var (
 	hostname           string = "https://app.interactive.ai"
 	deploymentHostname string = "https://deployment.interactive.ai"
+	token              string
 	apiKey             string
 	cfgFilePath        string
 	rootCmd            = &cobra.Command{
@@ -65,6 +66,11 @@ func init() {
 	envDeploymentHostname := os.Getenv("INTERACTIVE_DEPLOYMENT_HOSTNAME")
 	if envDeploymentHostname != "" {
 		deploymentHostname = envDeploymentHostname
+	}
+
+	envToken := os.Getenv("INTERACTIVE_TOKEN")
+	if envToken != "" {
+		token = envToken
 	}
 
 	envApiKey := os.Getenv("INTERACTIVE_API_KEY")

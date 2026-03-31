@@ -31,7 +31,7 @@ func resolveProject(
 		return nil, fmt.Errorf("failed to load session: %w", err)
 	}
 
-	apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+	apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create API client: %w", err)
 	}

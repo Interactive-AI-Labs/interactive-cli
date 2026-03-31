@@ -51,7 +51,7 @@ var replicasListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -59,6 +59,7 @@ var replicasListCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -117,7 +118,7 @@ var replicasDescribeCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -125,6 +126,7 @@ var replicasDescribeCmd = &cobra.Command{
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
+			token,
 			apiKey,
 			cookies,
 		)
@@ -197,7 +199,7 @@ Returns up to 5000 log entries in chronological order.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, apiKey, cookies)
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -210,6 +212,7 @@ Returns up to 5000 log entries in chronological order.`,
 		deployClient, err := clients.NewDeploymentClient(
 			deploymentHostname,
 			timeout,
+			token,
 			apiKey,
 			cookies,
 		)

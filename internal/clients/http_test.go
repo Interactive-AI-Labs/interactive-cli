@@ -96,14 +96,30 @@ func TestExtractServerMessage(t *testing.T) {
 }
 
 func TestApplyAuth(t *testing.T) {
+	t.Run("applies Bearer token auth", func(t *testing.T) {
+		req, err := newTestRequest()
+		if err != nil {
+			t.Fatalf("failed to create test request: %v", err)
+		}
+
+		err = ApplyAuth(req, "test-jwt-token", "", nil)
+		if err != nil {
+			t.Fatalf("ApplyAuth() error = %v", err)
+		}
+
+		authHeader := req.Header.Get("Authorization")
+		if authHeader != "Bearer test-jwt-token" {
+			t.Errorf("Authorization header = %q, want %q", authHeader, "Bearer test-jwt-token")
+		}
+	})
+
 	t.Run("applies API key auth", func(t *testing.T) {
 		req, err := newTestRequest()
 		if err != nil {
 			t.Fatalf("failed to create test request: %v", err)
 		}
 
-		apiKey := "test-api-key"
-		err = ApplyAuth(req, apiKey, nil)
+		err = ApplyAuth(req, "", "test-api-key", nil)
 		if err != nil {
 			t.Fatalf("ApplyAuth() error = %v", err)
 		}
@@ -128,7 +144,7 @@ func TestApplyAuth(t *testing.T) {
 			{Name: "token", Value: "xyz789"},
 		}
 
-		err = ApplyAuth(req, "", cookies)
+		err = ApplyAuth(req, "", "", cookies)
 		if err != nil {
 			t.Fatalf("ApplyAuth() error = %v", err)
 		}
@@ -139,18 +155,43 @@ func TestApplyAuth(t *testing.T) {
 		}
 	})
 
+	t.Run("token takes precedence over API key and cookies", func(t *testing.T) {
+		req, err := newTestRequest()
+		if err != nil {
+			t.Fatalf("failed to create test request: %v", err)
+		}
+
+		cookies := []*http.Cookie{
+			{Name: "session", Value: "abc123"},
+		}
+
+		err = ApplyAuth(req, "test-jwt-token", "test-api-key", cookies)
+		if err != nil {
+			t.Fatalf("ApplyAuth() error = %v", err)
+		}
+
+		authHeader := req.Header.Get("Authorization")
+		if authHeader != "Bearer test-jwt-token" {
+			t.Errorf("Authorization header = %q, want %q", authHeader, "Bearer test-jwt-token")
+		}
+
+		reqCookies := req.Cookies()
+		if len(reqCookies) != 0 {
+			t.Errorf("expected no cookies when token is set, got %d", len(reqCookies))
+		}
+	})
+
 	t.Run("API key takes precedence over cookies", func(t *testing.T) {
 		req, err := newTestRequest()
 		if err != nil {
 			t.Fatalf("failed to create test request: %v", err)
 		}
 
-		apiKey := "test-api-key"
 		cookies := []*http.Cookie{
 			{Name: "session", Value: "abc123"},
 		}
 
-		err = ApplyAuth(req, apiKey, cookies)
+		err = ApplyAuth(req, "", "test-api-key", cookies)
 		if err != nil {
 			t.Fatalf("ApplyAuth() error = %v", err)
 		}
@@ -172,7 +213,7 @@ func TestApplyAuth(t *testing.T) {
 			t.Fatalf("failed to create test request: %v", err)
 		}
 
-		err = ApplyAuth(req, "", nil)
+		err = ApplyAuth(req, "", "", nil)
 		if err == nil {
 			t.Fatal("ApplyAuth() expected error, got nil")
 		}
@@ -194,7 +235,7 @@ func TestApplyAuth(t *testing.T) {
 			nil,
 		}
 
-		err = ApplyAuth(req, "", cookies)
+		err = ApplyAuth(req, "", "", cookies)
 		if err != nil {
 			t.Fatalf("ApplyAuth() error = %v", err)
 		}
