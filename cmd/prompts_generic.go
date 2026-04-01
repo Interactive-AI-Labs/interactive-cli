@@ -543,6 +543,10 @@ Examples:
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
+			if version <= 0 {
+				return fmt.Errorf("--version must be a positive integer")
+			}
+
 			pCtx, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err

@@ -1099,7 +1099,13 @@ func (c *APIClient) SetPromptLabels(
 	version int,
 	labels []string,
 ) (*PromptDetail, error) {
-	bodyBytes, err := json.Marshal(SetLabelsBody{NewLabels: labels})
+	filtered := labels[:0]
+	for _, l := range labels {
+		if l != "" {
+			filtered = append(filtered, l)
+		}
+	}
+	bodyBytes, err := json.Marshal(SetLabelsBody{NewLabels: filtered})
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
