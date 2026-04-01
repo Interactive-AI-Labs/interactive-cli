@@ -583,10 +583,8 @@ Examples:
 	cmd.Flags().IntVar(&version, "version", 0, "Version number to set labels on")
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels to assign (comma-separated)")
-	cmd.Flags().
-		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
-	cmd.Flags().
-		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 	_ = cmd.MarkFlagRequired("version")
 	_ = cmd.MarkFlagRequired("labels")
 

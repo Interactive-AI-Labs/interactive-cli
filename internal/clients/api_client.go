@@ -1099,18 +1099,24 @@ func (c *APIClient) SetPromptLabels(
 	version int,
 	labels []string,
 ) (*PromptDetail, error) {
-	body := SetLabelsBody{NewLabels: labels}
+	bodyBytes, err := json.Marshal(SetLabelsBody{NewLabels: labels})
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
 	path := fmt.Sprintf(
 		"%s/%s/versions/%d",
 		promptBasePath(projectId, routeSegment),
 		url.PathEscape(name),
 		version,
 	)
-
-	req, err := c.newJSONRequest(ctx, http.MethodPatch, path, body)
+	req, err := c.newRequest(ctx, http.MethodPatch, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	resp, err := c.do(req)
 	if err != nil {
