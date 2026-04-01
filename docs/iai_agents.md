@@ -32,6 +32,7 @@ definitions, and priority ordering.
 * [iai agents create](iai_agents_create.md)	 - Create a agent
 * [iai agents delete](iai_agents_delete.md)	 - Delete a agent
 * [iai agents get](iai_agents_get.md)	 - Get details of a agent
+* [iai agents labels](iai_agents_labels.md)	 - Manage labels for agent versions
 * [iai agents list](iai_agents_list.md)	 - List agents in a project
 * [iai agents schema](iai_agents_schema.md)	 - Display the JSON Schema for agents
 * [iai agents update](iai_agents_update.md)	 - Update a agent (creates a new version)

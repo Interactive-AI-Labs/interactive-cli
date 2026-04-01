@@ -33,6 +33,7 @@ types: "text" (default) and "chat".`,
 		makeGenericGetCmd(),
 		makeGenericUpdateCmd(),
 		makeGenericDeleteCmd(),
+		makeGenericLabelsCmd(),
 	)
 
 	rootCmd.AddCommand(parentCmd)
@@ -504,6 +505,92 @@ func resolveContent(file, content string) (string, error) {
 		return string(data), nil
 	}
 	return content, nil
+}
+
+func makeGenericLabelsCmd() *cobra.Command {
+	labelsCmd := &cobra.Command{
+		Use:   "labels",
+		Short: "Manage labels for prompt versions",
+		Long:  "Manage labels for prompt versions.",
+	}
+
+	labelsCmd.AddCommand(makeGenericLabelsSetCmd())
+
+	return labelsCmd
+}
+
+func makeGenericLabelsSetCmd() *cobra.Command {
+	var (
+		version int
+		labels  []string
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "set <name>",
+		Short: "Set labels on a prompt version",
+		Long: `Set labels on an existing version of a prompt.
+
+Labels are unique per prompt — assigning a label to this version removes it from
+any other version that currently has it.
+
+Examples:
+  iai prompts labels set greeting --version 3 --labels production
+  iai prompts labels set greeting --version 1 --labels staging,canary`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+
+			pCtx, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+			if err != nil {
+				return fmt.Errorf("failed to load session: %w", err)
+			}
+
+			apiClient, err := clients.NewAPIClient(
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to create API client: %w", err)
+			}
+
+			fmt.Fprintln(out)
+			fmt.Fprintf(out, "Setting labels on prompt %q version %d...\n", name, version)
+
+			result, err := apiClient.SetPromptLabels(
+				cmd.Context(),
+				pCtx.projectId,
+				"", // empty route segment → generic /prompts endpoint
+				name,
+				version,
+				labels,
+			)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintln(out)
+			return output.PrintPromptDetail(out, result)
+		},
+	}
+
+	cmd.Flags().IntVar(&version, "version", 0, "Version number to set labels on")
+	cmd.Flags().
+		StringSliceVar(&labels, "labels", nil, "Labels to assign (comma-separated)")
+	cmd.Flags().
+		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().
+		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	_ = cmd.MarkFlagRequired("version")
+	_ = cmd.MarkFlagRequired("labels")
+
+	return cmd
 }
 
 // validatePromptType checks that the given type is one of the allowed values.
