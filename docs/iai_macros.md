@@ -30,6 +30,7 @@ No schema validation is applied — any text content is accepted.
 * [iai macros create](iai_macros_create.md)	 - Create a macro
 * [iai macros delete](iai_macros_delete.md)	 - Delete a macro
 * [iai macros get](iai_macros_get.md)	 - Get details of a macro
+* [iai macros labels](iai_macros_labels.md)	 - Manage labels for macro versions
 * [iai macros list](iai_macros_list.md)	 - List macros in a project
 * [iai macros update](iai_macros_update.md)	 - Update a macro (creates a new version)
 

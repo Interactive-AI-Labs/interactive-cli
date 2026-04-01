@@ -30,6 +30,7 @@ states (YAML format).
 * [iai routines create](iai_routines_create.md)	 - Create a routine
 * [iai routines delete](iai_routines_delete.md)	 - Delete a routine
 * [iai routines get](iai_routines_get.md)	 - Get details of a routine
+* [iai routines labels](iai_routines_labels.md)	 - Manage labels for routine versions
 * [iai routines list](iai_routines_list.md)	 - List routines in a project
 * [iai routines schema](iai_routines_schema.md)	 - Display the JSON Schema for routines
 * [iai routines update](iai_routines_update.md)	 - Update a routine (creates a new version)

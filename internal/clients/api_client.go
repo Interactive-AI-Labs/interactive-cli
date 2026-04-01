@@ -1028,6 +1028,10 @@ type PromptListOptions struct {
 	Folder string
 }
 
+type SetLabelsBody struct {
+	NewLabels []string `json:"newLabels"`
+}
+
 func promptBasePath(projectId, routeSegment string) string {
 	base := fmt.Sprintf("/api/platform/v1/projects/%s/prompts", url.PathEscape(projectId))
 	if routeSegment != "" {
@@ -1072,6 +1076,64 @@ func (c *APIClient) CreatePrompt(
 			return nil, fmt.Errorf("%s", msg)
 		}
 		return nil, fmt.Errorf("prompt creation failed with status %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt response: %w", err)
+	}
+
+	var result PromptDetail
+	if err := json.Unmarshal(envelope.Data, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt data: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *APIClient) SetPromptLabels(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+	version int,
+	labels []string,
+) (*PromptDetail, error) {
+	bodyBytes, err := json.Marshal(SetLabelsBody{NewLabels: labels})
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf(
+		"%s/%s/versions/%d",
+		promptBasePath(projectId, routeSegment),
+		url.PathEscape(name),
+		version,
+	)
+	req, err := c.newRequest(ctx, http.MethodPatch, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("set labels request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("set labels failed with status %s", resp.Status)
 	}
 
 	var envelope promptAPIResponse
