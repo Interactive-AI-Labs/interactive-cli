@@ -123,4 +123,23 @@ func TestPrintSyncOutcome(t *testing.T) {
 			t.Errorf("expected no output, got: %q", buf.String())
 		}
 	})
+
+	t.Run("protected items print warning", func(t *testing.T) {
+		var buf bytes.Buffer
+		result := &SyncResult{
+			Created:   []string{"new-vs"},
+			Protected: []string{"old-vs"},
+		}
+		err := printSyncOutcome(&buf, "vector stores", result, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		got := buf.String()
+		want := "Created vector stores: new-vs\n" +
+			"\nProtected vector stores (not deleted): old-vs\n" +
+			"Use --allow-delete=vector-stores to delete them.\n"
+		if got != want {
+			t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, want)
+		}
+	})
 }

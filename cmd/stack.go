@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -155,16 +154,6 @@ The organization and project are read from the config file, flags, or resolved v
 			fmt.Fprintln(out)
 			if err := printSyncOutcome(out, "vector stores", vsResult, err); err != nil {
 				return err
-			}
-			if len(vsResult.Protected) > 0 {
-				fmt.Fprintf(
-					out,
-					"\nWARNING: vector stores not in config were kept "+
-						"(not deleted): %s\n"+
-						"To delete them, run with "+
-						"--allow-delete=vector-stores\n",
-					strings.Join(vsResult.Protected, ", "),
-				)
 			}
 		}
 

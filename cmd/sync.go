@@ -50,6 +50,16 @@ func printSyncOutcome(out io.Writer, label string, result *SyncResult, err error
 		result.Deleted,
 		result.Skipped,
 	)
+	if len(result.Protected) > 0 {
+		fmt.Fprintf(
+			out,
+			"\nProtected %s (not deleted): %s\n"+
+				"Use --allow-delete=%s to delete them.\n",
+			label,
+			strings.Join(result.Protected, ", "),
+			strings.ReplaceAll(label, " ", "-"),
+		)
+	}
 	return nil
 }
 
