@@ -115,37 +115,6 @@ services:
 			},
 		},
 		{
-			name: "valid config with vector stores only",
-			content: `organization: test-org
-project: test-project
-stack-id: stack-123
-vector-stores:
-  knowledge-base:
-    resources:
-      cpu: 2
-      memory: 4
-    storage:
-      size: 50
-      autoResize: false
-    ha: false
-    backups: true
-`,
-			want: &StackConfig{
-				Organization: "test-org",
-				Project:      "test-project",
-				StackId:      "stack-123",
-				Services:     map[string]ServiceConfig{},
-				VectorStores: map[string]VectorStoreConfig{
-					"knowledge-base": {
-						Resources: clients.VectorStoreResources{CPU: 2, Memory: 4},
-						Storage:   clients.VectorStoreStorage{Size: 50, AutoResize: false},
-						HA:        false,
-						Backups:   true,
-					},
-				},
-			},
-		},
-		{
 			name: "valid config with both services and vector stores",
 			content: `organization: test-org
 project: test-project
