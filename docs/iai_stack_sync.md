@@ -13,7 +13,10 @@ For services, sync will:
 
 For vector stores, sync will:
 - Create vector stores that exist in the config but not in the project
-- Delete vector stores that exist in the project but not in the config (requires --delete-vector-stores)
+- Delete vector stores that exist in the project but not in the config (requires --allow-delete=vector-stores)
+
+Stateful resources (vector stores) are protected from deletion by default.
+Use --allow-delete to opt in per resource type.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
 
@@ -83,7 +86,7 @@ vector-stores:
 ### Options
 
 ```
-      --delete-vector-stores   Allow deletion of vector stores not present in the config file
+      --allow-delete strings   Resource types to allow deletion for (e.g. vector-stores)
   -f, --file string            Path to stack configuration file
   -h, --help                   help for sync
   -o, --organization string    Organization name that owns the project

@@ -5,10 +5,20 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 )
+
+func allowDeleteResource(allowed []string, resource string) bool {
+	for _, a := range allowed {
+		if strings.EqualFold(a, resource) || strings.EqualFold(a, "all") {
+			return true
+		}
+	}
+	return false
+}
 
 type SyncResult struct {
 	Created   []string

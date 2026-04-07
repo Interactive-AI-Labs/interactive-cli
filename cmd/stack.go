@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	stackSyncFile               string
-	stackSyncProject            string
-	stackSyncOrganization       string
-	stackSyncDeleteVectorStores bool
+	stackSyncFile         string
+	stackSyncProject      string
+	stackSyncOrganization string
+	stackSyncAllowDelete  []string
 )
 
 var stackCmd = &cobra.Command{
@@ -37,7 +37,10 @@ For services, sync will:
 
 For vector stores, sync will:
 - Create vector stores that exist in the config but not in the project
-- Delete vector stores that exist in the project but not in the config (requires --delete-vector-stores)
+- Delete vector stores that exist in the project but not in the config (requires --allow-delete=vector-stores)
+
+Stateful resources (vector stores) are protected from deletion by default.
+Use --allow-delete to opt in per resource type.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
 	Args: cobra.NoArgs,
@@ -135,6 +138,10 @@ The organization and project are read from the config file, flags, or resolved v
 				vsBodies[name] = vsCfg.ToCreateRequest(cfg.StackId)
 			}
 
+			allowDeleteVS := allowDeleteResource(
+				stackSyncAllowDelete,
+				"vector-stores",
+			)
 			vsResult, err := SyncVectorStores(
 				cmd.Context(),
 				deployClient,
@@ -142,7 +149,7 @@ The organization and project are read from the config file, flags, or resolved v
 				projectId,
 				cfg.StackId,
 				vsBodies,
-				stackSyncDeleteVectorStores,
+				allowDeleteVS,
 			)
 			close(done)
 			fmt.Fprintln(out)
@@ -152,8 +159,10 @@ The organization and project are read from the config file, flags, or resolved v
 			if len(vsResult.Protected) > 0 {
 				fmt.Fprintf(
 					out,
-					"\nWARNING: vector stores not in config were kept (not deleted): %s\n"+
-						"To delete them, run with --delete-vector-stores\n",
+					"\nWARNING: vector stores not in config were kept "+
+						"(not deleted): %s\n"+
+						"To delete them, run with "+
+						"--allow-delete=vector-stores\n",
 					strings.Join(vsResult.Protected, ", "),
 				)
 			}
@@ -171,7 +180,7 @@ func init() {
 	stackSyncCmd.Flags().
 		StringVarP(&stackSyncOrganization, "organization", "o", "", "Organization name that owns the project")
 	stackSyncCmd.Flags().
-		BoolVar(&stackSyncDeleteVectorStores, "delete-vector-stores", false, "Allow deletion of vector stores not present in the config file")
+		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types to allow deletion for (e.g. vector-stores)")
 
 	stackCmd.AddCommand(stackSyncCmd)
 	rootCmd.AddCommand(stackCmd)
