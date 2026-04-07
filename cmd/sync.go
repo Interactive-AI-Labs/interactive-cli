@@ -20,11 +20,25 @@ type SyncResult struct {
 func printSyncOutcome(out io.Writer, label string, result *SyncResult, err error) error {
 	if err != nil {
 		if result != nil {
-			output.PrintSyncResult(out, label+" (partial)", result.Created, result.Updated, result.Deleted, result.Skipped)
+			output.PrintSyncResult(
+				out,
+				label+" (partial)",
+				result.Created,
+				result.Updated,
+				result.Deleted,
+				result.Skipped,
+			)
 		}
 		return err
 	}
-	output.PrintSyncResult(out, label, result.Created, result.Updated, result.Deleted, result.Skipped)
+	output.PrintSyncResult(
+		out,
+		label,
+		result.Created,
+		result.Updated,
+		result.Deleted,
+		result.Skipped,
+	)
 	return nil
 }
 

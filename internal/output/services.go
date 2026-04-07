@@ -35,7 +35,12 @@ func PrintSyncResult(out io.Writer, label string, created, updated, deleted, ski
 		fmt.Fprintf(out, "Deleted %s: %s\n", label, strings.Join(deleted, ", "))
 	}
 	if len(skipped) > 0 {
-		fmt.Fprintf(out, "Skipped %s (already exist, updates not supported): %s\n", label, strings.Join(skipped, ", "))
+		fmt.Fprintf(
+			out,
+			"Skipped %s (already exist, updates not supported): %s\n",
+			label,
+			strings.Join(skipped, ", "),
+		)
 	}
 	if len(created) == 0 && len(updated) == 0 && len(deleted) == 0 && len(skipped) == 0 {
 		fmt.Fprintf(out, "No changes required; %s already match config.\n", label)
