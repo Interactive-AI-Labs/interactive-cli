@@ -71,11 +71,7 @@ func SyncServices(
 		existingByName[svc.Name] = svc
 	}
 
-	result := &SyncResult{
-		Created: []string{},
-		Updated: []string{},
-		Deleted: []string{},
-	}
+	result := &SyncResult{}
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -140,11 +136,7 @@ func SyncVectorStores(
 		existingByName[vs.VectorStoreName] = vs
 	}
 
-	result := &SyncResult{
-		Created: []string{},
-		Updated: []string{},
-		Deleted: []string{},
-	}
+	result := &SyncResult{}
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
