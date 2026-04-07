@@ -11,10 +11,11 @@ import (
 )
 
 type SyncResult struct {
-	Created []string
-	Updated []string
-	Deleted []string
-	Skipped []string
+	Created   []string
+	Updated   []string
+	Deleted   []string
+	Skipped   []string
+	Protected []string // would be deleted but deletion was not allowed
 }
 
 func printSyncOutcome(out io.Writer, label string, result *SyncResult, err error) error {
@@ -109,6 +110,7 @@ func SyncServices(
 }
 
 // SyncVectorStores syncs vector stores. Existing stores are skipped (no update endpoint).
+// When allowDelete is false, stores that would be deleted are collected in Protected instead.
 func SyncVectorStores(
 	ctx context.Context,
 	deployClient *clients.DeploymentClient,
@@ -116,6 +118,7 @@ func SyncVectorStores(
 	projectId,
 	stackId string,
 	desired map[string]clients.CreateVectorStoreBody,
+	allowDelete bool,
 ) (*SyncResult, error) {
 	existing, err := deployClient.ListVectorStores(ctx, orgId, projectId, stackId)
 	if err != nil {
@@ -160,6 +163,10 @@ func SyncVectorStores(
 
 	for _, name := range existingNames {
 		if _, ok := desired[name]; !ok {
+			if !allowDelete {
+				result.Protected = append(result.Protected, name)
+				continue
+			}
 			_, err := deployClient.DeleteVectorStore(ctx, orgId, projectId, name)
 			if err != nil {
 				return result, fmt.Errorf("failed to delete vector store %q: %w", name, err)

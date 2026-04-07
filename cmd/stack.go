@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -11,9 +12,10 @@ import (
 )
 
 var (
-	stackSyncFile         string
-	stackSyncProject      string
-	stackSyncOrganization string
+	stackSyncFile               string
+	stackSyncProject            string
+	stackSyncOrganization       string
+	stackSyncDeleteVectorStores bool
 )
 
 var stackCmd = &cobra.Command{
@@ -35,7 +37,7 @@ For services, sync will:
 
 For vector stores, sync will:
 - Create vector stores that exist in the config but not in the project
-- Delete vector stores that exist in the project but not in the config (for the specified stack)
+- Delete vector stores that exist in the project but not in the config (requires --delete-vector-stores)
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
 	Args: cobra.NoArgs,
@@ -140,11 +142,20 @@ The organization and project are read from the config file, flags, or resolved v
 				projectId,
 				cfg.StackId,
 				vsBodies,
+				stackSyncDeleteVectorStores,
 			)
 			close(done)
 			fmt.Fprintln(out)
 			if err := printSyncOutcome(out, "vector stores", vsResult, err); err != nil {
 				return err
+			}
+			if len(vsResult.Protected) > 0 {
+				fmt.Fprintf(
+					out,
+					"\nWARNING: vector stores not in config were kept (not deleted): %s\n"+
+						"To delete them, run with --delete-vector-stores\n",
+					strings.Join(vsResult.Protected, ", "),
+				)
 			}
 		}
 
@@ -159,6 +170,8 @@ func init() {
 		StringVarP(&stackSyncProject, "project", "p", "", "Project name to sync resources in")
 	stackSyncCmd.Flags().
 		StringVarP(&stackSyncOrganization, "organization", "o", "", "Organization name that owns the project")
+	stackSyncCmd.Flags().
+		BoolVar(&stackSyncDeleteVectorStores, "delete-vector-stores", false, "Allow deletion of vector stores not present in the config file")
 
 	stackCmd.AddCommand(stackSyncCmd)
 	rootCmd.AddCommand(stackCmd)

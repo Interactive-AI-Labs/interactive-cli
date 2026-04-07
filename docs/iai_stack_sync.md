@@ -13,7 +13,7 @@ For services, sync will:
 
 For vector stores, sync will:
 - Create vector stores that exist in the config but not in the project
-- Delete vector stores that exist in the project but not in the config (for the specified stack)
+- Delete vector stores that exist in the project but not in the config (requires --delete-vector-stores)
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
 
@@ -83,10 +83,11 @@ vector-stores:
 ### Options
 
 ```
-  -f, --file string           Path to stack configuration file
-  -h, --help                  help for sync
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name to sync resources in
+      --delete-vector-stores   Allow deletion of vector stores not present in the config file
+  -f, --file string            Path to stack configuration file
+  -h, --help                   help for sync
+  -o, --organization string    Organization name that owns the project
+  -p, --project string         Project name to sync resources in
 ```
 
 ### Options inherited from parent commands
