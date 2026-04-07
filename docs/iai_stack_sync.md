@@ -1,68 +1,25 @@
-## iai services sync
+## iai stack sync
 
-Sync services in a project from a stack config file
+Sync services and vector stores from a stack config file
 
 ### Synopsis
 
-Sync services in a specific project from a stack configuration file.
+Sync services and vector stores in a project from a stack configuration file.
 
-The sync command will:
+For services, sync will:
 - Create services that exist in the config but not in the project
 - Update services that exist in both the config and the project
 - Delete services that exist in the project but not in the config (for the specified stack)
 
-The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.
+For vector stores, sync will:
+- Create vector stores that exist in the config but not in the project
+- Delete vector stores that exist in the project but not in the config (for the specified stack)
+
+The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
 
 ```
-iai services sync [flags]
+iai stack sync [flags]
 ```
-
-### Example config file
-
-```yaml
-organization: my-org
-project: my-project
-stack-id: my-stack-v1
-
-services:
-  my-service:
-    servicePort: 8080
-    image:
-      type: external
-      repository: kennethreitz
-      name: httpbin
-      tag: latest
-    resources:
-      memory: "512M"
-      cpu: "1"
-    env:
-      - name: DATABASE_URL
-        value: "postgres://db:5432/mydb"
-      - name: LOG_LEVEL
-        value: "info"
-    secretRefs:
-      - secretName: my-secret
-    endpoint: true
-    replicas: 2
-    healthcheck:
-      path: /health
-      initialDelaySeconds: 10
-    schedule:
-      uptime: "Mon-Fri 07:30-20:30"
-      timezone: "Europe/Berlin"
-```
-
-> **Note:** `replicas` and `autoscaling` are mutually exclusive. To use autoscaling instead:
-
-```yaml
-    autoscaling:
-      enabled: true
-      minReplicas: 2
-      maxReplicas: 10
-      cpuPercentage: 80
-      memoryPercentage: 85
-```
-
 
 ### Example config file
 
@@ -126,9 +83,10 @@ vector-stores:
 ### Options
 
 ```
+  -f, --file string           Path to stack configuration file
   -h, --help                  help for sync
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name to sync services in
+  -p, --project string        Project name to sync resources in
 ```
 
 ### Options inherited from parent commands
@@ -142,5 +100,5 @@ vector-stores:
 
 ### SEE ALSO
 
-* [iai services](iai_services.md)	 - Manage services
+* [iai stack](iai_stack.md)	 - Manage stacks
 

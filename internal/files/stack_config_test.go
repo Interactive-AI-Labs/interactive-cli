@@ -59,6 +59,7 @@ services:
 						Endpoint: true,
 					},
 				},
+				VectorStores: map[string]VectorStoreConfig{},
 			},
 		},
 		{
@@ -108,6 +109,124 @@ services:
 							CPUPercentage:    80,
 							MemoryPercentage: 85,
 						},
+					},
+				},
+				VectorStores: map[string]VectorStoreConfig{},
+			},
+		},
+		{
+			name: "valid config with vector stores only",
+			content: `organization: test-org
+project: test-project
+stack-id: stack-123
+vector-stores:
+  knowledge-base:
+    resources:
+      cpu: 2
+      memory: 4
+    storage:
+      size: 50
+      autoResize: false
+    ha: false
+    backups: true
+`,
+			want: &StackConfig{
+				Organization: "test-org",
+				Project:      "test-project",
+				StackId:      "stack-123",
+				Services:     map[string]ServiceConfig{},
+				VectorStores: map[string]VectorStoreConfig{
+					"knowledge-base": {
+						Resources: clients.VectorStoreResources{CPU: 2, Memory: 4},
+						Storage:   clients.VectorStoreStorage{Size: 50, AutoResize: false},
+						HA:        false,
+						Backups:   true,
+					},
+				},
+			},
+		},
+		{
+			name: "valid config with both services and vector stores",
+			content: `organization: test-org
+project: test-project
+stack-id: stack-123
+services:
+  api:
+    servicePort: 8080
+    image:
+      type: internal
+      name: myapp
+      tag: latest
+    resources:
+      memory: "256M"
+      cpu: "1"
+    replicas: 1
+vector-stores:
+  kb:
+    resources:
+      cpu: 2
+      memory: 4
+    storage:
+      size: 20
+    ha: false
+    backups: false
+`,
+			want: &StackConfig{
+				Organization: "test-org",
+				Project:      "test-project",
+				StackId:      "stack-123",
+				Services: map[string]ServiceConfig{
+					"api": {
+						ServicePort: 8080,
+						Image: clients.ImageSpec{
+							Type: "internal",
+							Name: "myapp",
+							Tag:  "latest",
+						},
+						Resources: clients.Resources{Memory: "256M", CPU: "1"},
+						Replicas:  1,
+					},
+				},
+				VectorStores: map[string]VectorStoreConfig{
+					"kb": {
+						Resources: clients.VectorStoreResources{CPU: 2, Memory: 4},
+						Storage:   clients.VectorStoreStorage{Size: 20},
+					},
+				},
+			},
+		},
+		{
+			name: "valid config with vector store autoResize enabled",
+			content: `organization: test-org
+project: test-project
+stack-id: stack-123
+vector-stores:
+  vs:
+    resources:
+      cpu: 4
+      memory: 8
+    storage:
+      size: 100
+      autoResize: true
+      autoResizeLimit: 500
+    ha: true
+    backups: true
+`,
+			want: &StackConfig{
+				Organization: "test-org",
+				Project:      "test-project",
+				StackId:      "stack-123",
+				Services:     map[string]ServiceConfig{},
+				VectorStores: map[string]VectorStoreConfig{
+					"vs": {
+						Resources: clients.VectorStoreResources{CPU: 4, Memory: 8},
+						Storage: clients.VectorStoreStorage{
+							Size:            100,
+							AutoResize:      true,
+							AutoResizeLimit: 500,
+						},
+						HA:      true,
+						Backups: true,
 					},
 				},
 			},
@@ -285,6 +404,20 @@ services:
 `,
 			errContains: "must specify either replicas or autoscaling",
 		},
+		{
+			name: "missing stack-id with vector stores",
+			config: `organization: test-org
+project: test-project
+vector-stores:
+  kb:
+    resources:
+      cpu: 2
+      memory: 4
+    storage:
+      size: 20
+`,
+			errContains: "stack-id is required",
+		},
 	}
 
 	for _, tt := range validationTests {
@@ -451,5 +584,25 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 				t.Errorf("ToCreateRequest() mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestVectorStoreConfigToCreateRequest(t *testing.T) {
+	input := VectorStoreConfig{
+		Resources: clients.VectorStoreResources{CPU: 4, Memory: 8},
+		Storage:   clients.VectorStoreStorage{Size: 100, AutoResize: true, AutoResizeLimit: 500},
+		HA:        true,
+		Backups:   true,
+	}
+	want := clients.CreateVectorStoreBody{
+		Resources: clients.VectorStoreResources{CPU: 4, Memory: 8},
+		Storage:   clients.VectorStoreStorage{Size: 100, AutoResize: true, AutoResizeLimit: 500},
+		HA:        true,
+		Backups:   true,
+		StackId:   "stack-abc",
+	}
+	got := input.ToCreateRequest("stack-abc")
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("ToCreateRequest() mismatch (-want +got):\n%s", diff)
 	}
 }

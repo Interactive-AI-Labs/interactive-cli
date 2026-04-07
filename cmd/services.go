@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -753,7 +752,8 @@ The sync command will:
 - Delete services that exist in the project but not in the config (for the specified stack)
 
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
-	Args: cobra.NoArgs,
+	Args:       cobra.NoArgs,
+	Deprecated: "use 'iai stack sync' instead",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -803,94 +803,33 @@ The project is selected with --project or via 'iai projects select', and the con
 			return err
 		}
 
-		fmt.Fprintln(out)
-		fmt.Fprint(out, "Syncing services")
-		done := output.PrintLoadingDots(out)
-
-		result, err := SyncServices(
-			cmd.Context(),
-			apiClient,
-			deployClient,
-			orgName,
-			projectName,
-			cfg,
-		)
-		fmt.Fprintln(out)
-		close(done)
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
 		if err != nil {
 			return err
 		}
 
-		output.PrintSyncResult(out, result.Created, result.Updated, result.Deleted)
+		fmt.Fprintln(out)
+		fmt.Fprint(out, "Syncing services")
+		done := output.PrintLoadingDots(out)
 
-		return nil
+		svcBodies := make(map[string]clients.CreateServiceBody)
+		for name, svcCfg := range cfg.Services {
+			svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
+		}
+
+		result, err := SyncServices(
+			cmd.Context(),
+			deployClient,
+			orgId,
+			projectId,
+			cfg.StackId,
+			svcBodies,
+		)
+		close(done)
+		fmt.Fprintln(out)
+
+		return printSyncOutcome(out, "services", result, err)
 	},
-}
-
-type SyncResult struct {
-	Created []string
-	Updated []string
-	Deleted []string
-}
-
-func SyncServices(
-	ctx context.Context,
-	apiClient *clients.APIClient,
-	deployClient *clients.DeploymentClient,
-	orgName,
-	projectName string,
-	cfg *files.StackConfig,
-) (*SyncResult, error) {
-	orgId, projectId, err := apiClient.GetProjectId(ctx, orgName, projectName)
-	if err != nil {
-		return nil, err
-	}
-
-	existing, err := deployClient.ListServices(ctx, orgId, projectId, cfg.StackId)
-	if err != nil {
-		return nil, err
-	}
-
-	existingByName := make(map[string]clients.ServiceOutput)
-	for _, svc := range existing {
-		existingByName[svc.Name] = svc
-	}
-
-	result := &SyncResult{
-		Created: []string{},
-		Updated: []string{},
-		Deleted: []string{},
-	}
-
-	for name, svcCfg := range cfg.Services {
-		req := svcCfg.ToCreateRequest(cfg.StackId)
-
-		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateService(ctx, orgId, projectId, name, req)
-			if err != nil {
-				return nil, err
-			}
-			result.Created = append(result.Created, name)
-		} else {
-			_, err := deployClient.UpdateService(ctx, orgId, projectId, name, req)
-			if err != nil {
-				return nil, err
-			}
-			result.Updated = append(result.Updated, name)
-		}
-	}
-
-	for name := range existingByName {
-		if _, desired := cfg.Services[name]; !desired {
-			_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
-			if err != nil {
-				return nil, err
-			}
-			result.Deleted = append(result.Deleted, name)
-		}
-	}
-
-	return result, nil
 }
 
 func init() {

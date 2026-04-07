@@ -24,17 +24,20 @@ func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintSyncResult(out io.Writer, created, updated, deleted []string) {
+func PrintSyncResult(out io.Writer, label string, created, updated, deleted, skipped []string) {
 	if len(created) > 0 {
-		fmt.Fprintf(out, "Created services: %s\n", strings.Join(created, ", "))
+		fmt.Fprintf(out, "Created %s: %s\n", label, strings.Join(created, ", "))
 	}
 	if len(updated) > 0 {
-		fmt.Fprintf(out, "Updated services: %s\n", strings.Join(updated, ", "))
+		fmt.Fprintf(out, "Updated %s: %s\n", label, strings.Join(updated, ", "))
 	}
 	if len(deleted) > 0 {
-		fmt.Fprintf(out, "Deleted services: %s\n", strings.Join(deleted, ", "))
+		fmt.Fprintf(out, "Deleted %s: %s\n", label, strings.Join(deleted, ", "))
 	}
-	if len(created) == 0 && len(updated) == 0 && len(deleted) == 0 {
-		fmt.Fprintln(out, "No changes required; services already match config.")
+	if len(skipped) > 0 {
+		fmt.Fprintf(out, "Skipped %s (already exist, updates not supported): %s\n", label, strings.Join(skipped, ", "))
+	}
+	if len(created) == 0 && len(updated) == 0 && len(deleted) == 0 && len(skipped) == 0 {
+		fmt.Fprintf(out, "No changes required; %s already match config.\n", label)
 	}
 }

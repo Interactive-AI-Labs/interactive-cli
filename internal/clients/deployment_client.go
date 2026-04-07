@@ -928,17 +928,18 @@ type CreateVectorStoreBody struct {
 	Storage   VectorStoreStorage   `json:"storage"`
 	HA        bool                 `json:"ha"`
 	Backups   bool                 `json:"backups"`
+	StackId   string               `json:"stackId,omitempty"`
 }
 
 type VectorStoreResources struct {
-	CPU    int     `json:"cpu"`
-	Memory float64 `json:"memory"`
+	CPU    int     `json:"cpu"    yaml:"cpu"`
+	Memory float64 `json:"memory" yaml:"memory"`
 }
 
 type VectorStoreStorage struct {
-	Size            int  `json:"size"`
-	AutoResize      bool `json:"autoResize"`
-	AutoResizeLimit int  `json:"autoResizeLimit"`
+	Size            int  `json:"size"            yaml:"size"`
+	AutoResize      bool `json:"autoResize"      yaml:"autoResize"`
+	AutoResizeLimit int  `json:"autoResizeLimit" yaml:"autoResizeLimit"`
 }
 
 type VectorStoreBackupConfig struct {
@@ -1011,6 +1012,7 @@ func (c *DeploymentClient) ListVectorStores(
 	ctx context.Context,
 	orgId,
 	projectId string,
+	stackId string,
 ) ([]VectorStoreInfo, error) {
 	path := fmt.Sprintf(
 		"/v1/organizations/%s/projects/%s/vector-stores",
@@ -1020,6 +1022,12 @@ func (c *DeploymentClient) ListVectorStores(
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if stackId != "" {
+		q := req.URL.Query()
+		q.Set("stackId", stackId)
+		req.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := c.do(req)
