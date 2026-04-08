@@ -61,6 +61,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		cfg.Services = make(map[string]ServiceConfig)
 	}
 
+	if cfg.VectorStores == nil {
+		cfg.VectorStores = make(map[string]VectorStoreConfig)
+	}
+
 	return &cfg, nil
 }
 
