@@ -30,17 +30,8 @@ var stackSyncCmd = &cobra.Command{
 	Short: "Sync services and vector stores from a stack config file",
 	Long: `Sync services and vector stores in a project from a stack configuration file.
 
-For services, sync will:
-- Create services that exist in the config but not in the project
-- Update services that exist in both the config and the project
-- Delete services that exist in the project but not in the config (for the specified stack)
-
-For vector stores, sync will:
-- Create vector stores that exist in the config but not in the project
-- Delete vector stores that exist in the project but not in the config (requires --allow-delete=vector-stores)
-
-Stateful resources (vector stores) are protected from deletion by default.
-Use --allow-delete to opt in per resource type.
+Services are created, updated, or deleted to match the config file.
+Vector stores are created or deleted (--allow-delete=vector-stores). Updates are not yet supported.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
 	Args: cobra.NoArgs,
