@@ -1,4 +1,4 @@
-package cmd
+package sync
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 )
 
-func allowDeleteResource(allowed []string, resource string) bool {
+func AllowDeleteResource(allowed []string, resource string) bool {
 	for _, a := range allowed {
 		if strings.EqualFold(a, resource) || strings.EqualFold(a, "all") {
 			return true
@@ -20,7 +20,7 @@ func allowDeleteResource(allowed []string, resource string) bool {
 	return false
 }
 
-type SyncResult struct {
+type Result struct {
 	Created   []string
 	Updated   []string
 	Deleted   []string
@@ -28,7 +28,12 @@ type SyncResult struct {
 	Protected []string // would be deleted but deletion was not allowed
 }
 
-func printSyncResult(out io.Writer, label string, result *SyncResult, err error) error {
+func PrintResult(
+	out io.Writer,
+	label string,
+	result *Result,
+	err error,
+) error {
 	if err != nil {
 		if result != nil {
 			output.PrintSyncResult(
@@ -63,15 +68,17 @@ func printSyncResult(out io.Writer, label string, result *SyncResult, err error)
 	return nil
 }
 
-func SyncServices(
+func Services(
 	ctx context.Context,
 	deployClient *clients.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
 	desired map[string]clients.CreateServiceBody,
-) (*SyncResult, error) {
-	existing, err := deployClient.ListServices(ctx, orgId, projectId, stackId)
+) (*Result, error) {
+	existing, err := deployClient.ListServices(
+		ctx, orgId, projectId, stackId,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list services: %w", err)
 	}
@@ -81,7 +88,7 @@ func SyncServices(
 		existingByName[svc.Name] = svc
 	}
 
-	result := &SyncResult{}
+	result := &Result{}
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -92,15 +99,23 @@ func SyncServices(
 	for _, name := range desiredNames {
 		body := desired[name]
 		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateService(ctx, orgId, projectId, name, body)
+			_, err := deployClient.CreateService(
+				ctx, orgId, projectId, name, body,
+			)
 			if err != nil {
-				return result, fmt.Errorf("failed to create service %q: %w", name, err)
+				return result, fmt.Errorf(
+					"failed to create service %q: %w", name, err,
+				)
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			_, err := deployClient.UpdateService(ctx, orgId, projectId, name, body)
+			_, err := deployClient.UpdateService(
+				ctx, orgId, projectId, name, body,
+			)
 			if err != nil {
-				return result, fmt.Errorf("failed to update service %q: %w", name, err)
+				return result, fmt.Errorf(
+					"failed to update service %q: %w", name, err,
+				)
 			}
 			result.Updated = append(result.Updated, name)
 		}
@@ -114,9 +129,13 @@ func SyncServices(
 
 	for _, name := range existingNames {
 		if _, ok := desired[name]; !ok {
-			_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
+			_, err := deployClient.DeleteService(
+				ctx, orgId, projectId, name,
+			)
 			if err != nil {
-				return result, fmt.Errorf("failed to delete service %q: %w", name, err)
+				return result, fmt.Errorf(
+					"failed to delete service %q: %w", name, err,
+				)
 			}
 			result.Deleted = append(result.Deleted, name)
 		}
@@ -125,9 +144,9 @@ func SyncServices(
 	return result, nil
 }
 
-// SyncVectorStores syncs vector stores. Existing stores are skipped (no update endpoint).
+// VectorStores syncs vector stores. Existing stores are skipped (no update endpoint).
 // When allowDelete is false, stores that would be deleted are collected in Protected instead.
-func SyncVectorStores(
+func VectorStores(
 	ctx context.Context,
 	deployClient *clients.DeploymentClient,
 	orgId,
@@ -135,8 +154,10 @@ func SyncVectorStores(
 	stackId string,
 	desired map[string]clients.CreateVectorStoreBody,
 	allowDelete bool,
-) (*SyncResult, error) {
-	existing, err := deployClient.ListVectorStores(ctx, orgId, projectId, stackId)
+) (*Result, error) {
+	existing, err := deployClient.ListVectorStores(
+		ctx, orgId, projectId, stackId,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list vector stores: %w", err)
 	}
@@ -146,7 +167,7 @@ func SyncVectorStores(
 		existingByName[vs.VectorStoreName] = vs
 	}
 
-	result := &SyncResult{}
+	result := &Result{}
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -157,9 +178,14 @@ func SyncVectorStores(
 	for _, name := range desiredNames {
 		body := desired[name]
 		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateVectorStore(ctx, orgId, projectId, name, body)
+			_, err := deployClient.CreateVectorStore(
+				ctx, orgId, projectId, name, body,
+			)
 			if err != nil {
-				return result, fmt.Errorf("failed to create vector store %q: %w", name, err)
+				return result, fmt.Errorf(
+					"failed to create vector store %q: %w",
+					name, err,
+				)
 			}
 			result.Created = append(result.Created, name)
 		} else {
@@ -179,9 +205,14 @@ func SyncVectorStores(
 				result.Protected = append(result.Protected, name)
 				continue
 			}
-			_, err := deployClient.DeleteVectorStore(ctx, orgId, projectId, name)
+			_, err := deployClient.DeleteVectorStore(
+				ctx, orgId, projectId, name,
+			)
 			if err != nil {
-				return result, fmt.Errorf("failed to delete vector store %q: %w", name, err)
+				return result, fmt.Errorf(
+					"failed to delete vector store %q: %w",
+					name, err,
+				)
 			}
 			result.Deleted = append(result.Deleted, name)
 		}

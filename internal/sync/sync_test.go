@@ -1,4 +1,4 @@
-package cmd
+package sync
 
 import (
 	"bytes"
@@ -65,10 +65,10 @@ func TestAllowDeleteResource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := allowDeleteResource(tt.allowed, tt.resource)
+			got := AllowDeleteResource(tt.allowed, tt.resource)
 			if got != tt.want {
 				t.Errorf(
-					"allowDeleteResource(%v, %q) = %v, want %v",
+					"AllowDeleteResource(%v, %q) = %v, want %v",
 					tt.allowed, tt.resource, got, tt.want,
 				)
 			}
@@ -76,14 +76,14 @@ func TestAllowDeleteResource(t *testing.T) {
 	}
 }
 
-func TestPrintSyncOutcome(t *testing.T) {
+func TestPrintResult(t *testing.T) {
 	t.Run("success prints result", func(t *testing.T) {
 		var buf bytes.Buffer
-		result := &SyncResult{
+		result := &Result{
 			Created: []string{"new-vs"},
 			Deleted: []string{"old-vs"},
 		}
-		err := printSyncResult(&buf, "vector stores", result, nil)
+		err := PrintResult(&buf, "vector stores", result, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -97,11 +97,11 @@ func TestPrintSyncOutcome(t *testing.T) {
 
 	t.Run("error with partial result", func(t *testing.T) {
 		var buf bytes.Buffer
-		result := &SyncResult{
+		result := &Result{
 			Created: []string{"svc-a"},
 		}
 		syncErr := fmt.Errorf("failed to create service \"svc-b\"")
-		err := printSyncResult(&buf, "services", result, syncErr)
+		err := PrintResult(&buf, "services", result, syncErr)
 		if err != syncErr {
 			t.Fatalf("expected original error, got: %v", err)
 		}
@@ -115,7 +115,7 @@ func TestPrintSyncOutcome(t *testing.T) {
 	t.Run("error with nil result", func(t *testing.T) {
 		var buf bytes.Buffer
 		syncErr := fmt.Errorf("failed to list services")
-		err := printSyncResult(&buf, "services", nil, syncErr)
+		err := PrintResult(&buf, "services", nil, syncErr)
 		if err != syncErr {
 			t.Fatalf("expected original error, got: %v", err)
 		}
@@ -126,11 +126,11 @@ func TestPrintSyncOutcome(t *testing.T) {
 
 	t.Run("protected items print warning", func(t *testing.T) {
 		var buf bytes.Buffer
-		result := &SyncResult{
+		result := &Result{
 			Created:   []string{"new-vs"},
 			Protected: []string{"old-vs"},
 		}
-		err := printSyncResult(&buf, "vector stores", result, nil)
+		err := PrintResult(&buf, "vector stores", result, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

@@ -13,6 +13,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -817,7 +818,7 @@ The project is selected with --project or via 'iai projects select', and the con
 			svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
 		}
 
-		result, err := SyncServices(
+		result, err := sync.Services(
 			cmd.Context(),
 			deployClient,
 			orgId,
@@ -828,7 +829,7 @@ The project is selected with --project or via 'iai projects select', and the con
 		close(done)
 		fmt.Fprintln(out)
 
-		return printSyncResult(out, "services", result, err)
+		return sync.PrintResult(out, "services", result, err)
 	},
 }
 

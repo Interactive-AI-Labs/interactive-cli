@@ -7,6 +7,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -113,7 +114,7 @@ The organization and project are read from the config file, flags, or resolved v
 				svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
 			}
 
-			svcResult, err := SyncServices(
+			svcResult, err := sync.Services(
 				cmd.Context(),
 				deployClient,
 				orgId,
@@ -123,7 +124,7 @@ The organization and project are read from the config file, flags, or resolved v
 			)
 			close(done)
 			fmt.Fprintln(out)
-			if err := printSyncResult(out, "services", svcResult, err); err != nil {
+			if err := sync.PrintResult(out, "services", svcResult, err); err != nil {
 				return err
 			}
 		}
@@ -137,11 +138,11 @@ The organization and project are read from the config file, flags, or resolved v
 				vsBodies[name] = vsCfg.ToCreateRequest(cfg.StackId)
 			}
 
-			allowDeleteVS := allowDeleteResource(
+			allowDeleteVS := sync.AllowDeleteResource(
 				stackSyncAllowDelete,
 				"vector-stores",
 			)
-			vsResult, err := SyncVectorStores(
+			vsResult, err := sync.VectorStores(
 				cmd.Context(),
 				deployClient,
 				orgId,
@@ -152,7 +153,7 @@ The organization and project are read from the config file, flags, or resolved v
 			)
 			close(done)
 			fmt.Fprintln(out)
-			if err := printSyncResult(out, "vector stores", vsResult, err); err != nil {
+			if err := sync.PrintResult(out, "vector stores", vsResult, err); err != nil {
 				return err
 			}
 		}
