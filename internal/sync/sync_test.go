@@ -77,69 +77,97 @@ func TestAllowDeleteResource(t *testing.T) {
 }
 
 func TestPrintResult(t *testing.T) {
-	t.Run("success prints result", func(t *testing.T) {
-		var buf bytes.Buffer
-		result := &Result{
-			Created: []string{"new-vs"},
-			Deleted: []string{"old-vs"},
-		}
-		err := PrintResult(&buf, "vector stores", result, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		got := buf.String()
-		want := "Created vector stores: new-vs\n" +
-			"Deleted vector stores: old-vs\n"
-		if got != want {
-			t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, want)
-		}
-	})
+	tests := []struct {
+		name    string
+		label   string
+		result  *Result
+		syncErr error
+		want    string
+		wantErr bool
+	}{
+		{
+			name:  "created and deleted",
+			label: "vector stores",
+			result: &Result{
+				Created: []string{"new-vs"},
+				Deleted: []string{"old-vs"},
+			},
+			want: "Created vector stores: new-vs\n" +
+				"Deleted vector stores: old-vs\n",
+		},
+		{
+			name:  "updated items",
+			label: "services",
+			result: &Result{
+				Updated: []string{"svc-a"},
+			},
+			want: "Updated services: svc-a\n",
+		},
+		{
+			name:  "skipped items",
+			label: "vector stores",
+			result: &Result{
+				Skipped: []string{"existing-vs"},
+			},
+			want: "Skipped vector stores (already exist, updates not supported): existing-vs\n",
+		},
+		{
+			name:   "no changes",
+			label:  "services",
+			result: &Result{},
+			want:   "No changes required; services already match config.\n",
+		},
+		{
+			name:  "multiple items joined with comma",
+			label: "services",
+			result: &Result{
+				Created: []string{"svc-a", "svc-b"},
+				Deleted: []string{"svc-c", "svc-d"},
+			},
+			want: "Created services: svc-a, svc-b\n" +
+				"Deleted services: svc-c, svc-d\n",
+		},
+		{
+			name:  "protected items print warning",
+			label: "vector stores",
+			result: &Result{
+				Created:   []string{"new-vs"},
+				Protected: []string{"old-vs"},
+			},
+			want: "Created vector stores: new-vs\n" +
+				"\nProtected vector stores (not deleted): old-vs\n" +
+				"Use --allow-delete=vector-stores to delete them.\n",
+		},
+		{
+			name:    "error with partial result",
+			label:   "services",
+			result:  &Result{Created: []string{"svc-a"}},
+			syncErr: fmt.Errorf("failed to create service \"svc-b\""),
+			wantErr: true,
+			want:    "Created services (partial): svc-a\n",
+		},
+		{
+			name:    "error with nil result",
+			label:   "services",
+			syncErr: fmt.Errorf("failed to list services"),
+			wantErr: true,
+			want:    "",
+		},
+	}
 
-	t.Run("error with partial result", func(t *testing.T) {
-		var buf bytes.Buffer
-		result := &Result{
-			Created: []string{"svc-a"},
-		}
-		syncErr := fmt.Errorf("failed to create service \"svc-b\"")
-		err := PrintResult(&buf, "services", result, syncErr)
-		if err != syncErr {
-			t.Fatalf("expected original error, got: %v", err)
-		}
-		got := buf.String()
-		want := "Created services (partial): svc-a\n"
-		if got != want {
-			t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, want)
-		}
-	})
-
-	t.Run("error with nil result", func(t *testing.T) {
-		var buf bytes.Buffer
-		syncErr := fmt.Errorf("failed to list services")
-		err := PrintResult(&buf, "services", nil, syncErr)
-		if err != syncErr {
-			t.Fatalf("expected original error, got: %v", err)
-		}
-		if buf.Len() != 0 {
-			t.Errorf("expected no output, got: %q", buf.String())
-		}
-	})
-
-	t.Run("protected items print warning", func(t *testing.T) {
-		var buf bytes.Buffer
-		result := &Result{
-			Created:   []string{"new-vs"},
-			Protected: []string{"old-vs"},
-		}
-		err := PrintResult(&buf, "vector stores", result, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		got := buf.String()
-		want := "Created vector stores: new-vs\n" +
-			"\nProtected vector stores (not deleted): old-vs\n" +
-			"Use --allow-delete=vector-stores to delete them.\n"
-		if got != want {
-			t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, want)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintResult(&buf, tt.label, tt.result, tt.syncErr)
+			if tt.wantErr && err != tt.syncErr {
+				t.Fatalf("expected original error, got: %v", err)
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			}
+		})
+	}
 }
