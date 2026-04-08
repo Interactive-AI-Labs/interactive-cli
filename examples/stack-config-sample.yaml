@@ -68,3 +68,17 @@ services:
       maxReplicas: 10
       cpuPercentage: 80
       memoryPercentage: 85
+
+  # Example with platform image
+  api-service-3:
+    servicePort: 8080
+    image:
+      type: platforms
+      repository: agents
+      name: interactive-agent
+      tag: 0.0.1
+    resources:
+      memory: "1G"
+      cpu: "1"
+    endpoint: false
+    replicas: 1
