@@ -828,7 +828,7 @@ The project is selected with --project or via 'iai projects select', and the con
 		close(done)
 		fmt.Fprintln(out)
 
-		return printSyncOutcome(out, "services", result, err)
+		return printSyncResult(out, "services", result, err)
 	},
 }
 

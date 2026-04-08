@@ -28,7 +28,7 @@ type SyncResult struct {
 	Protected []string // would be deleted but deletion was not allowed
 }
 
-func printSyncOutcome(out io.Writer, label string, result *SyncResult, err error) error {
+func printSyncResult(out io.Writer, label string, result *SyncResult, err error) error {
 	if err != nil {
 		if result != nil {
 			output.PrintSyncResult(

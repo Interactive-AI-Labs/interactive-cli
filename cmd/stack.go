@@ -123,7 +123,7 @@ The organization and project are read from the config file, flags, or resolved v
 			)
 			close(done)
 			fmt.Fprintln(out)
-			if err := printSyncOutcome(out, "services", svcResult, err); err != nil {
+			if err := printSyncResult(out, "services", svcResult, err); err != nil {
 				return err
 			}
 		}
@@ -152,7 +152,7 @@ The organization and project are read from the config file, flags, or resolved v
 			)
 			close(done)
 			fmt.Fprintln(out)
-			if err := printSyncOutcome(out, "vector stores", vsResult, err); err != nil {
+			if err := printSyncResult(out, "vector stores", vsResult, err); err != nil {
 				return err
 			}
 		}

@@ -83,7 +83,7 @@ func TestPrintSyncOutcome(t *testing.T) {
 			Created: []string{"new-vs"},
 			Deleted: []string{"old-vs"},
 		}
-		err := printSyncOutcome(&buf, "vector stores", result, nil)
+		err := printSyncResult(&buf, "vector stores", result, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -101,7 +101,7 @@ func TestPrintSyncOutcome(t *testing.T) {
 			Created: []string{"svc-a"},
 		}
 		syncErr := fmt.Errorf("failed to create service \"svc-b\"")
-		err := printSyncOutcome(&buf, "services", result, syncErr)
+		err := printSyncResult(&buf, "services", result, syncErr)
 		if err != syncErr {
 			t.Fatalf("expected original error, got: %v", err)
 		}
@@ -115,7 +115,7 @@ func TestPrintSyncOutcome(t *testing.T) {
 	t.Run("error with nil result", func(t *testing.T) {
 		var buf bytes.Buffer
 		syncErr := fmt.Errorf("failed to list services")
-		err := printSyncOutcome(&buf, "services", nil, syncErr)
+		err := printSyncResult(&buf, "services", nil, syncErr)
 		if err != syncErr {
 			t.Fatalf("expected original error, got: %v", err)
 		}
@@ -130,7 +130,7 @@ func TestPrintSyncOutcome(t *testing.T) {
 			Created:   []string{"new-vs"},
 			Protected: []string{"old-vs"},
 		}
-		err := printSyncOutcome(&buf, "vector stores", result, nil)
+		err := printSyncResult(&buf, "vector stores", result, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
