@@ -46,7 +46,7 @@ type LogsMeta struct {
 // log output when piped (e.g. iai services logs httpbin | grep error).
 func PrintLogStream(out io.Writer, r io.Reader, showReplica bool, meta LogsMeta) error {
 	if meta.Empty {
-		fmt.Fprintln(os.Stderr, "No logs found, check if replica exists")
+		fmt.Fprintln(os.Stderr, "No logs found")
 		return nil
 	}
 
