@@ -80,6 +80,7 @@ iai --help
 * [iai secrets](iai_secrets.md)	 - Manage secrets
 * [iai services](iai_services.md)	 - Manage services
 * [iai sessions](iai_sessions.md)	 - Manage sessions
+* [iai stack](iai_stack.md)	 - Manage stacks
 * [iai traces](iai_traces.md)	 - Manage traces
 * [iai variables](iai_variables.md)	 - Manage variables
 * [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores

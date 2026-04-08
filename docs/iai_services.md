@@ -29,6 +29,5 @@ Manage deployment of services to InteractiveAI projects.
 * [iai services list](iai_services_list.md)	 - List services in a project
 * [iai services logs](iai_services_logs.md)	 - Show logs for a service
 * [iai services restart](iai_services_restart.md)	 - Restart a service in a project
-* [iai services sync](iai_services_sync.md)	 - Sync services in a project from a stack config file
 * [iai services update](iai_services_update.md)	 - Update a service in a project
 

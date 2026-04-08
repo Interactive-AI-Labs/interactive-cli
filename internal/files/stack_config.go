@@ -9,10 +9,18 @@ import (
 )
 
 type StackConfig struct {
-	Organization string                   `yaml:"organization"`
-	Project      string                   `yaml:"project"`
-	StackId      string                   `yaml:"stack-id"`
-	Services     map[string]ServiceConfig `yaml:"services"`
+	Organization string                       `yaml:"organization"`
+	Project      string                       `yaml:"project"`
+	StackId      string                       `yaml:"stack-id"`
+	Services     map[string]ServiceConfig     `yaml:"services"`
+	VectorStores map[string]VectorStoreConfig `yaml:"vector-stores"`
+}
+
+type VectorStoreConfig struct {
+	Resources clients.VectorStoreResources `yaml:"resources"`
+	Storage   clients.VectorStoreStorage   `yaml:"storage"`
+	HA        bool                         `yaml:"ha"`
+	Backups   bool                         `yaml:"backups"`
 }
 
 type ServiceConfig struct {
@@ -43,15 +51,31 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	if len(cfg.Services) > 0 && cfg.StackId == "" {
-		return nil, fmt.Errorf("stack-id is required when services are defined in config file")
+	if (len(cfg.Services) > 0 || len(cfg.VectorStores) > 0) && cfg.StackId == "" {
+		return nil, fmt.Errorf(
+			"stack-id is required when services or vector stores are defined in config file",
+		)
 	}
 
 	if cfg.Services == nil {
 		cfg.Services = make(map[string]ServiceConfig)
 	}
 
+	if cfg.VectorStores == nil {
+		cfg.VectorStores = make(map[string]VectorStoreConfig)
+	}
+
 	return &cfg, nil
+}
+
+func (v VectorStoreConfig) ToCreateRequest(stackId string) clients.CreateVectorStoreBody {
+	return clients.CreateVectorStoreBody{
+		Resources: v.Resources,
+		Storage:   v.Storage,
+		HA:        v.HA,
+		Backups:   v.Backups,
+		StackId:   stackId,
+	}
 }
 
 func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody {
