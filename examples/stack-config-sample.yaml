@@ -73,7 +73,7 @@ services:
   api-service-3:
     servicePort: 8080
     image:
-      type: platforms
+      type: platform
       repository: agents
       name: interactive-agent
       tag: 0.0.1

@@ -97,10 +97,6 @@ var servCCmd = &cobra.Command{
 			}
 		}
 
-		if err := inputs.ValidateService(input); err != nil {
-			return err
-		}
-
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
@@ -266,10 +262,6 @@ var servUCmd = &cobra.Command{
 				CPUPercentage: serviceAutoscalingCPU,
 				MemoryPercent: serviceAutoscalingMemory,
 			}
-		}
-
-		if err := inputs.ValidateService(input); err != nil {
-			return err
 		}
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
