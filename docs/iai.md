@@ -6,7 +6,7 @@ InteractiveAI's CLI
 
 InteractiveAI's CLI to interact with its platform.
 
-Use the subcommands below to manage your organizations, projects, services, secrets, prompts, routines, policies, variables, glossary, macros, and other components.
+Use the subcommands below to manage your organizations, projects, agents, services, secrets, prompts, routines, policies, variables, glossaries, macros, and other components.
 
 ## Install
 

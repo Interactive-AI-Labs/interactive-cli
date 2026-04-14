@@ -14,9 +14,9 @@ func TestPrintServiceList(t *testing.T) {
 		want     string
 	}{
 		{
-			name:     "empty list prints headers only",
+			name:     "empty list prints message",
 			services: []clients.ServiceOutput{},
-			want:     "NAME   REVISION   STATUS   ENDPOINT   UPDATED\n",
+			want:     "No services found.\n",
 		},
 		{
 			name: "single service",

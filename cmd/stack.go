@@ -22,15 +22,16 @@ var stackCmd = &cobra.Command{
 	Use:     "stack",
 	Aliases: []string{"stacks"},
 	Short:   "Manage stacks",
-	Long:    `Manage stacks and their resources (services, vector stores) from stack configuration files.`,
+	Long:    `Manage stacks and their resources (services, agents, vector stores) from stack configuration files.`,
 }
 
 var stackSyncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync services and vector stores from a stack config file",
-	Long: `Sync services and vector stores in a project from a stack configuration file.
+	Short: "Sync services, agents, and vector stores from a stack config file",
+	Long: `Sync services, agents, and vector stores in a project from a stack configuration file.
 
 Services are created, updated, or deleted to match the config file.
+Agents are created, updated, or deleted to match the config file.
 Vector stores are created or deleted (--allow-delete=vector-stores). Updates are not yet supported.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
@@ -51,8 +52,10 @@ The organization and project are read from the config file, flags, or resolved v
 			return fmt.Errorf("failed to load stack config: %w", err)
 		}
 
-		if len(cfg.Services) == 0 && len(cfg.VectorStores) == 0 {
-			return fmt.Errorf("config file must define at least one service or vector store")
+		if len(cfg.Services) == 0 && len(cfg.Agents) == 0 && len(cfg.VectorStores) == 0 {
+			return fmt.Errorf(
+				"config file must define at least one service, agent, or vector store",
+			)
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -116,6 +119,30 @@ The organization and project are read from the config file, flags, or resolved v
 			close(done)
 			fmt.Fprintln(out)
 			if err := sync.PrintResult(out, "services", svcResult, err); err != nil {
+				return err
+			}
+		}
+
+		if len(cfg.Agents) > 0 {
+			fmt.Fprint(out, "Syncing agents")
+			done := output.PrintLoadingDots(out)
+
+			agentBodies := make(map[string]clients.CreateAgentBody)
+			for name, agentCfg := range cfg.Agents {
+				agentBodies[name] = agentCfg.ToCreateRequest(cfg.StackId)
+			}
+
+			agentResult, err := sync.Agents(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+				agentBodies,
+			)
+			close(done)
+			fmt.Fprintln(out)
+			if err := sync.PrintResult(out, "agents", agentResult, err); err != nil {
 				return err
 			}
 		}

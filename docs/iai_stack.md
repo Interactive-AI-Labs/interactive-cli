@@ -4,7 +4,7 @@ Manage stacks
 
 ### Synopsis
 
-Manage stacks and their resources (services, vector stores) from stack configuration files.
+Manage stacks and their resources (services, agents, vector stores) from stack configuration files.
 
 ### Options
 
@@ -24,5 +24,5 @@ Manage stacks and their resources (services, vector stores) from stack configura
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai stack sync](iai_stack_sync.md)	 - Sync services and vector stores from a stack config file
+* [iai stack sync](iai_stack_sync.md)	 - Sync services, agents, and vector stores from a stack config file
 

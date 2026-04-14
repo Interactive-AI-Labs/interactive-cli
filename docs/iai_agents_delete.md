@@ -1,34 +1,24 @@
 ## iai agents delete
 
-Delete a agent
+Delete an agent from a project
 
 ### Synopsis
 
-Delete an agent and all its versions, or delete specific versions.
-
-Without flags, deletes the agent and all its versions (requires confirmation).
-Use --version to delete a specific version, or --label to delete versions with a
-specific label. Use -f to skip the confirmation prompt.
+Delete an agent from a specific project.
 
 Examples:
-  iai agents delete support-agent
-  iai agents delete support-agent -f
-  iai agents delete support-agent --version 3
-  iai agents delete support-agent --label staging
+  iai agents delete my-agent
 
 ```
-iai agents delete <name> [flags]
+iai agents delete <agent_name> [flags]
 ```
 
 ### Options
 
 ```
-  -f, --force                 Skip confirmation prompt
   -h, --help                  help for delete
-      --label string          Delete versions with this label only
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the prompts
-      --version int           Delete a specific version only
+  -o, --organization string   Organization name
+  -p, --project string        Project name
 ```
 
 ### Options inherited from parent commands

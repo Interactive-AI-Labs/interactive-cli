@@ -1,12 +1,15 @@
 ## iai agents schema
 
-Display the JSON Schema for agents
+Display the JSON Schema for agent configuration
 
 ### Synopsis
 
-Fetch and display the current JSON Schema for agents from the backend API.
+Fetch and display the current JSON Schema for the agent_config block.
 
 This is a public endpoint and does not require authentication.
+
+Examples:
+  iai agents schema
 
 ```
 iai agents schema [flags]

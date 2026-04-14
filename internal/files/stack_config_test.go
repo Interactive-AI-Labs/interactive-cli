@@ -60,6 +60,7 @@ services:
 					},
 				},
 				VectorStores: map[string]VectorStoreConfig{},
+				Agents:       map[string]AgentConfig{},
 			},
 		},
 		{
@@ -112,6 +113,7 @@ services:
 					},
 				},
 				VectorStores: map[string]VectorStoreConfig{},
+				Agents:       map[string]AgentConfig{},
 			},
 		},
 		{
@@ -162,6 +164,7 @@ vector-stores:
 						Storage:   clients.VectorStoreStorage{Size: 20},
 					},
 				},
+				Agents: map[string]AgentConfig{},
 			},
 		},
 		{
@@ -198,6 +201,7 @@ vector-stores:
 						Backups: true,
 					},
 				},
+				Agents: map[string]AgentConfig{},
 			},
 		},
 		{

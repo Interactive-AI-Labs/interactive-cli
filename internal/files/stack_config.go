@@ -14,6 +14,7 @@ type StackConfig struct {
 	StackId      string                       `yaml:"stack-id"`
 	Services     map[string]ServiceConfig     `yaml:"services"`
 	VectorStores map[string]VectorStoreConfig `yaml:"vector-stores"`
+	Agents       map[string]AgentConfig       `yaml:"agents"`
 }
 
 type VectorStoreConfig struct {
@@ -37,6 +38,16 @@ type ServiceConfig struct {
 	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"`
 }
 
+type AgentConfig struct {
+	Id          string              `yaml:"id"`
+	Version     string              `yaml:"version"`
+	AgentConfig any                 `yaml:"agentConfig"`
+	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"`
+	Endpoint    bool                `yaml:"endpoint,omitempty"`
+	Schedule    *clients.Schedule   `yaml:"schedule,omitempty"`
+	Env         []clients.EnvVar    `yaml:"env,omitempty"`
+}
+
 func LoadStackConfig(path string) (*StackConfig, error) {
 	if path == "" {
 		return &StackConfig{}, nil
@@ -51,9 +62,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	if (len(cfg.Services) > 0 || len(cfg.VectorStores) > 0) && cfg.StackId == "" {
+	if (len(cfg.Services) > 0 || len(cfg.VectorStores) > 0 || len(cfg.Agents) > 0) &&
+		cfg.StackId == "" {
 		return nil, fmt.Errorf(
-			"stack-id is required when services or vector stores are defined in config file",
+			"stack-id is required when services, vector stores, or agents are defined in config file",
 		)
 	}
 
@@ -63,6 +75,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 
 	if cfg.VectorStores == nil {
 		cfg.VectorStores = make(map[string]VectorStoreConfig)
+	}
+
+	if cfg.Agents == nil {
+		cfg.Agents = make(map[string]AgentConfig)
 	}
 
 	return &cfg, nil
@@ -75,6 +91,19 @@ func (v VectorStoreConfig) ToCreateRequest(stackId string) clients.CreateVectorS
 		HA:        v.HA,
 		Backups:   v.Backups,
 		StackId:   stackId,
+	}
+}
+
+func (a AgentConfig) ToCreateRequest(stackId string) clients.CreateAgentBody {
+	return clients.CreateAgentBody{
+		Id:          a.Id,
+		Version:     a.Version,
+		AgentConfig: a.AgentConfig,
+		SecretRefs:  a.SecretRefs,
+		Endpoint:    a.Endpoint,
+		Schedule:    a.Schedule,
+		Env:         a.Env,
+		StackId:     stackId,
 	}
 }
 

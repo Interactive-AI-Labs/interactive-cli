@@ -8,7 +8,7 @@ Update a service in a specific project using the deployment service.
 
 
 ```
-iai services update [service_name] [flags]
+iai services update <service_name> [flags]
 ```
 
 ### Options

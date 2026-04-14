@@ -8,7 +8,7 @@ Create a service in a specific project using the deployment service.
 
 
 ```
-iai services create [service_name] [flags]
+iai services create <service_name> [flags]
 ```
 
 ### Options

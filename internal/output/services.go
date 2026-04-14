@@ -9,6 +9,11 @@ import (
 )
 
 func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
+	if len(services) == 0 {
+		fmt.Fprintln(out, "No services found.")
+		return nil
+	}
+
 	headers := []string{"NAME", "REVISION", "STATUS", "ENDPOINT", "UPDATED"}
 	rows := make([][]string, len(services))
 	for i, svc := range services {

@@ -3,10 +3,11 @@ package inputs
 import (
 	"fmt"
 	"strings"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 type ServiceInput struct {
-	Name            string
 	Port            int
 	ImageType       string
 	ImageRepository string
@@ -14,16 +15,94 @@ type ServiceInput struct {
 	ImageTag        string
 	Memory          string
 	CPU             string
-	Replicas        int
-	Autoscaling     *AutoscalingInput
+	Endpoint        bool
+
+	Replicas           int
+	AutoscalingEnabled bool
+	AutoscalingMin     int
+	AutoscalingMax     int
+	AutoscalingCPU     int
+	AutoscalingMemory  int
+
+	EnvVars    []string
+	SecretRefs []string
+
+	HealthcheckPath         string
+	HealthcheckInitialDelay int
+
+	ScheduleUptime   string
+	ScheduleDowntime string
+	ScheduleTimezone string
 }
 
-type AutoscalingInput struct {
-	Enabled       bool
-	MinReplicas   int
-	MaxReplicas   int
-	CPUPercentage int
-	MemoryPercent int
+func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error) {
+	if err := ValidateServiceEnvVars(in.EnvVars); err != nil {
+		return clients.CreateServiceBody{}, err
+	}
+	var env []clients.EnvVar
+	for _, e := range in.EnvVars {
+		parts := strings.SplitN(e, "=", 2)
+		env = append(env, clients.EnvVar{
+			Name:  strings.TrimSpace(parts[0]),
+			Value: parts[1],
+		})
+	}
+
+	if err := ValidateServiceSecretRefs(in.SecretRefs); err != nil {
+		return clients.CreateServiceBody{}, err
+	}
+	var secretRefs []clients.SecretRef
+	for _, name := range in.SecretRefs {
+		secretRefs = append(secretRefs, clients.SecretRef{
+			SecretName: strings.TrimSpace(name),
+		})
+	}
+
+	reqBody := clients.CreateServiceBody{
+		ServicePort: in.Port,
+		Image: clients.ImageSpec{
+			Type:       in.ImageType,
+			Repository: in.ImageRepository,
+			Name:       in.ImageName,
+			Tag:        in.ImageTag,
+		},
+		Resources: clients.Resources{
+			Memory: in.Memory,
+			CPU:    in.CPU,
+		},
+		Env:        env,
+		SecretRefs: secretRefs,
+		Endpoint:   in.Endpoint,
+	}
+
+	if in.AutoscalingEnabled {
+		reqBody.Autoscaling = &clients.Autoscaling{
+			Enabled:          true,
+			MinReplicas:      in.AutoscalingMin,
+			MaxReplicas:      in.AutoscalingMax,
+			CPUPercentage:    in.AutoscalingCPU,
+			MemoryPercentage: in.AutoscalingMemory,
+		}
+	} else if in.Replicas > 0 {
+		reqBody.Replicas = in.Replicas
+	}
+
+	if in.HealthcheckPath != "" || in.HealthcheckInitialDelay != 0 {
+		reqBody.Healthcheck = &clients.Healthcheck{
+			Path:                in.HealthcheckPath,
+			InitialDelaySeconds: in.HealthcheckInitialDelay,
+		}
+	}
+
+	if in.ScheduleUptime != "" || in.ScheduleDowntime != "" || in.ScheduleTimezone != "" {
+		reqBody.Schedule = &clients.Schedule{
+			Uptime:   in.ScheduleUptime,
+			Downtime: in.ScheduleDowntime,
+			Timezone: in.ScheduleTimezone,
+		}
+	}
+
+	return reqBody, nil
 }
 
 func ValidateServiceEnvVars(envVars []string) error {

@@ -1,21 +1,22 @@
 # Sample stack configuration file for InteractiveAI CLI
 #
 # This file can be used with the global --cfg-file flag to provide organization and project
-# context for all commands, and with 'iai services sync' for full service deployment.
+# context for all commands, and with 'iai stack sync' for full stack deployment.
 #
 # Usage examples:
 #   iai services list --cfg-file stack-config.yaml
+#   iai agents list --cfg-file stack-config.yaml
 #   iai secrets list --cfg-file stack-config.yaml
-#   iai services sync --cfg-file stack-config.yaml
+#   iai stack sync --cfg-file stack-config.yaml
 #
 # The organization and project fields are optional and provide defaults for all commands.
-# The stack-id and services map are only required for the 'services sync' command.
+# The stack-id, services, agents, and vector-stores maps are used by the 'stack sync' command.
 #
-# Note: The stack-id is used to group services together. Services with the same stack-id
+# Note: The stack-id is used to group resources together. Resources with the same stack-id
 # are managed as a unit. When syncing, the command will:
-# - Create services that exist in the config but not in the project
-# - Update services that exist in both
-# - Delete services (with the same stack-id) that exist in the project but not in the config
+# - Create resources that exist in the config but not in the project
+# - Update resources that exist in both (where supported)
+# - Delete resources (with the same stack-id) that exist in the project but not in the config
 
 organization: my-org
 project: my-project
@@ -82,3 +83,144 @@ services:
       cpu: "1"
     endpoint: false
     replicas: 1
+
+# Agent definitions for 'iai stack sync'. Each key is the agent name.
+#
+# Each agent requires:
+#   id:           The agent type from the marketplace (e.g. "interactive-agent")
+#   version:      The agent image version to deploy
+#   agentConfig:  The agent-specific configuration loaded as a file inside the container.
+#                 See the agent manifest schema for the full structure (context, mcps,
+#                 session_stores, knowledge_base).
+#
+# Optional fields (same behavior as services):
+#   env, secretRefs, endpoint, schedule
+agents:
+  # Chat agent with routines, policies, MCP servers, and knowledge base
+  chat-agent:
+    id: interactive-agent
+    version: "0.0.1"
+    agentConfig:
+      context:
+        description:
+          prompt_id: camille-system-prompt
+          version: 1
+
+        language: french
+
+        routines:
+          - id: bonus
+            version: 1
+          - id: deposits
+            version: 1
+          - id: withdrawals-chat
+            version: 1
+
+        reevaluate_routines_after:
+          - id: integration:authenticate_customer
+
+        policies:
+          - id: handoff-chat
+            version: 1
+          - id: general-knowledge
+            version: 1
+          - id: data-protection
+            version: 1
+
+        glossaries:
+          - id: bonus-terms
+            version: 1
+          - id: pam-terms
+            version: 1
+
+        preamble:
+          greeting: "Hello! How can I help you today?"
+          language_instruction: "Respond in the customer's language"
+          examples:
+            - "I'd like to check my bonus status"
+            - "Can you help me with a deposit?"
+
+        relationships:
+          priorities:
+            - higher: policy:handoff-chat
+              over_all_routines: true
+            - higher: policy:handoff-chat
+              over:
+                - policy:general-knowledge
+
+      mcps:
+        - id: integration
+          hostname: integration
+          port: 8080
+          transport: http
+
+      knowledge_base:
+        prompt:
+          id: kb-rag-prompt
+          version: 1
+        hostname: kb.internal
+        port: 8080
+        path: /retrieve
+
+    secretRefs:
+      - secretName: api-keys
+    endpoint: true
+    env:
+      - name: LOG_LEVEL
+        value: "info"
+
+  # Email agent with a schedule (scaled down on weekends)
+  email-agent:
+    id: interactive-agent
+    version: "0.0.1"
+    agentConfig:
+      context:
+        description:
+          prompt_id: camille-email-system-prompt
+          version: 1
+
+        language: french
+
+        routines:
+          - id: deposits
+            version: 1
+          - id: withdrawals-email
+            version: 1
+
+        reevaluate_routines_after: []
+
+        policies:
+          - id: general-knowledge
+            version: 1
+          - id: data-protection
+            version: 1
+
+        glossaries:
+          - id: bonus-terms
+            version: 1
+
+        preamble: []
+
+        relationships:
+          priorities: []
+
+      session_stores: []
+
+      mcps:
+        - id: integration
+          hostname: integration
+          port: 8080
+          transport: http
+
+      knowledge_base:
+        prompt:
+          id: kb-rag-prompt
+          version: 1
+        hostname: kb.internal
+        port: 8080
+        path: /retrieve
+
+    endpoint: true
+    schedule:
+      downtime: "Sat-Sun 00:00-24:00"
+      timezone: "Europe/Berlin"
