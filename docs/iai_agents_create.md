@@ -1,68 +1,38 @@
 ## iai agents create
 
-Create a agent
+Create an agent in a project
 
 ### Synopsis
 
-Create a new agent in an InteractiveAI project.
+Create an agent in a specific project.
 
-Content is provided via a YAML file using the --file flag.
-Run 'iai agents schema' to see the current field definitions.
-
-Example (agent.yaml):
-  agent_id: support-agent
-  description: Customer support agent with FAQ and escalation
-  extra_rules:
-    - Always greet the customer by name
-    - Escalate billing issues immediately
-  preamble:
-    greeting: "Hello! How can I help you today?"
-    language_instruction: "Respond in the customer's language"
-  mcp_servers:
-    - crm-server
-  variables:
-    - business-hours
-  glossaries:
-    - product-catalog
-  policies:
-    - data-privacy
-  routines:
-    - faq-lookup:
-        title: FAQ Lookup
-        description: Search knowledge base for answers
-        steps:
-          - id: search
-            tools: kb:search
-            tool_instruction: Search the FAQ
-    - escalate:
-        title: Escalate
-        description: Hand off to human agent
-        steps:
-          - id: handoff
-            chat_state: Transfer to human support
-
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
+The agent configuration is provided via a YAML file using the --file flag.
+The file contains the agent_config block that is loaded inside the agent container.
 
 Examples:
-  iai agents create support-agent --file agent.yaml
-  iai agents create support-agent --file agent.yaml --labels production
-  iai agents create support-agent --file agent.yaml --tags v1,experimental
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
 
 ```
-iai agents create <name> [flags]
+iai agents create <agent_name> [flags]
 ```
 
 ### Options
 
 ```
-      --file string           Path to the file containing the prompt content
-  -h, --help                  help for create
-      --labels strings        Labels for the prompt version (comma-separated)
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the prompts
-      --tags strings          Tags for the prompt (comma-separated)
+      --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
+      --env stringArray            Environment variable (NAME=VALUE); can be repeated
+      --file string                Path to YAML file with the agent_config block (context, mcps, knowledge_base, etc.)
+  -h, --help                       help for create
+      --id string                  Agent type from the marketplace (e.g. interactive-agent)
+  -o, --organization string        Organization name
+  -p, --project string             Project name
+      --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
+      --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
+      --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
+      --secret stringArray         Secret to inject as environment variables; can be repeated
+      --version string             Agent image version to deploy (e.g. 0.0.1)
 ```
 
 ### Options inherited from parent commands

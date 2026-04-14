@@ -1,23 +1,22 @@
-## iai agents list
+## iai agents describe
 
-List agents in a project
+Describe an agent in detail
 
 ### Synopsis
 
-List agents in a specific project.
+Show detailed information about a specific agent including its configuration.
 
 Examples:
-  iai agents list
-  iai agents list -p my-project
+  iai agents describe my-agent
 
 ```
-iai agents list [flags]
+iai agents describe <agent_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
+  -h, --help                  help for describe
   -o, --organization string   Organization name
   -p, --project string        Project name
 ```

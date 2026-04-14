@@ -1326,6 +1326,54 @@ func GetPromptSchema(
 	return &envelope.Data, nil
 }
 
+// GetAgentSchema fetches the JSON Schema for agent configuration from the
+// public endpoint. No authentication is required.
+func GetAgentSchema(
+	ctx context.Context,
+	hostname string,
+	timeout time.Duration,
+) (*SchemaResponse, error) {
+	u, err := url.Parse(hostname)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse hostname: %w", err)
+	}
+	rawPath := "/api/platform/v1/agents/schema"
+	decodedPath, _ := url.PathUnescape(rawPath)
+	u.Path = decodedPath
+	u.RawPath = rawPath
+
+	httpClient := &http.Client{Timeout: timeout}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create schema request: %w", err)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Could not fetch schema. Ensure --hostname is correct: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read schema response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(body); msg != "" {
+			return nil, fmt.Errorf("failed to fetch schema: %s", msg)
+		}
+		return nil, fmt.Errorf("failed to fetch schema: server returned %s", resp.Status)
+	}
+
+	var result SchemaResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode schema response: %w", err)
+	}
+
+	return &result, nil
+}
+
 func (c *APIClient) DeletePromptByName(
 	ctx context.Context,
 	projectId string,

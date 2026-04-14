@@ -1236,3 +1236,453 @@ func (c *DeploymentClient) fetchLogs(
 		Empty:     resp.Header.Get("X-Log-Empty") == "true",
 	}, nil
 }
+
+// ---------------------------------------------------------------------------
+// Agents
+// ---------------------------------------------------------------------------
+
+type CreateAgentBody struct {
+	Id          string      `json:"id"`
+	Version     string      `json:"version"`
+	AgentConfig any         `json:"agentConfig"`
+	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
+	Endpoint    bool        `json:"endpoint,omitempty"`
+	Schedule    *Schedule   `json:"schedule,omitempty"`
+	Env         []EnvVar    `json:"env,omitempty"`
+	StackId     string      `json:"stackId,omitempty"`
+}
+
+type AgentOutput struct {
+	Name      string `json:"name"`
+	ProjectId string `json:"projectId"`
+	Revision  int    `json:"revision"`
+	Status    string `json:"status"`
+	Updated   string `json:"updated,omitempty"`
+	Endpoint  string `json:"endpoint,omitempty"`
+}
+
+type DescribeAgentResponse struct {
+	Name        string      `json:"name"`
+	ProjectId   string      `json:"projectId"`
+	Revision    int         `json:"revision"`
+	Status      string      `json:"status"`
+	Updated     string      `json:"updated,omitempty"`
+	Id          string      `json:"id"`
+	Version     string      `json:"version"`
+	AgentConfig any         `json:"agentConfig"`
+	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
+	Endpoint    string      `json:"endpoint,omitempty"`
+	Schedule    *Schedule   `json:"schedule,omitempty"`
+	Env         []EnvVar    `json:"env,omitempty"`
+}
+
+type agentsResponse struct {
+	Agents []AgentOutput `json:"agents"`
+}
+
+// agentValidationEnvelope is the deployment-operator error envelope for 422 responses.
+type agentValidationEnvelope struct {
+	Message string          `json:"message"`
+	Detail  json.RawMessage `json:"detail"`
+}
+
+type structValidationField struct {
+	Loc []any  `json:"loc"`
+	Msg string `json:"msg"`
+}
+
+type refValidationDetail struct {
+	Detail string               `json:"detail"`
+	Errors []refValidationError `json:"errors"`
+}
+
+type refValidationError struct {
+	Path              string  `json:"path"`
+	Id                string  `json:"id"`
+	Version           int     `json:"version"`
+	ExpectedType      *string `json:"expected_type"`
+	Reason            string  `json:"reason"`
+	ActualType        string  `json:"actual_type,omitempty"`
+	AvailableVersions []int   `json:"available_versions,omitempty"`
+}
+
+// formatAgentValidationError parses a 422 response from the deployment-operator
+// and returns a human-readable error message. The detail field contains either
+// a JSON array (structural/Pydantic errors) or a JSON object (reference errors).
+func formatAgentValidationError(body []byte) string {
+	var envelope agentValidationEnvelope
+	if err := json.Unmarshal(body, &envelope); err != nil || len(envelope.Detail) == 0 {
+		return ExtractServerMessage(body)
+	}
+
+	var inner any
+	if err := json.Unmarshal(envelope.Detail, &inner); err != nil {
+		return ExtractServerMessage(body)
+	}
+
+	switch inner.(type) {
+	case []any:
+		var fields []structValidationField
+		if err := json.Unmarshal(envelope.Detail, &fields); err != nil {
+			return ExtractServerMessage(body)
+		}
+		return formatStructErrors(fields)
+
+	case map[string]any:
+		var ref refValidationDetail
+		if err := json.Unmarshal(envelope.Detail, &ref); err != nil {
+			return ExtractServerMessage(body)
+		}
+		return formatRefErrors(ref)
+
+	default:
+		return ExtractServerMessage(body)
+	}
+}
+
+func formatStructErrors(fields []structValidationField) string {
+	var b strings.Builder
+	b.WriteString("Agent configuration validation failed:")
+	for _, f := range fields {
+		b.WriteString("\n  - ")
+		b.WriteString(f.formatPath())
+		b.WriteString(": ")
+		b.WriteString(f.Msg)
+	}
+	return b.String()
+}
+
+func (f structValidationField) formatPath() string {
+	parts := make([]string, len(f.Loc))
+	for i, loc := range f.Loc {
+		parts[i] = fmt.Sprintf("%v", loc)
+	}
+	return strings.Join(parts, ".")
+}
+
+func formatRefErrors(ref refValidationDetail) string {
+	var b strings.Builder
+	b.WriteString(ref.Detail)
+	for _, e := range ref.Errors {
+		b.WriteString("\n  - ")
+		b.WriteString(e.Path)
+		b.WriteString(": ")
+		b.WriteString(e.formatMessage())
+	}
+	return b.String()
+}
+
+func (e refValidationError) formatMessage() string {
+	switch e.Reason {
+	case "version_not_found":
+		versions := make([]string, len(e.AvailableVersions))
+		for i, v := range e.AvailableVersions {
+			versions[i] = fmt.Sprintf("%d", v)
+		}
+		return fmt.Sprintf(
+			"%q version %d not found (available: %s)",
+			e.Id, e.Version, strings.Join(versions, ", "),
+		)
+	case "not_found":
+		return fmt.Sprintf("%q version %d not found", e.Id, e.Version)
+	case "wrong_type":
+		return fmt.Sprintf("%q is type %q, expected %q", e.Id, e.ActualType, *e.ExpectedType)
+	case "priority_unresolved":
+		return fmt.Sprintf("%q version %d: priority reference not in manifest", e.Id, e.Version)
+	default:
+		return fmt.Sprintf("%q: %s", e.Id, e.Reason)
+	}
+}
+
+func (c *DeploymentClient) CreateAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+	req CreateAgentBody,
+) (string, error) {
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("agent creation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		return "", fmt.Errorf("%s", formatAgentValidationError(respBody))
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("agent creation failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
+func (c *DeploymentClient) UpdateAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+	req CreateAgentBody,
+) (string, error) {
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPut, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("agent update request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		return "", fmt.Errorf("%s", formatAgentValidationError(respBody))
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("agent update failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
+func (c *DeploymentClient) DeleteAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("agent deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("agent deletion failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
+func (c *DeploymentClient) ListAgents(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	stackId string,
+) ([]AgentOutput, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if stackId != "" {
+		q := req.URL.Query()
+		q.Set("stackId", stackId)
+		req.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("agent list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("agent listing failed with status %s", resp.Status)
+	}
+
+	var result agentsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode agents response: %w", err)
+	}
+
+	return result.Agents, nil
+}
+
+func (c *DeploymentClient) DescribeAgent(
+	ctx context.Context,
+	orgId,
+	projectId,
+	agentName string,
+) (*DescribeAgentResponse, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("agent describe request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("agent describe failed with status %s", resp.Status)
+	}
+
+	var result DescribeAgentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode agent response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *DeploymentClient) RestartAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s/restart",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("agent restart request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("agent restart failed with status %s", resp.Status)
+}
+
+func (c *DeploymentClient) GetAgentLogs(
+	ctx context.Context,
+	orgId,
+	projectId,
+	agentName string,
+	opts LogsOptions,
+) (*LogsResponse, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s/logs",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	return c.fetchLogs(ctx, path, opts)
+}

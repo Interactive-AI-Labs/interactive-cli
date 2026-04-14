@@ -1,51 +1,39 @@
 ## iai agents update
 
-Update a agent (creates a new version)
+Update an agent in a project
 
 ### Synopsis
 
-Update an agent by creating a new version with updated content.
+Update an agent in a specific project.
 
-This creates a new version of the agent using the content from the provided file.
-The previous versions are preserved and can still be accessed by version number.
-
-Run 'iai agents schema' to see the current field definitions.
-
-Example (agent.yaml):
-  agent_id: support-agent
-  description: Customer support agent with FAQ and escalation
-  extra_rules:
-    - Always greet the customer by name
-    - Escalate billing issues immediately
-  preamble:
-    greeting: "Hello! How can I help you today?"
-    language_instruction: "Respond in the customer's language"
-  routines:
-    - faq-lookup:
-        title: FAQ Lookup
-        description: Search knowledge base for answers
-        steps:
-          - id: search
-            tools: kb:search
-            tool_instruction: Search the FAQ
+The agent configuration is provided via a YAML file using the --file flag.
+The file contains the agent_config block that is loaded inside the agent container.
+It typically includes context (description, routines, policies, glossaries, preamble,
+relationships), MCP server connections, session stores, and knowledge base settings.
 
 Examples:
-  iai agents update support-agent --file agent.yaml
-  iai agents update support-agent --file agent.yaml --labels production,staging
+  iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml
+  iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml --endpoint
 
 ```
-iai agents update <name> [flags]
+iai agents update <agent_name> [flags]
 ```
 
 ### Options
 
 ```
-      --file string           Path to the file containing the updated prompt content
-  -h, --help                  help for update
-      --labels strings        Labels for the new prompt version (comma-separated)
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the prompts
-      --tags strings          Tags for the prompt (comma-separated)
+      --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
+      --env stringArray            Environment variable (NAME=VALUE); can be repeated
+      --file string                Path to YAML file with the agent_config block (context, mcps, knowledge_base, etc.)
+  -h, --help                       help for update
+      --id string                  Agent type from the marketplace (e.g. interactive-agent)
+  -o, --organization string        Organization name
+  -p, --project string             Project name
+      --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
+      --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
+      --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
+      --secret stringArray         Secret to inject as environment variables; can be repeated
+      --version string             Agent image version to deploy (e.g. 0.0.1)
 ```
 
 ### Options inherited from parent commands

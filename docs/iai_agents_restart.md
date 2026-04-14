@@ -1,23 +1,22 @@
-## iai agents list
+## iai agents restart
 
-List agents in a project
+Restart an agent in a project
 
 ### Synopsis
 
-List agents in a specific project.
+Restart an agent in a specific project.
 
 Examples:
-  iai agents list
-  iai agents list -p my-project
+  iai agents restart my-agent
 
 ```
-iai agents list [flags]
+iai agents restart <agent_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
+  -h, --help                  help for restart
   -o, --organization string   Organization name
   -p, --project string        Project name
 ```
