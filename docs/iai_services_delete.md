@@ -7,7 +7,7 @@ Delete a service from a project
 Delete a service from a specific project using the deployment service.
 
 ```
-iai services delete [service_name] [flags]
+iai services delete <service_name> [flags]
 ```
 
 ### Options

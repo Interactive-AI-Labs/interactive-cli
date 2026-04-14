@@ -20,7 +20,6 @@ import (
 var (
 	serviceProject         string
 	serviceOrganization    string
-	serviceName            string
 	servicePort            int
 	serviceImageType       string
 	serviceImageRepository string
@@ -44,10 +43,6 @@ var (
 	serviceHealthcheckInitialDelay int
 )
 
-func isHealthcheckEnabled() bool {
-	return serviceHealthcheckPath != "" || serviceHealthcheckInitialDelay != 0
-}
-
 var (
 	serviceScheduleUptime   string
 	serviceScheduleDowntime string
@@ -62,40 +57,14 @@ var servicesCmd = &cobra.Command{
 }
 
 var servCCmd = &cobra.Command{
-	Use:     "create [service_name]",
-	Aliases: []string{"new"},
-	Short:   "Create a service in a project",
+	Use:   "create <service_name>",
+	Short: "Create a service in a project",
 	Long: `Create a service in a specific project using the deployment service.
 `,
-	Args: cobra.RangeArgs(0, 1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-
-		if len(args) > 0 {
-			serviceName = args[0]
-		}
-
-		input := inputs.ServiceInput{
-			Name:            serviceName,
-			Port:            servicePort,
-			ImageType:       serviceImageType,
-			ImageRepository: serviceImageRepository,
-			ImageName:       serviceImageName,
-			ImageTag:        serviceImageTag,
-			Memory:          serviceMemory,
-			CPU:             serviceCPU,
-			Replicas:        serviceReplicas,
-		}
-
-		if serviceAutoscalingEnabled {
-			input.Autoscaling = &inputs.AutoscalingInput{
-				Enabled:       true,
-				MinReplicas:   serviceAutoscalingMin,
-				MaxReplicas:   serviceAutoscalingMax,
-				CPUPercentage: serviceAutoscalingCPU,
-				MemoryPercent: serviceAutoscalingMemory,
-			}
-		}
+		serviceName := strings.TrimSpace(args[0])
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
@@ -140,71 +109,31 @@ var servCCmd = &cobra.Command{
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		if err := inputs.ValidateServiceEnvVars(serviceEnvVars); err != nil {
+		reqBody, err := inputs.BuildServiceRequestBody(inputs.ServiceInput{
+			Port:                    servicePort,
+			ImageType:               serviceImageType,
+			ImageRepository:         serviceImageRepository,
+			ImageName:               serviceImageName,
+			ImageTag:                serviceImageTag,
+			Memory:                  serviceMemory,
+			CPU:                     serviceCPU,
+			Endpoint:                serviceEndpoint,
+			Replicas:                serviceReplicas,
+			AutoscalingEnabled:      serviceAutoscalingEnabled,
+			AutoscalingMin:          serviceAutoscalingMin,
+			AutoscalingMax:          serviceAutoscalingMax,
+			AutoscalingCPU:          serviceAutoscalingCPU,
+			AutoscalingMemory:       serviceAutoscalingMemory,
+			EnvVars:                 serviceEnvVars,
+			SecretRefs:              serviceSecretRefs,
+			HealthcheckPath:         serviceHealthcheckPath,
+			HealthcheckInitialDelay: serviceHealthcheckInitialDelay,
+			ScheduleUptime:          serviceScheduleUptime,
+			ScheduleDowntime:        serviceScheduleDowntime,
+			ScheduleTimezone:        serviceScheduleTimezone,
+		})
+		if err != nil {
 			return err
-		}
-		var env []clients.EnvVar
-		for _, e := range serviceEnvVars {
-			parts := strings.SplitN(e, "=", 2)
-			env = append(env, clients.EnvVar{
-				Name:  strings.TrimSpace(parts[0]),
-				Value: parts[1],
-			})
-		}
-
-		if err := inputs.ValidateServiceSecretRefs(serviceSecretRefs); err != nil {
-			return err
-		}
-		var secretRefs []clients.SecretRef
-		for _, name := range serviceSecretRefs {
-			secretRefs = append(secretRefs, clients.SecretRef{
-				SecretName: strings.TrimSpace(name),
-			})
-		}
-
-		reqBody := clients.CreateServiceBody{
-			ServicePort: servicePort,
-			Image: clients.ImageSpec{
-				Type:       serviceImageType,
-				Repository: serviceImageRepository,
-				Name:       serviceImageName,
-				Tag:        serviceImageTag,
-			},
-			Resources: clients.Resources{
-				Memory: serviceMemory,
-				CPU:    serviceCPU,
-			},
-			Env:        env,
-			SecretRefs: secretRefs,
-			Endpoint:   serviceEndpoint,
-		}
-
-		if serviceAutoscalingEnabled {
-			reqBody.Autoscaling = &clients.Autoscaling{
-				Enabled:          true,
-				MinReplicas:      serviceAutoscalingMin,
-				MaxReplicas:      serviceAutoscalingMax,
-				CPUPercentage:    serviceAutoscalingCPU,
-				MemoryPercentage: serviceAutoscalingMemory,
-			}
-		} else if serviceReplicas > 0 {
-			reqBody.Replicas = serviceReplicas
-		}
-
-		if isHealthcheckEnabled() {
-			reqBody.Healthcheck = &clients.Healthcheck{
-				Path:                serviceHealthcheckPath,
-				InitialDelaySeconds: serviceHealthcheckInitialDelay,
-			}
-		}
-
-		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" ||
-			serviceScheduleTimezone != "" {
-			reqBody.Schedule = &clients.Schedule{
-				Uptime:   serviceScheduleUptime,
-				Downtime: serviceScheduleDowntime,
-				Timezone: serviceScheduleTimezone,
-			}
 		}
 
 		fmt.Fprintln(out)
@@ -230,39 +159,14 @@ var servCCmd = &cobra.Command{
 }
 
 var servUCmd = &cobra.Command{
-	Use:   "update [service_name]",
+	Use:   "update <service_name>",
 	Short: "Update a service in a project",
 	Long: `Update a service in a specific project using the deployment service.
 `,
-	Args: cobra.RangeArgs(0, 1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-
-		if len(args) > 0 {
-			serviceName = args[0]
-		}
-
-		input := inputs.ServiceInput{
-			Name:            serviceName,
-			Port:            servicePort,
-			ImageType:       serviceImageType,
-			ImageRepository: serviceImageRepository,
-			ImageName:       serviceImageName,
-			ImageTag:        serviceImageTag,
-			Memory:          serviceMemory,
-			CPU:             serviceCPU,
-			Replicas:        serviceReplicas,
-		}
-
-		if serviceAutoscalingEnabled {
-			input.Autoscaling = &inputs.AutoscalingInput{
-				Enabled:       true,
-				MinReplicas:   serviceAutoscalingMin,
-				MaxReplicas:   serviceAutoscalingMax,
-				CPUPercentage: serviceAutoscalingCPU,
-				MemoryPercent: serviceAutoscalingMemory,
-			}
-		}
+		serviceName := strings.TrimSpace(args[0])
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
@@ -307,71 +211,31 @@ var servUCmd = &cobra.Command{
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		if err := inputs.ValidateServiceEnvVars(serviceEnvVars); err != nil {
+		reqBody, err := inputs.BuildServiceRequestBody(inputs.ServiceInput{
+			Port:                    servicePort,
+			ImageType:               serviceImageType,
+			ImageRepository:         serviceImageRepository,
+			ImageName:               serviceImageName,
+			ImageTag:                serviceImageTag,
+			Memory:                  serviceMemory,
+			CPU:                     serviceCPU,
+			Endpoint:                serviceEndpoint,
+			Replicas:                serviceReplicas,
+			AutoscalingEnabled:      serviceAutoscalingEnabled,
+			AutoscalingMin:          serviceAutoscalingMin,
+			AutoscalingMax:          serviceAutoscalingMax,
+			AutoscalingCPU:          serviceAutoscalingCPU,
+			AutoscalingMemory:       serviceAutoscalingMemory,
+			EnvVars:                 serviceEnvVars,
+			SecretRefs:              serviceSecretRefs,
+			HealthcheckPath:         serviceHealthcheckPath,
+			HealthcheckInitialDelay: serviceHealthcheckInitialDelay,
+			ScheduleUptime:          serviceScheduleUptime,
+			ScheduleDowntime:        serviceScheduleDowntime,
+			ScheduleTimezone:        serviceScheduleTimezone,
+		})
+		if err != nil {
 			return err
-		}
-		var env []clients.EnvVar
-		for _, e := range serviceEnvVars {
-			parts := strings.SplitN(e, "=", 2)
-			env = append(env, clients.EnvVar{
-				Name:  strings.TrimSpace(parts[0]),
-				Value: parts[1],
-			})
-		}
-
-		if err := inputs.ValidateServiceSecretRefs(serviceSecretRefs); err != nil {
-			return err
-		}
-		var secretRefs []clients.SecretRef
-		for _, name := range serviceSecretRefs {
-			secretRefs = append(secretRefs, clients.SecretRef{
-				SecretName: strings.TrimSpace(name),
-			})
-		}
-
-		reqBody := clients.CreateServiceBody{
-			ServicePort: servicePort,
-			Image: clients.ImageSpec{
-				Type:       serviceImageType,
-				Repository: serviceImageRepository,
-				Name:       serviceImageName,
-				Tag:        serviceImageTag,
-			},
-			Resources: clients.Resources{
-				Memory: serviceMemory,
-				CPU:    serviceCPU,
-			},
-			Env:        env,
-			SecretRefs: secretRefs,
-			Endpoint:   serviceEndpoint,
-		}
-
-		if serviceAutoscalingEnabled {
-			reqBody.Autoscaling = &clients.Autoscaling{
-				Enabled:          true,
-				MinReplicas:      serviceAutoscalingMin,
-				MaxReplicas:      serviceAutoscalingMax,
-				CPUPercentage:    serviceAutoscalingCPU,
-				MemoryPercentage: serviceAutoscalingMemory,
-			}
-		} else if serviceReplicas > 0 {
-			reqBody.Replicas = serviceReplicas
-		}
-
-		if isHealthcheckEnabled() {
-			reqBody.Healthcheck = &clients.Healthcheck{
-				Path:                serviceHealthcheckPath,
-				InitialDelaySeconds: serviceHealthcheckInitialDelay,
-			}
-		}
-
-		if serviceScheduleUptime != "" || serviceScheduleDowntime != "" ||
-			serviceScheduleTimezone != "" {
-			reqBody.Schedule = &clients.Schedule{
-				Uptime:   serviceScheduleUptime,
-				Downtime: serviceScheduleDowntime,
-				Timezone: serviceScheduleTimezone,
-			}
 		}
 
 		fmt.Fprintln(out)
@@ -474,23 +338,13 @@ var servListCmd = &cobra.Command{
 }
 
 var servDCmd = &cobra.Command{
-	Use:   "delete [service_name]",
+	Use:   "delete <service_name>",
 	Short: "Delete a service from a project",
 	Long:  `Delete a service from a specific project using the deployment service.`,
-	Args:  cobra.RangeArgs(0, 1),
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-
-		var serviceName string
-		if len(args) > 0 {
-			serviceName = args[0]
-		}
-
-		if serviceName == "" {
-			return fmt.Errorf(
-				"service name is required; please provide the service name as an argument",
-			)
-		}
+		serviceName := strings.TrimSpace(args[0])
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
