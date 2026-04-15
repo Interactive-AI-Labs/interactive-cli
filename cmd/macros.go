@@ -30,9 +30,13 @@ Examples:
 		ListLong: `List macros in a specific project.
 
 Returns all macros with their name, labels, tags, and last update time.
+Folders are shown with a trailing "/" (colored when stdout is a terminal) and
+can be browsed into with --folder.
 
 Examples:
   iai macros list
+  iai macros list --folder my-folder
+  iai macros list --folder my-folder/sub-folder
   iai macros list --page 2 --limit 10`,
 		GetLong: `Get details of a specific macro, including its full content.
 

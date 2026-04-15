@@ -7,9 +7,13 @@ List policies in a project
 List policies in a specific project.
 
 Returns all policies with their name, labels, tags, and last update time.
+Folders are shown with a trailing "/" (colored when stdout is a terminal) and
+can be browsed into with --folder.
 
 Examples:
   iai policies list
+  iai policies list --folder my-folder
+  iai policies list --folder my-folder/sub-folder
   iai policies list --page 2 --limit 10
 
 ```
@@ -19,6 +23,7 @@ iai policies list [flags]
 ### Options
 
 ```
+      --folder string         List items inside the given folder path
   -h, --help                  help for list
       --limit int             Number of items per page (default: 50)
   -o, --organization string   Organization name that owns the project

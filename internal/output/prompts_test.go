@@ -76,6 +76,24 @@ func TestPrintPromptList(t *testing.T) {
 			want: "NAME        LABELS                               TAGS   UPDATED\n" +
 				"my-prompt   production, staging, dev (+1 more)          Sat, 01 Mar 2025 13:00:00 +0100\n",
 		},
+		{
+			name: "folder rows display trailing slash",
+			prompts: []clients.PromptInfo{
+				{
+					Name:    "team-a",
+					RowType: "folder",
+				},
+				{
+					Name:          "faq-lookup",
+					Labels:        []string{"production", "latest"},
+					Tags:          nil,
+					LastUpdatedAt: "2025-03-01T12:00:00Z",
+				},
+			},
+			want: "NAME         LABELS               TAGS   UPDATED\n" +
+				"team-a/                                  \n" +
+				"faq-lookup   production, latest          Sat, 01 Mar 2025 13:00:00 +0100\n",
+		},
 	}
 
 	for _, tt := range tests {
