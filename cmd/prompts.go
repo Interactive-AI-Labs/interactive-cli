@@ -168,6 +168,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		page    int
 		limit   int
+		folder  string
 		project string
 		org     string
 	)
@@ -206,6 +207,15 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				Page:  page,
 				Limit: limit,
 			}
+			if folder != "" {
+				opts.Subfolder = strings.TrimSpace(folder)
+				if strings.Contains(opts.Subfolder, "..") {
+					return fmt.Errorf(
+						"invalid folder path %q: must not contain '..'",
+						opts.Subfolder,
+					)
+				}
+			}
 
 			result, err := apiClient.ListPrompts(
 				cmd.Context(),
@@ -223,6 +233,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
+	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 

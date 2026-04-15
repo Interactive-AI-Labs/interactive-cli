@@ -8,9 +8,12 @@ List text and chat prompts in a specific project.
 
 Returns all general-purpose prompts with their name, labels, tags, and last
 update time. Typed prompts (routines, policies, etc.) are excluded.
+Folders are shown with a trailing "/" and can be browsed into with --folder.
 
 Examples:
   iai prompts list
+  iai prompts list --folder my-folder
+  iai prompts list --folder my-folder/sub-folder
   iai prompts list --page 2 --limit 10
 
 ```
@@ -20,6 +23,7 @@ iai prompts list [flags]
 ### Options
 
 ```
+      --folder string         List items inside the given folder path
   -h, --help                  help for list
       --limit int             Number of items per page (default: 50)
   -o, --organization string   Organization name that owns the project

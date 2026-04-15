@@ -39,9 +39,13 @@ Examples:
 		ListLong: `List glossary definitions in a specific project.
 
 Returns all glossary entries with their name, labels, tags, and last update time.
+Folders are shown with a trailing "/" (colored when stdout is a terminal) and
+can be browsed into with --folder.
 
 Examples:
   iai glossaries list
+  iai glossaries list --folder my-folder
+  iai glossaries list --folder my-folder/sub-folder
   iai glossaries list --page 2 --limit 10`,
 		GetLong: `Get details of a specific glossary definition, including its full content.
 

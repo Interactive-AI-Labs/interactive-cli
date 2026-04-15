@@ -9,8 +9,11 @@ import (
 )
 
 // PrintTable prints data in a tabular format using text/tabwriter.
+// Cell text wrapped in '\xff' (tabwriter.Escape) is passed through unchanged
+// and ignored when computing column widths — use it to embed ANSI color codes
+// without breaking alignment.
 func PrintTable(out io.Writer, headers []string, rows [][]string) error {
-	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
+	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', tabwriter.StripEscape)
 
 	if len(headers) > 0 {
 		fmt.Fprintln(w, strings.Join(headers, "\t"))

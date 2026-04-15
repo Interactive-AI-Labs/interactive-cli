@@ -978,6 +978,7 @@ func (c *APIClient) GetProjectId(
 
 type PromptInfo struct {
 	Name          string   `json:"name"`
+	RowType       string   `json:"row_type"`
 	Versions      []int    `json:"versions"`
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
@@ -1023,9 +1024,10 @@ type PromptListResponse struct {
 }
 
 type PromptListOptions struct {
-	Page   int
-	Limit  int
-	Folder string
+	Page      int
+	Limit     int
+	Folder    string // prompt-type filter for the generic /prompts endpoint
+	Subfolder string // optional user-supplied sub-path for folder browsing
 }
 
 func promptBasePath(projectId, routeSegment string) string {
@@ -1112,6 +1114,9 @@ func (c *APIClient) ListPrompts(
 		if opts.Folder != "" {
 			inputMap["folder"] = opts.Folder
 		}
+		if opts.Subfolder != "" {
+			inputMap["subfolder"] = opts.Subfolder
+		}
 		if opts.Page > 0 {
 			inputMap["page"] = opts.Page
 		}
@@ -1124,6 +1129,9 @@ func (c *APIClient) ListPrompts(
 		}
 		q.Set("input", string(inputBytes))
 	} else {
+		if opts.Subfolder != "" {
+			q.Set("subfolder", opts.Subfolder)
+		}
 		if opts.Page > 0 {
 			q.Set("page", fmt.Sprintf("%d", opts.Page))
 		}

@@ -7,9 +7,13 @@ List routines in a project
 List routines in a specific project.
 
 Returns all routines with their name, labels, tags, and last update time.
+Folders are shown with a trailing "/" (colored when stdout is a terminal) and
+can be browsed into with --folder.
 
 Examples:
   iai routines list
+  iai routines list --folder my-folder
+  iai routines list --folder my-folder/sub-folder
   iai routines list --page 2 --limit 10
 
 ```
@@ -19,6 +23,7 @@ iai routines list [flags]
 ### Options
 
 ```
+      --folder string         List items inside the given folder path
   -h, --help                  help for list
       --limit int             Number of items per page (default: 50)
   -o, --organization string   Organization name that owns the project

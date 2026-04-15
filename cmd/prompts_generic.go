@@ -148,6 +148,7 @@ func makeGenericListCmd() *cobra.Command {
 	var (
 		page    int
 		limit   int
+		folder  string
 		project string
 		org     string
 	)
@@ -160,9 +161,12 @@ func makeGenericListCmd() *cobra.Command {
 
 Returns all general-purpose prompts with their name, labels, tags, and last
 update time. Typed prompts (routines, policies, etc.) are excluded.
+Folders are shown with a trailing "/" and can be browsed into with --folder.
 
 Examples:
   iai prompts list
+  iai prompts list --folder my-folder
+  iai prompts list --folder my-folder/sub-folder
   iai prompts list --page 2 --limit 10`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -190,6 +194,15 @@ Examples:
 				Limit:  limit,
 				Folder: "prompts",
 			}
+			if folder != "" {
+				opts.Subfolder = strings.TrimSpace(folder)
+				if strings.Contains(opts.Subfolder, "..") {
+					return fmt.Errorf(
+						"invalid folder path %q: must not contain '..'",
+						opts.Subfolder,
+					)
+				}
+			}
 
 			result, err := apiClient.ListPrompts(
 				cmd.Context(),
@@ -207,6 +220,7 @@ Examples:
 
 	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
+	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
 	cmd.Flags().
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().

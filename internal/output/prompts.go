@@ -9,17 +9,24 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
+const colorBlue = "\033[1;34m"
+
 func PrintPromptList(out io.Writer, prompts []clients.PromptInfo) error {
 	if len(prompts) == 0 {
 		fmt.Fprintln(out, "No prompts found.")
 		return nil
 	}
 
+	useColor := isTerminal(out)
 	headers := []string{"NAME", "LABELS", "TAGS", "UPDATED"}
 	rows := make([][]string, len(prompts))
 	for i, p := range prompts {
+		name := p.Name
+		if p.RowType == "folder" {
+			name = colorizeFolder(name+"/", useColor)
+		}
 		rows[i] = []string{
-			p.Name,
+			name,
 			TruncateList(p.Labels, 3),
 			TruncateList(p.Tags, 3),
 			LocalTime(p.LastUpdatedAt),
@@ -27,6 +34,16 @@ func PrintPromptList(out io.Writer, prompts []clients.PromptInfo) error {
 	}
 
 	return PrintTable(out, headers, rows)
+}
+
+// colorizeFolder wraps name in blue ANSI escape codes when color is enabled.
+// The codes are bracketed with '\xff' so tabwriter excludes them from column
+// width calculations (see PrintTable).
+func colorizeFolder(name string, useColor bool) string {
+	if !useColor {
+		return name
+	}
+	return "\xff" + colorBlue + "\xff" + name + "\xff" + colorReset + "\xff"
 }
 
 func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
