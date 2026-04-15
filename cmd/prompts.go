@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -14,93 +12,76 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type PromptTypeConfig struct {
-	TypeName     string   // singular name, e.g. "routine"
-	Plural       string   // plural name used as command, e.g. "routines"
-	Aliases      []string // command aliases, e.g. ["routine"]
-	Short        string   // short description for the parent command
-	Long         string   // long description for the parent command
-	RouteSegment string   // API URL segment for type-specific routes, e.g. "routines"
-	HasSchema    bool     // whether this type supports the schema subcommand
-	CreateLong   string   // long description for the create subcommand
-	ListLong     string   // long description for the list subcommand
-	GetLong      string   // long description for the get subcommand
-	UpdateLong   string   // long description for the update subcommand
-	DeleteLong   string   // long description for the delete subcommand
-}
+// validPromptTypes lists the allowed values for the --type flag.
+var validPromptTypes = []string{"text", "chat"}
 
-func registerPromptType(ptCfg PromptTypeConfig) {
+func init() {
 	parentCmd := &cobra.Command{
-		Use:     ptCfg.Plural,
-		Aliases: ptCfg.Aliases,
-		Short:   ptCfg.Short,
-		Long:    ptCfg.Long,
+		Use:     "prompts",
+		Aliases: []string{"prompt"},
+		Short:   "Manage prompts",
+		Long: `Manage general-purpose text and chat prompts in InteractiveAI projects.
+
+Unlike typed commands (routines, policies, glossaries, variables, macros),
+prompts managed here have no enforced schema or structure. They support two
+types: "text" (default) and "chat".`,
 	}
 
-	createCmd := makeCreateCmd(ptCfg)
-	listCmd := makeListCmd(ptCfg)
-	getCmd := makeGetCmd(ptCfg)
-	updateCmd := makeUpdateCmd(ptCfg)
-	deleteCmd := makeDeleteCmd(ptCfg)
-
-	parentCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, deleteCmd)
-
-	if ptCfg.HasSchema {
-		schemaCmd := makeSchemaCmd(ptCfg)
-		parentCmd.AddCommand(schemaCmd)
-	}
+	parentCmd.AddCommand(
+		makeGenericCreateCmd(),
+		makeGenericListCmd(),
+		makeGenericGetCmd(),
+		makeGenericUpdateCmd(),
+		makeGenericDeleteCmd(),
+	)
 
 	rootCmd.AddCommand(parentCmd)
 }
 
-func makeSchemaCmd(ptCfg PromptTypeConfig) *cobra.Command {
-	return &cobra.Command{
-		Use:   "schema",
-		Short: fmt.Sprintf("Display the JSON Schema for %s", ptCfg.Plural),
-		Long: fmt.Sprintf(`Fetch and display the current JSON Schema for %s from the backend API.
-
-This is a public endpoint and does not require authentication.`, ptCfg.Plural),
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			out := cmd.OutOrStdout()
-
-			result, err := clients.GetPromptSchema(
-				cmd.Context(), hostname, defaultHTTPTimeout, ptCfg.TypeName,
-			)
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
-
-			var indented bytes.Buffer
-			if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
-				return fmt.Errorf("failed to format schema: %w", err)
-			}
-			fmt.Fprintln(out, indented.String())
-
-			return nil
-		},
-	}
-}
-
-func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
+func makeGenericCreateCmd() *cobra.Command {
 	var (
-		file    string
-		labels  []string
-		tags    []string
-		project string
-		org     string
+		file       string
+		content    string
+		promptType string
+		labels     []string
+		tags       []string
+		project    string
+		org        string
 	)
 
 	cmd := &cobra.Command{
 		Use:   "create <name>",
-		Short: fmt.Sprintf("Create a %s", ptCfg.TypeName),
-		Long:  ptCfg.CreateLong,
-		Args:  cobra.ExactArgs(1),
+		Short: "Create a prompt",
+		Long: `Create a new text or chat prompt in an InteractiveAI project.
+
+Content is provided via --file (path to a file) or --content (inline string).
+Exactly one of --file or --content must be specified.
+
+The --type flag selects the prompt type: "text" (default) or "chat".
+
+The server automatically assigns the "latest" label to new versions. To make a
+version retrievable via the default 'get' (which resolves "production"), assign
+the "production" label with --labels production.
+
+Examples:
+  iai prompts create greeting --content "Hello, how can I help you?"
+  iai prompts create greeting --file greeting.txt
+  iai prompts create greeting --file greeting.txt --type chat
+  iai prompts create greeting --content "Hi!" --labels production
+  iai prompts create greeting --file greeting.txt --tags support`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
+
+			promptContent, err := resolveContent(file, content)
+			if err != nil {
+				return err
+			}
+
+			if err := validatePromptType(promptType); err != nil {
+				return err
+			}
 
 			pCtx, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
@@ -113,35 +94,27 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
-			content, err := os.ReadFile(file)
-			if err != nil {
-				return fmt.Errorf("failed to read file %q: %w", file, err)
-			}
-
 			body := clients.CreatePromptBody{
-				Name:   name,
-				Prompt: string(content),
-				Labels: labels,
-				Tags:   tags,
+				Name:       name,
+				Prompt:     promptContent,
+				Labels:     labels,
+				Tags:       tags,
+				PromptType: promptType,
 			}
 
 			fmt.Fprintln(out)
-			fmt.Fprintf(out, "Creating %s %q...\n", ptCfg.TypeName, name)
+			fmt.Fprintf(out, "Creating prompt %q...\n", name)
 
 			result, err := apiClient.CreatePrompt(
 				cmd.Context(),
 				pCtx.projectId,
-				ptCfg.RouteSegment,
+				"", // empty route segment → generic /prompts endpoint
 				body,
 			)
 			if err != nil {
@@ -154,17 +127,24 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&file, "file", "", "Path to the file containing the prompt content")
+	cmd.Flags().StringVar(&content, "content", "", "Inline prompt content string")
+	cmd.Flags().StringVar(
+		&promptType, "type", "text",
+		`Prompt type: "text" (default) or "chat"`,
+	)
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
-	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
-	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-	_ = cmd.MarkFlagRequired("file")
+	cmd.Flags().
+		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().
+		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.MarkFlagsMutuallyExclusive("file", "content")
 
 	return cmd
 }
 
-func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
+func makeGenericListCmd() *cobra.Command {
 	var (
 		page    int
 		limit   int
@@ -176,9 +156,19 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   fmt.Sprintf("List %s in a project", ptCfg.Plural),
-		Long:    ptCfg.ListLong,
-		Args:    cobra.NoArgs,
+		Short:   "List prompts in a project",
+		Long: `List text and chat prompts in a specific project.
+
+Returns all general-purpose prompts with their name, labels, tags, and last
+update time. Typed prompts (routines, policies, etc.) are excluded.
+Folders are shown with a trailing "/" and can be browsed into with --folder.
+
+Examples:
+  iai prompts list
+  iai prompts list --folder my-folder
+  iai prompts list --folder my-folder/sub-folder
+  iai prompts list --page 2 --limit 10`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 
@@ -193,19 +183,16 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			opts := clients.PromptListOptions{
-				Page:  page,
-				Limit: limit,
+				Page:   page,
+				Limit:  limit,
+				Folder: "prompts",
 			}
 			if folder != "" {
 				opts.Subfolder = strings.TrimSpace(folder)
@@ -220,7 +207,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			result, err := apiClient.ListPrompts(
 				cmd.Context(),
 				pCtx.projectId,
-				ptCfg.RouteSegment,
+				"", // empty route segment → generic /prompts endpoint
 				opts,
 			)
 			if err != nil {
@@ -234,13 +221,15 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
 	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
-	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
-	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.Flags().
+		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().
+		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
 }
 
-func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
+func makeGenericGetCmd() *cobra.Command {
 	var (
 		version int
 		label   string
@@ -251,9 +240,17 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get <name>",
 		Aliases: []string{"describe", "desc"},
-		Short:   fmt.Sprintf("Get details of a %s", ptCfg.TypeName),
-		Long:    ptCfg.GetLong,
-		Args:    cobra.ExactArgs(1),
+		Short:   "Get details of a prompt",
+		Long: `Get details of a specific prompt, including its full content.
+
+By default returns the version labeled "production". Use --version to retrieve a
+specific version number, or --label to resolve a different label.
+
+Examples:
+  iai prompts get greeting
+  iai prompts get greeting --version 3
+  iai prompts get greeting --label staging`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
@@ -269,11 +266,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
@@ -282,7 +275,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			result, err := apiClient.GetPrompt(
 				cmd.Context(),
 				pCtx.projectId,
-				ptCfg.RouteSegment,
+				"", // empty route segment → generic /prompts endpoint
 				name,
 				version,
 				label,
@@ -296,17 +289,22 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&version, "version", 0, "Retrieve a specific version number")
+	cmd.Flags().StringVar(
+		&label, "label", "",
+		`Retrieve the version with this label (default: server resolves "production")`,
+	)
 	cmd.Flags().
-		StringVar(&label, "label", "", "Retrieve the version with this label (default: server resolves 'production')")
-	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
-	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().
+		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
 }
 
-func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
+func makeGenericUpdateCmd() *cobra.Command {
 	var (
 		file    string
+		content string
 		labels  []string
 		tags    []string
 		project string
@@ -315,12 +313,28 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "update <name>",
-		Short: fmt.Sprintf("Update a %s (creates a new version)", ptCfg.TypeName),
-		Long:  ptCfg.UpdateLong,
-		Args:  cobra.ExactArgs(1),
+		Short: "Update a prompt (creates a new version)",
+		Long: `Update a prompt by creating a new version with updated content.
+
+This creates a new version of the prompt using the content from the provided
+file or inline string. Previous versions are preserved and can still be accessed
+by version number.
+
+Exactly one of --file or --content must be specified.
+
+Examples:
+  iai prompts update greeting --content "Hello! How may I assist you today?"
+  iai prompts update greeting --file greeting.txt
+  iai prompts update greeting --file greeting.txt --labels production,staging`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
+
+			promptContent, err := resolveContent(file, content)
+			if err != nil {
+				return err
+			}
 
 			pCtx, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
@@ -333,37 +347,28 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
-			content, err := os.ReadFile(file)
-			if err != nil {
-				return fmt.Errorf("failed to read file %q: %w", file, err)
-			}
-
 			body := clients.CreatePromptBody{
 				Name:   name,
-				Prompt: string(content),
+				Prompt: promptContent,
 				Labels: labels,
 				Tags:   tags,
 			}
 
 			fmt.Fprintln(out)
-			fmt.Fprintf(out, "Updating %s %q...\n", ptCfg.TypeName, name)
+			fmt.Fprintf(out, "Updating prompt %q...\n", name)
 
 			// CreatePrompt is intentional: the API creates a new version when the
 			// prompt name already exists, so create and update use the same endpoint.
 			result, err := apiClient.CreatePrompt(
 				cmd.Context(),
 				pCtx.projectId,
-				ptCfg.RouteSegment,
+				"", // empty route segment → generic /prompts endpoint
 				body,
 			)
 			if err != nil {
@@ -377,17 +382,21 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 	cmd.Flags().
 		StringVar(&file, "file", "", "Path to the file containing the updated prompt content")
-	cmd.Flags().
-		StringSliceVar(&labels, "labels", nil, "Labels for the new prompt version (comma-separated)")
+	cmd.Flags().StringVar(&content, "content", "", "Inline updated prompt content string")
+	cmd.Flags().StringSliceVar(
+		&labels, "labels", nil, "Labels for the new prompt version (comma-separated)",
+	)
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
-	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
-	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-	_ = cmd.MarkFlagRequired("file")
+	cmd.Flags().
+		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().
+		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.MarkFlagsMutuallyExclusive("file", "content")
 
 	return cmd
 }
 
-func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
+func makeGenericDeleteCmd() *cobra.Command {
 	var (
 		version int
 		label   string
@@ -399,9 +408,19 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete <name>",
 		Aliases: []string{"rm"},
-		Short:   fmt.Sprintf("Delete a %s", ptCfg.TypeName),
-		Long:    ptCfg.DeleteLong,
-		Args:    cobra.ExactArgs(1),
+		Short:   "Delete a prompt",
+		Long: `Delete a prompt and all its versions, or delete specific versions.
+
+Without flags, deletes the prompt and all its versions (requires confirmation).
+Use --version to delete a specific version, or --label to delete versions with a
+specific label. Use -f to skip the confirmation prompt.
+
+Examples:
+  iai prompts delete greeting
+  iai prompts delete greeting -f
+  iai prompts delete greeting --version 3
+  iai prompts delete greeting --label staging`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
@@ -410,8 +429,7 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			if version == 0 && label == "" && !force {
 				fmt.Fprintf(
 					out,
-					"This will delete %s %q and all its versions. Continue? [y/N] ",
-					ptCfg.TypeName,
+					"This will delete prompt %q and all its versions. Continue? [y/N] ",
 					name,
 				)
 				reader := bufio.NewReader(cmd.InOrStdin())
@@ -436,24 +454,20 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
+				hostname, defaultHTTPTimeout, token, apiKey, cookies,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			fmt.Fprintln(out)
-			fmt.Fprintf(out, "Deleting %s %q...\n", ptCfg.TypeName, name)
+			fmt.Fprintf(out, "Deleting prompt %q...\n", name)
 
 			if version > 0 || label != "" {
 				err = apiClient.DeletePrompt(
 					cmd.Context(),
 					pCtx.projectId,
-					ptCfg.RouteSegment,
+					"", // empty route segment → generic /prompts endpoint
 					name,
 					version,
 					label,
@@ -462,7 +476,7 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				err = apiClient.DeletePromptByName(
 					cmd.Context(),
 					pCtx.projectId,
-					ptCfg.RouteSegment,
+					"", // empty route segment → generic /prompts endpoint
 					name,
 				)
 			}
@@ -470,7 +484,7 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintf(out, "Successfully deleted %s %q.\n", ptCfg.TypeName, name)
+			fmt.Fprintf(out, "Successfully deleted prompt %q.\n", name)
 
 			return nil
 		},
@@ -479,8 +493,43 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().IntVar(&version, "version", 0, "Delete a specific version only")
 	cmd.Flags().StringVar(&label, "label", "", "Delete versions with this label only")
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation prompt")
-	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
-	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.Flags().
+		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().
+		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
+}
+
+// resolveContent returns the prompt content from either the --file flag or the
+// --content flag. Exactly one must be provided.
+func resolveContent(file, content string) (string, error) {
+	if file == "" && content == "" {
+		return "", fmt.Errorf("either --file or --content must be provided")
+	}
+	if file != "" && content != "" {
+		return "", fmt.Errorf("--file and --content are mutually exclusive")
+	}
+	if file != "" {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return "", fmt.Errorf("failed to read file %q: %w", file, err)
+		}
+		return string(data), nil
+	}
+	return content, nil
+}
+
+// validatePromptType checks that the given type is one of the allowed values.
+func validatePromptType(promptType string) error {
+	for _, valid := range validPromptTypes {
+		if promptType == valid {
+			return nil
+		}
+	}
+	return fmt.Errorf(
+		"invalid prompt type %q: must be one of %s",
+		promptType,
+		strings.Join(validPromptTypes, ", "),
+	)
 }
