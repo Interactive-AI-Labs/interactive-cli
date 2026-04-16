@@ -1335,28 +1335,26 @@ func GetPromptSchema(
 }
 
 // GetAgentSchema fetches the JSON Schema for agent configuration from the
-// public endpoint. No authentication is required.
-func GetAgentSchema(
+// platform API. Requires authentication with prompts:read capability.
+func (c *APIClient) GetAgentSchema(
 	ctx context.Context,
-	hostname string,
-	timeout time.Duration,
+	projectId string,
 ) (*SchemaResponse, error) {
-	u, err := url.Parse(hostname)
+	u, err := url.Parse(c.hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse hostname: %w", err)
 	}
-	rawPath := "/api/platform/v1/agents/schema"
+	rawPath := fmt.Sprintf("/api/platform/v1/projects/%s/agents/schema", url.PathEscape(projectId))
 	decodedPath, _ := url.PathUnescape(rawPath)
 	u.Path = decodedPath
 	u.RawPath = rawPath
 
-	httpClient := &http.Client{Timeout: timeout}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schema request: %w", err)
 	}
 
-	resp, err := httpClient.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return nil, fmt.Errorf("Could not fetch schema. Ensure --hostname is correct: %w", err)
 	}

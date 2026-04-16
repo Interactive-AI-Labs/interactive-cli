@@ -631,17 +631,46 @@ var agentSchemaCmd = &cobra.Command{
 	Short: "Display the JSON Schema for agent configuration",
 	Long: `Fetch and display the current JSON Schema for the agent_config block.
 
-This is a public endpoint and does not require authentication.
-
 Examples:
-  iai agents schema`,
+  iai agents schema
+  iai agents schema -o my-org -p my-project`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		result, err := clients.GetAgentSchema(
-			cmd.Context(), hostname, defaultHTTPTimeout,
-		)
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
+		if err != nil {
+			return err
+		}
+
+		_, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		result, err := apiClient.GetAgentSchema(cmd.Context(), projectId)
 		if err != nil {
 			return err
 		}
@@ -750,6 +779,12 @@ func init() {
 		StringVar(&agentLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
+
+	// Flags for "agents schema"
+	agentSchemaCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentSchemaCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
