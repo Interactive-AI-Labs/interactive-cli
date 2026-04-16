@@ -6,8 +6,10 @@ Create an agent in a project
 
 Create an agent in a specific project.
 
-The agent configuration is provided via a YAML file using the --file flag.
-The file contains the agent_config block that is loaded inside the agent container.
+The --file flag takes a YAML file matching the agent_config schema — run
+'iai agents schema' to see the expected shape. Pass the agent name as the
+positional argument and id/version/env/secrets/endpoint/schedule via flags;
+do not include them inside the file.
 
 Examples:
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
@@ -23,7 +25,7 @@ iai agents create <agent_name> [flags]
 ```
       --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
-      --file string                Path to YAML file with the agent_config block (context, mcps, knowledge_base, etc.)
+      --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
   -h, --help                       help for create
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
   -o, --organization string        Organization name
