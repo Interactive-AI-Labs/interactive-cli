@@ -47,8 +47,10 @@ var agentCreateCmd = &cobra.Command{
 	Short: "Create an agent in a project",
 	Long: `Create an agent in a specific project.
 
-The agent configuration is provided via a YAML file using the --file flag.
-The file contains the agent_config block that is loaded inside the agent container.
+The --file flag takes a YAML file matching the agent_config schema — run
+'iai agents schema' to see the expected shape. Pass the agent name as the
+positional argument and id/version/env/secrets/endpoint/schedule via flags;
+do not include them inside the file.
 
 Examples:
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
@@ -144,10 +146,10 @@ var agentUpdateCmd = &cobra.Command{
 	Short: "Update an agent in a project",
 	Long: `Update an agent in a specific project.
 
-The agent configuration is provided via a YAML file using the --file flag.
-The file contains the agent_config block that is loaded inside the agent container.
-It typically includes context (description, routines, policies, glossaries, preamble,
-relationships), MCP server connections, session stores, and knowledge base settings.
+The --file flag takes a YAML file matching the agent_config schema — run
+'iai agents schema' to see the expected shape. Pass the agent name as the
+positional argument and id/version/env/secrets/endpoint/schedule via flags;
+do not include them inside the file.
 
 Examples:
   iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml
@@ -629,17 +631,46 @@ var agentSchemaCmd = &cobra.Command{
 	Short: "Display the JSON Schema for agent configuration",
 	Long: `Fetch and display the current JSON Schema for the agent_config block.
 
-This is a public endpoint and does not require authentication.
-
 Examples:
-  iai agents schema`,
+  iai agents schema
+  iai agents schema -o my-org -p my-project`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		result, err := clients.GetAgentSchema(
-			cmd.Context(), hostname, defaultHTTPTimeout,
-		)
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
+		if err != nil {
+			return err
+		}
+
+		_, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		result, err := apiClient.GetAgentSchema(cmd.Context(), projectId)
 		if err != nil {
 			return err
 		}
@@ -667,7 +698,7 @@ func init() {
 	agentCreateCmd.Flags().
 		StringVar(&agentVersion, "version", "", "Agent image version to deploy (e.g. 0.0.1)")
 	agentCreateCmd.Flags().
-		StringVar(&agentFile, "file", "", "Path to YAML file with the agent_config block (context, mcps, knowledge_base, etc.)")
+		StringVar(&agentFile, "file", "", "Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)")
 	agentCreateCmd.Flags().
 		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent at <agent-name>-<project-hash>.interactive.ai")
 	agentCreateCmd.Flags().
@@ -694,7 +725,7 @@ func init() {
 	agentUpdateCmd.Flags().
 		StringVar(&agentVersion, "version", "", "Agent image version to deploy (e.g. 0.0.1)")
 	agentUpdateCmd.Flags().
-		StringVar(&agentFile, "file", "", "Path to YAML file with the agent_config block (context, mcps, knowledge_base, etc.)")
+		StringVar(&agentFile, "file", "", "Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent at <agent-name>-<project-hash>.interactive.ai")
 	agentUpdateCmd.Flags().
@@ -748,6 +779,12 @@ func init() {
 		StringVar(&agentLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
+
+	// Flags for "agents schema"
+	agentSchemaCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentSchemaCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
