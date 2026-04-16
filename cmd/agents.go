@@ -47,8 +47,10 @@ var agentCreateCmd = &cobra.Command{
 	Short: "Create an agent in a project",
 	Long: `Create an agent in a specific project.
 
-The agent configuration is provided via a YAML file using the --file flag.
-The file contains the agent_config block that is loaded inside the agent container.
+The --file flag takes a YAML file matching the agent_config schema — run
+'iai agents schema' to see the expected shape. Pass the agent name as the
+positional argument and id/version/env/secrets/endpoint/schedule via flags;
+do not include them inside the file.
 
 Examples:
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
@@ -144,10 +146,10 @@ var agentUpdateCmd = &cobra.Command{
 	Short: "Update an agent in a project",
 	Long: `Update an agent in a specific project.
 
-The agent configuration is provided via a YAML file using the --file flag.
-The file contains the agent_config block that is loaded inside the agent container.
-It typically includes context (description, routines, policies, glossaries, preamble,
-relationships), MCP server connections, session stores, and knowledge base settings.
+The --file flag takes a YAML file matching the agent_config schema — run
+'iai agents schema' to see the expected shape. Pass the agent name as the
+positional argument and id/version/env/secrets/endpoint/schedule via flags;
+do not include them inside the file.
 
 Examples:
   iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml
@@ -667,7 +669,7 @@ func init() {
 	agentCreateCmd.Flags().
 		StringVar(&agentVersion, "version", "", "Agent image version to deploy (e.g. 0.0.1)")
 	agentCreateCmd.Flags().
-		StringVar(&agentFile, "file", "", "Path to YAML file with the agent_config block (context, mcps, knowledge_base, etc.)")
+		StringVar(&agentFile, "file", "", "Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)")
 	agentCreateCmd.Flags().
 		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent at <agent-name>-<project-hash>.interactive.ai")
 	agentCreateCmd.Flags().
@@ -694,7 +696,7 @@ func init() {
 	agentUpdateCmd.Flags().
 		StringVar(&agentVersion, "version", "", "Agent image version to deploy (e.g. 0.0.1)")
 	agentUpdateCmd.Flags().
-		StringVar(&agentFile, "file", "", "Path to YAML file with the agent_config block (context, mcps, knowledge_base, etc.)")
+		StringVar(&agentFile, "file", "", "Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent at <agent-name>-<project-hash>.interactive.ai")
 	agentUpdateCmd.Flags().
