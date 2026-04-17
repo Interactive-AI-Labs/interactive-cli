@@ -15,10 +15,9 @@ iai services create <service_name> [flags]
 
 ```
       --autoscaling-cpu-percentage int      CPU percentage threshold for autoscaling
-      --autoscaling-enabled                 Enable autoscaling (mutually exclusive with replicas)
-      --autoscaling-max-replicas int        Maximum number of replicas when autoscaling is enabled
+      --autoscaling-max-replicas int        Maximum number of replicas for autoscaling
       --autoscaling-memory-percentage int   Memory percentage threshold for autoscaling
-      --autoscaling-min-replicas int        Minimum number of replicas when autoscaling is enabled
+      --autoscaling-min-replicas int        Minimum number of replicas for autoscaling
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated

@@ -17,12 +17,11 @@ type ServiceInput struct {
 	CPU             string
 	Endpoint        bool
 
-	Replicas           int
-	AutoscalingEnabled bool
-	AutoscalingMin     int
-	AutoscalingMax     int
-	AutoscalingCPU     int
-	AutoscalingMemory  int
+	Replicas          int
+	AutoscalingMin    int
+	AutoscalingMax    int
+	AutoscalingCPU    int
+	AutoscalingMemory int
 
 	EnvVars    []string
 	SecretRefs []string
@@ -75,15 +74,16 @@ func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error)
 		Endpoint:   in.Endpoint,
 	}
 
-	if in.AutoscalingEnabled {
+	if in.AutoscalingMin > 0 || in.AutoscalingMax > 0 || in.AutoscalingCPU > 0 ||
+		in.AutoscalingMemory > 0 {
 		reqBody.Autoscaling = &clients.Autoscaling{
-			Enabled:          true,
 			MinReplicas:      in.AutoscalingMin,
 			MaxReplicas:      in.AutoscalingMax,
 			CPUPercentage:    in.AutoscalingCPU,
 			MemoryPercentage: in.AutoscalingMemory,
 		}
-	} else if in.Replicas > 0 {
+	}
+	if in.Replicas > 0 {
 		reqBody.Replicas = in.Replicas
 	}
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Example: Create a service with autoscaling enabled
+# Example: Create a service with autoscaling
 # This demonstrates using autoscaling instead of fixed replicas
 # The service will scale between 2-10 replicas based on CPU and memory usage
 
@@ -12,7 +12,6 @@ iai services create my-autoscaling-service \
   --image-tag latest \
   --memory 128Mi \
   --cpu 50m \
-  --autoscaling-enabled \
   --autoscaling-min-replicas 2 \
   --autoscaling-max-replicas 10 \
   --autoscaling-cpu-percentage 80 \
