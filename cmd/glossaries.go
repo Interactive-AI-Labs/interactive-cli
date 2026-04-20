@@ -24,9 +24,16 @@ Example (glossary.json):
         "name": "AHT",
         "description": "Average Handle Time",
         "synonyms": ["handle time"]
+      },
+      "kyc": {
+        "name": "KYC",
+        "description": "Know Your Customer",
+        "synonyms": ["identity check"]
       }
     }
   }
+
+  Add as many entries under 'terms' as you need — each key must be unique.
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -70,9 +77,16 @@ Example (glossary.json):
         "name": "AHT",
         "description": "Average Handle Time",
         "synonyms": ["handle time"]
+      },
+      "kyc": {
+        "name": "KYC",
+        "description": "Know Your Customer",
+        "synonyms": ["identity check"]
       }
     }
   }
+
+  Add as many entries under 'terms' as you need — each key must be unique.
 
 Examples:
   iai glossaries update finance-terms --file glossary.json
