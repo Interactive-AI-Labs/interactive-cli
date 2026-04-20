@@ -118,11 +118,8 @@ func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody
 		StackId:     stackId,
 	}
 
-	if s.Autoscaling != nil && s.Autoscaling.Enabled {
-		body.Autoscaling = s.Autoscaling
-	} else {
-		body.Replicas = s.Replicas
-	}
+	body.Autoscaling = s.Autoscaling
+	body.Replicas = s.Replicas
 
 	if s.Healthcheck != nil {
 		body.Healthcheck = s.Healthcheck

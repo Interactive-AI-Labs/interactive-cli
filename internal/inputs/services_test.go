@@ -3,7 +3,79 @@ package inputs
 import (
 	"strings"
 	"testing"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/google/go-cmp/cmp"
 )
+
+func TestBuildServiceRequestBodyScaling(t *testing.T) {
+	tests := []struct {
+		name            string
+		in              ServiceInput
+		wantReplicas    int
+		wantAutoscaling *clients.Autoscaling
+	}{
+		{
+			name:         "replicas only",
+			in:           ServiceInput{Replicas: 3},
+			wantReplicas: 3,
+		},
+		{
+			name: "autoscaling flags only",
+			in: ServiceInput{
+				AutoscalingMin:    2,
+				AutoscalingMax:    10,
+				AutoscalingCPU:    80,
+				AutoscalingMemory: 85,
+			},
+			wantAutoscaling: &clients.Autoscaling{
+				MinReplicas:      2,
+				MaxReplicas:      10,
+				CPUPercentage:    80,
+				MemoryPercentage: 85,
+			},
+		},
+		{
+			name: "single autoscaling flag triggers block",
+			in:   ServiceInput{AutoscalingMin: 2},
+			wantAutoscaling: &clients.Autoscaling{
+				MinReplicas: 2,
+			},
+		},
+		{
+			name: "both set are passed through for backend to reject",
+			in: ServiceInput{
+				Replicas:       5,
+				AutoscalingMin: 2,
+				AutoscalingMax: 10,
+			},
+			wantReplicas: 5,
+			wantAutoscaling: &clients.Autoscaling{
+				MinReplicas: 2,
+				MaxReplicas: 10,
+			},
+		},
+		{
+			name: "neither set",
+			in:   ServiceInput{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := BuildServiceRequestBody(tt.in)
+			if err != nil {
+				t.Fatalf("BuildServiceRequestBody() unexpected error = %v", err)
+			}
+			if got.Replicas != tt.wantReplicas {
+				t.Errorf("Replicas = %d, want %d", got.Replicas, tt.wantReplicas)
+			}
+			if diff := cmp.Diff(tt.wantAutoscaling, got.Autoscaling); diff != "" {
+				t.Errorf("Autoscaling mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestValidateServiceEnvVars(t *testing.T) {
 	tests := []struct {

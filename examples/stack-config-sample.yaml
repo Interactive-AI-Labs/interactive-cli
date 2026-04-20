@@ -64,7 +64,6 @@ services:
       - secretName: my-secret
     endpoint: true
     autoscaling:
-      enabled: true
       minReplicas: 2
       maxReplicas: 10
       cpuPercentage: 80

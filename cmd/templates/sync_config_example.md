@@ -49,7 +49,6 @@ vector-stores:
 
 ```yaml
     autoscaling:
-      enabled: true
       minReplicas: 2
       maxReplicas: 10
       cpuPercentage: 80

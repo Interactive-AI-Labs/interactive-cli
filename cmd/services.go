@@ -29,11 +29,10 @@ var (
 	serviceMemory          string
 	serviceCPU             string
 
-	serviceAutoscalingEnabled bool
-	serviceAutoscalingMin     int
-	serviceAutoscalingMax     int
-	serviceAutoscalingCPU     int
-	serviceAutoscalingMemory  int
+	serviceAutoscalingMin    int
+	serviceAutoscalingMax    int
+	serviceAutoscalingCPU    int
+	serviceAutoscalingMemory int
 
 	serviceEndpoint   bool
 	serviceEnvVars    []string
@@ -119,7 +118,6 @@ var servCCmd = &cobra.Command{
 			CPU:                     serviceCPU,
 			Endpoint:                serviceEndpoint,
 			Replicas:                serviceReplicas,
-			AutoscalingEnabled:      serviceAutoscalingEnabled,
 			AutoscalingMin:          serviceAutoscalingMin,
 			AutoscalingMax:          serviceAutoscalingMax,
 			AutoscalingCPU:          serviceAutoscalingCPU,
@@ -221,7 +219,6 @@ var servUCmd = &cobra.Command{
 			CPU:                     serviceCPU,
 			Endpoint:                serviceEndpoint,
 			Replicas:                serviceReplicas,
-			AutoscalingEnabled:      serviceAutoscalingEnabled,
 			AutoscalingMin:          serviceAutoscalingMin,
 			AutoscalingMax:          serviceAutoscalingMax,
 			AutoscalingCPU:          serviceAutoscalingCPU,
@@ -703,11 +700,9 @@ func init() {
 	_ = servCCmd.MarkFlagRequired("cpu")
 
 	servCCmd.Flags().
-		BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
+		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas for autoscaling")
 	servCCmd.Flags().
-		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
-	servCCmd.Flags().
-		IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+		IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas for autoscaling")
 	servCCmd.Flags().
 		IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
 	servCCmd.Flags().
@@ -755,11 +750,9 @@ func init() {
 	_ = servUCmd.MarkFlagRequired("cpu")
 
 	servUCmd.Flags().
-		BoolVar(&serviceAutoscalingEnabled, "autoscaling-enabled", false, "Enable autoscaling (mutually exclusive with replicas)")
+		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas for autoscaling")
 	servUCmd.Flags().
-		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas when autoscaling is enabled")
-	servUCmd.Flags().
-		IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas when autoscaling is enabled")
+		IntVar(&serviceAutoscalingMax, "autoscaling-max-replicas", 0, "Maximum number of replicas for autoscaling")
 	servUCmd.Flags().
 		IntVar(&serviceAutoscalingCPU, "autoscaling-cpu-percentage", 0, "CPU percentage threshold for autoscaling")
 	servUCmd.Flags().
