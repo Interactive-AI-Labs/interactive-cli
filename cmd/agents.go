@@ -626,6 +626,54 @@ Examples:
 	},
 }
 
+var agentCatalogCmd = &cobra.Command{
+	Use:   "catalog [agent_id]",
+	Short: "List available agent types and versions",
+	Long: `List agent types available in the catalog.
+
+Without arguments, lists all available agent IDs.
+With an agent ID argument, lists available versions for that agent.
+
+Examples:
+  iai agents catalog
+  iai agents catalog interactive-agent`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		if len(args) == 0 {
+			agents, err := deployClient.ListCatalogAgents(cmd.Context())
+			if err != nil {
+				return err
+			}
+			return output.PrintAgentCatalog(out, agents)
+		}
+
+		id := strings.TrimSpace(args[0])
+		versions, err := deployClient.ListCatalogAgentVersions(cmd.Context(), id)
+		if err != nil {
+			return err
+		}
+		return output.PrintAgentVersions(out, id, versions)
+	},
+}
+
 var agentSchemaCmd = &cobra.Command{
 	Use:   "schema",
 	Short: "Display the JSON Schema for agent configuration",
@@ -796,4 +844,5 @@ func init() {
 	agentsCmd.AddCommand(agentRestartCmd)
 	agentsCmd.AddCommand(agentLogsCmd)
 	agentsCmd.AddCommand(agentSchemaCmd)
+	agentsCmd.AddCommand(agentCatalogCmd)
 }

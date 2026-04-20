@@ -87,3 +87,33 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 
 	return nil
 }
+
+func PrintAgentCatalog(out io.Writer, agents []clients.CatalogAgent) error {
+	if len(agents) == 0 {
+		fmt.Fprintln(out, "No agents available.")
+		return nil
+	}
+
+	headers := []string{"AGENT ID"}
+	rows := make([][]string, len(agents))
+	for i, a := range agents {
+		rows[i] = []string{a.Id}
+	}
+
+	return PrintTable(out, headers, rows)
+}
+
+func PrintAgentVersions(out io.Writer, agentId string, versions []string) error {
+	if len(versions) == 0 {
+		fmt.Fprintf(out, "No versions found for agent %q.\n", agentId)
+		return nil
+	}
+
+	headers := []string{"VERSION"}
+	rows := make([][]string, len(versions))
+	for i, v := range versions {
+		rows[i] = []string{v}
+	}
+
+	return PrintTable(out, headers, rows)
+}
