@@ -23,9 +23,15 @@ Example (variables.json):
       "user_name": {
         "description": "The user's display name",
         "default_value": "Guest"
+      },
+      "is_authenticated": {
+        "description": "Whether the user has completed sign-in",
+        "default_value": false
       }
     }
   }
+
+  Add as many entries under 'variables' as you need — each key must be unique.
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -68,9 +74,15 @@ Example (variables.json):
       "user_name": {
         "description": "The user's display name",
         "default_value": "Guest"
+      },
+      "is_authenticated": {
+        "description": "Whether the user has completed sign-in",
+        "default_value": false
       }
     }
   }
+
+  Add as many entries under 'variables' as you need — each key must be unique.
 
 Examples:
   iai variables update session-vars --file variables.json
