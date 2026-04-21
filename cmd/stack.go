@@ -52,10 +52,8 @@ The organization and project are read from the config file, flags, or resolved v
 			return fmt.Errorf("failed to load stack config: %w", err)
 		}
 
-		if len(cfg.Services) == 0 && len(cfg.Agents) == 0 && len(cfg.VectorStores) == 0 {
-			return fmt.Errorf(
-				"config file must define at least one service, agent, or vector store",
-			)
+		if cfg.StackId == "" {
+			return fmt.Errorf("stack-id is required for sync command")
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -98,15 +96,31 @@ The organization and project are read from the config file, flags, or resolved v
 
 		fmt.Fprintln(out)
 		fmt.Fprintf(out, "Syncing stack %q...\n", cfg.StackId)
+		ranSync := false
 
-		if len(cfg.Services) > 0 {
+		svcBodies := make(map[string]clients.CreateServiceBody)
+		for name, svcCfg := range cfg.Services {
+			svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
+		}
+
+		hasServices := false
+		if len(svcBodies) == 0 {
+			hasServices, err = sync.HasServices(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(svcBodies) > 0 || hasServices {
+			ranSync = true
 			fmt.Fprint(out, "Syncing services")
 			done := output.PrintLoadingDots(out)
-
-			svcBodies := make(map[string]clients.CreateServiceBody)
-			for name, svcCfg := range cfg.Services {
-				svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
-			}
 
 			svcResult, err := sync.Services(
 				cmd.Context(),
@@ -123,14 +137,29 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		if len(cfg.Agents) > 0 {
+		agentBodies := make(map[string]clients.CreateAgentBody)
+		for name, agentCfg := range cfg.Agents {
+			agentBodies[name] = agentCfg.ToCreateRequest(cfg.StackId)
+		}
+
+		hasAgents := false
+		if len(agentBodies) == 0 {
+			hasAgents, err = sync.HasAgents(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(agentBodies) > 0 || hasAgents {
+			ranSync = true
 			fmt.Fprint(out, "Syncing agents")
 			done := output.PrintLoadingDots(out)
-
-			agentBodies := make(map[string]clients.CreateAgentBody)
-			for name, agentCfg := range cfg.Agents {
-				agentBodies[name] = agentCfg.ToCreateRequest(cfg.StackId)
-			}
 
 			agentResult, err := sync.Agents(
 				cmd.Context(),
@@ -147,14 +176,29 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		if len(cfg.VectorStores) > 0 {
+		vsBodies := make(map[string]clients.CreateVectorStoreBody)
+		for name, vsCfg := range cfg.VectorStores {
+			vsBodies[name] = vsCfg.ToCreateRequest(cfg.StackId)
+		}
+
+		hasVectorStores := false
+		if len(vsBodies) == 0 {
+			hasVectorStores, err = sync.HasVectorStores(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(vsBodies) > 0 || hasVectorStores {
+			ranSync = true
 			fmt.Fprint(out, "Syncing vector stores")
 			done := output.PrintLoadingDots(out)
-
-			vsBodies := make(map[string]clients.CreateVectorStoreBody)
-			for name, vsCfg := range cfg.VectorStores {
-				vsBodies[name] = vsCfg.ToCreateRequest(cfg.StackId)
-			}
 
 			allowDeleteVS := sync.AllowDeleteResource(
 				stackSyncAllowDelete,
@@ -174,6 +218,10 @@ The organization and project are read from the config file, flags, or resolved v
 			if err := sync.PrintResult(out, "vector stores", vsResult, err); err != nil {
 				return err
 			}
+		}
+
+		if !ranSync {
+			fmt.Fprintf(out, "No resources to sync for stack %q.\n", cfg.StackId)
 		}
 
 		return nil

@@ -28,6 +28,51 @@ type Result struct {
 	Protected []string // would be deleted but deletion was not allowed
 }
 
+func HasServices(
+	ctx context.Context,
+	deployClient *clients.DeploymentClient,
+	orgId,
+	projectId,
+	stackId string,
+) (bool, error) {
+	existing, err := deployClient.ListServices(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return false, fmt.Errorf("failed to list services: %w", err)
+	}
+
+	return len(existing) > 0, nil
+}
+
+func HasAgents(
+	ctx context.Context,
+	deployClient *clients.DeploymentClient,
+	orgId,
+	projectId,
+	stackId string,
+) (bool, error) {
+	existing, err := deployClient.ListAgents(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return false, fmt.Errorf("failed to list agents: %w", err)
+	}
+
+	return len(existing) > 0, nil
+}
+
+func HasVectorStores(
+	ctx context.Context,
+	deployClient *clients.DeploymentClient,
+	orgId,
+	projectId,
+	stackId string,
+) (bool, error) {
+	existing, err := deployClient.ListVectorStores(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return false, fmt.Errorf("failed to list vector stores: %w", err)
+	}
+
+	return len(existing) > 0, nil
+}
+
 func PrintResult(
 	out io.Writer,
 	label string,
