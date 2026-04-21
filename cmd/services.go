@@ -610,8 +610,8 @@ The project is selected with --project or via 'iai projects select', and the con
 			return fmt.Errorf("failed to load stack config: %w", err)
 		}
 
-		if len(cfg.Services) == 0 {
-			return fmt.Errorf("services are required in config file for sync command")
+		if cfg.StackId == "" {
+			return fmt.Errorf("stack-id is required for sync command")
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -652,14 +652,32 @@ The project is selected with --project or via 'iai projects select', and the con
 			return err
 		}
 
-		fmt.Fprintln(out)
-		fmt.Fprint(out, "Syncing services")
-		done := output.PrintLoadingDots(out)
-
 		svcBodies := make(map[string]clients.CreateServiceBody)
 		for name, svcCfg := range cfg.Services {
 			svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
 		}
+
+		hasServices := false
+		if len(svcBodies) == 0 {
+			hasServices, err = sync.HasServices(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+			)
+			if err != nil {
+				return err
+			}
+		}
+		if len(svcBodies) == 0 && !hasServices {
+			fmt.Fprintf(out, "No services to sync for stack %q.\n", cfg.StackId)
+			return nil
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprint(out, "Syncing services")
+		done := output.PrintLoadingDots(out)
 
 		result, err := sync.Services(
 			cmd.Context(),
