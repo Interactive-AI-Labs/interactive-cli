@@ -8,7 +8,6 @@ Fetch and display the current JSON Schema for the agent_config block.
 
 Examples:
   iai agents schema
-  iai agents schema -o my-org -p my-project
 
 ```
 iai agents schema [flags]
@@ -17,9 +16,7 @@ iai agents schema [flags]
 ### Options
 
 ```
-  -h, --help                  help for schema
-  -o, --organization string   Organization name
-  -p, --project string        Project name
+  -h, --help   help for schema
 ```
 
 ### Options inherited from parent commands
