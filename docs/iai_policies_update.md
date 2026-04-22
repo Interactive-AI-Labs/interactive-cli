@@ -9,6 +9,7 @@ Update a policy by creating a new version with updated content.
 This creates a new version of the policy using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
+Each prompt holds exactly one policy (flat YAML, fields at the root).
 
 Run `iai policies schema` to see the current field definitions.
 
@@ -16,12 +17,12 @@ Run `iai policies schema` to see the current field definitions.
 
 ```yaml
 # policy.yaml
-policies:
-  - id: escalate
-    name: Escalation Policy
-    condition: User requests human agent
-    action: Transfer to human
-    criticality: HIGH
+id: escalate
+name: Escalation Policy
+condition: User requests human agent
+action: Transfer to human
+criticality: HIGH
+# always_match: true  # evaluate on every turn regardless of context
 ```
 
 ### Options
