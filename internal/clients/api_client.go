@@ -1338,18 +1338,8 @@ func GetPromptSchema(
 // platform API. Requires authentication with prompts:read capability.
 func (c *APIClient) GetAgentSchema(
 	ctx context.Context,
-	projectId string,
 ) (*SchemaResponse, error) {
-	u, err := url.Parse(c.hostname)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse hostname: %w", err)
-	}
-	rawPath := fmt.Sprintf("/api/platform/v1/projects/%s/agents/schema", url.PathEscape(projectId))
-	decodedPath, _ := url.PathUnescape(rawPath)
-	u.Path = decodedPath
-	u.RawPath = rawPath
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := c.newRequest(ctx, http.MethodGet, "/api/platform/v1/agents/schema")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schema request: %w", err)
 	}

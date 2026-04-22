@@ -1,22 +1,26 @@
-## iai agents schema
+## iai agents catalog
 
-Display the JSON Schema for agent configuration
+List available agent types and versions
 
 ### Synopsis
 
-Fetch and display the current JSON Schema for the agent_config block.
+List agent types available in the catalog.
+
+Without arguments, lists all available agent IDs.
+With an agent ID argument, lists available versions for that agent.
 
 Examples:
-  iai agents schema
+  iai agents catalog
+  iai agents catalog interactive-agent
 
 ```
-iai agents schema [flags]
+iai agents catalog [agent_id] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for schema
+  -h, --help   help for catalog
 ```
 
 ### Options inherited from parent commands

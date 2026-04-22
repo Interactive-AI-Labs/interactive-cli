@@ -1685,3 +1685,88 @@ func (c *DeploymentClient) GetAgentLogs(
 	)
 	return c.fetchLogs(ctx, path, opts)
 }
+
+type catalogAgentsResponse struct {
+	Agents []CatalogAgent `json:"agents"`
+}
+
+type CatalogAgent struct {
+	Id string `json:"id"`
+}
+
+type catalogVersionsResponse struct {
+	Versions []string `json:"versions"`
+}
+
+func (c *DeploymentClient) ListCatalogAgents(
+	ctx context.Context,
+) ([]CatalogAgent, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, "/v1/catalog/agents")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("catalog request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("catalog request failed with status %s", resp.Status)
+	}
+
+	var result catalogAgentsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode catalog response: %w", err)
+	}
+
+	return result.Agents, nil
+}
+
+func (c *DeploymentClient) ListCatalogAgentVersions(
+	ctx context.Context,
+	agentId string,
+) ([]string, error) {
+	path := fmt.Sprintf(
+		"/v1/catalog/agents/%s",
+		url.PathEscape(agentId),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("catalog versions request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("catalog versions request failed with status %s", resp.Status)
+	}
+
+	var result catalogVersionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode catalog versions response: %w", err)
+	}
+
+	return result.Versions, nil
+}
