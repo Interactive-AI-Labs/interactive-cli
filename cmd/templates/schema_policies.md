@@ -9,5 +9,6 @@ name: Escalation Policy
 condition: User requests human agent
 action: Transfer to human
 criticality: HIGH
-# always_match: true  # evaluate on every turn regardless of context
+# Uncomment to evaluate on every turn regardless of context match:
+# always_match: true
 ```
