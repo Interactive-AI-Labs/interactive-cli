@@ -24,8 +24,6 @@ Example (policy.yaml):
   condition: User requests human agent
   action: Transfer to human
   criticality: HIGH
-  # Uncomment to evaluate on every turn regardless of context matching:
-  # always_match: true
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -69,8 +67,6 @@ Example (policy.yaml):
   condition: User requests human agent
   action: Transfer to human
   criticality: HIGH
-  # Uncomment to evaluate on every turn regardless of context matching:
-  # always_match: true
 
 Examples:
   iai policies update safety-rules --file policy.yaml
