@@ -24,7 +24,7 @@ Example (policy.yaml):
   condition: User requests human agent
   action: Transfer to human
   criticality: HIGH
-  # Uncomment to evaluate on every turn regardless of context match:
+  # Uncomment to evaluate on every turn regardless of context matching:
   # always_match: true
 
 The server automatically assigns the "latest" label to new versions. To make a
@@ -69,7 +69,7 @@ Example (policy.yaml):
   condition: User requests human agent
   action: Transfer to human
   criticality: HIGH
-  # Uncomment to evaluate on every turn regardless of context match:
+  # Uncomment to evaluate on every turn regardless of context matching:
   # always_match: true
 
 Examples:
