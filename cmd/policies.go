@@ -14,16 +14,16 @@ responses (YAML format).`,
 		HasSchema:    true,
 		CreateLong: `Create a new policy in an InteractiveAI project.
 
+Each prompt holds exactly one policy (flat YAML, fields at the root).
 Content is provided via a YAML file using the --file flag.
 Run 'iai policies schema' to see the current field definitions.
 
 Example (policy.yaml):
-  policies:
-    - id: escalate
-      name: Escalation Policy
-      condition: User requests human agent
-      action: Transfer to human
-      criticality: HIGH
+  id: escalate
+  name: Escalation Policy
+  condition: User requests human agent
+  action: Transfer to human
+  criticality: HIGH
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
@@ -58,15 +58,15 @@ Examples:
 This creates a new version of the policy using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
+Each prompt holds exactly one policy (flat YAML, fields at the root).
 Run 'iai policies schema' to see the current field definitions.
 
 Example (policy.yaml):
-  policies:
-    - id: escalate
-      name: Escalation Policy
-      condition: User requests human agent
-      action: Transfer to human
-      criticality: HIGH
+  id: escalate
+  name: Escalation Policy
+  condition: User requests human agent
+  action: Transfer to human
+  criticality: HIGH
 
 Examples:
   iai policies update safety-rules --file policy.yaml

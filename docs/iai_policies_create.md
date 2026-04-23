@@ -6,6 +6,7 @@ Create a policy
 
 Create a new policy in an InteractiveAI project.
 
+Each prompt holds exactly one policy (flat YAML, fields at the root).
 Content is provided via a YAML file using the --file flag.
 
 Run `iai policies schema` to see the current field definitions.
@@ -14,12 +15,11 @@ Run `iai policies schema` to see the current field definitions.
 
 ```yaml
 # policy.yaml
-policies:
-  - id: escalate
-    name: Escalation Policy
-    condition: User requests human agent
-    action: Transfer to human
-    criticality: HIGH
+id: escalate
+name: Escalation Policy
+condition: User requests human agent
+action: Transfer to human
+criticality: HIGH
 ```
 
 ### Options
