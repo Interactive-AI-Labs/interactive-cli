@@ -166,15 +166,15 @@ type Resources struct {
 }
 
 type Autoscaling struct {
-	MinReplicas      int `json:"minReplicas,omitempty"      yaml:"minReplicas,omitempty"`
-	MaxReplicas      int `json:"maxReplicas,omitempty"      yaml:"maxReplicas,omitempty"`
-	CPUPercentage    int `json:"cpuPercentage,omitempty"    yaml:"cpuPercentage,omitempty"`
-	MemoryPercentage int `json:"memoryPercentage,omitempty" yaml:"memoryPercentage,omitempty"`
+	MinReplicas      int  `json:"minReplicas,omitempty"      yaml:"minReplicas,omitempty"`
+	MaxReplicas      int  `json:"maxReplicas,omitempty"      yaml:"maxReplicas,omitempty"`
+	CPUPercentage    *int `json:"cpuPercentage,omitempty"    yaml:"cpuPercentage,omitempty"`
+	MemoryPercentage *int `json:"memoryPercentage,omitempty" yaml:"memoryPercentage,omitempty"`
 }
 
 type Healthcheck struct {
 	Path                string `json:"path,omitempty"                yaml:"path,omitempty"`
-	InitialDelaySeconds int    `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
+	InitialDelaySeconds *int   `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
 }
 
 type Schedule struct {
@@ -206,6 +206,21 @@ type ServiceOutput struct {
 	Status    string `json:"status"`
 	Updated   string `json:"updated,omitempty"`
 	Endpoint  string `json:"endpoint,omitempty"`
+}
+
+type DescribeServiceResponse struct {
+	ServiceOutput
+
+	ServicePort int          `json:"servicePort"`
+	Image       ImageSpec    `json:"image"`
+	Resources   Resources    `json:"resources"`
+	Env         []EnvVar     `json:"env,omitempty"`
+	SecretRefs  []SecretRef  `json:"secretRefs,omitempty"`
+	Replicas    int          `json:"replicas,omitempty"`
+	StackId     string       `json:"stackId,omitempty"`
+	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
+	Healthcheck *Healthcheck `json:"healthcheck,omitempty"`
+	Schedule    *Schedule    `json:"schedule,omitempty"`
 }
 
 func (c *DeploymentClient) CreateService(
@@ -432,6 +447,49 @@ func (c *DeploymentClient) ListServices(
 	}
 
 	return result.Services, nil
+}
+
+func (c *DeploymentClient) DescribeService(
+	ctx context.Context,
+	orgId,
+	projectId,
+	serviceName string,
+) (*DescribeServiceResponse, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/services/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(serviceName),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("service describe request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("service describe failed with status %s", resp.Status)
+	}
+
+	var result DescribeServiceResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode service response: %w", err)
+	}
+
+	return &result, nil
 }
 
 func (c *DeploymentClient) CreateSecret(

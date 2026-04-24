@@ -334,6 +334,71 @@ var servListCmd = &cobra.Command{
 	},
 }
 
+var servDescribeCmd = &cobra.Command{
+	Use:     "describe <service_name>",
+	Aliases: []string{"desc"},
+	Short:   "Describe a service in detail",
+	Long: `Show detailed information about a specific service including its configuration.
+
+Examples:
+  iai services describe my-service`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		serviceName := strings.TrimSpace(args[0])
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		service, err := deployClient.DescribeService(cmd.Context(), orgId, projectId, serviceName)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintServiceDescribe(out, service)
+	},
+}
+
 var servDCmd = &cobra.Command{
 	Use:   "delete <service_name>",
 	Short: "Delete a service from a project",
@@ -801,6 +866,12 @@ func init() {
 	servListCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	// Flags for "services describe"
+	servDescribeCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servDescribeCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+
 	// Flags for "services delete"
 	servDCmd.Flags().
 		StringVarP(&serviceProject, "project", "p", "", "Project name to delete the service from")
@@ -838,6 +909,7 @@ func init() {
 	servicesCmd.AddCommand(servCCmd)
 	servicesCmd.AddCommand(servUCmd)
 	servicesCmd.AddCommand(servListCmd)
+	servicesCmd.AddCommand(servDescribeCmd)
 	servicesCmd.AddCommand(servDCmd)
 	servicesCmd.AddCommand(servRestartCmd)
 	servicesCmd.AddCommand(servLogsCmd)
