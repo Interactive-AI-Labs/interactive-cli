@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -31,8 +32,8 @@ func TestBuildServiceRequestBodyScaling(t *testing.T) {
 			wantAutoscaling: &clients.Autoscaling{
 				MinReplicas:      2,
 				MaxReplicas:      10,
-				CPUPercentage:    80,
-				MemoryPercentage: 85,
+				CPUPercentage:    utils.ToPtr(80),
+				MemoryPercentage: utils.ToPtr(85),
 			},
 		},
 		{

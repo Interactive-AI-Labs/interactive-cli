@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 )
 
 type ServiceInput struct {
@@ -76,22 +77,30 @@ func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error)
 
 	if in.AutoscalingMin > 0 || in.AutoscalingMax > 0 || in.AutoscalingCPU > 0 ||
 		in.AutoscalingMemory > 0 {
-		reqBody.Autoscaling = &clients.Autoscaling{
-			MinReplicas:      in.AutoscalingMin,
-			MaxReplicas:      in.AutoscalingMax,
-			CPUPercentage:    in.AutoscalingCPU,
-			MemoryPercentage: in.AutoscalingMemory,
+		as := &clients.Autoscaling{
+			MinReplicas: in.AutoscalingMin,
+			MaxReplicas: in.AutoscalingMax,
 		}
+		if in.AutoscalingCPU > 0 {
+			as.CPUPercentage = utils.ToPtr(in.AutoscalingCPU)
+		}
+		if in.AutoscalingMemory > 0 {
+			as.MemoryPercentage = utils.ToPtr(in.AutoscalingMemory)
+		}
+		reqBody.Autoscaling = as
 	}
 	if in.Replicas > 0 {
 		reqBody.Replicas = in.Replicas
 	}
 
 	if in.HealthcheckPath != "" || in.HealthcheckInitialDelay != 0 {
-		reqBody.Healthcheck = &clients.Healthcheck{
-			Path:                in.HealthcheckPath,
-			InitialDelaySeconds: in.HealthcheckInitialDelay,
+		hc := &clients.Healthcheck{
+			Path: in.HealthcheckPath,
 		}
+		if in.HealthcheckInitialDelay > 0 {
+			hc.InitialDelaySeconds = utils.ToPtr(in.HealthcheckInitialDelay)
+		}
+		reqBody.Healthcheck = hc
 	}
 
 	if in.ScheduleUptime != "" || in.ScheduleDowntime != "" || in.ScheduleTimezone != "" {
