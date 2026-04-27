@@ -72,24 +72,26 @@ func PrintQueueList(
 }
 
 func PrintQueueDetail(out io.Writer, q *clients.AnnotationQueueInfo) error {
-	fmt.Fprintf(out, "ID:          %s\n", q.ID)
-	fmt.Fprintf(out, "Name:        %s\n", q.Name)
-	fmt.Fprintf(out, "Description: %s\n", q.Description)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", q.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", q.Name)
+	fmt.Fprintf(w, "Description:\t%s\n", q.Description)
 	if len(q.ScoreConfigIDs) > 0 {
-		fmt.Fprintf(out, "Score Config IDs: %s\n", strings.Join(q.ScoreConfigIDs, ", "))
+		fmt.Fprintf(w, "Score Config IDs:\t%s\n", strings.Join(q.ScoreConfigIDs, ", "))
 	}
-	fmt.Fprintf(out, "Created At:  %s\n", LocalTime(q.CreatedAt))
-	fmt.Fprintf(out, "Updated At:  %s\n", LocalTime(q.UpdatedAt))
-	return nil
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(q.CreatedAt))
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(q.UpdatedAt))
+	return w.Flush()
 }
 
 func PrintQueueCreateResult(out io.Writer, q *clients.AnnotationQueueInfo) error {
-	fmt.Fprintf(out, "Created annotation queue %q.\n", q.Name)
-	fmt.Fprintf(out, "ID:          %s\n", q.ID)
-	fmt.Fprintf(out, "Name:        %s\n", q.Name)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Created annotation queue %q.\n", q.Name)
+	fmt.Fprintf(w, "ID:\t%s\n", q.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", q.Name)
 	if q.Description != "" {
-		fmt.Fprintf(out, "Description: %s\n", q.Description)
+		fmt.Fprintf(w, "Description:\t%s\n", q.Description)
 	}
-	fmt.Fprintf(out, "Created At:  %s\n", LocalTime(q.CreatedAt))
-	return nil
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(q.CreatedAt))
+	return w.Flush()
 }

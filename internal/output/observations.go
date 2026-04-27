@@ -184,61 +184,65 @@ func PrintStandaloneObservationList(
 }
 
 func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error {
+	isTTY := isTerminal(out)
+	const jsonPrefix = "  "
+
+	w := NewDescribeWriter(out)
 	// Core
-	fmt.Fprintf(out, "ID:                    %s\n", obs.ID)
-	fmt.Fprintf(out, "Trace ID:              %s\n", obs.TraceID)
-	fmt.Fprintf(out, "Type:                  %s\n", obs.Type)
-	fmt.Fprintf(out, "Name:                  %s\n", obs.Name)
-	fmt.Fprintf(out, "Start Time:            %s\n", LocalTime(obs.StartTime))
-	fmt.Fprintf(out, "End Time:              %s\n", LocalTime(obs.EndTime))
+	fmt.Fprintf(w, "ID:\t%s\n", obs.ID)
+	fmt.Fprintf(w, "Trace ID:\t%s\n", obs.TraceID)
+	fmt.Fprintf(w, "Type:\t%s\n", obs.Type)
+	fmt.Fprintf(w, "Name:\t%s\n", obs.Name)
+	fmt.Fprintf(w, "Start Time:\t%s\n", LocalTime(obs.StartTime))
+	fmt.Fprintf(w, "End Time:\t%s\n", LocalTime(obs.EndTime))
 	if obs.ParentObservationID != "" {
-		fmt.Fprintf(out, "Parent Observation ID: %s\n", obs.ParentObservationID)
+		fmt.Fprintf(w, "Parent Observation ID:\t%s\n", obs.ParentObservationID)
 	}
 	if obs.Level != "" {
-		fmt.Fprintf(out, "Level:                 %s\n", obs.Level)
+		fmt.Fprintf(w, "Level:\t%s\n", obs.Level)
 	}
 	if obs.StatusMessage != "" {
-		fmt.Fprintf(out, "Status Message:        %s\n", obs.StatusMessage)
+		fmt.Fprintf(w, "Status Message:\t%s\n", obs.StatusMessage)
 	}
 
 	// Model
-	fmt.Fprintf(out, "\n--- Model ---\n")
-	fmt.Fprintf(out, "Model: %s\n", obs.Model)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "--- Model ---")
+	fmt.Fprintf(w, "Model:\t%s\n", obs.Model)
 	if len(obs.ModelParameters) > 0 && string(obs.ModelParameters) != "null" {
-		isTTY := isTerminal(out)
+		fmt.Fprintln(w, "Parameters:")
 		fmt.Fprintf(
-			out,
-			"Parameters:\n%s\n",
-			indentLines(prettyJSONUnwrapString(obs.ModelParameters, isTTY), "  "),
+			w,
+			"%s\n",
+			indentLines(prettyJSONUnwrapString(obs.ModelParameters, isTTY), jsonPrefix),
 		)
 	}
 
 	// Metrics
-	fmt.Fprintf(out, "\n--- Metrics ---\n")
-	fmt.Fprintf(out, "Latency:       %s\n", formatFloat(obs.LatencyMs, "ms"))
-	fmt.Fprintf(out, "Input Tokens:  %s\n", formatInt(obs.InputTokens))
-	fmt.Fprintf(out, "Output Tokens: %s\n", formatInt(obs.OutputTokens))
-	fmt.Fprintf(out, "Total Tokens:  %s\n", formatInt(obs.TotalTokens))
-	fmt.Fprintf(out, "Total Cost:    %s\n", formatCost(obs.TotalCost))
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "--- Metrics ---")
+	fmt.Fprintf(w, "Latency:\t%s\n", formatFloat(obs.LatencyMs, "ms"))
+	fmt.Fprintf(w, "Input Tokens:\t%s\n", formatInt(obs.InputTokens))
+	fmt.Fprintf(w, "Output Tokens:\t%s\n", formatInt(obs.OutputTokens))
+	fmt.Fprintf(w, "Total Tokens:\t%s\n", formatInt(obs.TotalTokens))
+	fmt.Fprintf(w, "Total Cost:\t%s\n", formatCost(obs.TotalCost))
 
 	// Prompt
 	if obs.PromptName != "" || obs.PromptVersion != nil {
-		fmt.Fprintf(out, "\n--- Prompt ---\n")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "--- Prompt ---")
 		if obs.PromptName != "" {
-			fmt.Fprintf(out, "Prompt Name:    %s\n", obs.PromptName)
+			fmt.Fprintf(w, "Prompt Name:\t%s\n", obs.PromptName)
 		}
 		if obs.PromptVersion != nil {
-			fmt.Fprintf(out, "Prompt Version: %d\n", *obs.PromptVersion)
+			fmt.Fprintf(w, "Prompt Version:\t%d\n", *obs.PromptVersion)
 		}
 	}
 
 	// IO
-	isTTY := isTerminal(out)
-	const jsonPrefix = "  "
-
 	if len(obs.Input) > 0 && string(obs.Input) != "null" {
 		fmt.Fprintf(
-			out,
+			w,
 			"\n%s\n%s\n",
 			colorHeader(isTTY, "Input:", colorGreen),
 			indentLines(prettyJSON(obs.Input, isTTY), jsonPrefix),
@@ -247,7 +251,7 @@ func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error
 
 	if len(obs.Output) > 0 && string(obs.Output) != "null" {
 		fmt.Fprintf(
-			out,
+			w,
 			"\n%s\n%s\n",
 			colorHeader(isTTY, "Output:", colorRed),
 			indentLines(prettyJSON(obs.Output, isTTY), jsonPrefix),
@@ -256,12 +260,12 @@ func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error
 
 	if len(obs.Metadata) > 0 && string(obs.Metadata) != "null" {
 		fmt.Fprintf(
-			out,
+			w,
 			"\n%s\n%s\n",
 			colorHeader(isTTY, "Metadata:", colorOrange),
 			indentLines(prettyJSON(obs.Metadata, isTTY), jsonPrefix),
 		)
 	}
 
-	return nil
+	return w.Flush()
 }

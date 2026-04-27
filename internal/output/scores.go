@@ -76,21 +76,22 @@ func PrintScoreList(
 }
 
 func PrintScoreCreateResult(out io.Writer, score *clients.ScoreInfo) error {
-	fmt.Fprintf(out, "Created score %q.\n", score.ID)
-	fmt.Fprintf(out, "Name:       %s\n", score.Name)
-	fmt.Fprintf(out, "Data Type:  %s\n", score.DataType)
-	fmt.Fprintf(out, "Value:      %s\n", formatScoreValue(score.Value))
-	fmt.Fprintf(out, "Timestamp:  %s\n", LocalTime(score.Timestamp))
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Created score %q.\n", score.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", score.Name)
+	fmt.Fprintf(w, "Data Type:\t%s\n", score.DataType)
+	fmt.Fprintf(w, "Value:\t%s\n", formatScoreValue(score.Value))
+	fmt.Fprintf(w, "Timestamp:\t%s\n", LocalTime(score.Timestamp))
 	if score.TraceID != "" {
-		fmt.Fprintf(out, "Trace ID:   %s\n", score.TraceID)
+		fmt.Fprintf(w, "Trace ID:\t%s\n", score.TraceID)
 	}
 	if score.ObservationID != "" {
-		fmt.Fprintf(out, "Observation ID: %s\n", score.ObservationID)
+		fmt.Fprintf(w, "Observation ID:\t%s\n", score.ObservationID)
 	}
 	if score.SessionID != "" {
-		fmt.Fprintf(out, "Session ID: %s\n", score.SessionID)
+		fmt.Fprintf(w, "Session ID:\t%s\n", score.SessionID)
 	}
-	return nil
+	return w.Flush()
 }
 
 func PrintDeleteSuccess(out io.Writer, resourceID, resourceType, message string) error {

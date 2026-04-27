@@ -121,21 +121,21 @@ func TestPrintObservationDetail(t *testing.T) {
 					TotalCost:    &cost,
 				},
 			},
-			want: "ID:                    obs-123\n" +
-				"Trace ID:              trace-456\n" +
-				"Type:                  GENERATION\n" +
-				"Name:                  ChatGPT\n" +
-				"Start Time:            2025-01-01\n" +
-				"End Time:              2025-01-01\n" +
-				"Level:                 DEFAULT\n" +
+			want: "ID:           obs-123\n" +
+				"Trace ID:     trace-456\n" +
+				"Type:         GENERATION\n" +
+				"Name:         ChatGPT\n" +
+				"Start Time:   2025-01-01\n" +
+				"End Time:     2025-01-01\n" +
+				"Level:        DEFAULT\n" +
 				"\n--- Model ---\n" +
-				"Model: gpt-4\n" +
+				"Model:   gpt-4\n" +
 				"\n--- Metrics ---\n" +
-				"Latency:       9321.00ms\n" +
-				"Input Tokens:  6472\n" +
-				"Output Tokens: 0\n" +
-				"Total Tokens:  7474\n" +
-				"Total Cost:    $0.008090\n",
+				"Latency:         9321.00ms\n" +
+				"Input Tokens:    6472\n" +
+				"Output Tokens:   0\n" +
+				"Total Tokens:    7474\n" +
+				"Total Cost:      $0.008090\n",
 		},
 		{
 			name: "with prompt info",
@@ -149,23 +149,23 @@ func TestPrintObservationDetail(t *testing.T) {
 				PromptName:    "my-prompt",
 				PromptVersion: &promptVersion,
 			},
-			want: "ID:                    obs-789\n" +
-				"Trace ID:              trace-abc\n" +
-				"Type:                  GENERATION\n" +
-				"Name:                  test\n" +
-				"Start Time:            \n" +
-				"End Time:              \n" +
+			want: "ID:           obs-789\n" +
+				"Trace ID:     trace-abc\n" +
+				"Type:         GENERATION\n" +
+				"Name:         test\n" +
+				"Start Time:   \n" +
+				"End Time:     \n" +
 				"\n--- Model ---\n" +
-				"Model: \n" +
+				"Model:   \n" +
 				"\n--- Metrics ---\n" +
-				"Latency:       -\n" +
-				"Input Tokens:  -\n" +
-				"Output Tokens: -\n" +
-				"Total Tokens:  -\n" +
-				"Total Cost:    -\n" +
+				"Latency:         -\n" +
+				"Input Tokens:    -\n" +
+				"Output Tokens:   -\n" +
+				"Total Tokens:    -\n" +
+				"Total Cost:      -\n" +
 				"\n--- Prompt ---\n" +
-				"Prompt Name:    my-prompt\n" +
-				"Prompt Version: 3\n",
+				"Prompt Name:      my-prompt\n" +
+				"Prompt Version:   3\n",
 		},
 	}
 

@@ -1,4 +1,4 @@
-## iai stack
+## iai stacks
 
 Manage stacks
 
@@ -9,7 +9,7 @@ Manage stacks and their resources (services, agents, vector stores) from stack c
 ### Options
 
 ```
-  -h, --help   help for stack
+  -h, --help   help for stacks
 ```
 
 ### Options inherited from parent commands
@@ -24,5 +24,5 @@ Manage stacks and their resources (services, agents, vector stores) from stack c
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai stack sync](iai_stack_sync.md)	 - Sync services, agents, and vector stores from a stack config file
+* [iai stacks sync](iai_stacks_sync.md)	 - Sync services, agents, and vector stores from a stack config file
 

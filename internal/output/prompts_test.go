@@ -132,12 +132,12 @@ func TestPrintPromptDetail(t *testing.T) {
 					`"steps:\n  - type: action\n    name: greet\n  - type: finish"`,
 				),
 			},
-			want: "Name:        onboarding-flow\n" +
-				"Version:     3\n" +
-				"Labels:      production, staging\n" +
-				"Tags:        v2, experimental\n" +
-				"Created At:  Fri, 10 Jan 2025 09:00:00 +0100\n" +
-				"Updated At:  Wed, 15 Jan 2025 11:30:00 +0100\n" +
+			want: "Name:         onboarding-flow\n" +
+				"Version:      3\n" +
+				"Labels:       production, staging\n" +
+				"Tags:         v2, experimental\n" +
+				"Created At:   Fri, 10 Jan 2025 09:00:00 +0100\n" +
+				"Updated At:   Wed, 15 Jan 2025 11:30:00 +0100\n" +
 				"\n" +
 				"Content:\n" +
 				"steps:\n" +
@@ -153,8 +153,8 @@ func TestPrintPromptDetail(t *testing.T) {
 				Version: 1,
 				Prompt:  json.RawMessage(`"You are a helpful assistant."`),
 			},
-			want: "Name:        welcome-message\n" +
-				"Version:     1\n" +
+			want: "Name:      welcome-message\n" +
+				"Version:   1\n" +
 				"\n" +
 				"Content:\n" +
 				"You are a helpful assistant.\n",
@@ -167,8 +167,8 @@ func TestPrintPromptDetail(t *testing.T) {
 				Version: 1,
 				Prompt:  json.RawMessage(`[{"role":"system","content":"Hello"}]`),
 			},
-			want: "Name:        structured-prompt\n" +
-				"Version:     1\n" +
+			want: "Name:      structured-prompt\n" +
+				"Version:   1\n" +
 				"\n" +
 				"Content:\n" +
 				`[{"role":"system","content":"Hello"}]` + "\n",
@@ -181,8 +181,8 @@ func TestPrintPromptDetail(t *testing.T) {
 				Version: 1,
 				Prompt:  json.RawMessage(`"Already has newline\n"`),
 			},
-			want: "Name:        trailing-nl\n" +
-				"Version:     1\n" +
+			want: "Name:      trailing-nl\n" +
+				"Version:   1\n" +
 				"\n" +
 				"Content:\n" +
 				"Already has newline\n",
@@ -196,9 +196,9 @@ func TestPrintPromptDetail(t *testing.T) {
 				Labels:  []string{"draft"},
 				Prompt:  nil,
 			},
-			want: "Name:        empty-prompt\n" +
-				"Version:     1\n" +
-				"Labels:      draft\n",
+			want: "Name:      empty-prompt\n" +
+				"Version:   1\n" +
+				"Labels:    draft\n",
 		},
 	}
 

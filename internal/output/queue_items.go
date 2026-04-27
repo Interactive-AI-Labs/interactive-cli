@@ -67,31 +67,34 @@ func PrintQueueItemList(
 }
 
 func PrintQueueItemDetail(out io.Writer, item *clients.QueueItemInfo) error {
-	fmt.Fprintf(out, "ID:           %s\n", item.ID)
-	fmt.Fprintf(out, "Object ID:    %s\n", item.ObjectID)
-	fmt.Fprintf(out, "Object Type:  %s\n", item.ObjectType)
-	fmt.Fprintf(out, "Status:       %s\n", item.Status)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
+	fmt.Fprintf(w, "Object ID:\t%s\n", item.ObjectID)
+	fmt.Fprintf(w, "Object Type:\t%s\n", item.ObjectType)
+	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
 	if item.CompletedAt != "" {
-		fmt.Fprintf(out, "Completed At: %s\n", LocalTime(item.CompletedAt))
+		fmt.Fprintf(w, "Completed At:\t%s\n", LocalTime(item.CompletedAt))
 	}
-	fmt.Fprintf(out, "Created At:   %s\n", LocalTime(item.CreatedAt))
-	fmt.Fprintf(out, "Updated At:   %s\n", LocalTime(item.UpdatedAt))
-	return nil
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(item.CreatedAt))
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(item.UpdatedAt))
+	return w.Flush()
 }
 
 func PrintQueueItemCreateResult(out io.Writer, item *clients.QueueItemInfo) error {
-	fmt.Fprintf(out, "Created queue item %q.\n", item.ID)
-	fmt.Fprintf(out, "ID:          %s\n", item.ID)
-	fmt.Fprintf(out, "Object ID:   %s\n", item.ObjectID)
-	fmt.Fprintf(out, "Object Type: %s\n", item.ObjectType)
-	fmt.Fprintf(out, "Status:      %s\n", item.Status)
-	fmt.Fprintf(out, "Created At:  %s\n", LocalTime(item.CreatedAt))
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Created queue item %q.\n", item.ID)
+	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
+	fmt.Fprintf(w, "Object ID:\t%s\n", item.ObjectID)
+	fmt.Fprintf(w, "Object Type:\t%s\n", item.ObjectType)
+	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(item.CreatedAt))
+	return w.Flush()
 }
 
 func PrintQueueItemUpdateResult(out io.Writer, item *clients.QueueItemInfo) error {
-	fmt.Fprintf(out, "Updated queue item %q.\n", item.ID)
-	fmt.Fprintf(out, "Status:      %s\n", item.Status)
-	fmt.Fprintf(out, "Updated At:  %s\n", LocalTime(item.UpdatedAt))
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Updated queue item %q.\n", item.ID)
+	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(item.UpdatedAt))
+	return w.Flush()
 }

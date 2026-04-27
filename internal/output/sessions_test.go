@@ -95,18 +95,18 @@ func TestPrintSessionDetail(t *testing.T) {
 		}},
 	}
 
-	want := "ID:          sess-1\n" +
-		"Created At:  2025-01-01\n" +
-		"Updated At:  2025-01-02\n" +
-		"Environment: prod\n" +
-		"User ID:     user-1\n" +
+	want := "ID:            sess-1\n" +
+		"Created At:    2025-01-01\n" +
+		"Updated At:    2025-01-02\n" +
+		"Environment:   prod\n" +
+		"User ID:       user-1\n" +
 		"\n--- Metrics ---\n" +
-		"Trace Count:       2\n" +
-		"Duration Seconds:  12.50s\n" +
-		"Total Cost:        $0.030000\n" +
-		"Input Tokens:      100\n" +
-		"Output Tokens:     200\n" +
-		"Total Tokens:      300\n" +
+		"Trace Count:        2\n" +
+		"Duration Seconds:   12.50s\n" +
+		"Total Cost:         $0.030000\n" +
+		"Input Tokens:       100\n" +
+		"Output Tokens:      200\n" +
+		"Total Tokens:       300\n" +
 		"\n--- Trace Summaries ---\n" +
 		"ID        NAME   TIMESTAMP    LATENCY   COST        OBSERVATIONS   TOTAL TOKENS   LEVEL\n" +
 		"trace-1   chat   2025-01-01   1.50s     $0.030000   4              300            DEFAULT\n"

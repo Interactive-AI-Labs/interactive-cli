@@ -86,36 +86,39 @@ func PrintScoreConfigList(
 }
 
 func PrintScoreConfigDetail(out io.Writer, cfg *clients.ScoreConfigInfo) error {
-	fmt.Fprintf(out, "ID:          %s\n", cfg.ID)
-	fmt.Fprintf(out, "Name:        %s\n", cfg.Name)
-	fmt.Fprintf(out, "Data Type:   %s\n", cfg.DataType)
-	fmt.Fprintf(out, "Archived:    %v\n", cfg.IsArchived)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", cfg.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", cfg.Name)
+	fmt.Fprintf(w, "Data Type:\t%s\n", cfg.DataType)
+	fmt.Fprintf(w, "Archived:\t%v\n", cfg.IsArchived)
 	if cfg.Description != "" {
-		fmt.Fprintf(out, "Description: %s\n", cfg.Description)
+		fmt.Fprintf(w, "Description:\t%s\n", cfg.Description)
 	}
-	fmt.Fprintf(out, "Min Value:   %s\n", formatOptionalFloat(cfg.MinValue))
-	fmt.Fprintf(out, "Max Value:   %s\n", formatOptionalFloat(cfg.MaxValue))
+	fmt.Fprintf(w, "Min Value:\t%s\n", formatOptionalFloat(cfg.MinValue))
+	fmt.Fprintf(w, "Max Value:\t%s\n", formatOptionalFloat(cfg.MaxValue))
 	if len(cfg.Categories) > 0 && string(cfg.Categories) != "null" {
-		fmt.Fprintf(out, "Categories:  %s\n", string(cfg.Categories))
+		fmt.Fprintf(w, "Categories:\t%s\n", string(cfg.Categories))
 	}
-	fmt.Fprintf(out, "Created At:  %s\n", LocalTime(cfg.CreatedAt))
-	fmt.Fprintf(out, "Updated At:  %s\n", LocalTime(cfg.UpdatedAt))
-	return nil
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(cfg.CreatedAt))
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(cfg.UpdatedAt))
+	return w.Flush()
 }
 
 func PrintScoreConfigCreateResult(out io.Writer, cfg *clients.ScoreConfigInfo) error {
-	fmt.Fprintf(out, "Created score config %q.\n", cfg.Name)
-	fmt.Fprintf(out, "ID:        %s\n", cfg.ID)
-	fmt.Fprintf(out, "Name:      %s\n", cfg.Name)
-	fmt.Fprintf(out, "Data Type: %s\n", cfg.DataType)
-	fmt.Fprintf(out, "Created At: %s\n", LocalTime(cfg.CreatedAt))
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Created score config %q.\n", cfg.Name)
+	fmt.Fprintf(w, "ID:\t%s\n", cfg.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", cfg.Name)
+	fmt.Fprintf(w, "Data Type:\t%s\n", cfg.DataType)
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(cfg.CreatedAt))
+	return w.Flush()
 }
 
 func PrintScoreConfigUpdateResult(out io.Writer, cfg *clients.ScoreConfigInfo) error {
-	fmt.Fprintf(out, "Updated score config %q.\n", cfg.ID)
-	fmt.Fprintf(out, "Name:      %s\n", cfg.Name)
-	fmt.Fprintf(out, "Archived:  %v\n", cfg.IsArchived)
-	fmt.Fprintf(out, "Updated At: %s\n", LocalTime(cfg.UpdatedAt))
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Updated score config %q.\n", cfg.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", cfg.Name)
+	fmt.Fprintf(w, "Archived:\t%v\n", cfg.IsArchived)
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(cfg.UpdatedAt))
+	return w.Flush()
 }

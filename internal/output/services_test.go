@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 )
 
 func TestPrintServiceList(t *testing.T) {
@@ -66,8 +67,6 @@ func TestPrintServiceList(t *testing.T) {
 	}
 }
 
-func intPtr(i int) *int { return &i }
-
 func TestPrintServiceDescribe(t *testing.T) {
 	tests := []struct {
 		name string
@@ -92,19 +91,18 @@ func TestPrintServiceDescribe(t *testing.T) {
 				Resources: clients.Resources{Memory: "128M", CPU: "100m"},
 				Replicas:  1,
 			},
-			want: "Name:        minimal-svc\n" +
-				"Project Id:  proj-123\n" +
-				"Revision:    1\n" +
-				"Status:      deployed\n" +
-				"Port:        8080\n" +
+			want: "Name:       minimal-svc\n" +
+				"Revision:   1\n" +
+				"Status:     deployed\n" +
+				"Port:       8080\n" +
 				"Image:\n" +
-				"  Type:       external\n" +
-				"  Name:       nginx\n" +
-				"  Tag:        latest\n" +
+				"  Type:   external\n" +
+				"  Name:   nginx\n" +
+				"  Tag:    latest\n" +
 				"Resources:\n" +
-				"  CPU:     100m\n" +
-				"  Memory:  128M\n" +
-				"Replicas:    1\n",
+				"  CPU:      100m\n" +
+				"  Memory:   128M\n" +
+				"Replicas:   1\n",
 		},
 		{
 			name: "zero replicas prints zero",
@@ -122,19 +120,18 @@ func TestPrintServiceDescribe(t *testing.T) {
 				Resources: clients.Resources{Memory: "256M", CPU: "200m"},
 				Replicas:  0,
 			},
-			want: "Name:        scaled-svc\n" +
-				"Project Id:  \n" +
-				"Revision:    0\n" +
-				"Status:      deployed\n" +
-				"Port:        80\n" +
+			want: "Name:       scaled-svc\n" +
+				"Revision:   0\n" +
+				"Status:     deployed\n" +
+				"Port:       80\n" +
 				"Image:\n" +
-				"  Type:       external\n" +
-				"  Name:       app\n" +
-				"  Tag:        1.0\n" +
+				"  Type:   external\n" +
+				"  Name:   app\n" +
+				"  Tag:    1.0\n" +
 				"Resources:\n" +
-				"  CPU:     200m\n" +
-				"  Memory:  256M\n" +
-				"Replicas:    0\n",
+				"  CPU:      200m\n" +
+				"  Memory:   256M\n" +
+				"Replicas:   0\n",
 		},
 		{
 			name: "autoscaling with CPU only",
@@ -153,26 +150,25 @@ func TestPrintServiceDescribe(t *testing.T) {
 				Autoscaling: &clients.Autoscaling{
 					MinReplicas:   2,
 					MaxReplicas:   5,
-					CPUPercentage: intPtr(70),
+					CPUPercentage: utils.ToPtr(70),
 				},
 			},
-			want: "Name:        autoscaling-svc\n" +
-				"Project Id:  \n" +
-				"Revision:    0\n" +
-				"Status:      deployed\n" +
-				"Port:        8080\n" +
+			want: "Name:       autoscaling-svc\n" +
+				"Revision:   0\n" +
+				"Status:     deployed\n" +
+				"Port:       8080\n" +
 				"Image:\n" +
-				"  Type:       external\n" +
-				"  Name:       redis\n" +
-				"  Tag:        7\n" +
+				"  Type:   external\n" +
+				"  Name:   redis\n" +
+				"  Tag:    7\n" +
 				"Resources:\n" +
-				"  CPU:     200m\n" +
-				"  Memory:  256M\n" +
+				"  CPU:      200m\n" +
+				"  Memory:   256M\n" +
 				"\n" +
 				"Autoscaling:\n" +
-				"  Min Replicas: 2\n" +
-				"  Max Replicas: 5\n" +
-				"  CPU%:         70\n",
+				"  Min Replicas:   2\n" +
+				"  Max Replicas:   5\n" +
+				"  CPU%:           70\n",
 		},
 		{
 			name: "full-featured service",
@@ -203,52 +199,51 @@ func TestPrintServiceDescribe(t *testing.T) {
 				Autoscaling: &clients.Autoscaling{
 					MinReplicas:      2,
 					MaxReplicas:      8,
-					CPUPercentage:    intPtr(65),
-					MemoryPercentage: intPtr(80),
+					CPUPercentage:    utils.ToPtr(65),
+					MemoryPercentage: utils.ToPtr(80),
 				},
 				Healthcheck: &clients.Healthcheck{
 					Path:                "/healthz",
-					InitialDelaySeconds: intPtr(20),
+					InitialDelaySeconds: utils.ToPtr(20),
 				},
 				Schedule: &clients.Schedule{
 					Uptime:   "Mon-Fri 08:00-20:00",
 					Timezone: "UTC",
 				},
 			},
-			want: "Name:        full-svc\n" +
-				"Project Id:  proj-456\n" +
-				"Revision:    10\n" +
-				"Status:      deployed\n" +
-				"Port:        443\n" +
+			want: "Name:       full-svc\n" +
+				"Revision:   10\n" +
+				"Status:     deployed\n" +
+				"Port:       443\n" +
 				"Image:\n" +
-				"  Type:       platform\n" +
-				"  Name:       api-gateway\n" +
-				"  Tag:        1.0.0\n" +
-				"  Repository: agents\n" +
+				"  Type:         platform\n" +
+				"  Name:         api-gateway\n" +
+				"  Tag:          1.0.0\n" +
+				"  Repository:   agents\n" +
 				"Resources:\n" +
-				"  CPU:     1\n" +
-				"  Memory:  1G\n" +
+				"  CPU:      1\n" +
+				"  Memory:   1G\n" +
 				"\n" +
 				"Autoscaling:\n" +
-				"  Min Replicas: 2\n" +
-				"  Max Replicas: 8\n" +
-				"  CPU%:         65\n" +
-				"  Memory%:      80\n" +
-				"Endpoint:    full-svc-abc.dev.interactive.ai\n" +
-				"Stack Id:    my-stack\n" +
+				"  Min Replicas:   2\n" +
+				"  Max Replicas:   8\n" +
+				"  CPU%:           65\n" +
+				"  Memory%:        80\n" +
+				"Endpoint:         full-svc-abc.dev.interactive.ai\n" +
+				"Stack:            my-stack\n" +
 				"\n" +
 				"Healthcheck:\n" +
-				"  Path:           /healthz\n" +
-				"  Initial Delay:  20s\n" +
+				"  Path:            /healthz\n" +
+				"  Initial Delay:   20s\n" +
 				"\n" +
 				"Environment:\n" +
 				"  LOG_LEVEL=info\n" +
 				"\n" +
-				"Secrets:     api-keys, db-creds\n" +
+				"Secrets:   api-keys, db-creds\n" +
 				"\n" +
 				"Schedule:\n" +
-				"  Uptime:   Mon-Fri 08:00-20:00\n" +
-				"  Timezone: UTC\n",
+				"  Uptime:     Mon-Fri 08:00-20:00\n" +
+				"  Timezone:   UTC\n",
 		},
 		{
 			name: "schedule with downtime",
@@ -270,23 +265,22 @@ func TestPrintServiceDescribe(t *testing.T) {
 					Timezone: "US/Eastern",
 				},
 			},
-			want: "Name:        downtime-svc\n" +
-				"Project Id:  \n" +
-				"Revision:    0\n" +
-				"Status:      deployed\n" +
-				"Port:        8080\n" +
+			want: "Name:       downtime-svc\n" +
+				"Revision:   0\n" +
+				"Status:     deployed\n" +
+				"Port:       8080\n" +
 				"Image:\n" +
-				"  Type:       external\n" +
-				"  Name:       app\n" +
-				"  Tag:        v2\n" +
+				"  Type:   external\n" +
+				"  Name:   app\n" +
+				"  Tag:    v2\n" +
 				"Resources:\n" +
-				"  CPU:     50m\n" +
-				"  Memory:  128M\n" +
-				"Replicas:    1\n" +
+				"  CPU:      50m\n" +
+				"  Memory:   128M\n" +
+				"Replicas:   1\n" +
 				"\n" +
 				"Schedule:\n" +
-				"  Downtime: Sat-Sun 00:00-24:00\n" +
-				"  Timezone: US/Eastern\n",
+				"  Downtime:   Sat-Sun 00:00-24:00\n" +
+				"  Timezone:   US/Eastern\n",
 		},
 	}
 

@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+// NewDescribeWriter returns a tabwriter.Writer for describe/detail output.
+// Use \t between label and value — never manual spaces. Call Flush() when done.
+func NewDescribeWriter(out io.Writer) *tabwriter.Writer {
+	return tabwriter.NewWriter(out, 0, 0, 3, ' ', tabwriter.StripEscape)
+}
+
 // PrintTable prints data in a tabular format using text/tabwriter.
 // Cell text wrapped in '\xff' (tabwriter.Escape) is passed through unchanged
 // and ignored when computing column widths — use it to embed ANSI color codes

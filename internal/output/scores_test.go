@@ -70,11 +70,11 @@ func TestPrintScoreCreateResultAndDeleteSuccess(t *testing.T) {
 	}
 
 	wantCreate := "Created score \"score-1\".\n" +
-		"Name:       quality\n" +
-		"Data Type:  NUMERIC\n" +
-		"Value:      0.95\n" +
-		"Timestamp:  2025-01-01\n" +
-		"Trace ID:   trace-1\n"
+		"Name:        quality\n" +
+		"Data Type:   NUMERIC\n" +
+		"Value:       0.95\n" +
+		"Timestamp:   2025-01-01\n" +
+		"Trace ID:    trace-1\n"
 	if got := buf.String(); got != wantCreate {
 		t.Errorf("create output mismatch\ngot:\n%q\nwant:\n%q", got, wantCreate)
 	}

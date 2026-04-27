@@ -31,24 +31,25 @@ func PrintAgentList(out io.Writer, agents []clients.AgentOutput) error {
 }
 
 func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) error {
-	fmt.Fprintf(out, "Name:      %s\n", agent.Name)
-	fmt.Fprintf(out, "Id:        %s\n", agent.Id)
-	fmt.Fprintf(out, "Version:   %s\n", agent.Version)
-	fmt.Fprintf(out, "Revision:  %d\n", agent.Revision)
-	fmt.Fprintf(out, "Status:    %s\n", agent.Status)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Name:\t%s\n", agent.Name)
+	fmt.Fprintf(w, "Id:\t%s\n", agent.Id)
+	fmt.Fprintf(w, "Version:\t%s\n", agent.Version)
+	fmt.Fprintf(w, "Revision:\t%d\n", agent.Revision)
+	fmt.Fprintf(w, "Status:\t%s\n", agent.Status)
 
 	if agent.Updated != "" {
-		fmt.Fprintf(out, "Updated:   %s\n", LocalTime(agent.Updated))
+		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(agent.Updated))
 	}
 	if agent.Endpoint != "" {
-		fmt.Fprintf(out, "Endpoint:  %s\n", agent.Endpoint)
+		fmt.Fprintf(w, "Endpoint:\t%s\n", agent.Endpoint)
 	}
 
 	if len(agent.Env) > 0 {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Environment:")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Environment:")
 		for _, e := range agent.Env {
-			fmt.Fprintf(out, "  %s=%s\n", e.Name, e.Value)
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
 		}
 	}
 
@@ -57,35 +58,36 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 		for i, ref := range agent.SecretRefs {
 			names[i] = ref.SecretName
 		}
-		fmt.Fprintf(out, "\nSecrets:   %s\n", strings.Join(names, ", "))
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Secrets:\t%s\n", strings.Join(names, ", "))
 	}
 
 	if agent.Schedule != nil {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Schedule:")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Schedule:")
 		if agent.Schedule.Uptime != "" {
-			fmt.Fprintf(out, "  Uptime:   %s\n", agent.Schedule.Uptime)
+			fmt.Fprintf(w, "  Uptime:\t%s\n", agent.Schedule.Uptime)
 		}
 		if agent.Schedule.Downtime != "" {
-			fmt.Fprintf(out, "  Downtime: %s\n", agent.Schedule.Downtime)
+			fmt.Fprintf(w, "  Downtime:\t%s\n", agent.Schedule.Downtime)
 		}
 		if agent.Schedule.Timezone != "" {
-			fmt.Fprintf(out, "  Timezone: %s\n", agent.Schedule.Timezone)
+			fmt.Fprintf(w, "  Timezone:\t%s\n", agent.Schedule.Timezone)
 		}
 	}
 
 	if agent.AgentConfig != nil {
 		cfgBytes, err := yaml.Marshal(agent.AgentConfig)
 		if err == nil && len(cfgBytes) > 0 {
-			fmt.Fprintln(out)
-			fmt.Fprintln(out, "Agent Config:")
+			fmt.Fprintln(w)
+			fmt.Fprintln(w, "Agent Config:")
 			for _, line := range strings.Split(strings.TrimRight(string(cfgBytes), "\n"), "\n") {
-				fmt.Fprintf(out, "  %s\n", line)
+				fmt.Fprintf(w, "  %s\n", line)
 			}
 		}
 	}
 
-	return nil
+	return w.Flush()
 }
 
 func PrintAgentCatalog(out io.Writer, agents []clients.CatalogAgent) error {

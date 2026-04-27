@@ -112,22 +112,22 @@ func TestPrintVectorStoreDescribe(t *testing.T) {
 				},
 				SecretName: "my-store-credentials",
 			},
-			want: "Name:            my-store\n" +
-				"Status:          ready\n" +
-				"Engine Version:  POSTGRES_15\n" +
-				"Created At:      Wed, 15 Jan 2025 11:30:00 +0100\n" +
-				"HA:              Yes\n" +
-				"Backups:         Yes\n" +
-				"Backup Time:     03:00\n" +
-				"Secret:          my-store-credentials\n" +
+			want: "Name:             my-store\n" +
+				"Status:           ready\n" +
+				"Engine Version:   POSTGRES_15\n" +
+				"Created At:       Wed, 15 Jan 2025 11:30:00 +0100\n" +
+				"HA:               Yes\n" +
+				"Backups:          Yes\n" +
+				"Backup Time:      03:00\n" +
+				"Secret:           my-store-credentials\n" +
 				"\n" +
 				"Resources:\n" +
-				"  CPU:               4\n" +
-				"  Memory:            16.00 GB\n" +
+				"  CPU:      4\n" +
+				"  Memory:   16.00 GB\n" +
 				"Storage:\n" +
-				"  Size:              100 GB\n" +
-				"  Auto Resize:       Yes\n" +
-				"  Auto Resize Limit: 500 GB\n",
+				"  Size:                100 GB\n" +
+				"  Auto Resize:         Yes\n" +
+				"  Auto Resize Limit:   500 GB\n",
 		},
 		{
 			name: "minimal store without optional fields",
@@ -143,18 +143,18 @@ func TestPrintVectorStoreDescribe(t *testing.T) {
 					Size: 20,
 				},
 			},
-			want: "Name:            basic-store\n" +
-				"Status:          creating\n" +
-				"Engine Version:  POSTGRES_14\n" +
-				"HA:              No\n" +
-				"Backups:         No\n" +
+			want: "Name:             basic-store\n" +
+				"Status:           creating\n" +
+				"Engine Version:   POSTGRES_14\n" +
+				"HA:               No\n" +
+				"Backups:          No\n" +
 				"\n" +
 				"Resources:\n" +
-				"  CPU:               2\n" +
-				"  Memory:            8.00 GB\n" +
+				"  CPU:      2\n" +
+				"  Memory:   8.00 GB\n" +
 				"Storage:\n" +
-				"  Size:              20 GB\n" +
-				"  Auto Resize:       No\n",
+				"  Size:          20 GB\n" +
+				"  Auto Resize:   No\n",
 		},
 		{
 			name: "store with auto resize disabled shows no limit",
@@ -173,20 +173,20 @@ func TestPrintVectorStoreDescribe(t *testing.T) {
 				},
 				SecretName: "no-resize-credentials",
 			},
-			want: "Name:            no-resize\n" +
-				"Status:          ready\n" +
-				"Engine Version:  POSTGRES_15\n" +
-				"Created At:      Sat, 01 Feb 2025 01:00:00 +0100\n" +
-				"HA:              No\n" +
-				"Backups:         No\n" +
-				"Secret:          no-resize-credentials\n" +
+			want: "Name:             no-resize\n" +
+				"Status:           ready\n" +
+				"Engine Version:   POSTGRES_15\n" +
+				"Created At:       Sat, 01 Feb 2025 01:00:00 +0100\n" +
+				"HA:               No\n" +
+				"Backups:          No\n" +
+				"Secret:           no-resize-credentials\n" +
 				"\n" +
 				"Resources:\n" +
-				"  CPU:               2\n" +
-				"  Memory:            4.00 GB\n" +
+				"  CPU:      2\n" +
+				"  Memory:   4.00 GB\n" +
 				"Storage:\n" +
-				"  Size:              50 GB\n" +
-				"  Auto Resize:       No\n",
+				"  Size:          50 GB\n" +
+				"  Auto Resize:   No\n",
 		},
 	}
 

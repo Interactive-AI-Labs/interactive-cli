@@ -9,6 +9,11 @@ import (
 )
 
 func PrintReplicaList(out io.Writer, replicas []clients.ReplicaInfo) error {
+	if len(replicas) == 0 {
+		fmt.Fprintln(out, "No replicas found.")
+		return nil
+	}
+
 	headers := []string{"NAME", "STATUS", "CPU", "MEMORY", "STARTED"}
 	rows := make([][]string, len(replicas))
 	for i, r := range replicas {
@@ -45,48 +50,48 @@ func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
 		readyStr = "Yes"
 	}
 
-	fmt.Fprintln(out)
-	fmt.Fprintf(out, "Name:          %s\n", status.Name)
-	fmt.Fprintf(out, "Status:        %s\n", status.Status)
-	fmt.Fprintf(out, "Ready:         %s\n", readyStr)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Name:\t%s\n", status.Name)
+	fmt.Fprintf(w, "Status:\t%s\n", status.Status)
+	fmt.Fprintf(w, "Ready:\t%s\n", readyStr)
 	if status.StartTime != "" {
-		fmt.Fprintf(out, "Start Time:    %s\n", LocalTime(status.StartTime))
+		fmt.Fprintf(w, "Start Time:\t%s\n", LocalTime(status.StartTime))
 	}
-	fmt.Fprintf(out, "Restart Count: %d\n", status.RestartCount)
+	fmt.Fprintf(w, "Restart Count:\t%d\n", status.RestartCount)
 
 	if status.LastTerminationState != nil {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Last Termination State:")
-		fmt.Fprintf(out, "  Reason:      %s\n", status.LastTerminationState.Reason)
-		fmt.Fprintf(out, "  Exit Code:   %d\n", status.LastTerminationState.ExitCode)
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Last Termination State:")
+		fmt.Fprintf(w, "  Reason:\t%s\n", status.LastTerminationState.Reason)
+		fmt.Fprintf(w, "  Exit Code:\t%d\n", status.LastTerminationState.ExitCode)
 		if status.LastTerminationState.StartedAt != "" {
-			fmt.Fprintf(
-				out,
-				"  Started At:  %s\n",
-				LocalTime(status.LastTerminationState.StartedAt),
-			)
+			fmt.Fprintf(w, "  Started At:\t%s\n", LocalTime(status.LastTerminationState.StartedAt))
 		}
 		if status.LastTerminationState.FinishedAt != "" {
 			fmt.Fprintf(
-				out,
-				"  Finished At: %s\n",
+				w,
+				"  Finished At:\t%s\n",
 				LocalTime(status.LastTerminationState.FinishedAt),
 			)
 		}
 	}
 
 	if status.Resources != nil {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Resources:")
-		fmt.Fprintf(out, "  CPU:    %s\n", status.Resources.CPU)
-		fmt.Fprintf(out, "  Memory: %s\n", status.Resources.Memory)
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Resources:")
+		fmt.Fprintf(w, "  CPU:\t%s\n", status.Resources.CPU)
+		fmt.Fprintf(w, "  Memory:\t%s\n", status.Resources.Memory)
 	}
 
 	if status.Healthcheck != nil {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Healthcheck:")
-		fmt.Fprintf(out, "  Path:                 %s\n", status.Healthcheck.Path)
-		fmt.Fprintf(out, "  Initial Delay (secs): %d\n", status.Healthcheck.InitialDelaySeconds)
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Healthcheck:")
+		fmt.Fprintf(w, "  Path:\t%s\n", status.Healthcheck.Path)
+		fmt.Fprintf(w, "  Initial Delay (secs):\t%d\n", status.Healthcheck.InitialDelaySeconds)
+	}
+
+	if err := w.Flush(); err != nil {
+		return err
 	}
 
 	if len(status.Events) > 0 {

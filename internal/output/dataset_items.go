@@ -73,34 +73,36 @@ func PrintDatasetItemList(
 }
 
 func PrintDatasetItemDetail(out io.Writer, item *clients.DatasetItemInfo) error {
-	fmt.Fprintf(out, "ID:                    %s\n", item.ID)
-	fmt.Fprintf(out, "Status:                %s\n", item.Status)
-	fmt.Fprintf(out, "Dataset Name:          %s\n", item.DatasetName)
-	fmt.Fprintf(out, "Created At:            %s\n", LocalTime(item.CreatedAt))
-	fmt.Fprintf(out, "Updated At:            %s\n", LocalTime(item.UpdatedAt))
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
+	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
+	fmt.Fprintf(w, "Dataset Name:\t%s\n", item.DatasetName)
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(item.CreatedAt))
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(item.UpdatedAt))
 	if item.SourceTraceID != "" {
-		fmt.Fprintf(out, "Source Trace ID:       %s\n", item.SourceTraceID)
+		fmt.Fprintf(w, "Source Trace ID:\t%s\n", item.SourceTraceID)
 	}
 	if item.SourceObservationID != "" {
-		fmt.Fprintf(out, "Source Observation ID: %s\n", item.SourceObservationID)
+		fmt.Fprintf(w, "Source Observation ID:\t%s\n", item.SourceObservationID)
 	}
 	if len(item.Input) > 0 && string(item.Input) != "null" {
-		fmt.Fprintf(out, "Input:                 %s\n", prettyJSON(item.Input, false))
+		fmt.Fprintf(w, "Input:\t%s\n", prettyJSON(item.Input, false))
 	}
 	if len(item.ExpectedOutput) > 0 && string(item.ExpectedOutput) != "null" {
-		fmt.Fprintf(out, "Expected Output:       %s\n", prettyJSON(item.ExpectedOutput, false))
+		fmt.Fprintf(w, "Expected Output:\t%s\n", prettyJSON(item.ExpectedOutput, false))
 	}
 	if len(item.Metadata) > 0 && string(item.Metadata) != "null" {
-		fmt.Fprintf(out, "Metadata:              %s\n", string(item.Metadata))
+		fmt.Fprintf(w, "Metadata:\t%s\n", string(item.Metadata))
 	}
-	return nil
+	return w.Flush()
 }
 
 func PrintDatasetItemCreateResult(out io.Writer, item *clients.DatasetItemInfo) error {
-	fmt.Fprintf(out, "Created dataset item %q.\n", item.ID)
-	fmt.Fprintf(out, "ID:           %s\n", item.ID)
-	fmt.Fprintf(out, "Status:       %s\n", item.Status)
-	fmt.Fprintf(out, "Dataset Name: %s\n", item.DatasetName)
-	fmt.Fprintf(out, "Created At:   %s\n", LocalTime(item.CreatedAt))
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Created dataset item %q.\n", item.ID)
+	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
+	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
+	fmt.Fprintf(w, "Dataset Name:\t%s\n", item.DatasetName)
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(item.CreatedAt))
+	return w.Flush()
 }
