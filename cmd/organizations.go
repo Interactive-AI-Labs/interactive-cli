@@ -11,7 +11,7 @@ import (
 
 var organizationsCmd = &cobra.Command{
 	Use:     "organizations",
-	Aliases: []string{"organization"},
+	Aliases: []string{"organization", "org", "o"},
 	Short:   "Manage organizations",
 	Long:    `Manage organizations associated with your account.`,
 }

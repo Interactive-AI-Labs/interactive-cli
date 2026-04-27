@@ -1,4 +1,4 @@
-## iai stack sync
+## iai stacks sync
 
 Sync services, agents, and vector stores from a stack config file
 
@@ -13,7 +13,7 @@ Vector stores are created or deleted (--allow-delete=vector-stores). Updates are
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
 
 ```
-iai stack sync [flags]
+iai stacks sync [flags]
 ```
 
 ### Example config file
@@ -95,5 +95,5 @@ vector-stores:
 
 ### SEE ALSO
 
-* [iai stack](iai_stack.md)	 - Manage stacks
+* [iai stacks](iai_stacks.md)	 - Manage stacks
 

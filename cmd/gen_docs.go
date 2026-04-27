@@ -99,7 +99,7 @@ var genDocsCmd = &cobra.Command{
 		// Insert config example into the stack sync doc.
 		// Note: iai_services_sync.md is not injected here because the command
 		// is deprecated and Cobra no longer regenerates its doc file.
-		syncDocPath := filepath.Join(outDir, "iai_stack_sync.md")
+		syncDocPath := filepath.Join(outDir, "iai_stacks_sync.md")
 		syncContent, err := os.ReadFile(syncDocPath)
 		if err != nil {
 			return err

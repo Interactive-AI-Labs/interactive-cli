@@ -19,8 +19,8 @@ var (
 )
 
 var stackCmd = &cobra.Command{
-	Use:     "stack",
-	Aliases: []string{"stacks"},
+	Use:     "stacks",
+	Aliases: []string{"stack", "st"},
 	Short:   "Manage stacks",
 	Long:    `Manage stacks and their resources (services, agents, vector stores) from stack configuration files.`,
 }
