@@ -154,7 +154,7 @@ func Services(
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			_, err := deployClient.UpdateService(
+			_, err := deployClient.PutService(
 				ctx, orgId, projectId, name, body,
 			)
 			if err != nil {
@@ -232,7 +232,7 @@ func Agents(
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			_, err := deployClient.UpdateAgent(
+			_, err := deployClient.PutAgent(
 				ctx, orgId, projectId, name, body,
 			)
 			if err != nil {

@@ -4,8 +4,31 @@ Update a service in a project
 
 ### Synopsis
 
-Update a service in a specific project using the deployment service.
+Update a service in a specific project.
 
+Only the flags you pass are applied; everything else is left at its current
+value.
+
+Lists (--env, --secret) replace the entire current list when provided — pass
+every value you want to keep.
+
+Replicas and autoscaling are mutually exclusive: passing --replicas disables
+autoscaling, and passing any --autoscaling-* flag switches back to autoscaling.
+
+For schedules, passing --schedule-uptime auto-clears any existing downtime,
+and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
+alongside either to change the timezone.
+
+Use --clear-env, --clear-secret, --clear-healthcheck, or --clear-schedule to
+remove those configurations entirely.
+
+Examples:
+  iai services update my-svc --image-tag v2
+  iai services update my-svc --memory 1G --cpu 0.5
+  iai services update my-svc --replicas 3
+  iai services update my-svc --autoscaling-max-replicas 8
+  iai services update my-svc --schedule-downtime "Sat-Sun 00:00-24:00"
+  iai services update my-svc --clear-healthcheck
 
 ```
 iai services update <service_name> [flags]
@@ -18,6 +41,10 @@ iai services update <service_name> [flags]
       --autoscaling-max-replicas int        Maximum number of replicas for autoscaling
       --autoscaling-memory-percentage int   Memory percentage threshold for autoscaling
       --autoscaling-min-replicas int        Minimum number of replicas for autoscaling
+      --clear-env                           Remove all environment variables from the service
+      --clear-healthcheck                   Remove the healthcheck configuration from the service
+      --clear-schedule                      Remove the schedule configuration from the service
+      --clear-secret                        Remove all secret references from the service
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated

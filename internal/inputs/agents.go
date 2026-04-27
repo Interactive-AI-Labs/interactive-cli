@@ -79,3 +79,89 @@ func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
 
 	return reqBody, nil
 }
+
+// AgentUpdateFlags is the set of cobra flag names BuildAgentUpdatePatch
+// inspects via the `changed` predicate. Keep in sync with cmd/agents.go.
+var AgentUpdateFlags = struct {
+	Id               string
+	Version          string
+	File             string
+	Endpoint         string
+	Env              string
+	Secret           string
+	ScheduleUptime   string
+	ScheduleDowntime string
+	ScheduleTimezone string
+}{
+	Id:               "id",
+	Version:          "version",
+	File:             "file",
+	Endpoint:         "endpoint",
+	Env:              "env",
+	Secret:           "secret",
+	ScheduleUptime:   "schedule-uptime",
+	ScheduleDowntime: "schedule-downtime",
+	ScheduleTimezone: "schedule-timezone",
+}
+
+// BuildAgentUpdatePatch produces a partial-update body containing only the
+// fields whose flags the user explicitly set. `changed` reports whether a flag
+// name was provided on the command line (typically cmd.Flags().Changed).
+func BuildAgentUpdatePatch(
+	in AgentInput,
+	clearEnv, clearSecret, clearSchedule bool,
+	changed func(string) bool,
+) (clients.UpdatePatch, error) {
+	f := AgentUpdateFlags
+	patch := clients.UpdatePatch{}
+
+	if changed(f.Id) {
+		if err := setJSON(patch, "id", in.Id); err != nil {
+			return nil, err
+		}
+	}
+	if changed(f.Version) {
+		if err := setJSON(patch, "version", in.Version); err != nil {
+			return nil, err
+		}
+	}
+
+	if changed(f.File) {
+		data, err := os.ReadFile(in.FilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file %q: %w", in.FilePath, err)
+		}
+		var agentConfig any
+		if err := yaml.Unmarshal(data, &agentConfig); err != nil {
+			return nil, fmt.Errorf(
+				"failed to parse YAML from %q: %w", in.FilePath, err,
+			)
+		}
+		if err := setJSON(patch, "agentConfig", agentConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := setEnvPatch(patch, in.EnvVars, changed(f.Env), clearEnv); err != nil {
+		return nil, err
+	}
+	if err := setSecretRefsPatch(patch, in.SecretRefs, changed(f.Secret), clearSecret); err != nil {
+		return nil, err
+	}
+	if err := setEndpointPatch(patch, in.Endpoint, changed(f.Endpoint)); err != nil {
+		return nil, err
+	}
+	if err := setSchedulePatch(patch, ScheduleInput{
+		Uptime:          in.ScheduleUptime,
+		Downtime:        in.ScheduleDowntime,
+		Timezone:        in.ScheduleTimezone,
+		UptimeChanged:   changed(f.ScheduleUptime),
+		DowntimeChanged: changed(f.ScheduleDowntime),
+		TimezoneChanged: changed(f.ScheduleTimezone),
+		Clear:           clearSchedule,
+	}); err != nil {
+		return nil, err
+	}
+
+	return patch, nil
+}
