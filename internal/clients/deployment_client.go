@@ -272,14 +272,40 @@ func (c *DeploymentClient) CreateService(
 	return serverMessage, nil
 }
 
-func (c *DeploymentClient) UpdateService(
+// UpdatePatch is a partial-update body for PATCH calls. Fields omitted from
+// the map are kept by the server; a JSON `null` value clears a nullable field.
+type UpdatePatch map[string]json.RawMessage
+
+// PutService PUTs the full service spec; the server resets every field that
+// isn't present in the body to its zero/default. Used by stack sync.
+func (c *DeploymentClient) PutService(
 	ctx context.Context,
 	orgId,
 	projectId string,
 	serviceName string,
-	req CreateServiceBody,
+	body CreateServiceBody,
 ) (string, error) {
-	bodyBytes, err := json.Marshal(req)
+	return c.sendServiceUpdate(ctx, http.MethodPut, orgId, projectId, serviceName, body)
+}
+
+// PatchService PATCHes a partial update; only fields present in the patch are
+// applied. Used by `iai services update`.
+func (c *DeploymentClient) PatchService(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	serviceName string,
+	patch UpdatePatch,
+) (string, error) {
+	return c.sendServiceUpdate(ctx, http.MethodPatch, orgId, projectId, serviceName, patch)
+}
+
+func (c *DeploymentClient) sendServiceUpdate(
+	ctx context.Context,
+	method, orgId, projectId, serviceName string,
+	body any,
+) (string, error) {
+	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
@@ -290,7 +316,7 @@ func (c *DeploymentClient) UpdateService(
 		url.PathEscape(projectId),
 		url.PathEscape(serviceName),
 	)
-	reqHTTP, err := c.newRequest(ctx, http.MethodPut, path)
+	reqHTTP, err := c.newRequest(ctx, method, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -1504,14 +1530,36 @@ func (c *DeploymentClient) CreateAgent(
 	return serverMessage, nil
 }
 
-func (c *DeploymentClient) UpdateAgent(
+// PutAgent PUTs the full agent spec; the server resets every field that isn't
+// present in the body. Used by stack sync.
+func (c *DeploymentClient) PutAgent(
 	ctx context.Context,
 	orgId,
 	projectId string,
 	agentName string,
-	req CreateAgentBody,
+	body CreateAgentBody,
 ) (string, error) {
-	bodyBytes, err := json.Marshal(req)
+	return c.sendAgentUpdate(ctx, http.MethodPut, orgId, projectId, agentName, body)
+}
+
+// PatchAgent PATCHes a partial update; only fields present in the patch are
+// applied. Used by `iai agents update`.
+func (c *DeploymentClient) PatchAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+	patch UpdatePatch,
+) (string, error) {
+	return c.sendAgentUpdate(ctx, http.MethodPatch, orgId, projectId, agentName, patch)
+}
+
+func (c *DeploymentClient) sendAgentUpdate(
+	ctx context.Context,
+	method, orgId, projectId, agentName string,
+	body any,
+) (string, error) {
+	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode request body: %w", err)
 	}
@@ -1522,7 +1570,7 @@ func (c *DeploymentClient) UpdateAgent(
 		url.PathEscape(projectId),
 		url.PathEscape(agentName),
 	)
-	reqHTTP, err := c.newRequest(ctx, http.MethodPut, path)
+	reqHTTP, err := c.newRequest(ctx, method, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

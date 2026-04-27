@@ -6,14 +6,29 @@ Update an agent in a project
 
 Update an agent in a specific project.
 
-The --file flag takes a YAML file matching the agent_config schema — run
-'iai agents schema' to see the expected shape. Pass the agent name as the
-positional argument and id/version/env/secrets/endpoint/schedule via flags;
-do not include them inside the file.
+Only the flags you pass are applied; everything else is left at its current
+value.
+
+--file takes a YAML file matching the agent_config schema — run
+'iai agents schema' to see the expected shape — and replaces the entire agent
+config in full when provided (no per-field merge).
+
+Lists (--env, --secret) replace the entire current list when provided — pass
+every value you want to keep.
+
+For schedules, passing --schedule-uptime auto-clears any existing downtime,
+and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
+alongside either to change the timezone.
+
+Use --clear-env, --clear-secret, or --clear-schedule to remove those
+configurations entirely.
 
 Examples:
-  iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml
-  iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml --endpoint
+  iai agents update chat-agent --version 0.0.3
+  iai agents update chat-agent --file agent-config.yaml
+  iai agents update chat-agent --endpoint=false
+  iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
+  iai agents update chat-agent --clear-schedule
 
 ```
 iai agents update <agent_name> [flags]
@@ -22,6 +37,9 @@ iai agents update <agent_name> [flags]
 ### Options
 
 ```
+      --clear-env                  Remove all environment variables from the agent
+      --clear-schedule             Remove the schedule configuration from the agent
+      --clear-secret               Remove all secret references from the agent
       --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)

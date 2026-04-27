@@ -33,6 +33,10 @@ var (
 	agentScheduleUptime   string
 	agentScheduleDowntime string
 	agentScheduleTimezone string
+
+	agentClearSchedule bool
+	agentClearEnv      bool
+	agentClearSecret   bool
 )
 
 var agentsCmd = &cobra.Command{
@@ -146,14 +150,29 @@ var agentUpdateCmd = &cobra.Command{
 	Short: "Update an agent in a project",
 	Long: `Update an agent in a specific project.
 
-The --file flag takes a YAML file matching the agent_config schema — run
-'iai agents schema' to see the expected shape. Pass the agent name as the
-positional argument and id/version/env/secrets/endpoint/schedule via flags;
-do not include them inside the file.
+Only the flags you pass are applied; everything else is left at its current
+value.
+
+--file takes a YAML file matching the agent_config schema — run
+'iai agents schema' to see the expected shape — and replaces the entire agent
+config in full when provided (no per-field merge).
+
+Lists (--env, --secret) replace the entire current list when provided — pass
+every value you want to keep.
+
+For schedules, passing --schedule-uptime auto-clears any existing downtime,
+and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
+alongside either to change the timezone.
+
+Use --clear-env, --clear-secret, or --clear-schedule to remove those
+configurations entirely.
 
 Examples:
-  iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml
-  iai agents update chat-agent --id interactive-agent --version 0.0.2 --file agent-config.yaml --endpoint`,
+  iai agents update chat-agent --version 0.0.3
+  iai agents update chat-agent --file agent-config.yaml
+  iai agents update chat-agent --endpoint=false
+  iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
+  iai agents update chat-agent --clear-schedule`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -202,7 +221,7 @@ Examples:
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		reqBody, err := inputs.BuildAgentRequestBody(inputs.AgentInput{
+		patch, err := inputs.BuildAgentUpdatePatch(inputs.AgentInput{
 			Id:               agentId,
 			Version:          agentVersion,
 			FilePath:         agentFile,
@@ -212,20 +231,23 @@ Examples:
 			ScheduleUptime:   agentScheduleUptime,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
-		})
+		}, agentClearEnv, agentClearSecret, agentClearSchedule, cmd.Flags().Changed)
 		if err != nil {
 			return err
+		}
+		if len(patch) == 0 {
+			return fmt.Errorf("no fields to update; pass at least one flag")
 		}
 
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting agent update request...")
 
-		serverMessage, err := deployClient.UpdateAgent(
+		serverMessage, err := deployClient.PatchAgent(
 			cmd.Context(),
 			orgId,
 			projectId,
 			agentName,
-			reqBody,
+			patch,
 		)
 		if err != nil {
 			return err
@@ -763,9 +785,12 @@ func init() {
 		StringVar(&agentScheduleDowntime, "schedule-downtime", "", "When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'")
 	agentUpdateCmd.Flags().
 		StringVar(&agentScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
-	_ = agentUpdateCmd.MarkFlagRequired("id")
-	_ = agentUpdateCmd.MarkFlagRequired("version")
-	_ = agentUpdateCmd.MarkFlagRequired("file")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentClearEnv, "clear-env", false, "Remove all environment variables from the agent")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentClearSecret, "clear-secret", false, "Remove all secret references from the agent")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentClearSchedule, "clear-schedule", false, "Remove the schedule configuration from the agent")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().

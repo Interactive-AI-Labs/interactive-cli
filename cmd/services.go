@@ -46,6 +46,11 @@ var (
 	serviceScheduleUptime   string
 	serviceScheduleDowntime string
 	serviceScheduleTimezone string
+
+	serviceClearHealthcheck bool
+	serviceClearSchedule    bool
+	serviceClearEnv         bool
+	serviceClearSecret      bool
 )
 
 var servicesCmd = &cobra.Command{
@@ -159,8 +164,31 @@ var servCCmd = &cobra.Command{
 var servUCmd = &cobra.Command{
 	Use:   "update <service_name>",
 	Short: "Update a service in a project",
-	Long: `Update a service in a specific project using the deployment service.
-`,
+	Long: `Update a service in a specific project.
+
+Only the flags you pass are applied; everything else is left at its current
+value.
+
+Lists (--env, --secret) replace the entire current list when provided — pass
+every value you want to keep.
+
+Replicas and autoscaling are mutually exclusive: passing --replicas disables
+autoscaling, and passing any --autoscaling-* flag switches back to autoscaling.
+
+For schedules, passing --schedule-uptime auto-clears any existing downtime,
+and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
+alongside either to change the timezone.
+
+Use --clear-env, --clear-secret, --clear-healthcheck, or --clear-schedule to
+remove those configurations entirely.
+
+Examples:
+  iai services update my-svc --image-tag v2
+  iai services update my-svc --memory 1G --cpu 0.5
+  iai services update my-svc --replicas 3
+  iai services update my-svc --autoscaling-max-replicas 8
+  iai services update my-svc --schedule-downtime "Sat-Sun 00:00-24:00"
+  iai services update my-svc --clear-healthcheck`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -209,7 +237,7 @@ var servUCmd = &cobra.Command{
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		reqBody, err := inputs.BuildServiceRequestBody(inputs.ServiceInput{
+		patch, err := inputs.BuildServiceUpdatePatch(inputs.ServiceInput{
 			Port:                    servicePort,
 			ImageType:               serviceImageType,
 			ImageRepository:         serviceImageRepository,
@@ -230,20 +258,23 @@ var servUCmd = &cobra.Command{
 			ScheduleUptime:          serviceScheduleUptime,
 			ScheduleDowntime:        serviceScheduleDowntime,
 			ScheduleTimezone:        serviceScheduleTimezone,
-		})
+		}, serviceClearEnv, serviceClearSecret, serviceClearHealthcheck, serviceClearSchedule, cmd.Flags().Changed)
 		if err != nil {
 			return err
+		}
+		if len(patch) == 0 {
+			return fmt.Errorf("no fields to update; pass at least one flag")
 		}
 
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "Submitting service update request...")
 
-		serverMessage, err := deployClient.UpdateService(
+		serverMessage, err := deployClient.PatchService(
 			cmd.Context(),
 			orgId,
 			projectId,
 			serviceName,
-			reqBody,
+			patch,
 		)
 		if err != nil {
 			return err
@@ -829,8 +860,6 @@ func init() {
 		StringVar(&serviceMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)")
 	servUCmd.Flags().
 		StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
-	_ = servUCmd.MarkFlagRequired("memory")
-	_ = servUCmd.MarkFlagRequired("cpu")
 
 	servUCmd.Flags().
 		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas for autoscaling")
@@ -859,6 +888,14 @@ func init() {
 		StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
 	servUCmd.Flags().
 		StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
+	servUCmd.Flags().
+		BoolVar(&serviceClearEnv, "clear-env", false, "Remove all environment variables from the service")
+	servUCmd.Flags().
+		BoolVar(&serviceClearSecret, "clear-secret", false, "Remove all secret references from the service")
+	servUCmd.Flags().
+		BoolVar(&serviceClearHealthcheck, "clear-healthcheck", false, "Remove the healthcheck configuration from the service")
+	servUCmd.Flags().
+		BoolVar(&serviceClearSchedule, "clear-schedule", false, "Remove the schedule configuration from the service")
 
 	// Flags for "services list"
 	servListCmd.Flags().
