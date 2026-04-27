@@ -78,23 +78,25 @@ func PrintCommentList(
 }
 
 func PrintCommentDetail(out io.Writer, c *clients.CommentInfo) error {
-	fmt.Fprintf(out, "ID:             %s\n", c.ID)
-	fmt.Fprintf(out, "Object Type:    %s\n", c.ObjectType)
-	fmt.Fprintf(out, "Object ID:      %s\n", c.ObjectID)
-	fmt.Fprintf(out, "Content:        %s\n", c.Content)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", c.ID)
+	fmt.Fprintf(w, "Object Type:\t%s\n", c.ObjectType)
+	fmt.Fprintf(w, "Object ID:\t%s\n", c.ObjectID)
+	fmt.Fprintf(w, "Content:\t%s\n", c.Content)
 	if c.AuthorUserID != "" {
-		fmt.Fprintf(out, "Author User ID: %s\n", c.AuthorUserID)
+		fmt.Fprintf(w, "Author User ID:\t%s\n", c.AuthorUserID)
 	}
-	fmt.Fprintf(out, "Created At:     %s\n", LocalTime(c.CreatedAt))
-	fmt.Fprintf(out, "Updated At:     %s\n", LocalTime(c.UpdatedAt))
-	return nil
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(c.CreatedAt))
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(c.UpdatedAt))
+	return w.Flush()
 }
 
 func PrintCommentCreateResult(out io.Writer, c *clients.CommentInfo) error {
-	fmt.Fprintf(out, "Created comment %q.\n", c.ID)
-	fmt.Fprintf(out, "Object Type:    %s\n", c.ObjectType)
-	fmt.Fprintf(out, "Object ID:      %s\n", c.ObjectID)
-	fmt.Fprintf(out, "Content:        %s\n", c.Content)
-	fmt.Fprintf(out, "Created At:     %s\n", LocalTime(c.CreatedAt))
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Created comment %q.\n", c.ID)
+	fmt.Fprintf(w, "Object Type:\t%s\n", c.ObjectType)
+	fmt.Fprintf(w, "Object ID:\t%s\n", c.ObjectID)
+	fmt.Fprintf(w, "Content:\t%s\n", c.Content)
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(c.CreatedAt))
+	return w.Flush()
 }

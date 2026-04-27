@@ -47,36 +47,37 @@ func colorizeFolder(name string, useColor bool) string {
 }
 
 func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
-	fmt.Fprintf(out, "Name:        %s\n", prompt.Name)
-	fmt.Fprintf(out, "Version:     %d\n", prompt.Version)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Name:\t%s\n", prompt.Name)
+	fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
 
 	if len(prompt.Labels) > 0 {
-		fmt.Fprintf(out, "Labels:      %s\n", strings.Join(prompt.Labels, ", "))
+		fmt.Fprintf(w, "Labels:\t%s\n", strings.Join(prompt.Labels, ", "))
 	}
 	if len(prompt.Tags) > 0 {
-		fmt.Fprintf(out, "Tags:        %s\n", strings.Join(prompt.Tags, ", "))
+		fmt.Fprintf(w, "Tags:\t%s\n", strings.Join(prompt.Tags, ", "))
 	}
 	if prompt.CreatedAt != "" {
-		fmt.Fprintf(out, "Created At:  %s\n", LocalTime(prompt.CreatedAt))
+		fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(prompt.CreatedAt))
 	}
 	if prompt.UpdatedAt != "" {
-		fmt.Fprintf(out, "Updated At:  %s\n", LocalTime(prompt.UpdatedAt))
+		fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(prompt.UpdatedAt))
 	}
 
 	if len(prompt.Prompt) > 0 {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Content:")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Content:")
 		// Prompt may be a JSON-encoded string — try to unquote it for display
 		var s string
 		if err := json.Unmarshal(prompt.Prompt, &s); err == nil {
-			fmt.Fprint(out, s)
+			fmt.Fprint(w, s)
 			if len(s) > 0 && s[len(s)-1] != '\n' {
-				fmt.Fprintln(out)
+				fmt.Fprintln(w)
 			}
 		} else {
-			fmt.Fprintln(out, string(prompt.Prompt))
+			fmt.Fprintln(w, string(prompt.Prompt))
 		}
 	}
 
-	return nil
+	return w.Flush()
 }

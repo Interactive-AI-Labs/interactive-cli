@@ -30,65 +30,65 @@ func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
 }
 
 func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) error {
-	fmt.Fprintf(out, "Name:        %s\n", svc.Name)
-	fmt.Fprintf(out, "Project Id:  %s\n", svc.ProjectId)
-	fmt.Fprintf(out, "Revision:    %d\n", svc.Revision)
-	fmt.Fprintf(out, "Status:      %s\n", svc.Status)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Name:\t%s\n", svc.Name)
+	fmt.Fprintf(w, "Revision:\t%d\n", svc.Revision)
+	fmt.Fprintf(w, "Status:\t%s\n", svc.Status)
 
 	if svc.Updated != "" {
-		fmt.Fprintf(out, "Updated:     %s\n", LocalTime(svc.Updated))
+		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(svc.Updated))
 	}
 
-	fmt.Fprintf(out, "Port:        %d\n", svc.ServicePort)
-	fmt.Fprintf(out, "Image:\n")
-	fmt.Fprintf(out, "  Type:       %s\n", svc.Image.Type)
-	fmt.Fprintf(out, "  Name:       %s\n", svc.Image.Name)
-	fmt.Fprintf(out, "  Tag:        %s\n", svc.Image.Tag)
+	fmt.Fprintf(w, "Port:\t%d\n", svc.ServicePort)
+	fmt.Fprintln(w, "Image:")
+	fmt.Fprintf(w, "  Type:\t%s\n", svc.Image.Type)
+	fmt.Fprintf(w, "  Name:\t%s\n", svc.Image.Name)
+	fmt.Fprintf(w, "  Tag:\t%s\n", svc.Image.Tag)
 	if svc.Image.Repository != "" {
-		fmt.Fprintf(out, "  Repository: %s\n", svc.Image.Repository)
+		fmt.Fprintf(w, "  Repository:\t%s\n", svc.Image.Repository)
 	}
 
-	fmt.Fprintf(out, "Resources:\n")
-	fmt.Fprintf(out, "  CPU:     %s\n", svc.Resources.CPU)
-	fmt.Fprintf(out, "  Memory:  %s\n", svc.Resources.Memory)
+	fmt.Fprintln(w, "Resources:")
+	fmt.Fprintf(w, "  CPU:\t%s\n", svc.Resources.CPU)
+	fmt.Fprintf(w, "  Memory:\t%s\n", svc.Resources.Memory)
 
 	if svc.Autoscaling != nil {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Autoscaling:")
-		fmt.Fprintf(out, "  Min Replicas: %d\n", svc.Autoscaling.MinReplicas)
-		fmt.Fprintf(out, "  Max Replicas: %d\n", svc.Autoscaling.MaxReplicas)
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Autoscaling:")
+		fmt.Fprintf(w, "  Min Replicas:\t%d\n", svc.Autoscaling.MinReplicas)
+		fmt.Fprintf(w, "  Max Replicas:\t%d\n", svc.Autoscaling.MaxReplicas)
 		if svc.Autoscaling.CPUPercentage != nil {
-			fmt.Fprintf(out, "  CPU%%:         %d\n", *svc.Autoscaling.CPUPercentage)
+			fmt.Fprintf(w, "  CPU%%:\t%d\n", *svc.Autoscaling.CPUPercentage)
 		}
 		if svc.Autoscaling.MemoryPercentage != nil {
-			fmt.Fprintf(out, "  Memory%%:      %d\n", *svc.Autoscaling.MemoryPercentage)
+			fmt.Fprintf(w, "  Memory%%:\t%d\n", *svc.Autoscaling.MemoryPercentage)
 		}
 	} else {
-		fmt.Fprintf(out, "Replicas:    %d\n", svc.Replicas)
+		fmt.Fprintf(w, "Replicas:\t%d\n", svc.Replicas)
 	}
 
 	if svc.Endpoint != "" {
-		fmt.Fprintf(out, "Endpoint:    %s\n", svc.Endpoint)
+		fmt.Fprintf(w, "Endpoint:\t%s\n", svc.Endpoint)
 	}
 
 	if svc.StackId != "" {
-		fmt.Fprintf(out, "Stack Id:    %s\n", svc.StackId)
+		fmt.Fprintf(w, "Stack:\t%s\n", svc.StackId)
 	}
 
 	if svc.Healthcheck != nil {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Healthcheck:")
-		fmt.Fprintf(out, "  Path:           %s\n", svc.Healthcheck.Path)
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Healthcheck:")
+		fmt.Fprintf(w, "  Path:\t%s\n", svc.Healthcheck.Path)
 		if svc.Healthcheck.InitialDelaySeconds != nil {
-			fmt.Fprintf(out, "  Initial Delay:  %ds\n", *svc.Healthcheck.InitialDelaySeconds)
+			fmt.Fprintf(w, "  Initial Delay:\t%ds\n", *svc.Healthcheck.InitialDelaySeconds)
 		}
 	}
 
 	if len(svc.Env) > 0 {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Environment:")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Environment:")
 		for _, e := range svc.Env {
-			fmt.Fprintf(out, "  %s=%s\n", e.Name, e.Value)
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
 		}
 	}
 
@@ -97,24 +97,25 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 		for i, ref := range svc.SecretRefs {
 			names[i] = ref.SecretName
 		}
-		fmt.Fprintf(out, "\nSecrets:     %s\n", strings.Join(names, ", "))
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Secrets:\t%s\n", strings.Join(names, ", "))
 	}
 
 	if svc.Schedule != nil {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Schedule:")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Schedule:")
 		if svc.Schedule.Uptime != "" {
-			fmt.Fprintf(out, "  Uptime:   %s\n", svc.Schedule.Uptime)
+			fmt.Fprintf(w, "  Uptime:\t%s\n", svc.Schedule.Uptime)
 		}
 		if svc.Schedule.Downtime != "" {
-			fmt.Fprintf(out, "  Downtime: %s\n", svc.Schedule.Downtime)
+			fmt.Fprintf(w, "  Downtime:\t%s\n", svc.Schedule.Downtime)
 		}
 		if svc.Schedule.Timezone != "" {
-			fmt.Fprintf(out, "  Timezone: %s\n", svc.Schedule.Timezone)
+			fmt.Fprintf(w, "  Timezone:\t%s\n", svc.Schedule.Timezone)
 		}
 	}
 
-	return nil
+	return w.Flush()
 }
 
 func PrintSyncResult(out io.Writer, label string, created, updated, deleted, skipped []string) {

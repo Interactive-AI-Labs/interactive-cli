@@ -16,9 +16,9 @@ func TestPrintReplicaList(t *testing.T) {
 		want     string
 	}{
 		{
-			name:     "empty list prints headers only",
+			name:     "empty list prints no replicas found",
 			replicas: []clients.ReplicaInfo{},
-			want:     "NAME   STATUS   CPU   MEMORY   STARTED\n",
+			want:     "No replicas found.\n",
 		},
 		{
 			name: "ready replica with status",
@@ -116,11 +116,11 @@ func TestPrintReplicaDescribe(t *testing.T) {
 				StartTime:    "2024-01-01T00:00:00Z",
 				RestartCount: 0,
 			},
-			want: "\nName:          web-abc123\n" +
-				"Status:        Running\n" +
-				"Ready:         Yes\n" +
-				"Start Time:    Mon, 01 Jan 2024 01:00:00 +0100\n" +
-				"Restart Count: 0\n",
+			want: "Name:            web-abc123\n" +
+				"Status:          Running\n" +
+				"Ready:           Yes\n" +
+				"Start Time:      Mon, 01 Jan 2024 01:00:00 +0100\n" +
+				"Restart Count:   0\n",
 		},
 		{
 			name: "with last termination state all fields",
@@ -136,15 +136,15 @@ func TestPrintReplicaDescribe(t *testing.T) {
 					FinishedAt: "2024-01-01T01:00:00Z",
 				},
 			},
-			want: "\nName:          worker-xyz\n" +
-				"Status:        Running\n" +
-				"Ready:         Yes\n" +
-				"Restart Count: 3\n" +
+			want: "Name:            worker-xyz\n" +
+				"Status:          Running\n" +
+				"Ready:           Yes\n" +
+				"Restart Count:   3\n" +
 				"\nLast Termination State:\n" +
-				"  Reason:      OOMKilled\n" +
-				"  Exit Code:   137\n" +
-				"  Started At:  Mon, 01 Jan 2024 01:00:00 +0100\n" +
-				"  Finished At: Mon, 01 Jan 2024 02:00:00 +0100\n",
+				"  Reason:        OOMKilled\n" +
+				"  Exit Code:     137\n" +
+				"  Started At:    Mon, 01 Jan 2024 01:00:00 +0100\n" +
+				"  Finished At:   Mon, 01 Jan 2024 02:00:00 +0100\n",
 		},
 		{
 			name: "last termination state without timestamps",
@@ -158,10 +158,10 @@ func TestPrintReplicaDescribe(t *testing.T) {
 					ExitCode: 1,
 				},
 			},
-			want: "\nName:          api-pod\n" +
-				"Status:        CrashLoopBackOff\n" +
-				"Ready:         No\n" +
-				"Restart Count: 5\n" +
+			want: "Name:            api-pod\n" +
+				"Status:          CrashLoopBackOff\n" +
+				"Ready:           No\n" +
+				"Restart Count:   5\n" +
 				"\nLast Termination State:\n" +
 				"  Reason:      Error\n" +
 				"  Exit Code:   1\n",
@@ -178,10 +178,10 @@ func TestPrintReplicaDescribe(t *testing.T) {
 					ExitCode: 0,
 				},
 			},
-			want: "\nName:          job-pod\n" +
-				"Status:        Running\n" +
-				"Ready:         Yes\n" +
-				"Restart Count: 1\n" +
+			want: "Name:            job-pod\n" +
+				"Status:          Running\n" +
+				"Ready:           Yes\n" +
+				"Restart Count:   1\n" +
 				"\nLast Termination State:\n" +
 				"  Reason:      Completed\n" +
 				"  Exit Code:   0\n",
@@ -213,18 +213,18 @@ func TestPrintReplicaDescribe(t *testing.T) {
 					},
 				},
 			},
-			want: "\nName:          full-pod\n" +
-				"Status:        Running\n" +
-				"Ready:         Yes\n" +
-				"Start Time:    Sat, 01 Jun 2024 14:00:00 +0200\n" +
-				"Restart Count: 1\n" +
+			want: "Name:            full-pod\n" +
+				"Status:          Running\n" +
+				"Ready:           Yes\n" +
+				"Start Time:      Sat, 01 Jun 2024 14:00:00 +0200\n" +
+				"Restart Count:   1\n" +
 				"\nLast Termination State:\n" +
-				"  Reason:      OOMKilled\n" +
-				"  Exit Code:   137\n" +
-				"  Finished At: Sat, 01 Jun 2024 13:59:00 +0200\n" +
+				"  Reason:        OOMKilled\n" +
+				"  Exit Code:     137\n" +
+				"  Finished At:   Sat, 01 Jun 2024 13:59:00 +0200\n" +
 				"\nResources:\n" +
-				"  CPU:    250m\n" +
-				"  Memory: 512Mi\n" +
+				"  CPU:      250m\n" +
+				"  Memory:   512Mi\n" +
 				"\nEvents:\n" +
 				"TYPE      REASON       COUNT   MESSAGE                 LAST SEEN\n" +
 				"Warning   OOMKilling   1       Memory limit exceeded   Sat, 01 Jun 2024 13:59:00 +0200\n",

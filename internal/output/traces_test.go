@@ -168,24 +168,24 @@ func TestPrintTraceDetail(t *testing.T) {
 				Output:   []byte(`"hello"`),
 				Metadata: []byte(`{"key":"val"}`),
 			},
-			want: "ID:          abc123\n" +
-				"Name:        my-trace\n" +
-				"Timestamp:   2025-01-01\n" +
-				"Session ID:  sess1\n" +
-				"User ID:     user1\n" +
-				"Environment: production\n" +
-				"Release:     v1.0\n" +
-				"Version:     1\n" +
-				"Public:      true\n" +
+			want: "ID:            abc123\n" +
+				"Name:          my-trace\n" +
+				"Timestamp:     2025-01-01\n" +
+				"Session ID:    sess1\n" +
+				"User ID:       user1\n" +
+				"Environment:   production\n" +
+				"Release:       v1.0\n" +
+				"Version:       1\n" +
+				"Public:        true\n" +
 				"\n--- Metrics ---\n" +
-				"Latency:           2.50s\n" +
-				"Total Cost:        $0.050000\n" +
-				"Observation Count: -\n" +
-				"Input Tokens:      -\n" +
-				"Output Tokens:     -\n" +
-				"Total Tokens:      -\n" +
-				"\nTags:        tag1, tag2\n" +
-				"URL Path:    /project/traces/abc123\n" +
+				"Latency:             2.50s\n" +
+				"Total Cost:          $0.050000\n" +
+				"Observation Count:   -\n" +
+				"Input Tokens:        -\n" +
+				"Output Tokens:       -\n" +
+				"Total Tokens:        -\n" +
+				"\nTags:       tag1, tag2\n" +
+				"URL Path:   /project/traces/abc123\n" +
 				"\nInput:\n  {\n    \"role\": \"user\"\n  }\n" +
 				"\nOutput:\n  \"hello\"\n" +
 				"\nMetadata:\n  {\n    \"key\": \"val\"\n  }\n",
@@ -199,22 +199,22 @@ func TestPrintTraceDetail(t *testing.T) {
 					Timestamp: "2025-06-01",
 				},
 			},
-			want: "ID:          def456\n" +
-				"Name:        minimal\n" +
-				"Timestamp:   2025-06-01\n" +
-				"Session ID:  \n" +
-				"User ID:     \n" +
-				"Environment: \n" +
-				"Release:     \n" +
-				"Version:     \n" +
-				"Public:      false\n" +
+			want: "ID:            def456\n" +
+				"Name:          minimal\n" +
+				"Timestamp:     2025-06-01\n" +
+				"Session ID:    \n" +
+				"User ID:       \n" +
+				"Environment:   \n" +
+				"Release:       \n" +
+				"Version:       \n" +
+				"Public:        false\n" +
 				"\n--- Metrics ---\n" +
-				"Latency:           -\n" +
-				"Total Cost:        -\n" +
-				"Observation Count: -\n" +
-				"Input Tokens:      -\n" +
-				"Output Tokens:     -\n" +
-				"Total Tokens:      -\n",
+				"Latency:             -\n" +
+				"Total Cost:          -\n" +
+				"Observation Count:   -\n" +
+				"Input Tokens:        -\n" +
+				"Output Tokens:       -\n" +
+				"Total Tokens:        -\n",
 		},
 		{
 			name: "null json fields are hidden",
@@ -227,22 +227,22 @@ func TestPrintTraceDetail(t *testing.T) {
 				Output:   []byte(`null`),
 				Metadata: []byte(`null`),
 			},
-			want: "ID:          ghi789\n" +
-				"Name:        null-json\n" +
-				"Timestamp:   \n" +
-				"Session ID:  \n" +
-				"User ID:     \n" +
-				"Environment: \n" +
-				"Release:     \n" +
-				"Version:     \n" +
-				"Public:      false\n" +
+			want: "ID:            ghi789\n" +
+				"Name:          null-json\n" +
+				"Timestamp:     \n" +
+				"Session ID:    \n" +
+				"User ID:       \n" +
+				"Environment:   \n" +
+				"Release:       \n" +
+				"Version:       \n" +
+				"Public:        false\n" +
 				"\n--- Metrics ---\n" +
-				"Latency:           -\n" +
-				"Total Cost:        -\n" +
-				"Observation Count: -\n" +
-				"Input Tokens:      -\n" +
-				"Output Tokens:     -\n" +
-				"Total Tokens:      -\n",
+				"Latency:             -\n" +
+				"Total Cost:          -\n" +
+				"Observation Count:   -\n" +
+				"Input Tokens:        -\n" +
+				"Output Tokens:       -\n" +
+				"Total Tokens:        -\n",
 		},
 	}
 

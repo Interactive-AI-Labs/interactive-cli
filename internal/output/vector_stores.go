@@ -18,38 +18,40 @@ func PrintVectorStoreDescribe(out io.Writer, store *clients.DescribeVectorStoreR
 		autoResizeStr = "Yes"
 	}
 
-	fmt.Fprintf(out, "Name:            %s\n", store.VectorStoreName)
-	fmt.Fprintf(out, "Status:          %s\n", store.Status)
-	fmt.Fprintf(out, "Engine Version:  %s\n", store.EngineVersion)
-	if store.CreatedAt != "" {
-		fmt.Fprintf(out, "Created At:      %s\n", LocalTime(store.CreatedAt))
-	}
-	fmt.Fprintf(out, "HA:              %s\n", haStr)
 	backupsStr := "No"
 	if store.Backups.Enabled {
 		backupsStr = "Yes"
 	}
-	fmt.Fprintf(out, "Backups:         %s\n", backupsStr)
+
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Name:\t%s\n", store.VectorStoreName)
+	fmt.Fprintf(w, "Status:\t%s\n", store.Status)
+	fmt.Fprintf(w, "Engine Version:\t%s\n", store.EngineVersion)
+	if store.CreatedAt != "" {
+		fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(store.CreatedAt))
+	}
+	fmt.Fprintf(w, "HA:\t%s\n", haStr)
+	fmt.Fprintf(w, "Backups:\t%s\n", backupsStr)
 	if store.Backups.Enabled && store.Backups.StartTime != "" {
-		fmt.Fprintf(out, "Backup Time:     %s\n", store.Backups.StartTime)
+		fmt.Fprintf(w, "Backup Time:\t%s\n", store.Backups.StartTime)
 	}
 	if store.SecretName != "" {
-		fmt.Fprintf(out, "Secret:          %s\n", store.SecretName)
+		fmt.Fprintf(w, "Secret:\t%s\n", store.SecretName)
 	}
 
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, "Resources:")
-	fmt.Fprintf(out, "  CPU:               %d\n", store.Resources.CPU)
-	fmt.Fprintf(out, "  Memory:            %.2f GB\n", store.Resources.Memory)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Resources:")
+	fmt.Fprintf(w, "  CPU:\t%d\n", store.Resources.CPU)
+	fmt.Fprintf(w, "  Memory:\t%.2f GB\n", store.Resources.Memory)
 
-	fmt.Fprintln(out, "Storage:")
-	fmt.Fprintf(out, "  Size:              %d GB\n", store.Storage.Size)
-	fmt.Fprintf(out, "  Auto Resize:       %s\n", autoResizeStr)
+	fmt.Fprintln(w, "Storage:")
+	fmt.Fprintf(w, "  Size:\t%d GB\n", store.Storage.Size)
+	fmt.Fprintf(w, "  Auto Resize:\t%s\n", autoResizeStr)
 	if store.Storage.AutoResize {
-		fmt.Fprintf(out, "  Auto Resize Limit: %d GB\n", store.Storage.AutoResizeLimit)
+		fmt.Fprintf(w, "  Auto Resize Limit:\t%d GB\n", store.Storage.AutoResizeLimit)
 	}
 
-	return nil
+	return w.Flush()
 }
 
 func PrintVectorStoreList(out io.Writer, stores []clients.VectorStoreInfo) error {

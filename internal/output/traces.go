@@ -87,13 +87,7 @@ func PrintTraceList(
 		return err
 	}
 
-	fmt.Fprintf(
-		out,
-		"\nPage %d of %d (%d total items)\n",
-		meta.Page,
-		meta.TotalPages,
-		meta.TotalItems,
-	)
+	PrintPageMeta(out, meta.Page, meta.TotalPages, meta.TotalItems)
 	return nil
 }
 
@@ -105,42 +99,45 @@ const (
 )
 
 func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
-	fmt.Fprintf(out, "ID:          %s\n", trace.ID)
-	fmt.Fprintf(out, "Name:        %s\n", trace.Name)
-	fmt.Fprintf(out, "Timestamp:   %s\n", LocalTime(trace.Timestamp))
-	fmt.Fprintf(out, "Session ID:  %s\n", trace.SessionID)
-	fmt.Fprintf(out, "User ID:     %s\n", trace.UserID)
-	fmt.Fprintf(out, "Environment: %s\n", trace.Environment)
-	fmt.Fprintf(out, "Release:     %s\n", trace.Release)
-	fmt.Fprintf(out, "Version:     %s\n", trace.Version)
-	fmt.Fprintf(out, "Public:      %t\n", trace.Public)
+	isTTY := isTerminal(out)
+	const jsonPrefix = "  "
+
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", trace.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", trace.Name)
+	fmt.Fprintf(w, "Timestamp:\t%s\n", LocalTime(trace.Timestamp))
+	fmt.Fprintf(w, "Session ID:\t%s\n", trace.SessionID)
+	fmt.Fprintf(w, "User ID:\t%s\n", trace.UserID)
+	fmt.Fprintf(w, "Environment:\t%s\n", trace.Environment)
+	fmt.Fprintf(w, "Release:\t%s\n", trace.Release)
+	fmt.Fprintf(w, "Version:\t%s\n", trace.Version)
+	fmt.Fprintf(w, "Public:\t%t\n", trace.Public)
 
 	// Aggregated metrics section
-	fmt.Fprintf(out, "\n--- Metrics ---\n")
-	fmt.Fprintf(out, "Latency:           %s\n", formatLatencyMs(trace.LatencyMs))
-	fmt.Fprintf(out, "Total Cost:        %s\n", formatCost(trace.TotalCost))
-	fmt.Fprintf(out, "Observation Count: %s\n", formatInt(trace.ObservationCount))
-	fmt.Fprintf(out, "Input Tokens:      %s\n", formatInt(trace.InputTokens))
-	fmt.Fprintf(out, "Output Tokens:     %s\n", formatInt(trace.OutputTokens))
-	fmt.Fprintf(out, "Total Tokens:      %s\n", formatInt(trace.TotalTokens))
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "--- Metrics ---")
+	fmt.Fprintf(w, "Latency:\t%s\n", formatLatencyMs(trace.LatencyMs))
+	fmt.Fprintf(w, "Total Cost:\t%s\n", formatCost(trace.TotalCost))
+	fmt.Fprintf(w, "Observation Count:\t%s\n", formatInt(trace.ObservationCount))
+	fmt.Fprintf(w, "Input Tokens:\t%s\n", formatInt(trace.InputTokens))
+	fmt.Fprintf(w, "Output Tokens:\t%s\n", formatInt(trace.OutputTokens))
+	fmt.Fprintf(w, "Total Tokens:\t%s\n", formatInt(trace.TotalTokens))
 	if trace.Level != "" {
-		fmt.Fprintf(out, "Level:             %s\n", trace.Level)
+		fmt.Fprintf(w, "Level:\t%s\n", trace.Level)
 	}
 
 	if len(trace.Tags) > 0 {
-		fmt.Fprintf(out, "\nTags:        %s\n", strings.Join(trace.Tags, ", "))
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Tags:\t%s\n", strings.Join(trace.Tags, ", "))
 	}
 
 	if trace.HtmlPath != "" {
-		fmt.Fprintf(out, "URL Path:    %s\n", trace.HtmlPath)
+		fmt.Fprintf(w, "URL Path:\t%s\n", trace.HtmlPath)
 	}
 
-	isTTY := isTerminal(out)
-
-	const jsonPrefix = "  "
 	if len(trace.Input) > 0 && string(trace.Input) != "null" {
 		fmt.Fprintf(
-			out,
+			w,
 			"\n%s\n%s\n",
 			colorHeader(isTTY, "Input:", colorGreen),
 			indentLines(prettyJSON(trace.Input, isTTY), jsonPrefix),
@@ -149,7 +146,7 @@ func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
 
 	if len(trace.Output) > 0 && string(trace.Output) != "null" {
 		fmt.Fprintf(
-			out,
+			w,
 			"\n%s\n%s\n",
 			colorHeader(isTTY, "Output:", colorRed),
 			indentLines(prettyJSON(trace.Output, isTTY), jsonPrefix),
@@ -158,14 +155,14 @@ func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
 
 	if len(trace.Metadata) > 0 && string(trace.Metadata) != "null" {
 		fmt.Fprintf(
-			out,
+			w,
 			"\n%s\n%s\n",
 			colorHeader(isTTY, "Metadata:", colorOrange),
 			indentLines(prettyJSON(trace.Metadata, isTTY), jsonPrefix),
 		)
 	}
 
-	return nil
+	return w.Flush()
 }
 
 // PrintRawJSON writes pretty-printed JSON to the writer.
@@ -174,7 +171,7 @@ func PrintRawJSON(out io.Writer, raw json.RawMessage) error {
 	var buf bytes.Buffer
 	if err := json.Indent(&buf, raw, "", "  "); err != nil {
 		// fallback: write raw
-		_, err = out.Write(raw)
+		_, err := out.Write(raw)
 		return err
 	}
 	buf.WriteByte('\n')

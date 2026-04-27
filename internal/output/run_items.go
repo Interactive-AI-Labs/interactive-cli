@@ -76,16 +76,17 @@ func PrintRunItemList(
 }
 
 func PrintRunItemCreateResult(out io.Writer, item *clients.DatasetRunItemInfo) error {
-	fmt.Fprintf(out, "Created run item %q.\n", item.ID)
-	fmt.Fprintf(out, "ID:              %s\n", item.ID)
-	fmt.Fprintf(out, "Run Name:        %s\n", item.DatasetRunName)
-	fmt.Fprintf(out, "Dataset Item ID: %s\n", item.DatasetItemID)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Created run item %q.\n", item.ID)
+	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
+	fmt.Fprintf(w, "Run Name:\t%s\n", item.DatasetRunName)
+	fmt.Fprintf(w, "Dataset Item ID:\t%s\n", item.DatasetItemID)
 	if item.TraceID != "" {
-		fmt.Fprintf(out, "Trace ID:        %s\n", item.TraceID)
+		fmt.Fprintf(w, "Trace ID:\t%s\n", item.TraceID)
 	}
 	if item.ObservationID != "" {
-		fmt.Fprintf(out, "Observation ID:  %s\n", item.ObservationID)
+		fmt.Fprintf(w, "Observation ID:\t%s\n", item.ObservationID)
 	}
-	fmt.Fprintf(out, "Created At:      %s\n", LocalTime(item.CreatedAt))
-	return nil
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(item.CreatedAt))
+	return w.Flush()
 }

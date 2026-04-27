@@ -69,16 +69,17 @@ func PrintDatasetRunList(
 }
 
 func PrintDatasetRunDetail(out io.Writer, run *clients.DatasetRunInfo) error {
-	fmt.Fprintf(out, "ID:           %s\n", run.ID)
-	fmt.Fprintf(out, "Name:         %s\n", run.Name)
-	fmt.Fprintf(out, "Dataset Name: %s\n", run.DatasetName)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", run.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", run.Name)
+	fmt.Fprintf(w, "Dataset Name:\t%s\n", run.DatasetName)
 	if run.Description != "" {
-		fmt.Fprintf(out, "Description:  %s\n", run.Description)
+		fmt.Fprintf(w, "Description:\t%s\n", run.Description)
 	}
-	fmt.Fprintf(out, "Created At:   %s\n", LocalTime(run.CreatedAt))
-	fmt.Fprintf(out, "Updated At:   %s\n", LocalTime(run.UpdatedAt))
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(run.CreatedAt))
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(run.UpdatedAt))
 	if len(run.Metadata) > 0 && string(run.Metadata) != "null" {
-		fmt.Fprintf(out, "Metadata:     %s\n", string(run.Metadata))
+		fmt.Fprintf(w, "Metadata:\t%s\n", string(run.Metadata))
 	}
-	return nil
+	return w.Flush()
 }

@@ -84,30 +84,29 @@ func PrintSessionList(
 		return err
 	}
 
-	fmt.Fprintf(
-		out,
-		"\nPage %d of %d (%d total items)\n",
-		meta.Page,
-		meta.TotalPages,
-		meta.TotalItems,
-	)
+	PrintPageMeta(out, meta.Page, meta.TotalPages, meta.TotalItems)
 	return nil
 }
 
 func PrintSessionDetail(out io.Writer, session *clients.SessionDetail) error {
-	fmt.Fprintf(out, "ID:          %s\n", session.ID)
-	fmt.Fprintf(out, "Created At:  %s\n", LocalTime(session.CreatedAt))
-	fmt.Fprintf(out, "Updated At:  %s\n", LocalTime(session.UpdatedAt))
-	fmt.Fprintf(out, "Environment: %s\n", session.Environment)
-	fmt.Fprintf(out, "User ID:     %s\n", session.UserID)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", session.ID)
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(session.CreatedAt))
+	fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(session.UpdatedAt))
+	fmt.Fprintf(w, "Environment:\t%s\n", session.Environment)
+	fmt.Fprintf(w, "User ID:\t%s\n", session.UserID)
 
-	fmt.Fprintf(out, "\n--- Metrics ---\n")
-	fmt.Fprintf(out, "Trace Count:       %s\n", formatInt(session.TraceCount))
-	fmt.Fprintf(out, "Duration Seconds:  %s\n", formatFloat(session.DurationSeconds, "s"))
-	fmt.Fprintf(out, "Total Cost:        %s\n", formatCost(session.TotalCost))
-	fmt.Fprintf(out, "Input Tokens:      %s\n", formatInt(session.InputTokens))
-	fmt.Fprintf(out, "Output Tokens:     %s\n", formatInt(session.OutputTokens))
-	fmt.Fprintf(out, "Total Tokens:      %s\n", formatInt(session.TotalTokens))
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "--- Metrics ---")
+	fmt.Fprintf(w, "Trace Count:\t%s\n", formatInt(session.TraceCount))
+	fmt.Fprintf(w, "Duration Seconds:\t%s\n", formatFloat(session.DurationSeconds, "s"))
+	fmt.Fprintf(w, "Total Cost:\t%s\n", formatCost(session.TotalCost))
+	fmt.Fprintf(w, "Input Tokens:\t%s\n", formatInt(session.InputTokens))
+	fmt.Fprintf(w, "Output Tokens:\t%s\n", formatInt(session.OutputTokens))
+	fmt.Fprintf(w, "Total Tokens:\t%s\n", formatInt(session.TotalTokens))
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	if len(session.Traces) == 0 {
 		return nil
