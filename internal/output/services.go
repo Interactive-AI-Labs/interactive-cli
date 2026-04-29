@@ -14,14 +14,13 @@ func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
 		return nil
 	}
 
-	headers := []string{"NAME", "REVISION", "STATUS", "ENDPOINT", "UPDATED"}
+	headers := []string{"NAME", "REVISION", "STATUS", "UPDATED"}
 	rows := make([][]string, len(services))
 	for i, svc := range services {
 		rows[i] = []string{
 			svc.Name,
 			fmt.Sprintf("%d", svc.Revision),
 			svc.Status,
-			svc.Endpoint,
 			LocalTime(svc.Updated),
 		}
 	}
@@ -34,6 +33,9 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 	fmt.Fprintf(w, "Name:\t%s\n", svc.Name)
 	fmt.Fprintf(w, "Revision:\t%d\n", svc.Revision)
 	fmt.Fprintf(w, "Status:\t%s\n", svc.Status)
+	if svc.Message != "" {
+		fmt.Fprintf(w, "Message:\t%s\n", svc.Message)
+	}
 
 	if svc.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(svc.Updated))

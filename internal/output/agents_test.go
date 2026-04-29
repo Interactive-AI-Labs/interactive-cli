@@ -7,6 +7,60 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
+func TestPrintAgentDescribe(t *testing.T) {
+	tests := []struct {
+		name  string
+		agent *clients.DescribeAgentResponse
+		want  string
+	}{
+		{
+			name: "minimal agent",
+			agent: &clients.DescribeAgentResponse{
+				Name:     "minimal-agent",
+				Id:       "interactive-agent",
+				Version:  "0.1.0",
+				Revision: 1,
+				Status:   "deployed",
+			},
+			want: "Name:       minimal-agent\n" +
+				"Id:         interactive-agent\n" +
+				"Version:    0.1.0\n" +
+				"Revision:   1\n" +
+				"Status:     deployed\n",
+		},
+		{
+			name: "agent with message",
+			agent: &clients.DescribeAgentResponse{
+				Name:     "msg-agent",
+				Id:       "interactive-agent",
+				Version:  "0.1.0",
+				Revision: 2,
+				Status:   "deployed",
+				Message:  "rollout in progress",
+			},
+			want: "Name:       msg-agent\n" +
+				"Id:         interactive-agent\n" +
+				"Version:    0.1.0\n" +
+				"Revision:   2\n" +
+				"Status:     deployed\n" +
+				"Message:    rollout in progress\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintAgentDescribe(&buf, tt.agent)
+			if err != nil {
+				t.Fatalf("PrintAgentDescribe() error = %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("output mismatch\ngot:\n%s\nwant:\n%s", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPrintAgentCatalog(t *testing.T) {
 	tests := []struct {
 		name   string

@@ -15,14 +15,13 @@ func PrintAgentList(out io.Writer, agents []clients.AgentOutput) error {
 		return nil
 	}
 
-	headers := []string{"NAME", "REVISION", "STATUS", "ENDPOINT", "UPDATED"}
+	headers := []string{"NAME", "REVISION", "STATUS", "UPDATED"}
 	rows := make([][]string, len(agents))
 	for i, a := range agents {
 		rows[i] = []string{
 			a.Name,
 			fmt.Sprintf("%d", a.Revision),
 			a.Status,
-			a.Endpoint,
 			LocalTime(a.Updated),
 		}
 	}
@@ -37,6 +36,9 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 	fmt.Fprintf(w, "Version:\t%s\n", agent.Version)
 	fmt.Fprintf(w, "Revision:\t%d\n", agent.Revision)
 	fmt.Fprintf(w, "Status:\t%s\n", agent.Status)
+	if agent.Message != "" {
+		fmt.Fprintf(w, "Message:\t%s\n", agent.Message)
+	}
 
 	if agent.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(agent.Updated))

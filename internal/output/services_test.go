@@ -26,12 +26,11 @@ func TestPrintServiceList(t *testing.T) {
 					Name:     "web",
 					Revision: 3,
 					Status:   "Running",
-					Endpoint: "web-abc123.interactive.ai",
 					Updated:  "2024-01-15",
 				},
 			},
-			want: "NAME   REVISION   STATUS    ENDPOINT                    UPDATED\n" +
-				"web    3          Running   web-abc123.interactive.ai   2024-01-15\n",
+			want: "NAME   REVISION   STATUS    UPDATED\n" +
+				"web    3          Running   2024-01-15\n",
 		},
 		{
 			name: "multiple services with empty fields",
@@ -39,17 +38,17 @@ func TestPrintServiceList(t *testing.T) {
 				{Name: "api", Revision: 1, Status: "Running"},
 				{Name: "worker", Revision: 5, Status: "Deploying"},
 			},
-			want: "NAME     REVISION   STATUS      ENDPOINT   UPDATED\n" +
-				"api      1          Running                \n" +
-				"worker   5          Deploying              \n",
+			want: "NAME     REVISION   STATUS      UPDATED\n" +
+				"api      1          Running     \n" +
+				"worker   5          Deploying   \n",
 		},
 		{
 			name: "revision zero",
 			services: []clients.ServiceOutput{
 				{Name: "new-svc", Revision: 0, Status: "Pending"},
 			},
-			want: "NAME      REVISION   STATUS    ENDPOINT   UPDATED\n" +
-				"new-svc   0          Pending              \n",
+			want: "NAME      REVISION   STATUS    UPDATED\n" +
+				"new-svc   0          Pending   \n",
 		},
 	}
 
@@ -178,8 +177,8 @@ func TestPrintServiceDescribe(t *testing.T) {
 					ProjectId: "proj-456",
 					Revision:  10,
 					Status:    "deployed",
-					Endpoint:  "full-svc-abc.dev.interactive.ai",
 				},
+				Endpoint:    "full-svc-abc.dev.interactive.ai",
 				ServicePort: 443,
 				Image: clients.ImageSpec{
 					Type:       "platform",
@@ -244,6 +243,38 @@ func TestPrintServiceDescribe(t *testing.T) {
 				"Schedule:\n" +
 				"  Uptime:     Mon-Fri 08:00-20:00\n" +
 				"  Timezone:   UTC\n",
+		},
+		{
+			name: "service with message",
+			svc: &clients.DescribeServiceResponse{
+				ServiceOutput: clients.ServiceOutput{
+					Name:     "msg-svc",
+					Revision: 2,
+					Status:   "deployed",
+				},
+				Message:     "rollout completed",
+				ServicePort: 8080,
+				Image: clients.ImageSpec{
+					Type: "external",
+					Name: "nginx",
+					Tag:  "latest",
+				},
+				Resources: clients.Resources{Memory: "128M", CPU: "100m"},
+				Replicas:  1,
+			},
+			want: "Name:       msg-svc\n" +
+				"Revision:   2\n" +
+				"Status:     deployed\n" +
+				"Message:    rollout completed\n" +
+				"Port:       8080\n" +
+				"Image:\n" +
+				"  Type:   external\n" +
+				"  Name:   nginx\n" +
+				"  Tag:    latest\n" +
+				"Resources:\n" +
+				"  CPU:      100m\n" +
+				"  Memory:   128M\n" +
+				"Replicas:   1\n",
 		},
 		{
 			name: "schedule with downtime",
