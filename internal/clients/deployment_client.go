@@ -205,12 +205,13 @@ type ServiceOutput struct {
 	Revision  int    `json:"revision"`
 	Status    string `json:"status"`
 	Updated   string `json:"updated,omitempty"`
-	Endpoint  string `json:"endpoint,omitempty"`
 }
 
 type DescribeServiceResponse struct {
 	ServiceOutput
 
+	Message     string       `json:"message,omitempty"`
+	Endpoint    string       `json:"endpoint,omitempty"`
 	ServicePort int          `json:"servicePort"`
 	Image       ImageSpec    `json:"image"`
 	Resources   Resources    `json:"resources"`
@@ -1341,7 +1342,6 @@ type AgentOutput struct {
 	Revision  int    `json:"revision"`
 	Status    string `json:"status"`
 	Updated   string `json:"updated,omitempty"`
-	Endpoint  string `json:"endpoint,omitempty"`
 }
 
 type DescribeAgentResponse struct {
@@ -1349,6 +1349,7 @@ type DescribeAgentResponse struct {
 	ProjectId   string      `json:"projectId"`
 	Revision    int         `json:"revision"`
 	Status      string      `json:"status"`
+	Message     string      `json:"message,omitempty"`
 	Updated     string      `json:"updated,omitempty"`
 	Id          string      `json:"id"`
 	Version     string      `json:"version"`
