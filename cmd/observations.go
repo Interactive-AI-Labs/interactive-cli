@@ -86,12 +86,12 @@ Examples:
 				}
 			}
 
-			pCtx, err := resolveProject(cmd.Context(), obsListOrg, obsListProject)
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), obsListOrg, obsListProject)
 			if err != nil {
 				return err
 			}
 
-			observations, rawJSON, err := pCtx.apiClient.ListObservations(
+			observations, rawJSON, err := apiClient.ListObservations(
 				cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, obsIncludeIO,
 			)
 			if err != nil {
@@ -143,12 +143,12 @@ Examples:
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), obsListOrg, obsListProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), obsListOrg, obsListProject)
 		if err != nil {
 			return err
 		}
 
-		observations, meta, rawJSON, err := pCtx.apiClient.SearchObservations(
+		observations, meta, rawJSON, err := apiClient.SearchObservations(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -182,12 +182,12 @@ Examples:
 
 		observationID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), obsGetOrg, obsGetProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), obsGetOrg, obsGetProject)
 		if err != nil {
 			return err
 		}
 
-		obs, rawJSON, err := pCtx.apiClient.GetObservation(
+		obs, rawJSON, err := apiClient.GetObservation(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, observationID,
 		)
 		if err != nil {

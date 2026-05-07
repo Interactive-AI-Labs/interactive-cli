@@ -6,11 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -40,50 +38,16 @@ var secretsListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			secretsOrganization,
+			secretsProject,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
+			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		secrets, err := deployClient.ListSecrets(cmd.Context(), orgId, projectId)
+		secrets, err := deployClient.ListSecrets(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
 		}
@@ -119,47 +83,13 @@ When both are provided, --data values take precedence.`,
 			return fmt.Errorf("at least one --data KEY=VALUE pair or --from-env-file is required")
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			secretsOrganization,
+			secretsProject,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+			return err
 		}
 
 		data, err := mergeSecretData(secretDataKVs, secretEnvFile)
@@ -172,8 +102,8 @@ When both are provided, --data values take precedence.`,
 
 		serverMessage, err := deployClient.CreateSecret(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			secretName,
 			data,
 		)
@@ -233,47 +163,13 @@ Examples:
 			return fmt.Errorf("secret name is required")
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			secretsOrganization,
+			secretsProject,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -288,8 +184,8 @@ Examples:
 				keyName = strings.TrimSpace(keyName)
 				_, err := deployClient.DeleteSecretKey(
 					cmd.Context(),
-					orgId,
-					projectId,
+					pCtx.orgId,
+					pCtx.projectId,
 					secretName,
 					keyName,
 				)
@@ -319,8 +215,8 @@ Examples:
 
 			serverMessage, err := deployClient.ReplaceSecret(
 				cmd.Context(),
-				orgId,
-				projectId,
+				pCtx.orgId,
+				pCtx.projectId,
 				secretName,
 				data,
 			)
@@ -346,8 +242,8 @@ Examples:
 		for _, keyName := range keys {
 			serverMessage, err := deployClient.UpdateSecretKey(
 				cmd.Context(),
-				orgId,
-				projectId,
+				pCtx.orgId,
+				pCtx.projectId,
 				secretName,
 				keyName,
 				data[keyName],
@@ -387,47 +283,13 @@ var secretsDeleteCmd = &cobra.Command{
 			return fmt.Errorf("secret name is required")
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			secretsOrganization,
+			secretsProject,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -435,8 +297,8 @@ var secretsDeleteCmd = &cobra.Command{
 
 		serverMessage, err := deployClient.DeleteSecret(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			secretToDelete,
 		)
 		if err != nil {
@@ -464,50 +326,16 @@ var secretsGetCmd = &cobra.Command{
 			return fmt.Errorf("secret name is required")
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			secretsOrganization,
+			secretsProject,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
+			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, secretsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, secretsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		secret, err := deployClient.GetSecret(cmd.Context(), orgId, projectId, secretName)
+		secret, err := deployClient.GetSecret(cmd.Context(), pCtx.orgId, pCtx.projectId, secretName)
 		if err != nil {
 			return fmt.Errorf("failed to get secret %q: %w", secretName, err)
 		}

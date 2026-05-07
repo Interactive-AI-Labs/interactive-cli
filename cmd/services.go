@@ -70,47 +70,13 @@ var servCCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		reqBody, err := inputs.BuildServiceRequestBody(inputs.ServiceInput{
@@ -144,8 +110,8 @@ var servCCmd = &cobra.Command{
 
 		serverMessage, err := deployClient.CreateService(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 			reqBody,
 		)
@@ -194,47 +160,13 @@ Examples:
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		patch, err := inputs.BuildServiceUpdatePatch(inputs.ServiceInput{
@@ -271,8 +203,8 @@ Examples:
 
 		serverMessage, err := deployClient.PatchService(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 			patch,
 		)
@@ -313,50 +245,16 @@ var servListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		services, err := deployClient.ListServices(cmd.Context(), orgId, projectId, "")
+		services, err := deployClient.ListServices(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
 		if err != nil {
 			return err
 		}
@@ -378,50 +276,21 @@ Examples:
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		service, err := deployClient.DescribeService(cmd.Context(), orgId, projectId, serviceName)
+		service, err := deployClient.DescribeService(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			serviceName,
+		)
 		if err != nil {
 			return err
 		}
@@ -439,47 +308,13 @@ var servDCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		fmt.Fprintln(out)
@@ -487,8 +322,8 @@ var servDCmd = &cobra.Command{
 
 		serverMessage, err := deployClient.DeleteService(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 		)
 		if err != nil {
@@ -513,47 +348,13 @@ var servRestartCmd = &cobra.Command{
 
 		serviceName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		fmt.Fprintln(out)
@@ -561,8 +362,8 @@ var servRestartCmd = &cobra.Command{
 
 		serverMessage, err := deployClient.RestartService(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 		)
 		if err != nil {
@@ -695,53 +496,19 @@ Examples:
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
 		revisions, err := deployClient.ListServiceRevisions(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 		)
 		if err != nil {
@@ -770,53 +537,19 @@ Examples:
 			return err
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
 		rev, err := deployClient.DescribeServiceRevision(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 			revision,
 		)
@@ -849,53 +582,19 @@ Examples:
 			return err
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
 		a, err := deployClient.DescribeServiceRevision(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 			revA,
 		)
@@ -905,8 +604,8 @@ Examples:
 
 		b, err := deployClient.DescribeServiceRevision(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			serviceName,
 			revB,
 		)

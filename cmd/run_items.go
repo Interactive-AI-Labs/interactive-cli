@@ -65,12 +65,16 @@ var runItemsListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), runItemsListOrg, runItemsListProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			runItemsListOrg,
+			runItemsListProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		items, meta, rawJSON, err := pCtx.apiClient.ListDatasetRunItems(
+		items, meta, rawJSON, err := apiClient.ListDatasetRunItems(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -110,12 +114,16 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), runItemsCreateOrg, runItemsCreateProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			runItemsCreateOrg,
+			runItemsCreateProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		item, rawJSON, err := pCtx.apiClient.CreateDatasetRunItem(
+		item, rawJSON, err := apiClient.CreateDatasetRunItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

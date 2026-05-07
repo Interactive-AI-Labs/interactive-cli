@@ -5,9 +5,7 @@ import (
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -39,50 +37,12 @@ var vsListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), vsOrganization, vsProject)
 		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
+			return err
 		}
 
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, vsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, vsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		stores, err := deployClient.ListVectorStores(cmd.Context(), orgId, projectId, "")
+		stores, err := deployClient.ListVectorStores(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
 		if err != nil {
 			return err
 		}
@@ -102,53 +62,15 @@ var vsDescribeCmd = &cobra.Command{
 
 		vectorStoreName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), vsOrganization, vsProject)
 		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, vsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, vsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+			return err
 		}
 
 		store, err := deployClient.DescribeVectorStore(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			vectorStoreName,
 		)
 		if err != nil {
@@ -173,47 +95,9 @@ var vsCreateCmd = &cobra.Command{
 			return fmt.Errorf("--auto-resize-limit is required when --auto-resize is enabled")
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), vsOrganization, vsProject)
 		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, vsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, vsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+			return err
 		}
 
 		reqBody := clients.CreateVectorStoreBody{
@@ -235,8 +119,8 @@ var vsCreateCmd = &cobra.Command{
 
 		serverMessage, err := deployClient.CreateVectorStore(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			vectorStoreName,
 			reqBody,
 		)
@@ -263,47 +147,9 @@ var vsDeleteCmd = &cobra.Command{
 
 		vectorStoreName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), vsOrganization, vsProject)
 		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return fmt.Errorf("failed to create API client: %w", err)
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create deployment client: %w", err)
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, vsOrganization)
-		if err != nil {
-			return fmt.Errorf("failed to resolve organization: %w", err)
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, vsProject)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project: %w", err)
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -311,8 +157,8 @@ var vsDeleteCmd = &cobra.Command{
 
 		serverMessage, err := deployClient.DeleteVectorStore(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			vectorStoreName,
 		)
 		if err != nil {

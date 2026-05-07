@@ -41,50 +41,21 @@ var replicasListCmd = &cobra.Command{
 			return fmt.Errorf("service name is required")
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			replicasOrganization,
+			replicasProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, replicasOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, replicasProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		replicas, err := deployClient.ListReplicas(cmd.Context(), orgId, projectId, serviceName)
+		replicas, err := deployClient.ListReplicas(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			serviceName,
+		)
 		if err != nil {
 			return err
 		}
@@ -108,50 +79,21 @@ var replicasDescribeCmd = &cobra.Command{
 			return fmt.Errorf("replica name is required")
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			replicasOrganization,
+			replicasProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, replicasOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, replicasProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		status, err := deployClient.DescribeReplica(cmd.Context(), orgId, projectId, replicaName)
+		status, err := deployClient.DescribeReplica(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			replicaName,
+		)
 		if err != nil {
 			return err
 		}

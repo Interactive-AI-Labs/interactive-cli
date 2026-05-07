@@ -14,43 +14,53 @@ type projectContext struct {
 	orgName     string
 	projectId   string
 	projectName string
-	apiClient   *clients.APIClient
 }
 
 func resolveProject(
 	ctx context.Context,
 	org, project string,
-) (*projectContext, error) {
+) (*projectContext, *clients.APIClient, *clients.DeploymentClient, error) {
 	cfg, err := files.LoadStackConfig(cfgFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load config file: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to load config file: %w", err)
 	}
 
 	cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load session: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to load session: %w", err)
 	}
 
 	apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create API client: %w", err)
+		return nil, nil, nil, err
+	}
+
+	deployClient, err := clients.NewDeploymentClient(
+		deploymentHostname,
+		defaultHTTPTimeout,
+		token,
+		apiKey,
+		cookies,
+	)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	sess := session.NewSession(cfgDirName)
 
 	orgName, err := sess.ResolveOrganization(cfg.Organization, org)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve organization: %w", err)
+		return nil, nil, nil, err
 	}
 
 	projectName, err := sess.ResolveProject(cfg.Project, project)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project: %w", err)
+		return nil, nil, nil, err
 	}
 
 	orgId, projectId, err := apiClient.GetProjectId(ctx, orgName, projectName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		return nil, nil, nil, fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 	}
 
 	return &projectContext{
@@ -58,6 +68,5 @@ func resolveProject(
 		orgName:     orgName,
 		projectId:   projectId,
 		projectName: projectName,
-		apiClient:   apiClient,
-	}, nil
+	}, apiClient, deployClient, nil
 }

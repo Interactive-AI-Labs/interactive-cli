@@ -81,7 +81,7 @@ var queueItemsListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			queueItemsListOrg,
 			queueItemsListProject,
@@ -90,7 +90,7 @@ var queueItemsListCmd = &cobra.Command{
 			return err
 		}
 
-		items, meta, rawJSON, err := pCtx.apiClient.ListQueueItems(
+		items, meta, rawJSON, err := apiClient.ListQueueItems(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -121,12 +121,16 @@ var queueItemsGetCmd = &cobra.Command{
 		queueID := strings.TrimSpace(queueItemsGetQueueID)
 		itemID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), queueItemsGetOrg, queueItemsGetProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			queueItemsGetOrg,
+			queueItemsGetProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		item, rawJSON, err := pCtx.apiClient.GetQueueItem(
+		item, rawJSON, err := apiClient.GetQueueItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -163,7 +167,7 @@ This command requires API key authentication.`,
 			queueItemsCreateStatus,
 		)
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			queueItemsCreateOrg,
 			queueItemsCreateProject,
@@ -172,7 +176,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		item, rawJSON, err := pCtx.apiClient.CreateQueueItem(
+		item, rawJSON, err := apiClient.CreateQueueItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -205,7 +209,7 @@ This command requires API key authentication.`,
 		status := strings.TrimSpace(queueItemsUpdateStatus)
 		itemID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			queueItemsUpdateOrg,
 			queueItemsUpdateProject,
@@ -214,7 +218,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		item, rawJSON, err := pCtx.apiClient.UpdateQueueItem(
+		item, rawJSON, err := apiClient.UpdateQueueItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -246,7 +250,7 @@ var queueItemsDeleteCmd = &cobra.Command{
 		queueID := strings.TrimSpace(queueItemsDeleteQueueID)
 		itemID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			queueItemsDeleteOrg,
 			queueItemsDeleteProject,
@@ -255,7 +259,7 @@ var queueItemsDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		message, err := pCtx.apiClient.DeleteQueueItem(
+		message, err := apiClient.DeleteQueueItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

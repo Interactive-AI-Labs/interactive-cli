@@ -87,12 +87,12 @@ Examples:
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), metricsListOrg, metricsListProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), metricsListOrg, metricsListProject)
 		if err != nil {
 			return err
 		}
 
-		metrics, meta, rawJSON, err := pCtx.apiClient.ListMetricsDaily(
+		metrics, meta, rawJSON, err := apiClient.ListMetricsDaily(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

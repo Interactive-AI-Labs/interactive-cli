@@ -123,12 +123,12 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), scoresListOrg, scoresListProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), scoresListOrg, scoresListProject)
 		if err != nil {
 			return err
 		}
 
-		scores, meta, rawJSON, err := pCtx.apiClient.ListScores(
+		scores, meta, rawJSON, err := apiClient.ListScores(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -174,12 +174,12 @@ This command currently requires API key authentication.`,
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), scoreCreateOrg, scoreCreateProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), scoreCreateOrg, scoreCreateProject)
 		if err != nil {
 			return err
 		}
 
-		score, rawJSON, err := pCtx.apiClient.CreateScore(
+		score, rawJSON, err := apiClient.CreateScore(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, body,
 		)
 		if err != nil {
@@ -207,12 +207,12 @@ This command currently requires API key authentication.`,
 
 		scoreID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), scoreDeleteOrg, scoreDeleteProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), scoreDeleteOrg, scoreDeleteProject)
 		if err != nil {
 			return err
 		}
 
-		message, err := pCtx.apiClient.DeleteScore(
+		message, err := apiClient.DeleteScore(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
