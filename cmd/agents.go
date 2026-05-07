@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -734,6 +735,162 @@ Examples:
 	},
 }
 
+func parseRevisionArg(raw string) (int, error) {
+	raw = strings.TrimSpace(raw)
+	rev, err := strconv.Atoi(raw)
+	if err != nil || rev <= 0 {
+		return 0, fmt.Errorf("revision must be a positive integer, got %q", raw)
+	}
+	return rev, nil
+}
+
+var agentRevisionsCmd = &cobra.Command{
+	Use:     "revisions <agent_name>",
+	Aliases: []string{"revs"},
+	Short:   "List revisions for an agent",
+	Long: `Show past revisions of an agent, sorted newest-first.
+Up to 50 revisions are retained per agent.
+
+Examples:
+  iai agents revisions my-agent`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		agentName := strings.TrimSpace(args[0])
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		revisions, err := deployClient.ListAgentRevisions(
+			cmd.Context(),
+			orgId,
+			projectId,
+			agentName,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintAgentRevisions(out, revisions)
+	},
+}
+
+var agentRevisionCmd = &cobra.Command{
+	Use:   "revision <agent_name> <revision>",
+	Short: "Describe a specific revision of an agent",
+	Long: `Show the configuration of a specific past revision of an agent.
+
+Examples:
+  iai agents revision my-agent 1
+  iai agents revision my-agent 3`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		agentName := strings.TrimSpace(args[0])
+
+		revision, err := parseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		rev, err := deployClient.DescribeAgentRevision(
+			cmd.Context(),
+			orgId,
+			projectId,
+			agentName,
+			revision,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintAgentRevision(out, rev)
+	},
+}
+
 func init() {
 	// Flags for "agents create"
 	agentCreateCmd.Flags().
@@ -830,6 +987,18 @@ func init() {
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 
+	// Flags for "agents revisions"
+	agentRevisionsCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentRevisionsCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "agents revision"
+	agentRevisionCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentRevisionCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
 	agentsCmd.AddCommand(agentCreateCmd)
@@ -841,4 +1010,6 @@ func init() {
 	agentsCmd.AddCommand(agentLogsCmd)
 	agentsCmd.AddCommand(agentSchemaCmd)
 	agentsCmd.AddCommand(agentCatalogCmd)
+	agentsCmd.AddCommand(agentRevisionsCmd)
+	agentsCmd.AddCommand(agentRevisionCmd)
 }

@@ -681,6 +681,153 @@ var (
 	syncOrganization string
 )
 
+var servRevisionsCmd = &cobra.Command{
+	Use:     "revisions <service_name>",
+	Aliases: []string{"revs"},
+	Short:   "List revisions for a service",
+	Long: `Show past revisions of a service, sorted newest-first.
+Up to 50 revisions are retained per service.
+
+Examples:
+  iai services revisions my-service`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		serviceName := strings.TrimSpace(args[0])
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		revisions, err := deployClient.ListServiceRevisions(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintServiceRevisions(out, revisions)
+	},
+}
+
+var servRevisionCmd = &cobra.Command{
+	Use:   "revision <service_name> <revision>",
+	Short: "Describe a specific revision of a service",
+	Long: `Show the configuration of a specific past revision of a service.
+
+Examples:
+  iai services revision my-service 1
+  iai services revision my-service 3`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		serviceName := strings.TrimSpace(args[0])
+
+		revision, err := parseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		rev, err := deployClient.DescribeServiceRevision(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+			revision,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintServiceRevision(out, rev)
+	},
+}
+
 var servicesSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync services in a project from a stack config file",
@@ -935,6 +1082,18 @@ func init() {
 	servLogsCmd.Flags().
 		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 
+	// Flags for "services revisions"
+	servRevisionsCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servRevisionsCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "services revision"
+	servRevisionCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servRevisionCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+
 	// Flags for "services sync"
 	servicesSyncCmd.Flags().
 		StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
@@ -950,5 +1109,7 @@ func init() {
 	servicesCmd.AddCommand(servDCmd)
 	servicesCmd.AddCommand(servRestartCmd)
 	servicesCmd.AddCommand(servLogsCmd)
+	servicesCmd.AddCommand(servRevisionsCmd)
+	servicesCmd.AddCommand(servRevisionCmd)
 	servicesCmd.AddCommand(servicesSyncCmd)
 }
