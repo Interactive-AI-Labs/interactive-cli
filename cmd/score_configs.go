@@ -77,7 +77,7 @@ var scoreConfigsListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			scoreConfigsListOrg,
 			scoreConfigsListProject,
@@ -86,7 +86,7 @@ var scoreConfigsListCmd = &cobra.Command{
 			return err
 		}
 
-		configs, meta, rawJSON, err := pCtx.apiClient.ListScoreConfigs(
+		configs, meta, rawJSON, err := apiClient.ListScoreConfigs(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -115,7 +115,7 @@ var scoreConfigsGetCmd = &cobra.Command{
 
 		configID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			scoreConfigsGetOrg,
 			scoreConfigsGetProject,
@@ -124,7 +124,7 @@ var scoreConfigsGetCmd = &cobra.Command{
 			return err
 		}
 
-		config, rawJSON, err := pCtx.apiClient.GetScoreConfig(
+		config, rawJSON, err := apiClient.GetScoreConfig(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -170,7 +170,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			scoreConfigsCreateOrg,
 			scoreConfigsCreateProject,
@@ -179,7 +179,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		config, rawJSON, err := pCtx.apiClient.CreateScoreConfig(
+		config, rawJSON, err := apiClient.CreateScoreConfig(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -238,7 +238,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			scoreConfigsUpdateOrg,
 			scoreConfigsUpdateProject,
@@ -247,7 +247,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		config, rawJSON, err := pCtx.apiClient.UpdateScoreConfig(
+		config, rawJSON, err := apiClient.UpdateScoreConfig(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

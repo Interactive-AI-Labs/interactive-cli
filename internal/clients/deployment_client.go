@@ -1325,6 +1325,43 @@ func (c *DeploymentClient) fetchLogs(
 // Agents
 // ---------------------------------------------------------------------------
 
+type RevisionMeta struct {
+	Revision int    `json:"revision"`
+	Updated  string `json:"updated,omitempty"`
+	Status   string `json:"status"`
+}
+
+type revisionsResponse struct {
+	Revisions []RevisionMeta `json:"revisions"`
+}
+
+type AgentRevisionResponse struct {
+	RevisionMeta
+	Id          string      `json:"id"`
+	Version     string      `json:"version"`
+	AgentConfig any         `json:"agentConfig"`
+	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
+	Endpoint    string      `json:"endpoint,omitempty"`
+	Schedule    *Schedule   `json:"schedule,omitempty"`
+	Env         []EnvVar    `json:"env,omitempty"`
+	StackId     string      `json:"stackId,omitempty"`
+}
+
+type ServiceRevisionResponse struct {
+	RevisionMeta
+	ServicePort int          `json:"servicePort"`
+	Image       ImageSpec    `json:"image"`
+	Resources   Resources    `json:"resources"`
+	Env         []EnvVar     `json:"env,omitempty"`
+	SecretRefs  []SecretRef  `json:"secretRefs,omitempty"`
+	Endpoint    string       `json:"endpoint,omitempty"`
+	Replicas    int          `json:"replicas,omitempty"`
+	StackId     string       `json:"stackId,omitempty"`
+	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
+	Healthcheck *Healthcheck `json:"healthcheck,omitempty"`
+	Schedule    *Schedule    `json:"schedule,omitempty"`
+}
+
 type CreateAgentBody struct {
 	Id          string      `json:"id"`
 	Version     string      `json:"version"`
@@ -1358,6 +1395,7 @@ type DescribeAgentResponse struct {
 	Endpoint    string      `json:"endpoint,omitempty"`
 	Schedule    *Schedule   `json:"schedule,omitempty"`
 	Env         []EnvVar    `json:"env,omitempty"`
+	StackId     string      `json:"stackId,omitempty"`
 }
 
 type agentsResponse struct {
@@ -1876,4 +1914,151 @@ func (c *DeploymentClient) ListCatalogAgentVersions(
 	}
 
 	return result.Versions, nil
+}
+
+func (c *DeploymentClient) ListAgentRevisions(
+	ctx context.Context,
+	orgId, projectId, agentName string,
+) ([]RevisionMeta, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s/revisions",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	return c.fetchRevisions(ctx, path, "agent revisions")
+}
+
+func (c *DeploymentClient) DescribeAgentRevision(
+	ctx context.Context,
+	orgId, projectId, agentName string,
+	revision int,
+) (*AgentRevisionResponse, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s/revisions/%d",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+		revision,
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("agent revision request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("agent revision request failed with status %s", resp.Status)
+	}
+
+	var result AgentRevisionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode agent revision response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *DeploymentClient) ListServiceRevisions(
+	ctx context.Context,
+	orgId, projectId, serviceName string,
+) ([]RevisionMeta, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/services/%s/revisions",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(serviceName),
+	)
+	return c.fetchRevisions(ctx, path, "service revisions")
+}
+
+func (c *DeploymentClient) DescribeServiceRevision(
+	ctx context.Context,
+	orgId, projectId, serviceName string,
+	revision int,
+) (*ServiceRevisionResponse, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/services/%s/revisions/%d",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(serviceName),
+		revision,
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("service revision request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("service revision request failed with status %s", resp.Status)
+	}
+
+	var result ServiceRevisionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode service revision response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *DeploymentClient) fetchRevisions(
+	ctx context.Context,
+	path, label string,
+) ([]RevisionMeta, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%s request failed: %w", label, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("%s request failed with status %s", label, resp.Status)
+	}
+
+	var result revisionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode %s response: %w", label, err)
+	}
+
+	return result.Revisions, nil
 }

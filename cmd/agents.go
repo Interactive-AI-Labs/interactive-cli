@@ -65,47 +65,9 @@ Examples:
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		reqBody, err := inputs.BuildAgentRequestBody(inputs.AgentInput{
@@ -128,8 +90,8 @@ Examples:
 
 		serverMessage, err := deployClient.CreateAgent(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			agentName,
 			reqBody,
 		)
@@ -178,47 +140,9 @@ Examples:
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		patch, err := inputs.BuildAgentUpdatePatch(inputs.AgentInput{
@@ -244,8 +168,8 @@ Examples:
 
 		serverMessage, err := deployClient.PatchAgent(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			agentName,
 			patch,
 		)
@@ -274,50 +198,12 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		agents, err := deployClient.ListAgents(cmd.Context(), orgId, projectId, "")
+		agents, err := deployClient.ListAgents(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
 		if err != nil {
 			return err
 		}
@@ -339,50 +225,17 @@ Examples:
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
+		agent, err := deployClient.DescribeAgent(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
 		)
-		if err != nil {
-			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
-		agent, err := deployClient.DescribeAgent(cmd.Context(), orgId, projectId, agentName)
 		if err != nil {
 			return err
 		}
@@ -403,47 +256,9 @@ Examples:
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		fmt.Fprintln(out)
@@ -451,8 +266,8 @@ Examples:
 
 		serverMessage, err := deployClient.DeleteAgent(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			agentName,
 		)
 		if err != nil {
@@ -479,47 +294,9 @@ Examples:
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		fmt.Fprintln(out)
@@ -527,8 +304,8 @@ Examples:
 
 		serverMessage, err := deployClient.RestartAgent(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			agentName,
 		)
 		if err != nil {
@@ -734,6 +511,129 @@ Examples:
 	},
 }
 
+var agentRevisionsCmd = &cobra.Command{
+	Use:     "revisions <agent_name>",
+	Aliases: []string{"revs"},
+	Short:   "List revisions for an agent",
+	Long: `Show past revisions of an agent, sorted newest-first.
+Up to 50 revisions are retained per agent.
+
+Examples:
+  iai agents revisions my-agent`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		agentName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+
+		revisions, err := deployClient.ListAgentRevisions(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintAgentRevisions(out, revisions)
+	},
+}
+
+var agentRevisionCmd = &cobra.Command{
+	Use:   "revision <agent_name> <revision>",
+	Short: "Describe a specific revision of an agent",
+	Long: `Show the configuration of a specific past revision of an agent.
+
+Examples:
+  iai agents revision my-agent 1
+  iai agents revision my-agent 3`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		agentName := strings.TrimSpace(args[0])
+
+		revision, err := inputs.ParseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+
+		rev, err := deployClient.DescribeAgentRevision(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+			revision,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintAgentRevision(out, rev)
+	},
+}
+
+var agentDiffCmd = &cobra.Command{
+	Use:   "diff <agent_name> <revision_a> <revision_b>",
+	Short: "Compare two revisions of an agent",
+	Long: `Show the differences between two revisions of an agent.
+
+Examples:
+  iai agents diff my-agent 1 3`,
+	Args: cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		agentName := strings.TrimSpace(args[0])
+
+		revA, err := inputs.ParseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+		revB, err := inputs.ParseRevisionArg(args[2])
+		if err != nil {
+			return err
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+
+		a, err := deployClient.DescribeAgentRevision(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+			revA,
+		)
+		if err != nil {
+			return err
+		}
+
+		b, err := deployClient.DescribeAgentRevision(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+			revB,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintRevisionDiff(out, args[1], a, args[2], b)
+	},
+}
+
 func init() {
 	// Flags for "agents create"
 	agentCreateCmd.Flags().
@@ -830,6 +730,24 @@ func init() {
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 
+	// Flags for "agents revisions"
+	agentRevisionsCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentRevisionsCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "agents revision"
+	agentRevisionCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentRevisionCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "agents diff"
+	agentDiffCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentDiffCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
 	agentsCmd.AddCommand(agentCreateCmd)
@@ -841,4 +759,7 @@ func init() {
 	agentsCmd.AddCommand(agentLogsCmd)
 	agentsCmd.AddCommand(agentSchemaCmd)
 	agentsCmd.AddCommand(agentCatalogCmd)
+	agentsCmd.AddCommand(agentRevisionsCmd)
+	agentsCmd.AddCommand(agentRevisionCmd)
+	agentsCmd.AddCommand(agentDiffCmd)
 }

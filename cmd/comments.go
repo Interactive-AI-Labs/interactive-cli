@@ -71,12 +71,16 @@ var commentsListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), commentsListOrg, commentsListProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			commentsListOrg,
+			commentsListProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		comments, meta, rawJSON, err := pCtx.apiClient.ListComments(
+		comments, meta, rawJSON, err := apiClient.ListComments(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -105,12 +109,12 @@ var commentsGetCmd = &cobra.Command{
 
 		commentID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), commentsGetOrg, commentsGetProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), commentsGetOrg, commentsGetProject)
 		if err != nil {
 			return err
 		}
 
-		comment, rawJSON, err := pCtx.apiClient.GetComment(
+		comment, rawJSON, err := apiClient.GetComment(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -145,12 +149,16 @@ This command requires API key authentication.`,
 			commentsCreateAuthorUserID,
 		)
 
-		pCtx, err := resolveProject(cmd.Context(), commentsCreateOrg, commentsCreateProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			commentsCreateOrg,
+			commentsCreateProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		comment, rawJSON, err := pCtx.apiClient.CreateComment(
+		comment, rawJSON, err := apiClient.CreateComment(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

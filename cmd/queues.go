@@ -71,12 +71,12 @@ var queuesListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), queuesListOrg, queuesListProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), queuesListOrg, queuesListProject)
 		if err != nil {
 			return err
 		}
 
-		queues, meta, rawJSON, err := pCtx.apiClient.ListAnnotationQueues(
+		queues, meta, rawJSON, err := apiClient.ListAnnotationQueues(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -105,12 +105,12 @@ var queuesGetCmd = &cobra.Command{
 
 		queueID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), queuesGetOrg, queuesGetProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), queuesGetOrg, queuesGetProject)
 		if err != nil {
 			return err
 		}
 
-		queue, rawJSON, err := pCtx.apiClient.GetAnnotationQueue(
+		queue, rawJSON, err := apiClient.GetAnnotationQueue(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -144,12 +144,16 @@ This command requires API key authentication.`,
 			queuesCreateScoreConfigs,
 		)
 
-		pCtx, err := resolveProject(cmd.Context(), queuesCreateOrg, queuesCreateProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			queuesCreateOrg,
+			queuesCreateProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		queue, rawJSON, err := pCtx.apiClient.CreateAnnotationQueue(
+		queue, rawJSON, err := apiClient.CreateAnnotationQueue(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -180,12 +184,16 @@ This command requires API key authentication.`,
 		queueID := strings.TrimSpace(args[0])
 		userID := strings.TrimSpace(queuesAssignUserID)
 
-		pCtx, err := resolveProject(cmd.Context(), queuesAssignOrg, queuesAssignProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			queuesAssignOrg,
+			queuesAssignProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		message, err := pCtx.apiClient.AssignQueue(
+		message, err := apiClient.AssignQueue(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -213,7 +221,7 @@ This command requires API key authentication.`,
 		queueID := strings.TrimSpace(args[0])
 		userID := strings.TrimSpace(queuesUnassignUserID)
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			queuesUnassignOrg,
 			queuesUnassignProject,
@@ -222,7 +230,7 @@ This command requires API key authentication.`,
 			return err
 		}
 
-		message, err := pCtx.apiClient.UnassignQueue(
+		message, err := apiClient.UnassignQueue(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

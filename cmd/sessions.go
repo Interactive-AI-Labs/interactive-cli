@@ -72,12 +72,16 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), sessionsListOrg, sessionsListProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			sessionsListOrg,
+			sessionsListProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		sessions, meta, rawJSON, err := pCtx.apiClient.ListSessions(
+		sessions, meta, rawJSON, err := apiClient.ListSessions(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -108,12 +112,12 @@ Uses the platform API with dual authentication (API key or session).`,
 
 		sessionID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), sessionsGetOrg, sessionsGetProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), sessionsGetOrg, sessionsGetProject)
 		if err != nil {
 			return err
 		}
 
-		session, rawJSON, err := pCtx.apiClient.GetSession(
+		session, rawJSON, err := apiClient.GetSession(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

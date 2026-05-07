@@ -148,12 +148,12 @@ Examples:
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), tracesListOrg, tracesListProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), tracesListOrg, tracesListProject)
 		if err != nil {
 			return err
 		}
 
-		traces, meta, rawJSON, err := pCtx.apiClient.ListTraces(
+		traces, meta, rawJSON, err := apiClient.ListTraces(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, opts,
 		)
 		if err != nil {
@@ -184,12 +184,12 @@ Examples:
 		out := cmd.OutOrStdout()
 
 		traceID := strings.TrimSpace(args[0])
-		pCtx, err := resolveProject(cmd.Context(), tracesGetOrg, tracesGetProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), tracesGetOrg, tracesGetProject)
 		if err != nil {
 			return err
 		}
 
-		trace, rawJSON, err := pCtx.apiClient.GetTrace(
+		trace, rawJSON, err := apiClient.GetTrace(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, tracesGetFields,
 		)
 		if err != nil {
@@ -246,13 +246,17 @@ Examples:
 			}
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), tracesDeleteOrg, tracesDeleteProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			tracesDeleteOrg,
+			tracesDeleteProject,
+		)
 		if err != nil {
 			return err
 		}
 
 		if traceID != "" {
-			message, err := pCtx.apiClient.DeleteTrace(
+			message, err := apiClient.DeleteTrace(
 				cmd.Context(),
 				pCtx.orgId,
 				pCtx.projectId,
@@ -264,7 +268,7 @@ Examples:
 			return output.PrintDeleteSuccess(out, traceID, "trace", message)
 		}
 
-		message, err := pCtx.apiClient.DeleteTraces(
+		message, err := apiClient.DeleteTraces(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

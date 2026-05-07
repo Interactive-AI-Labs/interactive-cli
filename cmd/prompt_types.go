@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -102,25 +101,9 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
-			pCtx, err := resolveProject(cmd.Context(), org, project)
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
-			}
-
-			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-			if err != nil {
-				return fmt.Errorf("failed to load session: %w", err)
-			}
-
-			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			content, err := os.ReadFile(file)
@@ -182,25 +165,9 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 
-			pCtx, err := resolveProject(cmd.Context(), org, project)
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
-			}
-
-			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-			if err != nil {
-				return fmt.Errorf("failed to load session: %w", err)
-			}
-
-			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			opts := clients.PromptListOptions{
@@ -258,25 +225,9 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
-			pCtx, err := resolveProject(cmd.Context(), org, project)
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
-			}
-
-			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-			if err != nil {
-				return fmt.Errorf("failed to load session: %w", err)
-			}
-
-			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			result, err := apiClient.GetPrompt(
@@ -322,25 +273,9 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
-			pCtx, err := resolveProject(cmd.Context(), org, project)
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
-			}
-
-			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-			if err != nil {
-				return fmt.Errorf("failed to load session: %w", err)
-			}
-
-			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			content, err := os.ReadFile(file)
@@ -425,25 +360,9 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				}
 			}
 
-			pCtx, err := resolveProject(cmd.Context(), org, project)
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
-			}
-
-			cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-			if err != nil {
-				return fmt.Errorf("failed to load session: %w", err)
-			}
-
-			apiClient, err := clients.NewAPIClient(
-				hostname,
-				defaultHTTPTimeout,
-				token,
-				apiKey,
-				cookies,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create API client: %w", err)
 			}
 
 			fmt.Fprintln(out)

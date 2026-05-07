@@ -63,12 +63,16 @@ var datasetsListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), datasetsListOrg, datasetsListProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			datasetsListOrg,
+			datasetsListProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		datasets, meta, rawJSON, err := pCtx.apiClient.ListDatasets(
+		datasets, meta, rawJSON, err := apiClient.ListDatasets(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -97,12 +101,12 @@ var datasetsGetCmd = &cobra.Command{
 
 		name := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), datasetsGetOrg, datasetsGetProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), datasetsGetOrg, datasetsGetProject)
 		if err != nil {
 			return err
 		}
 
-		dataset, rawJSON, err := pCtx.apiClient.GetDataset(
+		dataset, rawJSON, err := apiClient.GetDataset(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -137,12 +141,16 @@ var datasetsCreateCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(cmd.Context(), datasetsCreateOrg, datasetsCreateProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			datasetsCreateOrg,
+			datasetsCreateProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		dataset, rawJSON, err := pCtx.apiClient.CreateDataset(
+		dataset, rawJSON, err := apiClient.CreateDataset(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

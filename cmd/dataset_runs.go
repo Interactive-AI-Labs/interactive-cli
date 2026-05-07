@@ -65,7 +65,7 @@ var datasetRunsListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			datasetRunsListOrg,
 			datasetRunsListProject,
@@ -74,7 +74,7 @@ var datasetRunsListCmd = &cobra.Command{
 			return err
 		}
 
-		runs, meta, rawJSON, err := pCtx.apiClient.ListDatasetRuns(
+		runs, meta, rawJSON, err := apiClient.ListDatasetRuns(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -105,7 +105,7 @@ var datasetRunsGetCmd = &cobra.Command{
 		datasetName := strings.TrimSpace(datasetRunsGetDataset)
 		runName := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			datasetRunsGetOrg,
 			datasetRunsGetProject,
@@ -114,7 +114,7 @@ var datasetRunsGetCmd = &cobra.Command{
 			return err
 		}
 
-		run, rawJSON, err := pCtx.apiClient.GetDatasetRun(
+		run, rawJSON, err := apiClient.GetDatasetRun(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -145,7 +145,7 @@ var datasetRunsDeleteCmd = &cobra.Command{
 		datasetName := strings.TrimSpace(datasetRunsDeleteDataset)
 		runName := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			datasetRunsDeleteOrg,
 			datasetRunsDeleteProject,
@@ -154,7 +154,7 @@ var datasetRunsDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		message, err := pCtx.apiClient.DeleteDatasetRun(
+		message, err := apiClient.DeleteDatasetRun(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,

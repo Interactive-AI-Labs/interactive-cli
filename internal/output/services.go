@@ -120,6 +120,112 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 	return w.Flush()
 }
 
+func PrintServiceRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
+	if len(revisions) == 0 {
+		fmt.Fprintln(out, "No revisions found.")
+		return nil
+	}
+
+	headers := []string{"REVISION", "STATUS", "UPDATED"}
+	rows := make([][]string, len(revisions))
+	for i, r := range revisions {
+		rows[i] = []string{
+			fmt.Sprintf("%d", r.Revision),
+			r.Status,
+			LocalTime(r.Updated),
+		}
+	}
+
+	return PrintTable(out, headers, rows)
+}
+
+func PrintServiceRevision(out io.Writer, rev *clients.ServiceRevisionResponse) error {
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
+	fmt.Fprintf(w, "Status:\t%s\n", rev.Status)
+	if rev.Updated != "" {
+		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(rev.Updated))
+	}
+
+	fmt.Fprintf(w, "Port:\t%d\n", rev.ServicePort)
+	fmt.Fprintln(w, "Image:")
+	fmt.Fprintf(w, "  Type:\t%s\n", rev.Image.Type)
+	fmt.Fprintf(w, "  Name:\t%s\n", rev.Image.Name)
+	fmt.Fprintf(w, "  Tag:\t%s\n", rev.Image.Tag)
+	if rev.Image.Repository != "" {
+		fmt.Fprintf(w, "  Repository:\t%s\n", rev.Image.Repository)
+	}
+
+	fmt.Fprintln(w, "Resources:")
+	fmt.Fprintf(w, "  CPU:\t%s\n", rev.Resources.CPU)
+	fmt.Fprintf(w, "  Memory:\t%s\n", rev.Resources.Memory)
+
+	if rev.Autoscaling != nil {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Autoscaling:")
+		fmt.Fprintf(w, "  Min Replicas:\t%d\n", rev.Autoscaling.MinReplicas)
+		fmt.Fprintf(w, "  Max Replicas:\t%d\n", rev.Autoscaling.MaxReplicas)
+		if rev.Autoscaling.CPUPercentage != nil {
+			fmt.Fprintf(w, "  CPU%%:\t%d\n", *rev.Autoscaling.CPUPercentage)
+		}
+		if rev.Autoscaling.MemoryPercentage != nil {
+			fmt.Fprintf(w, "  Memory%%:\t%d\n", *rev.Autoscaling.MemoryPercentage)
+		}
+	} else {
+		fmt.Fprintf(w, "Replicas:\t%d\n", rev.Replicas)
+	}
+
+	if rev.Endpoint != "" {
+		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
+	}
+
+	if rev.StackId != "" {
+		fmt.Fprintf(w, "Stack:\t%s\n", rev.StackId)
+	}
+
+	if rev.Healthcheck != nil {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Healthcheck:")
+		fmt.Fprintf(w, "  Path:\t%s\n", rev.Healthcheck.Path)
+		if rev.Healthcheck.InitialDelaySeconds != nil {
+			fmt.Fprintf(w, "  Initial Delay:\t%ds\n", *rev.Healthcheck.InitialDelaySeconds)
+		}
+	}
+
+	if len(rev.Env) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Environment:")
+		for _, e := range rev.Env {
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
+		}
+	}
+
+	if len(rev.SecretRefs) > 0 {
+		names := make([]string, len(rev.SecretRefs))
+		for i, ref := range rev.SecretRefs {
+			names[i] = ref.SecretName
+		}
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Secrets:\t%s\n", strings.Join(names, ", "))
+	}
+
+	if rev.Schedule != nil {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Schedule:")
+		if rev.Schedule.Uptime != "" {
+			fmt.Fprintf(w, "  Uptime:\t%s\n", rev.Schedule.Uptime)
+		}
+		if rev.Schedule.Downtime != "" {
+			fmt.Fprintf(w, "  Downtime:\t%s\n", rev.Schedule.Downtime)
+		}
+		if rev.Schedule.Timezone != "" {
+			fmt.Fprintf(w, "  Timezone:\t%s\n", rev.Schedule.Timezone)
+		}
+	}
+
+	return w.Flush()
+}
+
 func PrintSyncResult(out io.Writer, label string, created, updated, deleted, skipped []string) {
 	if len(created) > 0 {
 		fmt.Fprintf(out, "Created %s: %s\n", label, strings.Join(created, ", "))

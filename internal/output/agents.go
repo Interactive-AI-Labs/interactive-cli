@@ -46,6 +46,9 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 	if agent.Endpoint != "" {
 		fmt.Fprintf(w, "Endpoint:\t%s\n", agent.Endpoint)
 	}
+	if agent.StackId != "" {
+		fmt.Fprintf(w, "Stack:\t%s\n", agent.StackId)
+	}
 
 	if len(agent.Env) > 0 {
 		fmt.Fprintln(w)
@@ -80,6 +83,88 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 
 	if agent.AgentConfig != nil {
 		cfgBytes, err := yaml.Marshal(agent.AgentConfig)
+		if err == nil && len(cfgBytes) > 0 {
+			fmt.Fprintln(w)
+			fmt.Fprintln(w, "Agent Config:")
+			for _, line := range strings.Split(strings.TrimRight(string(cfgBytes), "\n"), "\n") {
+				fmt.Fprintf(w, "  %s\n", line)
+			}
+		}
+	}
+
+	return w.Flush()
+}
+
+func PrintAgentRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
+	if len(revisions) == 0 {
+		fmt.Fprintln(out, "No revisions found.")
+		return nil
+	}
+
+	headers := []string{"REVISION", "STATUS", "UPDATED"}
+	rows := make([][]string, len(revisions))
+	for i, r := range revisions {
+		rows[i] = []string{
+			fmt.Sprintf("%d", r.Revision),
+			r.Status,
+			LocalTime(r.Updated),
+		}
+	}
+
+	return PrintTable(out, headers, rows)
+}
+
+func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error {
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
+	fmt.Fprintf(w, "Status:\t%s\n", rev.Status)
+	if rev.Updated != "" {
+		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(rev.Updated))
+	}
+
+	fmt.Fprintf(w, "Id:\t%s\n", rev.Id)
+	fmt.Fprintf(w, "Version:\t%s\n", rev.Version)
+
+	if rev.Endpoint != "" {
+		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
+	}
+	if rev.StackId != "" {
+		fmt.Fprintf(w, "Stack:\t%s\n", rev.StackId)
+	}
+
+	if len(rev.Env) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Environment:")
+		for _, e := range rev.Env {
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
+		}
+	}
+
+	if len(rev.SecretRefs) > 0 {
+		names := make([]string, len(rev.SecretRefs))
+		for i, ref := range rev.SecretRefs {
+			names[i] = ref.SecretName
+		}
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Secrets:\t%s\n", strings.Join(names, ", "))
+	}
+
+	if rev.Schedule != nil {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Schedule:")
+		if rev.Schedule.Uptime != "" {
+			fmt.Fprintf(w, "  Uptime:\t%s\n", rev.Schedule.Uptime)
+		}
+		if rev.Schedule.Downtime != "" {
+			fmt.Fprintf(w, "  Downtime:\t%s\n", rev.Schedule.Downtime)
+		}
+		if rev.Schedule.Timezone != "" {
+			fmt.Fprintf(w, "  Timezone:\t%s\n", rev.Schedule.Timezone)
+		}
+	}
+
+	if rev.AgentConfig != nil {
+		cfgBytes, err := yaml.Marshal(rev.AgentConfig)
 		if err == nil && len(cfgBytes) > 0 {
 			fmt.Fprintln(w)
 			fmt.Fprintln(w, "Agent Config:")

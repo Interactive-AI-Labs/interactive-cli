@@ -78,7 +78,7 @@ var datasetItemsListCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			datasetItemsListOrg,
 			datasetItemsListProject,
@@ -87,7 +87,7 @@ var datasetItemsListCmd = &cobra.Command{
 			return err
 		}
 
-		items, meta, rawJSON, err := pCtx.apiClient.ListDatasetItems(
+		items, meta, rawJSON, err := apiClient.ListDatasetItems(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -116,12 +116,16 @@ var datasetItemsGetCmd = &cobra.Command{
 
 		itemID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(cmd.Context(), datasetItemsGetOrg, datasetItemsGetProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			datasetItemsGetOrg,
+			datasetItemsGetProject,
+		)
 		if err != nil {
 			return err
 		}
 
-		item, rawJSON, err := pCtx.apiClient.GetDatasetItem(
+		item, rawJSON, err := apiClient.GetDatasetItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -161,7 +165,7 @@ var datasetItemsCreateCmd = &cobra.Command{
 			return err
 		}
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			datasetItemsCreateOrg,
 			datasetItemsCreateProject,
@@ -170,7 +174,7 @@ var datasetItemsCreateCmd = &cobra.Command{
 			return err
 		}
 
-		item, rawJSON, err := pCtx.apiClient.CreateDatasetItem(
+		item, rawJSON, err := apiClient.CreateDatasetItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
@@ -199,7 +203,7 @@ var datasetItemsDeleteCmd = &cobra.Command{
 
 		itemID := strings.TrimSpace(args[0])
 
-		pCtx, err := resolveProject(
+		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
 			datasetItemsDeleteOrg,
 			datasetItemsDeleteProject,
@@ -208,7 +212,7 @@ var datasetItemsDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		message, err := pCtx.apiClient.DeleteDatasetItem(
+		message, err := apiClient.DeleteDatasetItem(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
