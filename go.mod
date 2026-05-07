@@ -8,6 +8,7 @@ require (
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/spf13/cobra v1.10.1
 	golang.org/x/term v0.40.0
+	znkr.io/diff v1.0.1
 )
 
 require (

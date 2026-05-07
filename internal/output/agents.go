@@ -46,6 +46,9 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 	if agent.Endpoint != "" {
 		fmt.Fprintf(w, "Endpoint:\t%s\n", agent.Endpoint)
 	}
+	if agent.StackId != "" {
+		fmt.Fprintf(w, "Stack:\t%s\n", agent.StackId)
+	}
 
 	if len(agent.Env) > 0 {
 		fmt.Fprintln(w)
@@ -124,6 +127,9 @@ func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error
 
 	if rev.Endpoint != "" {
 		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
+	}
+	if rev.StackId != "" {
+		fmt.Fprintf(w, "Stack:\t%s\n", rev.StackId)
 	}
 
 	if len(rev.Env) > 0 {

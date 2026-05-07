@@ -1331,7 +1331,7 @@ type RevisionMeta struct {
 	Status   string `json:"status"`
 }
 
-type historyResponse struct {
+type revisionsResponse struct {
 	Revisions []RevisionMeta `json:"revisions"`
 }
 
@@ -1395,6 +1395,7 @@ type DescribeAgentResponse struct {
 	Endpoint    string      `json:"endpoint,omitempty"`
 	Schedule    *Schedule   `json:"schedule,omitempty"`
 	Env         []EnvVar    `json:"env,omitempty"`
+	StackId     string      `json:"stackId,omitempty"`
 }
 
 type agentsResponse struct {
@@ -1925,7 +1926,7 @@ func (c *DeploymentClient) ListAgentRevisions(
 		url.PathEscape(projectId),
 		url.PathEscape(agentName),
 	)
-	return c.fetchHistory(ctx, path, "agent history")
+	return c.fetchRevisions(ctx, path, "agent revisions")
 }
 
 func (c *DeploymentClient) DescribeAgentRevision(
@@ -1981,7 +1982,7 @@ func (c *DeploymentClient) ListServiceRevisions(
 		url.PathEscape(projectId),
 		url.PathEscape(serviceName),
 	)
-	return c.fetchHistory(ctx, path, "service history")
+	return c.fetchRevisions(ctx, path, "service revisions")
 }
 
 func (c *DeploymentClient) DescribeServiceRevision(
@@ -2027,7 +2028,7 @@ func (c *DeploymentClient) DescribeServiceRevision(
 	return &result, nil
 }
 
-func (c *DeploymentClient) fetchHistory(
+func (c *DeploymentClient) fetchRevisions(
 	ctx context.Context,
 	path, label string,
 ) ([]RevisionMeta, error) {
@@ -2054,7 +2055,7 @@ func (c *DeploymentClient) fetchHistory(
 		return nil, fmt.Errorf("%s request failed with status %s", label, resp.Status)
 	}
 
-	var result historyResponse
+	var result revisionsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode %s response: %w", label, err)
 	}

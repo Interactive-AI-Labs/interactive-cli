@@ -28,6 +28,7 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai agents create](iai_agents_create.md)	 - Create an agent in a project
 * [iai agents delete](iai_agents_delete.md)	 - Delete an agent from a project
 * [iai agents describe](iai_agents_describe.md)	 - Describe an agent in detail
+* [iai agents diff](iai_agents_diff.md)	 - Compare two revisions of an agent
 * [iai agents list](iai_agents_list.md)	 - List agents in a project
 * [iai agents logs](iai_agents_logs.md)	 - Show logs for an agent
 * [iai agents restart](iai_agents_restart.md)	 - Restart an agent in a project

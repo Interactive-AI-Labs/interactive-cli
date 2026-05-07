@@ -511,7 +511,7 @@ var servRestartCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		serviceName := args[0]
+		serviceName := strings.TrimSpace(args[0])
 
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
@@ -765,7 +765,7 @@ Examples:
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
 
-		revision, err := parseRevisionArg(args[1])
+		revision, err := inputs.ParseRevisionArg(args[1])
 		if err != nil {
 			return err
 		}
@@ -825,6 +825,96 @@ Examples:
 		}
 
 		return output.PrintServiceRevision(out, rev)
+	},
+}
+
+var servDiffCmd = &cobra.Command{
+	Use:   "diff <service_name> <revision_a> <revision_b>",
+	Short: "Compare two revisions of a service",
+	Long: `Show the differences between two revisions of a service.
+
+Examples:
+  iai services diff my-service 1 3`,
+	Args: cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		serviceName := strings.TrimSpace(args[0])
+
+		revA, err := inputs.ParseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+		revB, err := inputs.ParseRevisionArg(args[2])
+		if err != nil {
+			return err
+		}
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		a, err := deployClient.DescribeServiceRevision(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+			revA,
+		)
+		if err != nil {
+			return err
+		}
+
+		b, err := deployClient.DescribeServiceRevision(
+			cmd.Context(),
+			orgId,
+			projectId,
+			serviceName,
+			revB,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintRevisionDiff(out, args[1], a, args[2], b)
 	},
 }
 
@@ -1094,6 +1184,12 @@ func init() {
 	servRevisionCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
 
+	// Flags for "services diff"
+	servDiffCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servDiffCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+
 	// Flags for "services sync"
 	servicesSyncCmd.Flags().
 		StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
@@ -1111,5 +1207,6 @@ func init() {
 	servicesCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servRevisionsCmd)
 	servicesCmd.AddCommand(servRevisionCmd)
+	servicesCmd.AddCommand(servDiffCmd)
 	servicesCmd.AddCommand(servicesSyncCmd)
 }

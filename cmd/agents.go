@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -735,15 +734,6 @@ Examples:
 	},
 }
 
-func parseRevisionArg(raw string) (int, error) {
-	raw = strings.TrimSpace(raw)
-	rev, err := strconv.Atoi(raw)
-	if err != nil || rev <= 0 {
-		return 0, fmt.Errorf("revision must be a positive integer, got %q", raw)
-	}
-	return rev, nil
-}
-
 var agentRevisionsCmd = &cobra.Command{
 	Use:     "revisions <agent_name>",
 	Aliases: []string{"revs"},
@@ -828,7 +818,7 @@ Examples:
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		revision, err := parseRevisionArg(args[1])
+		revision, err := inputs.ParseRevisionArg(args[1])
 		if err != nil {
 			return err
 		}
@@ -888,6 +878,96 @@ Examples:
 		}
 
 		return output.PrintAgentRevision(out, rev)
+	},
+}
+
+var agentDiffCmd = &cobra.Command{
+	Use:   "diff <agent_name> <revision_a> <revision_b>",
+	Short: "Compare two revisions of an agent",
+	Long: `Show the differences between two revisions of an agent.
+
+Examples:
+  iai agents diff my-agent 1 3`,
+	Args: cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		agentName := strings.TrimSpace(args[0])
+
+		revA, err := inputs.ParseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+		revB, err := inputs.ParseRevisionArg(args[2])
+		if err != nil {
+			return err
+		}
+
+		cfg, err := files.LoadStackConfig(cfgFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %w", err)
+		}
+
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+
+		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
+		if err != nil {
+			return err
+		}
+
+		sess := session.NewSession(cfgDirName)
+
+		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
+		if err != nil {
+			return err
+		}
+
+		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
+		if err != nil {
+			return err
+		}
+
+		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
+		}
+
+		a, err := deployClient.DescribeAgentRevision(
+			cmd.Context(),
+			orgId,
+			projectId,
+			agentName,
+			revA,
+		)
+		if err != nil {
+			return err
+		}
+
+		b, err := deployClient.DescribeAgentRevision(
+			cmd.Context(),
+			orgId,
+			projectId,
+			agentName,
+			revB,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintRevisionDiff(out, args[1], a, args[2], b)
 	},
 }
 
@@ -999,6 +1079,12 @@ func init() {
 	agentRevisionCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
+	// Flags for "agents diff"
+	agentDiffCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentDiffCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
 	agentsCmd.AddCommand(agentCreateCmd)
@@ -1012,4 +1098,5 @@ func init() {
 	agentsCmd.AddCommand(agentCatalogCmd)
 	agentsCmd.AddCommand(agentRevisionsCmd)
 	agentsCmd.AddCommand(agentRevisionCmd)
+	agentsCmd.AddCommand(agentDiffCmd)
 }
