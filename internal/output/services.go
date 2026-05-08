@@ -122,18 +122,25 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 
 func PrintServiceRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
 	if len(revisions) == 0 {
-		fmt.Fprintln(out, "No revisions found.")
+		fmt.Fprintln(out, "No versions found.")
 		return nil
 	}
 
-	headers := []string{"REVISION", "STATUS", "UPDATED"}
+	latest := 0
+	for _, r := range revisions {
+		if r.Revision > latest {
+			latest = r.Revision
+		}
+	}
+
+	headers := []string{"", "REVISION", "UPDATED"}
 	rows := make([][]string, len(revisions))
 	for i, r := range revisions {
-		rows[i] = []string{
-			fmt.Sprintf("%d", r.Revision),
-			r.Status,
-			LocalTime(r.Updated),
+		marker := ""
+		if r.Revision == latest {
+			marker = "*"
 		}
+		rows[i] = []string{marker, fmt.Sprintf("%d", r.Revision), LocalTime(r.Updated)}
 	}
 
 	return PrintTable(out, headers, rows)

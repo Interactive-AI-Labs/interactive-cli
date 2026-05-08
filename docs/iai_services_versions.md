@@ -1,28 +1,25 @@
-## iai agents describe
+## iai services versions
 
-Describe an agent in detail
+List versions of a service
 
 ### Synopsis
 
-Show detailed information about a specific agent including its configuration.
-
-Use --version to view a specific past version instead of the current state.
+Show past versions of a service, sorted newest-first.
+Up to 50 versions are retained per service.
 
 Examples:
-  iai agents describe my-agent
-  iai agents describe my-agent --version 3
+  iai services versions my-service
 
 ```
-iai agents describe <agent_name> [flags]
+iai services versions <service_name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for describe
+  -h, --help                  help for versions
   -o, --organization string   Organization name
   -p, --project string        Project name
-      --revision int          Show a specific past revision instead of the current state
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +33,5 @@ iai agents describe <agent_name> [flags]
 
 ### SEE ALSO
 
-* [iai agents](iai_agents.md)	 - Manage agents
+* [iai services](iai_services.md)	 - Manage services
 

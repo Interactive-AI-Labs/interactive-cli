@@ -6,8 +6,11 @@ Describe a service in detail
 
 Show detailed information about a specific service including its configuration.
 
+Use --version to view a specific past version instead of the current state.
+
 Examples:
   iai services describe my-service
+  iai services describe my-service --version 3
 
 ```
 iai services describe <service_name> [flags]
@@ -19,6 +22,7 @@ iai services describe <service_name> [flags]
   -h, --help                  help for describe
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --revision int          Show a specific past revision instead of the current state
 ```
 
 ### Options inherited from parent commands

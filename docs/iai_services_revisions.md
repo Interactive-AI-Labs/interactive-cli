@@ -1,6 +1,6 @@
 ## iai services revisions
 
-List revisions for a service
+List revisions of a service
 
 ### Synopsis
 
