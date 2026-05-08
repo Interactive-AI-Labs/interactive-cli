@@ -216,18 +216,18 @@ func makeGenericGetCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:     "get <name>",
-		Aliases: []string{"describe", "desc"},
-		Short:   "Get details of a prompt",
-		Long: `Get details of a specific prompt, including its full content.
+		Use:     "describe <name>",
+		Aliases: []string{"desc", "get"},
+		Short:   "Describe a prompt in detail",
+		Long: `Show detailed information about a specific prompt, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai prompts get greeting
-  iai prompts get greeting --version 3
-  iai prompts get greeting --label staging`,
+  iai prompts describe greeting
+  iai prompts describe greeting --version 3
+  iai prompts describe greeting --label staging`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()

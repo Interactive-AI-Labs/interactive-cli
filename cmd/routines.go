@@ -49,15 +49,15 @@ Examples:
   iai routines list --folder my-folder
   iai routines list --folder my-folder/sub-folder
   iai routines list --page 2 --limit 10`,
-		GetLong: `Get details of a specific routine, including its full content.
+		GetLong: `Show detailed information about a specific routine, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai routines get onboarding-flow
-  iai routines get onboarding-flow --version 3
-  iai routines get onboarding-flow --label staging`,
+  iai routines describe onboarding-flow
+  iai routines describe onboarding-flow --version 3
+  iai routines describe onboarding-flow --label staging`,
 		UpdateLong: `Update a routine by creating a new version with updated content.
 
 This creates a new version of the routine using the content from the provided file.

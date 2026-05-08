@@ -52,15 +52,15 @@ Examples:
   iai variables list --folder my-folder
   iai variables list --folder my-folder/sub-folder
   iai variables list --page 2 --limit 10`,
-		GetLong: `Get details of a specific variable definition, including its full content.
+		GetLong: `Show detailed information about a specific variable definition, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai variables get session-vars
-  iai variables get session-vars --version 3
-  iai variables get session-vars --label staging`,
+  iai variables describe session-vars
+  iai variables describe session-vars --version 3
+  iai variables describe session-vars --label staging`,
 		UpdateLong: `Update a variable definition by creating a new version with updated content.
 
 This creates a new version of the variable using the content from the provided file.

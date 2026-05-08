@@ -25,7 +25,7 @@ type PromptTypeConfig struct {
 	HasSchema    bool     // whether this type supports the schema subcommand
 	CreateLong   string   // long description for the create subcommand
 	ListLong     string   // long description for the list subcommand
-	GetLong      string   // long description for the get subcommand
+	GetLong      string   // long description for the describe subcommand
 	UpdateLong   string   // long description for the update subcommand
 	DeleteLong   string   // long description for the delete subcommand
 }
@@ -221,9 +221,9 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:     "get <name>",
-		Aliases: []string{"describe", "desc"},
-		Short:   fmt.Sprintf("Get details of a %s", ptCfg.TypeName),
+		Use:     "describe <name>",
+		Aliases: []string{"desc", "get"},
+		Short:   fmt.Sprintf("Describe a %s in detail", ptCfg.TypeName),
 		Long:    ptCfg.GetLong,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
