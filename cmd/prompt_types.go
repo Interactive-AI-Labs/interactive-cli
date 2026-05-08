@@ -3,12 +3,14 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +44,10 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 	updateCmd := makeUpdateCmd(ptCfg)
 	deleteCmd := makeDeleteCmd(ptCfg)
 
-	parentCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, deleteCmd)
+	versionsCmd := makeVersionsCmd(ptCfg)
+	diffCmd := makeDiffCmd(ptCfg)
+
+	parentCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, deleteCmd, versionsCmd, diffCmd)
 
 	if ptCfg.HasSchema {
 		schemaCmd := makeSchemaCmd(ptCfg)
@@ -402,4 +407,121 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
+}
+
+func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
+	var (
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:     "versions <name>",
+		Aliases: []string{"vers"},
+		Short:   fmt.Sprintf("List versions of a %s", ptCfg.TypeName),
+		Long: fmt.Sprintf(`List all versions of a %s, sorted newest-first.
+
+Examples:
+  iai %s versions my-%s`, ptCfg.TypeName, ptCfg.Plural, ptCfg.TypeName),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			versions, err := findPromptVersions(
+				cmd.Context(), apiClient, pCtx.projectId, ptCfg.RouteSegment, name, ptCfg.TypeName,
+			)
+			if err != nil {
+				return err
+			}
+
+			return output.PrintPromptVersions(out, versions)
+		},
+	}
+
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+
+	return cmd
+}
+
+func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
+	var (
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "diff <name> <version_a> <version_b>",
+		Short: fmt.Sprintf("Compare two versions of a %s", ptCfg.TypeName),
+		Long: fmt.Sprintf(`Show the differences between two versions of a %s.
+
+Examples:
+  iai %s diff my-%s 1 3`, ptCfg.TypeName, ptCfg.Plural, ptCfg.TypeName),
+		Args: cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+
+			versionA, err := inputs.ParseRevisionArg(args[1])
+			if err != nil {
+				return err
+			}
+			versionB, err := inputs.ParseRevisionArg(args[2])
+			if err != nil {
+				return err
+			}
+
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			a, err := apiClient.GetPrompt(
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionA, "",
+			)
+			if err != nil {
+				return err
+			}
+
+			b, err := apiClient.GetPrompt(
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionB, "",
+			)
+			if err != nil {
+				return err
+			}
+
+			return output.PrintPromptDiff(out, args[1], a, args[2], b)
+		},
+	}
+
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+
+	return cmd
+}
+
+func findPromptVersions(
+	ctx context.Context,
+	apiClient *clients.APIClient,
+	projectId, routeSegment, name, typeName string,
+) ([]int, error) {
+	opts := clients.PromptListOptions{Limit: 1000}
+	result, err := apiClient.ListPrompts(ctx, projectId, routeSegment, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range result.Prompts {
+		if p.Name == name {
+			return p.Versions, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%s %q not found", typeName, name)
 }

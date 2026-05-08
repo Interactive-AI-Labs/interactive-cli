@@ -110,6 +110,126 @@ func TestPrintPromptList(t *testing.T) {
 	}
 }
 
+func TestPrintPromptVersions(t *testing.T) {
+	tests := []struct {
+		name     string
+		versions []int
+		want     string
+	}{
+		{
+			name:     "empty list prints message",
+			versions: []int{},
+			want:     "No versions found.\n",
+		},
+		{
+			name:     "nil list prints message",
+			versions: nil,
+			want:     "No versions found.\n",
+		},
+		{
+			name:     "single version",
+			versions: []int{1},
+			want: "VERSION\n" +
+				"1\n",
+		},
+		{
+			name:     "multiple versions sorted descending",
+			versions: []int{1, 3, 2},
+			want: "VERSION\n" +
+				"3\n" +
+				"2\n" +
+				"1\n",
+		},
+		{
+			name:     "already sorted input still sorted descending",
+			versions: []int{5, 4, 3, 2, 1},
+			want: "VERSION\n" +
+				"5\n" +
+				"4\n" +
+				"3\n" +
+				"2\n" +
+				"1\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintPromptVersions(&buf, tt.versions)
+			if err != nil {
+				t.Fatalf("PrintPromptVersions() error = %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPrintPromptDiff(t *testing.T) {
+	tests := []struct {
+		name     string
+		versionA string
+		a        *clients.PromptDetail
+		versionB string
+		b        *clients.PromptDetail
+		want     string
+	}{
+		{
+			name:     "identical content shows no differences",
+			versionA: "1",
+			a:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
+			versionB: "2",
+			b:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
+			want:     "No differences found.\n",
+		},
+		{
+			name:     "different string content shows diff",
+			versionA: "1",
+			a:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
+			versionB: "2",
+			b:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello universe"`)},
+			want: "--- version 1\n" +
+				"+++ version 2\n" +
+				"@@ -1,1 +1,1 @@\n" +
+				"-Hello world\n" +
+				"+Hello universe\n",
+		},
+		{
+			name:     "structured JSON content shows diff",
+			versionA: "3",
+			a: &clients.PromptDetail{
+				Prompt: json.RawMessage(`{"role":"system","content":"Hi"}`),
+			},
+			versionB: "4",
+			b: &clients.PromptDetail{
+				Prompt: json.RawMessage(`{"role":"system","content":"Bye"}`),
+			},
+			want: "--- version 3\n" +
+				"+++ version 4\n" +
+				"@@ -1,4 +1,4 @@\n" +
+				" {\n" +
+				"   \"role\": \"system\",\n" +
+				"-  \"content\": \"Hi\"\n" +
+				"+  \"content\": \"Bye\"\n" +
+				" }\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintPromptDiff(&buf, tt.versionA, tt.a, tt.versionB, tt.b)
+			if err != nil {
+				t.Fatalf("PrintPromptDiff() error = %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPrintPromptDetail(t *testing.T) {
 	t.Setenv("TZ", "Europe/Madrid")
 
