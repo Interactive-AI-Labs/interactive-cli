@@ -97,7 +97,7 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 
 func PrintAgentRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
 	if len(revisions) == 0 {
-		fmt.Fprintln(out, "No versions found.")
+		fmt.Fprintln(out, "No revisions found.")
 		return nil
 	}
 

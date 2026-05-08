@@ -122,7 +122,7 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 
 func PrintServiceRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
 	if len(revisions) == 0 {
-		fmt.Fprintln(out, "No versions found.")
+		fmt.Fprintln(out, "No revisions found.")
 		return nil
 	}
 

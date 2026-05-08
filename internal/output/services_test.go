@@ -338,7 +338,7 @@ func TestPrintServiceRevisions(t *testing.T) {
 		{
 			name:      "empty list prints message",
 			revisions: []clients.RevisionMeta{},
-			want:      "No versions found.\n",
+			want:      "No revisions found.\n",
 		},
 		{
 			name: "single revision gets star marker",
