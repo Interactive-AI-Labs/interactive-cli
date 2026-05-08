@@ -1,25 +1,24 @@
-## iai services revisions
+## iai policies diff
 
-List revisions of a service
+Compare two versions of a policy
 
 ### Synopsis
 
-Show past revisions of a service, sorted newest-first.
-Up to 50 revisions are retained per service.
+Show the differences between two versions of a policy.
 
 Examples:
-  iai services revisions my-service
+  iai policies diff my-policy 1 3
 
 ```
-iai services revisions <service_name> [flags]
+iai policies diff <name> <version_a> <version_b> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for revisions
-  -o, --organization string   Organization name
-  -p, --project string        Project name
+  -h, --help                  help for diff
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name that owns the prompts
 ```
 
 ### Options inherited from parent commands
@@ -33,5 +32,5 @@ iai services revisions <service_name> [flags]
 
 ### SEE ALSO
 
-* [iai services](iai_services.md)	 - Manage services
+* [iai policies](iai_policies.md)	 - Manage policies
 

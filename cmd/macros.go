@@ -38,15 +38,15 @@ Examples:
   iai macros list --folder my-folder
   iai macros list --folder my-folder/sub-folder
   iai macros list --page 2 --limit 10`,
-		GetLong: `Get details of a specific macro, including its full content.
+		GetLong: `Show detailed information about a specific macro, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai macros get disclaimer
-  iai macros get disclaimer --version 3
-  iai macros get disclaimer --label staging`,
+  iai macros describe disclaimer
+  iai macros describe disclaimer --version 3
+  iai macros describe disclaimer --label staging`,
 		UpdateLong: `Update a macro by creating a new version with updated content.
 
 This creates a new version of the macro using the content from the provided file.

@@ -1,12 +1,15 @@
 package output
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"znkr.io/diff/textdiff"
 )
 
 const colorBlue = "\033[1;34m"
@@ -80,4 +83,74 @@ func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
 	}
 
 	return w.Flush()
+}
+
+func PrintPromptVersions(out io.Writer, versions []int) error {
+	if len(versions) == 0 {
+		fmt.Fprintln(out, "No versions found.")
+		return nil
+	}
+
+	sorted := make([]int, len(versions))
+	copy(sorted, versions)
+	sort.Sort(sort.Reverse(sort.IntSlice(sorted)))
+
+	headers := []string{"VERSION"}
+	rows := make([][]string, len(sorted))
+	for i, v := range sorted {
+		rows[i] = []string{fmt.Sprintf("%d", v)}
+	}
+
+	return PrintTable(out, headers, rows)
+}
+
+func PrintPromptDiff(
+	out io.Writer,
+	versionA string,
+	a *clients.PromptDetail,
+	versionB string,
+	b *clients.PromptDetail,
+) error {
+	contentA := normalizePromptContent(a.Prompt)
+	contentB := normalizePromptContent(b.Prompt)
+
+	if contentA == contentB {
+		fmt.Fprintln(out, "No differences found.")
+		return nil
+	}
+
+	var opts []textdiff.Option
+	if isTerminal(out) {
+		opts = append(opts, textdiff.TerminalColors())
+		fmt.Fprintf(out, "%s--- version %s%s\n", colorRed, versionA, colorReset)
+		fmt.Fprintf(out, "%s+++ version %s%s\n", colorGreen, versionB, colorReset)
+	} else {
+		fmt.Fprintf(out, "--- version %s\n", versionA)
+		fmt.Fprintf(out, "+++ version %s\n", versionB)
+	}
+
+	diff := textdiff.Unified(contentA, contentB, opts...)
+	fmt.Fprint(out, diff)
+	return nil
+}
+
+func normalizePromptContent(raw json.RawMessage) string {
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		if len(s) > 0 && s[len(s)-1] != '\n' {
+			return s + "\n"
+		}
+		return s
+	}
+
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, raw, "", "  "); err == nil && buf.Len() > 0 {
+		s := buf.String()
+		if s[len(s)-1] != '\n' {
+			return s + "\n"
+		}
+		return s
+	}
+
+	return string(raw)
 }

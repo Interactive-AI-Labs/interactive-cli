@@ -44,15 +44,15 @@ Examples:
   iai policies list --folder my-folder
   iai policies list --folder my-folder/sub-folder
   iai policies list --page 2 --limit 10`,
-		GetLong: `Get details of a specific policy, including its full content.
+		GetLong: `Show detailed information about a specific policy, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai policies get safety-rules
-  iai policies get safety-rules --version 3
-  iai policies get safety-rules --label staging`,
+  iai policies describe safety-rules
+  iai policies describe safety-rules --version 3
+  iai policies describe safety-rules --label staging`,
 		UpdateLong: `Update a policy by creating a new version with updated content.
 
 This creates a new version of the policy using the content from the provided file.

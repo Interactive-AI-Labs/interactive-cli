@@ -54,15 +54,15 @@ Examples:
   iai glossaries list --folder my-folder
   iai glossaries list --folder my-folder/sub-folder
   iai glossaries list --page 2 --limit 10`,
-		GetLong: `Get details of a specific glossary definition, including its full content.
+		GetLong: `Show detailed information about a specific glossary definition, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai glossaries get finance-terms
-  iai glossaries get finance-terms --version 3
-  iai glossaries get finance-terms --label staging`,
+  iai glossaries describe finance-terms
+  iai glossaries describe finance-terms --version 3
+  iai glossaries describe finance-terms --label staging`,
 		UpdateLong: `Update a glossary definition by creating a new version with updated content.
 
 This creates a new version of the glossary using the content from the provided file.

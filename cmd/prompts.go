@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +33,8 @@ types: "text" (default) and "chat".`,
 		makeGenericGetCmd(),
 		makeGenericUpdateCmd(),
 		makeGenericDeleteCmd(),
+		makeGenericVersionsCmd(),
+		makeGenericDiffCmd(),
 	)
 
 	rootCmd.AddCommand(parentCmd)
@@ -213,18 +216,18 @@ func makeGenericGetCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:     "get <name>",
-		Aliases: []string{"describe", "desc"},
-		Short:   "Get details of a prompt",
-		Long: `Get details of a specific prompt, including its full content.
+		Use:     "describe <name>",
+		Aliases: []string{"desc", "get"},
+		Short:   "Describe a prompt in detail",
+		Long: `Show detailed information about a specific prompt, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai prompts get greeting
-  iai prompts get greeting --version 3
-  iai prompts get greeting --label staging`,
+  iai prompts describe greeting
+  iai prompts describe greeting --version 3
+  iai prompts describe greeting --label staging`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
@@ -471,4 +474,113 @@ func validatePromptType(promptType string) error {
 		promptType,
 		strings.Join(validPromptTypes, ", "),
 	)
+}
+
+func makeGenericVersionsCmd() *cobra.Command {
+	var (
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:     "versions <name>",
+		Aliases: []string{"vers"},
+		Short:   "List versions of a prompt",
+		Long: `List all versions of a prompt, sorted newest-first.
+
+Examples:
+  iai prompts versions greeting`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			opts := clients.PromptListOptions{Limit: 1000, Folder: "prompts"}
+			result, err := apiClient.ListPrompts(
+				cmd.Context(), pCtx.projectId, "", opts,
+			)
+			if err != nil {
+				return err
+			}
+
+			var versions []int
+			for _, p := range result.Prompts {
+				if p.Name == name {
+					versions = p.Versions
+					break
+				}
+			}
+			if versions == nil {
+				return fmt.Errorf("prompt %q not found", name)
+			}
+
+			return output.PrintPromptVersions(out, versions)
+		},
+	}
+
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+
+	return cmd
+}
+
+func makeGenericDiffCmd() *cobra.Command {
+	var (
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "diff <name> <version_a> <version_b>",
+		Short: "Compare two versions of a prompt",
+		Long: `Show the differences between two versions of a prompt.
+
+Examples:
+  iai prompts diff greeting 1 3`,
+		Args: cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+
+			versionA, err := inputs.ParseRevisionArg(args[1])
+			if err != nil {
+				return err
+			}
+			versionB, err := inputs.ParseRevisionArg(args[2])
+			if err != nil {
+				return err
+			}
+
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			a, err := apiClient.GetPrompt(
+				cmd.Context(), pCtx.projectId, "", name, versionA, "",
+			)
+			if err != nil {
+				return err
+			}
+
+			b, err := apiClient.GetPrompt(
+				cmd.Context(), pCtx.projectId, "", name, versionB, "",
+			)
+			if err != nil {
+				return err
+			}
+
+			return output.PrintPromptDiff(out, args[1], a, args[2], b)
+		},
+	}
+
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+
+	return cmd
 }

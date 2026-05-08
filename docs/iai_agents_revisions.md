@@ -1,6 +1,6 @@
 ## iai agents revisions
 
-List revisions for an agent
+List revisions of an agent
 
 ### Synopsis
 

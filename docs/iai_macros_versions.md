@@ -1,25 +1,24 @@
-## iai services revisions
+## iai macros versions
 
-List revisions of a service
+List versions of a macro
 
 ### Synopsis
 
-Show past revisions of a service, sorted newest-first.
-Up to 50 revisions are retained per service.
+List all versions of a macro, sorted newest-first.
 
 Examples:
-  iai services revisions my-service
+  iai macros versions my-macro
 
 ```
-iai services revisions <service_name> [flags]
+iai macros versions <name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for revisions
-  -o, --organization string   Organization name
-  -p, --project string        Project name
+  -h, --help                  help for versions
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name that owns the prompts
 ```
 
 ### Options inherited from parent commands
@@ -33,5 +32,5 @@ iai services revisions <service_name> [flags]
 
 ### SEE ALSO
 
-* [iai services](iai_services.md)	 - Manage services
+* [iai macros](iai_macros.md)	 - Manage macros
 

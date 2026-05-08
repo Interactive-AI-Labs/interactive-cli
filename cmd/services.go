@@ -263,14 +263,19 @@ var servListCmd = &cobra.Command{
 	},
 }
 
+var serviceDescribeRevision int
+
 var servDescribeCmd = &cobra.Command{
 	Use:     "describe <service_name>",
 	Aliases: []string{"desc"},
 	Short:   "Describe a service in detail",
 	Long: `Show detailed information about a specific service including its configuration.
 
+Use --version to view a specific past version instead of the current state.
+
 Examples:
-  iai services describe my-service`,
+  iai services describe my-service
+  iai services describe my-service --version 3`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -283,6 +288,20 @@ Examples:
 		)
 		if err != nil {
 			return err
+		}
+
+		if serviceDescribeRevision > 0 {
+			rev, err := deployClient.DescribeServiceRevision(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+				serviceName,
+				serviceDescribeRevision,
+			)
+			if err != nil {
+				return err
+			}
+			return output.PrintServiceRevision(out, rev)
 		}
 
 		service, err := deployClient.DescribeService(
@@ -485,7 +504,7 @@ var (
 var servRevisionsCmd = &cobra.Command{
 	Use:     "revisions <service_name>",
 	Aliases: []string{"revs"},
-	Short:   "List revisions for a service",
+	Short:   "List revisions of a service",
 	Long: `Show past revisions of a service, sorted newest-first.
 Up to 50 revisions are retained per service.
 
@@ -516,48 +535,6 @@ Examples:
 		}
 
 		return output.PrintServiceRevisions(out, revisions)
-	},
-}
-
-var servRevisionCmd = &cobra.Command{
-	Use:   "revision <service_name> <revision>",
-	Short: "Describe a specific revision of a service",
-	Long: `Show the configuration of a specific past revision of a service.
-
-Examples:
-  iai services revision my-service 1
-  iai services revision my-service 3`,
-	Args: cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-		serviceName := strings.TrimSpace(args[0])
-
-		revision, err := inputs.ParseRevisionArg(args[1])
-		if err != nil {
-			return err
-		}
-
-		pCtx, _, deployClient, err := resolveProject(
-			cmd.Context(),
-			serviceOrganization,
-			serviceProject,
-		)
-		if err != nil {
-			return err
-		}
-
-		rev, err := deployClient.DescribeServiceRevision(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			serviceName,
-			revision,
-		)
-		if err != nil {
-			return err
-		}
-
-		return output.PrintServiceRevision(out, rev)
 	},
 }
 
@@ -844,6 +821,8 @@ func init() {
 		StringVarP(&serviceProject, "project", "p", "", "Project name")
 	servDescribeCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+	servDescribeCmd.Flags().
+		IntVar(&serviceDescribeRevision, "revision", 0, "Show a specific past revision instead of the current state")
 
 	// Flags for "services delete"
 	servDCmd.Flags().
@@ -877,12 +856,6 @@ func init() {
 	servRevisionsCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
 
-	// Flags for "services revision"
-	servRevisionCmd.Flags().
-		StringVarP(&serviceProject, "project", "p", "", "Project name")
-	servRevisionCmd.Flags().
-		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
-
 	// Flags for "services diff"
 	servDiffCmd.Flags().
 		StringVarP(&serviceProject, "project", "p", "", "Project name")
@@ -905,7 +878,6 @@ func init() {
 	servicesCmd.AddCommand(servRestartCmd)
 	servicesCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servRevisionsCmd)
-	servicesCmd.AddCommand(servRevisionCmd)
 	servicesCmd.AddCommand(servDiffCmd)
 	servicesCmd.AddCommand(servicesSyncCmd)
 }

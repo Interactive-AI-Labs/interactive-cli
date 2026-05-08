@@ -101,14 +101,21 @@ func PrintAgentRevisions(out io.Writer, revisions []clients.RevisionMeta) error 
 		return nil
 	}
 
-	headers := []string{"REVISION", "STATUS", "UPDATED"}
+	latest := 0
+	for _, r := range revisions {
+		if r.Revision > latest {
+			latest = r.Revision
+		}
+	}
+
+	headers := []string{"", "REVISION", "UPDATED"}
 	rows := make([][]string, len(revisions))
 	for i, r := range revisions {
-		rows[i] = []string{
-			fmt.Sprintf("%d", r.Revision),
-			r.Status,
-			LocalTime(r.Updated),
+		marker := ""
+		if r.Revision == latest {
+			marker = "*"
 		}
+		rows[i] = []string{marker, fmt.Sprintf("%d", r.Revision), LocalTime(r.Updated)}
 	}
 
 	return PrintTable(out, headers, rows)

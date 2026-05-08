@@ -212,14 +212,19 @@ Examples:
 	},
 }
 
+var agentDescribeRevision int
+
 var agentDescribeCmd = &cobra.Command{
 	Use:     "describe <agent_name>",
 	Aliases: []string{"desc"},
 	Short:   "Describe an agent in detail",
 	Long: `Show detailed information about a specific agent including its configuration.
 
+Use --version to view a specific past version instead of the current state.
+
 Examples:
-  iai agents describe my-agent`,
+  iai agents describe my-agent
+  iai agents describe my-agent --version 3`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -228,6 +233,20 @@ Examples:
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
+		}
+
+		if agentDescribeRevision > 0 {
+			rev, err := deployClient.DescribeAgentRevision(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+				agentName,
+				agentDescribeRevision,
+			)
+			if err != nil {
+				return err
+			}
+			return output.PrintAgentRevision(out, rev)
 		}
 
 		agent, err := deployClient.DescribeAgent(
@@ -514,7 +533,7 @@ Examples:
 var agentRevisionsCmd = &cobra.Command{
 	Use:     "revisions <agent_name>",
 	Aliases: []string{"revs"},
-	Short:   "List revisions for an agent",
+	Short:   "List revisions of an agent",
 	Long: `Show past revisions of an agent, sorted newest-first.
 Up to 50 revisions are retained per agent.
 
@@ -541,44 +560,6 @@ Examples:
 		}
 
 		return output.PrintAgentRevisions(out, revisions)
-	},
-}
-
-var agentRevisionCmd = &cobra.Command{
-	Use:   "revision <agent_name> <revision>",
-	Short: "Describe a specific revision of an agent",
-	Long: `Show the configuration of a specific past revision of an agent.
-
-Examples:
-  iai agents revision my-agent 1
-  iai agents revision my-agent 3`,
-	Args: cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
-
-		revision, err := inputs.ParseRevisionArg(args[1])
-		if err != nil {
-			return err
-		}
-
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
-		if err != nil {
-			return err
-		}
-
-		rev, err := deployClient.DescribeAgentRevision(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			agentName,
-			revision,
-		)
-		if err != nil {
-			return err
-		}
-
-		return output.PrintAgentRevision(out, rev)
 	},
 }
 
@@ -703,6 +684,8 @@ func init() {
 		StringVarP(&agentProject, "project", "p", "", "Project name")
 	agentDescribeCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+	agentDescribeCmd.Flags().
+		IntVar(&agentDescribeRevision, "revision", 0, "Show a specific past revision instead of the current state")
 
 	// Flags for "agents delete"
 	agentDeleteCmd.Flags().
@@ -736,12 +719,6 @@ func init() {
 	agentRevisionsCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
-	// Flags for "agents revision"
-	agentRevisionCmd.Flags().
-		StringVarP(&agentProject, "project", "p", "", "Project name")
-	agentRevisionCmd.Flags().
-		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
-
 	// Flags for "agents diff"
 	agentDiffCmd.Flags().
 		StringVarP(&agentProject, "project", "p", "", "Project name")
@@ -760,6 +737,5 @@ func init() {
 	agentsCmd.AddCommand(agentSchemaCmd)
 	agentsCmd.AddCommand(agentCatalogCmd)
 	agentsCmd.AddCommand(agentRevisionsCmd)
-	agentsCmd.AddCommand(agentRevisionCmd)
 	agentsCmd.AddCommand(agentDiffCmd)
 }

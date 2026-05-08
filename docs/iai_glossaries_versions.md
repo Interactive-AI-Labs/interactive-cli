@@ -1,25 +1,24 @@
-## iai services revisions
+## iai glossaries versions
 
-List revisions of a service
+List versions of a glossary
 
 ### Synopsis
 
-Show past revisions of a service, sorted newest-first.
-Up to 50 revisions are retained per service.
+List all versions of a glossary, sorted newest-first.
 
 Examples:
-  iai services revisions my-service
+  iai glossaries versions my-glossary
 
 ```
-iai services revisions <service_name> [flags]
+iai glossaries versions <name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for revisions
-  -o, --organization string   Organization name
-  -p, --project string        Project name
+  -h, --help                  help for versions
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name that owns the prompts
 ```
 
 ### Options inherited from parent commands
@@ -33,5 +32,5 @@ iai services revisions <service_name> [flags]
 
 ### SEE ALSO
 
-* [iai services](iai_services.md)	 - Manage services
+* [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
 
