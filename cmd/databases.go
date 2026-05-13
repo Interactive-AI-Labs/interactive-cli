@@ -49,7 +49,10 @@ var databasesCmd = &cobra.Command{
 
 Databases are managed PostgreSQL instances that can also be used as vector
 stores. The "vector" extension (pgvector) is installed by default, enabling
-vector similarity search for AI/ML workloads such as RAG and embeddings.`,
+vector similarity search for AI/ML workloads such as RAG and embeddings.
+
+Each database automatically creates a secret named <database_name>-app with
+connection credentials (host, port, username, password, URI).`,
 }
 
 var dbListCmd = &cobra.Command{
