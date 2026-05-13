@@ -487,17 +487,17 @@ func addDatabaseResourceFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		IntVar(&dbInstances, "instances", 0, "Number of PostgreSQL instances (minimum 1); values above 1 enable high availability")
 	cmd.Flags().
-		StringVar(&dbPostgresVersion, "postgres-version", "", "PostgreSQL major or major.minor version (e.g. 17, 16.4); defaults to latest if omitted")
+		StringVar(&dbPostgresVersion, "postgres-version", "", "PostgreSQL major or major.minor version (e.g. 17, 16.4); supported range 15–17; defaults to latest if omitted")
 	cmd.Flags().
-		StringVar(&dbCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
+		StringVar(&dbCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m); max 7 vCPU (7000m)")
 	cmd.Flags().
-		StringVar(&dbMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G)")
+		StringVar(&dbMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G); max 15G")
 	cmd.Flags().
 		StringVar(&dbStorageSize, "storage-size", "", "Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased")
 	cmd.Flags().
-		StringArrayVar(&dbExtensions, "extensions", nil, "PostgreSQL extension to install (can be repeated); defaults to [vector] if omitted")
+		StringArrayVar(&dbExtensions, "extensions", nil, "PostgreSQL extension to install (can be repeated); replaces the default list, so include \"vector\" explicitly if needed; defaults to [vector] if omitted")
 	cmd.Flags().
-		StringVar(&dbBackupSchedule, "backup-schedule", "", "Backup schedule as a 6-field cron expression (second minute hour day month weekday)")
+		StringVar(&dbBackupSchedule, "backup-schedule", "", "Backup schedule as a 6-field cron expression (second minute hour day month weekday, e.g. \"0 0 2 * * *\" for daily at 02:00)")
 	cmd.Flags().
 		StringVar(&dbBackupRetention, "backup-retention", "", "How long to retain backups (e.g. 30d, 4w, 6m)")
 }

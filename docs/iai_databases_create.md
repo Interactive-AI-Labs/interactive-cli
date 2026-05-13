@@ -25,14 +25,14 @@ iai databases create <database_name> [flags]
 
 ```
       --backup-retention string   How long to retain backups (e.g. 30d, 4w, 6m)
-      --backup-schedule string    Backup schedule as a 6-field cron expression (second minute hour day month weekday)
-      --cpu string                CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
-      --extensions stringArray    PostgreSQL extension to install (can be repeated); defaults to [vector] if omitted
+      --backup-schedule string    Backup schedule as a 6-field cron expression (second minute hour day month weekday, e.g. "0 0 2 * * *" for daily at 02:00)
+      --cpu string                CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m); max 7 vCPU (7000m)
+      --extensions stringArray    PostgreSQL extension to install (can be repeated); replaces the default list, so include "vector" explicitly if needed; defaults to [vector] if omitted
   -h, --help                      help for create
       --instances int             Number of PostgreSQL instances (minimum 1); values above 1 enable high availability
-      --memory string             Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G)
+      --memory string             Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G); max 15G
   -o, --organization string       Organization name
-      --postgres-version string   PostgreSQL major or major.minor version (e.g. 17, 16.4); defaults to latest if omitted
+      --postgres-version string   PostgreSQL major or major.minor version (e.g. 17, 16.4); supported range 15–17; defaults to latest if omitted
   -p, --project string            Project name
       --storage-size string       Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased
 ```
