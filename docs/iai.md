@@ -56,6 +56,7 @@ iai --help
 * [iai agents](iai_agents.md)	 - Manage agents
 * [iai comments](iai_comments.md)	 - Manage comments
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
+* [iai databases](iai_databases.md)	 - Manage databases
 * [iai dataset-items](iai_dataset-items.md)	 - Manage dataset items
 * [iai dataset-runs](iai_dataset-runs.md)	 - Manage dataset runs
 * [iai datasets](iai_datasets.md)	 - Manage evaluation datasets

@@ -2062,3 +2062,469 @@ func (c *DeploymentClient) fetchRevisions(
 
 	return result.Revisions, nil
 }
+
+// ---------------------------------------------------------------------------
+// Databases
+// ---------------------------------------------------------------------------
+
+type databasesResponse struct {
+	Databases []DatabaseOutput `json:"databases"`
+}
+
+type backupsResponse struct {
+	Backups []BackupOutput `json:"backups"`
+}
+
+type DatabaseOutput struct {
+	Name     string `json:"name"`
+	Revision int    `json:"revision"`
+	Updated  string `json:"updated,omitempty"`
+	Status   string `json:"status"`
+}
+
+type DatabaseStorageConfig struct {
+	Size string `json:"size"`
+}
+
+type DatabaseBackupConfig struct {
+	Schedule        string `json:"schedule"`
+	RetentionPolicy string `json:"retentionPolicy"`
+}
+
+type CreateDatabaseBody struct {
+	Instances       int                   `json:"instances"`
+	PostgresVersion string                `json:"postgresVersion,omitempty"`
+	Resources       Resources             `json:"resources"`
+	Storage         DatabaseStorageConfig `json:"storage"`
+	Extensions      []string              `json:"extensions,omitempty"`
+	Backup          *DatabaseBackupConfig `json:"backup,omitempty"`
+	StackId         string                `json:"stackId,omitempty"`
+}
+
+type RestoreDatabaseBody struct {
+	CreateDatabaseBody
+	SourceDatabase string `json:"sourceDatabase"`
+	TargetTime     string `json:"targetTime,omitempty"`
+}
+
+type DescribeDatabaseResponse struct {
+	Name              string                `json:"name"`
+	Revision          int                   `json:"revision"`
+	Updated           string                `json:"updated,omitempty"`
+	Instances         int                   `json:"instances"`
+	PostgresVersion   string                `json:"postgresVersion"`
+	Resources         Resources             `json:"resources"`
+	Storage           DatabaseStorageConfig `json:"storage"`
+	Extensions        []string              `json:"extensions,omitempty"`
+	Backup            *DatabaseBackupConfig `json:"backup,omitempty"`
+	StackId           string                `json:"stackId,omitempty"`
+	CredentialsSecret string                `json:"credentialsSecret"`
+	Status            string                `json:"status"`
+	Message           string                `json:"message,omitempty"`
+}
+
+type BackupOutput struct {
+	Name      string `json:"name"`
+	Phase     string `json:"phase"`
+	StartedAt string `json:"startedAt,omitempty"`
+	StoppedAt string `json:"stoppedAt,omitempty"`
+	Error     string `json:"error,omitempty"`
+}
+
+func (c *DeploymentClient) CreateDatabase(
+	ctx context.Context,
+	orgId,
+	projectId,
+	databaseName string,
+	req CreateDatabaseBody,
+) (string, error) {
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("database creation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("database creation failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
+func (c *DeploymentClient) PutDatabase(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	databaseName string,
+	body CreateDatabaseBody,
+) (string, error) {
+	return c.sendDatabaseUpdate(ctx, http.MethodPut, orgId, projectId, databaseName, body)
+}
+
+func (c *DeploymentClient) PatchDatabase(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	databaseName string,
+	patch UpdatePatch,
+) (string, error) {
+	return c.sendDatabaseUpdate(ctx, http.MethodPatch, orgId, projectId, databaseName, patch)
+}
+
+func (c *DeploymentClient) sendDatabaseUpdate(
+	ctx context.Context,
+	method, orgId, projectId, databaseName string,
+	body any,
+) (string, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	reqHTTP, err := c.newRequest(ctx, method, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("database update request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("database update failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
+func (c *DeploymentClient) DeleteDatabase(
+	ctx context.Context,
+	orgId,
+	projectId,
+	databaseName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", fmt.Errorf("database deletion request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("database deletion failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}
+
+func (c *DeploymentClient) ListDatabases(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	stackId string,
+) ([]DatabaseOutput, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if stackId != "" {
+		q := req.URL.Query()
+		q.Set("stackId", stackId)
+		req.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("database list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list databases: server returned %s", resp.Status)
+	}
+
+	var result databasesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode databases response: %w", err)
+	}
+
+	return result.Databases, nil
+}
+
+func (c *DeploymentClient) DescribeDatabase(
+	ctx context.Context,
+	orgId,
+	projectId,
+	databaseName string,
+) (*DescribeDatabaseResponse, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("describe database request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to describe database: server returned %s", resp.Status)
+	}
+
+	var result DescribeDatabaseResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode database response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *DeploymentClient) GetDatabaseLogs(
+	ctx context.Context,
+	orgId,
+	projectId,
+	databaseName string,
+	opts LogsOptions,
+) (*LogsResponse, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s/logs",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	return c.fetchLogs(ctx, path, opts)
+}
+
+func (c *DeploymentClient) TriggerDatabaseBackup(
+	ctx context.Context,
+	orgId,
+	projectId,
+	databaseName string,
+) (*BackupOutput, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s/backups",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	req, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("trigger backup request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("trigger backup failed with status %s", resp.Status)
+	}
+
+	var result BackupOutput
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode backup response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (c *DeploymentClient) ListDatabaseBackups(
+	ctx context.Context,
+	orgId,
+	projectId,
+	databaseName string,
+) ([]BackupOutput, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s/backups",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("list backups request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		msg := ExtractServerMessage(respBody)
+		if msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list backups: server returned %s", resp.Status)
+	}
+
+	var result backupsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode backups response: %w", err)
+	}
+
+	return result.Backups, nil
+}
+
+func (c *DeploymentClient) RestoreDatabase(
+	ctx context.Context,
+	orgId,
+	projectId,
+	databaseName string,
+	req RestoreDatabaseBody,
+) (string, error) {
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s/restore",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("database restore request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if serverMessage != "" {
+			return "", fmt.Errorf("%s", serverMessage)
+		}
+		return "", fmt.Errorf("database restore failed with status %s", resp.Status)
+	}
+
+	return serverMessage, nil
+}

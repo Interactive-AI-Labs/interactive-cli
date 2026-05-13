@@ -1,14 +1,15 @@
 ## iai stacks sync
 
-Sync services, agents, and vector stores from a stack config file
+Sync services, agents, vector stores, and databases from a stack config file
 
 ### Synopsis
 
-Sync services, agents, and vector stores in a project from a stack configuration file.
+Sync services, agents, vector stores, and databases in a project from a stack configuration file.
 
 Services are created, updated, or deleted to match the config file.
 Agents are created, updated, or deleted to match the config file.
 Vector stores are created or deleted (--allow-delete=vector-stores). Updates are not yet supported.
+Databases are created, updated, or deleted (--allow-delete=databases) to match the config file.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
 

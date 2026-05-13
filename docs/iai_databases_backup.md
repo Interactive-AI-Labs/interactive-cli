@@ -1,15 +1,22 @@
-## iai stacks
+## iai databases backup
 
-Manage stacks
+Trigger an on-demand backup
 
 ### Synopsis
 
-Manage stacks and their resources (services, agents, vector stores) from stack configuration files.
+Trigger an on-demand backup for a database. The database must have backups
+enabled.
+
+```
+iai databases backup <database_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for stacks
+  -h, --help                  help for backup
+  -o, --organization string   Organization name
+  -p, --project string        Project name
 ```
 
 ### Options inherited from parent commands
@@ -23,6 +30,5 @@ Manage stacks and their resources (services, agents, vector stores) from stack c
 
 ### SEE ALSO
 
-* [iai](iai.md)	 - InteractiveAI's CLI
-* [iai stacks sync](iai_stacks_sync.md)	 - Sync services, agents, vector stores, and databases from a stack config file
+* [iai databases](iai_databases.md)	 - Manage databases
 
