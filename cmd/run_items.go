@@ -31,7 +31,8 @@ var (
 var runItemsCmd = &cobra.Command{
 	Use:              "run-items",
 	Aliases:          []string{"run-item"},
-	Short:            "Manage dataset run items",
+	Short:            "Inspect results of evaluation runs",
+	GroupID:          groupEvaluation,
 	Long:             `Manage items within dataset runs.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

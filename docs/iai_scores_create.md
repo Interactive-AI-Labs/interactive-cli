@@ -44,5 +44,5 @@ iai scores create [flags]
 
 ### SEE ALSO
 
-* [iai scores](iai_scores.md)	 - Manage scores
+* [iai scores](iai_scores.md)	 - Read and write evaluation scores
 

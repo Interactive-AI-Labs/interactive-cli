@@ -1,6 +1,6 @@
 ## iai logout
 
-Log out of InteractiveAI
+Clear local session
 
 ### Synopsis
 

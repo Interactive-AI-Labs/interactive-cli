@@ -1,6 +1,6 @@
 ## iai score-configs
 
-Manage score configs
+Define scoring schemas for evaluation
 
 ### Synopsis
 

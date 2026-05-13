@@ -35,5 +35,5 @@ iai run-items list [flags]
 
 ### SEE ALSO
 
-* [iai run-items](iai_run-items.md)	 - Manage dataset run items
+* [iai run-items](iai_run-items.md)	 - Inspect results of evaluation runs
 

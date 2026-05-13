@@ -32,5 +32,5 @@ iai policies diff <name> <version_a> <version_b> [flags]
 
 ### SEE ALSO
 
-* [iai policies](iai_policies.md)	 - Manage policies
+* [iai policies](iai_policies.md)	 - Single-step behavioral rules for agents
 

@@ -1,6 +1,6 @@
 ## iai variables
 
-Manage variables
+Contextual attributes referenced in policies and routines
 
 ### Synopsis
 

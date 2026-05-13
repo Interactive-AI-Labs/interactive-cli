@@ -1,6 +1,6 @@
 ## iai dataset-runs
 
-Manage dataset runs
+Run evaluations against datasets
 
 ### Synopsis
 

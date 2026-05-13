@@ -39,7 +39,8 @@ var (
 var observationsCmd = &cobra.Command{
 	Use:              "observations",
 	Aliases:          []string{"obs", "observation"},
-	Short:            "Manage observations",
+	Short:            "Inspect spans within traces",
+	GroupID:          groupObserve,
 	Long:             `Manage observations within traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

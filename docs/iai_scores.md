@@ -1,6 +1,6 @@
 ## iai scores
 
-Manage scores
+Read and write evaluation scores
 
 ### Synopsis
 

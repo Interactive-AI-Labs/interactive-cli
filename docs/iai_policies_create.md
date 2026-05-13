@@ -44,5 +44,5 @@ criticality: HIGH
 
 ### SEE ALSO
 
-* [iai policies](iai_policies.md)	 - Manage policies
+* [iai policies](iai_policies.md)	 - Single-step behavioral rules for agents
 

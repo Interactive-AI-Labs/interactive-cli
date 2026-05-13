@@ -29,5 +29,5 @@ iai secrets list [flags]
 
 ### SEE ALSO
 
-* [iai secrets](iai_secrets.md)	 - Manage secrets
+* [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services and agents
 

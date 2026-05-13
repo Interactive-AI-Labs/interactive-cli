@@ -1,6 +1,6 @@
 ## iai macros
 
-Manage macros
+Pre-approved response templates used in routines
 
 ### Synopsis
 

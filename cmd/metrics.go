@@ -30,7 +30,8 @@ var (
 var metricsCmd = &cobra.Command{
 	Use:              "metrics",
 	Aliases:          []string{"metric"},
-	Short:            "Manage observability metrics",
+	Short:            "Query aggregated observability metrics",
+	GroupID:          groupObserve,
 	Long:             `Access observability metrics. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

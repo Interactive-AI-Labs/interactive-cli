@@ -42,5 +42,5 @@ iai prompts delete <name> [flags]
 
 ### SEE ALSO
 
-* [iai prompts](iai_prompts.md)	 - Manage prompts
+* [iai prompts](iai_prompts.md)	 - Versioned prompts for agents, evaluators, and guardrails
 

@@ -42,7 +42,8 @@ var (
 var agentsCmd = &cobra.Command{
 	Use:     "agents",
 	Aliases: []string{"agent"},
-	Short:   "Manage agents",
+	Short:   "Deploy AI agents with policies, routines, and tools",
+	GroupID: groupInfra,
 	Long:    `Manage deployment of agents to InteractiveAI projects.`,
 }
 

@@ -1,6 +1,6 @@
 ## iai datasets
 
-Manage evaluation datasets
+Create and list evaluation datasets
 
 ### Synopsis
 

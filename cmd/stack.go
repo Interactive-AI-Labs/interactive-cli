@@ -21,8 +21,9 @@ var (
 var stackCmd = &cobra.Command{
 	Use:     "stacks",
 	Aliases: []string{"stack", "st"},
-	Short:   "Manage stacks",
-	Long:    `Manage stacks and their resources (services, agents, vector stores) from stack configuration files.`,
+	Short:   "Declarative resource sync from config files",
+	GroupID: groupInfra,
+	Long:    `Manage stacks and their resources (services, agents, vector stores, databases) from stack configuration files.`,
 }
 
 var stackSyncCmd = &cobra.Command{

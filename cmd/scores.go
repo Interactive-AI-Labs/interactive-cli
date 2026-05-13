@@ -59,7 +59,8 @@ var (
 var scoresCmd = &cobra.Command{
 	Use:              "scores",
 	Aliases:          []string{"score"},
-	Short:            "Manage scores",
+	Short:            "Read and write evaluation scores",
+	GroupID:          groupObserve,
 	Long:             `Manage observability scores. Read commands work with API key or session login; write commands currently require API key authentication.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

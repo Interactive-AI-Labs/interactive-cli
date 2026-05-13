@@ -1,6 +1,6 @@
 ## iai services
 
-Manage services
+Deploy and manage HTTP services
 
 ### Synopsis
 

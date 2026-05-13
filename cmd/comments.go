@@ -36,7 +36,8 @@ var (
 var commentsCmd = &cobra.Command{
 	Use:              "comments",
 	Aliases:          []string{"comment"},
-	Short:            "Manage comments",
+	Short:            "Annotate traces, observations, and sessions",
+	GroupID:          groupObserve,
 	Long:             `Manage comments on traces, observations, sessions, and prompts.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

@@ -5,7 +5,7 @@ func init() {
 		TypeName: "glossary",
 		Plural:   "glossaries",
 		Aliases:  []string{"glossary"},
-		Short:    "Manage glossary definitions",
+		Short:    "Domain vocabularies for consistent term interpretation",
 		Long: `Manage glossary definitions in InteractiveAI projects.
 
 Glossary entries are domain-specific terms with descriptions and synonyms (JSON

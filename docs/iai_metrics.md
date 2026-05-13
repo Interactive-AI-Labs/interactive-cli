@@ -1,6 +1,6 @@
 ## iai metrics
 
-Manage observability metrics
+Query aggregated observability metrics
 
 ### Synopsis
 

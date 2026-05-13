@@ -42,5 +42,5 @@ iai routines list [flags]
 
 ### SEE ALSO
 
-* [iai routines](iai_routines.md)	 - Manage routines
+* [iai routines](iai_routines.md)	 - Multi-step behavioral processes for agents
 

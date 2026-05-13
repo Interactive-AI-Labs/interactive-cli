@@ -1,6 +1,6 @@
 ## iai databases
 
-Manage databases
+PostgreSQL instances with extension support, including pgvector
 
 ### Synopsis
 

@@ -1,6 +1,6 @@
 ## iai comments
 
-Manage comments
+Annotate traces, observations, and sessions
 
 ### Synopsis
 

@@ -5,7 +5,7 @@ func init() {
 		TypeName: "routine",
 		Plural:   "routines",
 		Aliases:  []string{"routine"},
-		Short:    "Manage routines",
+		Short:    "Multi-step behavioral processes for agents",
 		Long: `Manage routines in InteractiveAI projects.
 
 Routines are step-by-step conversation flows with branching logic and terminal

@@ -1,6 +1,6 @@
 ## iai images
 
-Build and manage container images
+Build and push container images
 
 ### Synopsis
 

@@ -64,5 +64,5 @@ iai observations list [flags]
 
 ### SEE ALSO
 
-* [iai observations](iai_observations.md)	 - Manage observations
+* [iai observations](iai_observations.md)	 - Inspect spans within traces
 

@@ -5,7 +5,7 @@ func init() {
 		TypeName: "policy",
 		Plural:   "policies",
 		Aliases:  []string{"policy"},
-		Short:    "Manage policies",
+		Short:    "Single-step behavioral rules for agents",
 		Long: `Manage policies in InteractiveAI projects.
 
 Policies are core behavior rules — condition-action pairs that govern agent

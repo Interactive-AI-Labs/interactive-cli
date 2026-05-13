@@ -1,6 +1,6 @@
 ## iai run-items
 
-Manage dataset run items
+Inspect results of evaluation runs
 
 ### Synopsis
 

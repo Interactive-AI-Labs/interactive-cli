@@ -27,5 +27,5 @@ iai organizations select [organization_name] [flags]
 
 ### SEE ALSO
 
-* [iai organizations](iai_organizations.md)	 - Manage organizations
+* [iai organizations](iai_organizations.md)	 - Switch or list organizations
 

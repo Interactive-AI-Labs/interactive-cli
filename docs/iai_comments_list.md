@@ -36,5 +36,5 @@ iai comments list [flags]
 
 ### SEE ALSO
 
-* [iai comments](iai_comments.md)	 - Manage comments
+* [iai comments](iai_comments.md)	 - Annotate traces, observations, and sessions
 

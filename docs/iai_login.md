@@ -1,6 +1,6 @@
 ## iai login
 
-Log in to InteractiveAI
+Authenticate with InteractiveAI
 
 ### Synopsis
 

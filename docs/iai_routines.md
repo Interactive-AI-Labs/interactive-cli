@@ -1,6 +1,6 @@
 ## iai routines
 
-Manage routines
+Multi-step behavioral processes for agents
 
 ### Synopsis
 

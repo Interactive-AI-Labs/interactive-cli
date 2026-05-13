@@ -1,6 +1,6 @@
 ## iai queues
 
-Manage annotation queues
+Annotation queues for human review workflows
 
 ### Synopsis
 

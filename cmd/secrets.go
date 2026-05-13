@@ -25,7 +25,8 @@ var (
 var secretsCmd = &cobra.Command{
 	Use:     "secrets",
 	Aliases: []string{"secret"},
-	Short:   "Manage secrets",
+	Short:   "Encrypted key-value pairs for services and agents",
+	GroupID: groupInfra,
 	Long:    `Manage secrets in InteractiveAI projects.`,
 }
 

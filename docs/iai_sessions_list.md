@@ -40,5 +40,5 @@ iai sessions list [flags]
 
 ### SEE ALSO
 
-* [iai sessions](iai_sessions.md)	 - Manage sessions
+* [iai sessions](iai_sessions.md)	 - Browse trace-derived conversation sessions
 

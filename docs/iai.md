@@ -53,36 +53,35 @@ iai --help
 
 ### SEE ALSO
 
-* [iai agents](iai_agents.md)	 - Manage agents
-* [iai comments](iai_comments.md)	 - Manage comments
+* [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
+* [iai comments](iai_comments.md)	 - Annotate traces, observations, and sessions
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
-* [iai databases](iai_databases.md)	 - Manage databases
-* [iai dataset-items](iai_dataset-items.md)	 - Manage dataset items
-* [iai dataset-runs](iai_dataset-runs.md)	 - Manage dataset runs
-* [iai datasets](iai_datasets.md)	 - Manage evaluation datasets
-* [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
-* [iai images](iai_images.md)	 - Build and manage container images
-* [iai login](iai_login.md)	 - Log in to InteractiveAI
-* [iai logout](iai_logout.md)	 - Log out of InteractiveAI
-* [iai macros](iai_macros.md)	 - Manage macros
-* [iai metrics](iai_metrics.md)	 - Manage observability metrics
-* [iai observations](iai_observations.md)	 - Manage observations
-* [iai organizations](iai_organizations.md)	 - Manage organizations
-* [iai policies](iai_policies.md)	 - Manage policies
-* [iai projects](iai_projects.md)	 - Manage projects
-* [iai prompts](iai_prompts.md)	 - Manage prompts
-* [iai queue-items](iai_queue-items.md)	 - Manage annotation queue items
-* [iai queues](iai_queues.md)	 - Manage annotation queues
-* [iai replicas](iai_replicas.md)	 - Manage service replicas
-* [iai routines](iai_routines.md)	 - Manage routines
-* [iai run-items](iai_run-items.md)	 - Manage dataset run items
-* [iai score-configs](iai_score-configs.md)	 - Manage score configs
-* [iai scores](iai_scores.md)	 - Manage scores
-* [iai secrets](iai_secrets.md)	 - Manage secrets
-* [iai services](iai_services.md)	 - Manage services
-* [iai sessions](iai_sessions.md)	 - Manage sessions
-* [iai stacks](iai_stacks.md)	 - Manage stacks
-* [iai traces](iai_traces.md)	 - Manage traces
-* [iai variables](iai_variables.md)	 - Manage variables
-* [iai vector-stores](iai_vector-stores.md)	 - Manage vector stores
+* [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
+* [iai dataset-items](iai_dataset-items.md)	 - Manage items in evaluation datasets
+* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
+* [iai datasets](iai_datasets.md)	 - Create and list evaluation datasets
+* [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
+* [iai images](iai_images.md)	 - Build and push container images
+* [iai login](iai_login.md)	 - Authenticate with InteractiveAI
+* [iai logout](iai_logout.md)	 - Clear local session
+* [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines
+* [iai metrics](iai_metrics.md)	 - Query aggregated observability metrics
+* [iai observations](iai_observations.md)	 - Inspect spans within traces
+* [iai organizations](iai_organizations.md)	 - Switch or list organizations
+* [iai policies](iai_policies.md)	 - Single-step behavioral rules for agents
+* [iai projects](iai_projects.md)	 - Switch or list projects
+* [iai prompts](iai_prompts.md)	 - Versioned prompts for agents, evaluators, and guardrails
+* [iai queue-items](iai_queue-items.md)	 - Manage items in annotation queues
+* [iai queues](iai_queues.md)	 - Annotation queues for human review workflows
+* [iai replicas](iai_replicas.md)	 - Inspect service replicas
+* [iai routines](iai_routines.md)	 - Multi-step behavioral processes for agents
+* [iai run-items](iai_run-items.md)	 - Inspect results of evaluation runs
+* [iai score-configs](iai_score-configs.md)	 - Define scoring schemas for evaluation
+* [iai scores](iai_scores.md)	 - Read and write evaluation scores
+* [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services and agents
+* [iai services](iai_services.md)	 - Deploy and manage HTTP services
+* [iai sessions](iai_sessions.md)	 - Browse trace-derived conversation sessions
+* [iai stacks](iai_stacks.md)	 - Declarative resource sync from config files
+* [iai traces](iai_traces.md)	 - Browse agent decision traces with full attribution
+* [iai variables](iai_variables.md)	 - Contextual attributes referenced in policies and routines
 

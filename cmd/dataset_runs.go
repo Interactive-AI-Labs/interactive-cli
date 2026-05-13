@@ -31,7 +31,8 @@ var (
 var datasetRunsCmd = &cobra.Command{
 	Use:              "dataset-runs",
 	Aliases:          []string{"dataset-run"},
-	Short:            "Manage dataset runs",
+	Short:            "Run evaluations against datasets",
+	GroupID:          groupEvaluation,
 	Long:             `Manage evaluation runs within datasets.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

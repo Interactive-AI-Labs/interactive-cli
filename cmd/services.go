@@ -56,7 +56,8 @@ var (
 var servicesCmd = &cobra.Command{
 	Use:     "services",
 	Aliases: []string{"service"},
-	Short:   "Manage services",
+	Short:   "Deploy and manage HTTP services",
+	GroupID: groupInfra,
 	Long:    `Manage deployment of services to InteractiveAI projects.`,
 }
 

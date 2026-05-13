@@ -32,5 +32,5 @@ iai glossaries diff <name> <version_a> <version_b> [flags]
 
 ### SEE ALSO
 
-* [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
+* [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
 

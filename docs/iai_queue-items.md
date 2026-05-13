@@ -1,6 +1,6 @@
 ## iai queue-items
 
-Manage annotation queue items
+Manage items in annotation queues
 
 ### Synopsis
 

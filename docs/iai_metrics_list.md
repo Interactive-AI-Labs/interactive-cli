@@ -52,5 +52,5 @@ iai metrics list [flags]
 
 ### SEE ALSO
 
-* [iai metrics](iai_metrics.md)	 - Manage observability metrics
+* [iai metrics](iai_metrics.md)	 - Query aggregated observability metrics
 

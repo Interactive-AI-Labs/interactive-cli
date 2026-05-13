@@ -29,5 +29,5 @@ iai replicas list [service_name] [flags]
 
 ### SEE ALSO
 
-* [iai replicas](iai_replicas.md)	 - Manage service replicas
+* [iai replicas](iai_replicas.md)	 - Inspect service replicas
 

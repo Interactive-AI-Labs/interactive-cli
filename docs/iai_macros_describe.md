@@ -39,5 +39,5 @@ iai macros describe <name> [flags]
 
 ### SEE ALSO
 
-* [iai macros](iai_macros.md)	 - Manage macros
+* [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines
 

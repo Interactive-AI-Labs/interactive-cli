@@ -30,5 +30,5 @@ iai dataset-runs delete <run-name> [flags]
 
 ### SEE ALSO
 
-* [iai dataset-runs](iai_dataset-runs.md)	 - Manage dataset runs
+* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
 

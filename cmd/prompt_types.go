@@ -36,6 +36,7 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 		Aliases: ptCfg.Aliases,
 		Short:   ptCfg.Short,
 		Long:    ptCfg.Long,
+		GroupID: groupContext,
 	}
 
 	createCmd := makeCreateCmd(ptCfg)

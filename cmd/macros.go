@@ -5,7 +5,7 @@ func init() {
 		TypeName: "macro",
 		Plural:   "macros",
 		Aliases:  []string{"macro"},
-		Short:    "Manage macros",
+		Short:    "Pre-approved response templates used in routines",
 		Long: `Manage macros in InteractiveAI projects.
 
 Macros are reusable template replies and text snippets (Markdown/text format).

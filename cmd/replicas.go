@@ -21,9 +21,10 @@ var (
 )
 
 var replicasCmd = &cobra.Command{
-	Use:   "replicas",
-	Short: "Manage service replicas",
-	Long:  `Manage pods backing services in a specific project.`,
+	Use:     "replicas",
+	Short:   "Inspect service replicas",
+	GroupID: groupInfra,
+	Long:    `Manage pods backing services in a specific project.`,
 }
 
 var replicasListCmd = &cobra.Command{
