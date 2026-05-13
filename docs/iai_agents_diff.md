@@ -32,5 +32,5 @@ iai agents diff <agent_name> <revision_a> <revision_b> [flags]
 
 ### SEE ALSO
 
-* [iai agents](iai_agents.md)	 - Manage agents
+* [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
 

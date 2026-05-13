@@ -1,10 +1,10 @@
 ## iai stacks
 
-Manage stacks
+Declarative resource sync from config files
 
 ### Synopsis
 
-Manage stacks and their resources (services, agents, vector stores) from stack configuration files.
+Manage stacks and their resources (services, agents, vector stores, databases) from stack configuration files.
 
 ### Options
 

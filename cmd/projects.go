@@ -15,7 +15,8 @@ var projectsOrganization string
 var projectsCmd = &cobra.Command{
 	Use:     "projects",
 	Aliases: []string{"project", "proj", "p"},
-	Short:   "Manage projects",
+	Short:   "Switch or list projects",
+	GroupID: groupAuth,
 	Long:    `Manage projects associated with an organization.`,
 }
 

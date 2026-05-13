@@ -1,6 +1,6 @@
 ## iai observations
 
-Manage observations
+Inspect spans within traces
 
 ### Synopsis
 

@@ -46,7 +46,8 @@ var (
 var queueItemsCmd = &cobra.Command{
 	Use:              "queue-items",
 	Aliases:          []string{"queue-item"},
-	Short:            "Manage annotation queue items",
+	Short:            "Manage items in annotation queues",
+	GroupID:          groupEvaluation,
 	Long:             `Manage items within annotation queues.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

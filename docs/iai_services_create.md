@@ -50,5 +50,5 @@ iai services create <service_name> [flags]
 
 ### SEE ALSO
 
-* [iai services](iai_services.md)	 - Manage services
+* [iai services](iai_services.md)	 - Deploy and manage HTTP services
 

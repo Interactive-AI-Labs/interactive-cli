@@ -1,6 +1,6 @@
 ## iai projects
 
-Manage projects
+Switch or list projects
 
 ### Synopsis
 

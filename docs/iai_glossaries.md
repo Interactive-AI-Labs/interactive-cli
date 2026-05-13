@@ -1,6 +1,6 @@
 ## iai glossaries
 
-Manage glossary definitions
+Domain vocabularies for consistent term interpretation
 
 ### Synopsis
 

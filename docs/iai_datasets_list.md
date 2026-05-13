@@ -33,5 +33,5 @@ iai datasets list [flags]
 
 ### SEE ALSO
 
-* [iai datasets](iai_datasets.md)	 - Manage evaluation datasets
+* [iai datasets](iai_datasets.md)	 - Create and list evaluation datasets
 

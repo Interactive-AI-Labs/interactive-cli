@@ -1,6 +1,6 @@
 ## iai secrets
 
-Manage secrets
+Encrypted key-value pairs for services and agents
 
 ### Synopsis
 

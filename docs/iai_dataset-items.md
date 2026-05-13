@@ -1,6 +1,6 @@
 ## iai dataset-items
 
-Manage dataset items
+Manage items in evaluation datasets
 
 ### Synopsis
 

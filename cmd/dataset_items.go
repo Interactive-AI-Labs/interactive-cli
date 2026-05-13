@@ -43,7 +43,8 @@ var (
 var datasetItemsCmd = &cobra.Command{
 	Use:              "dataset-items",
 	Aliases:          []string{"dataset-item"},
-	Short:            "Manage dataset items",
+	Short:            "Manage items in evaluation datasets",
+	GroupID:          groupEvaluation,
 	Long:             `Manage individual items within evaluation datasets.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

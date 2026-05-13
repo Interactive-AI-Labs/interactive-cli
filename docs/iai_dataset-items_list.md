@@ -36,5 +36,5 @@ iai dataset-items list [flags]
 
 ### SEE ALSO
 
-* [iai dataset-items](iai_dataset-items.md)	 - Manage dataset items
+* [iai dataset-items](iai_dataset-items.md)	 - Manage items in evaluation datasets
 

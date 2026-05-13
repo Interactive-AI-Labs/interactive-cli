@@ -65,5 +65,5 @@ iai agents update <agent_name> [flags]
 
 ### SEE ALSO
 
-* [iai agents](iai_agents.md)	 - Manage agents
+* [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
 

@@ -22,10 +22,13 @@ var (
 )
 
 var vectorStoresCmd = &cobra.Command{
-	Use:     "vector-stores",
-	Aliases: []string{"vector-store", "vs"},
-	Short:   "Manage vector stores",
-	Long:    `Manage vector stores in InteractiveAI projects.`,
+	Use:        "vector-stores",
+	Aliases:    []string{"vector-store", "vs"},
+	Short:      "Manage vector stores",
+	GroupID:    groupInfra,
+	Long:       `Manage vector stores in InteractiveAI projects.`,
+	Deprecated: "use 'iai databases' with the vector extension instead",
+	Hidden:     true,
 }
 
 var vsListCmd = &cobra.Command{

@@ -5,7 +5,7 @@ func init() {
 		TypeName: "variable",
 		Plural:   "variables",
 		Aliases:  []string{"variable", "var", "vars"},
-		Short:    "Manage variables",
+		Short:    "Contextual attributes referenced in policies and routines",
 		Long: `Manage variables in InteractiveAI projects.
 
 Variables are persistent data fields that survive across conversation sessions

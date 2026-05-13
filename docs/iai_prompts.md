@@ -1,6 +1,6 @@
 ## iai prompts
 
-Manage prompts
+Versioned prompts for agents, evaluators, and guardrails
 
 ### Synopsis
 

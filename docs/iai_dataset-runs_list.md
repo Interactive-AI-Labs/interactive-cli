@@ -34,5 +34,5 @@ iai dataset-runs list [flags]
 
 ### SEE ALSO
 
-* [iai dataset-runs](iai_dataset-runs.md)	 - Manage dataset runs
+* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
 

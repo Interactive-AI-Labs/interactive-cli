@@ -1,6 +1,6 @@
 ## iai sessions
 
-Manage sessions
+Browse trace-derived conversation sessions
 
 ### Synopsis
 

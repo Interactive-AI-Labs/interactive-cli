@@ -1,6 +1,6 @@
 ## iai agents
 
-Manage agents
+Deploy AI agents with policies, routines, and tools
 
 ### Synopsis
 

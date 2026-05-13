@@ -19,7 +19,8 @@ func init() {
 	parentCmd := &cobra.Command{
 		Use:     "prompts",
 		Aliases: []string{"prompt"},
-		Short:   "Manage prompts",
+		Short:   "Versioned prompts for agents, evaluators, and guardrails",
+		GroupID: groupContext,
 		Long: `Manage general-purpose text and chat prompts in InteractiveAI projects.
 
 Unlike typed commands (routines, policies, glossaries, variables, macros),

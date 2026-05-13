@@ -9,10 +9,16 @@ import (
 )
 
 const (
-	version            = "0.26.0"
+	version            = "0.26.1"
 	cfgDirName         = ".interactiveai"
 	sessionFileName    = "session_cookies.json"
 	defaultHTTPTimeout = 30 * time.Second
+
+	groupAuth       = "auth"
+	groupInfra      = "infra"
+	groupContext    = "context"
+	groupObserve    = "observe"
+	groupEvaluation = "evaluation"
 )
 
 var (
@@ -77,6 +83,14 @@ func init() {
 	if envApiKey != "" {
 		apiKey = envApiKey
 	}
+
+	rootCmd.AddGroup(
+		&cobra.Group{ID: groupAuth, Title: "Auth:"},
+		&cobra.Group{ID: groupInfra, Title: "Infrastructure:"},
+		&cobra.Group{ID: groupContext, Title: "Context:"},
+		&cobra.Group{ID: groupObserve, Title: "Observability:"},
+		&cobra.Group{ID: groupEvaluation, Title: "Evaluation & Annotation:"},
+	)
 
 	rootCmd.PersistentFlags().StringVar(&hostname, "hostname", hostname, "Hostname for the API")
 	rootCmd.PersistentFlags().

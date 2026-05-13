@@ -26,8 +26,9 @@ var (
 )
 
 var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Log in to InteractiveAI",
+	Use:     "login",
+	Short:   "Authenticate with InteractiveAI",
+	GroupID: groupAuth,
 	Long: `Log in to InteractiveAI.
 
 By default, opens your browser for SSO login (Google, GitHub, or email/password).

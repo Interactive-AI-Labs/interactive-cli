@@ -1,6 +1,6 @@
 ## iai traces
 
-Manage traces
+Browse agent decision traces with full attribution
 
 ### Synopsis
 

@@ -28,5 +28,5 @@ iai projects select [project_name] [flags]
 
 ### SEE ALSO
 
-* [iai projects](iai_projects.md)	 - Manage projects
+* [iai projects](iai_projects.md)	 - Switch or list projects
 

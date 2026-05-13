@@ -1,6 +1,6 @@
 ## iai replicas
 
-Manage service replicas
+Inspect service replicas
 
 ### Synopsis
 

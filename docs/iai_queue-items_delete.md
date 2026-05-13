@@ -30,5 +30,5 @@ iai queue-items delete <item-id> [flags]
 
 ### SEE ALSO
 
-* [iai queue-items](iai_queue-items.md)	 - Manage annotation queue items
+* [iai queue-items](iai_queue-items.md)	 - Manage items in annotation queues
 

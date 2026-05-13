@@ -8,9 +8,10 @@ import (
 )
 
 var logoutCmd = &cobra.Command{
-	Use:   "logout",
-	Short: "Log out of InteractiveAI",
-	Long:  `Log out of InteractiveAI by clearing the local session.`,
+	Use:     "logout",
+	Short:   "Clear local session",
+	GroupID: groupAuth,
+	Long:    `Log out of InteractiveAI by clearing the local session.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

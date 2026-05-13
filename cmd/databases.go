@@ -43,7 +43,8 @@ var (
 var databasesCmd = &cobra.Command{
 	Use:     "databases",
 	Aliases: []string{"database", "db"},
-	Short:   "Manage databases",
+	Short:   "PostgreSQL instances with extension support, including pgvector",
+	GroupID: groupInfra,
 	Long: `Manage PostgreSQL databases in InteractiveAI projects.
 
 Databases are managed PostgreSQL instances that can also be used as vector

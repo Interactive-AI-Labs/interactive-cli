@@ -39,7 +39,8 @@ var (
 var queuesCmd = &cobra.Command{
 	Use:              "queues",
 	Aliases:          []string{"queue"},
-	Short:            "Manage annotation queues",
+	Short:            "Annotation queues for human review workflows",
+	GroupID:          groupEvaluation,
 	Long:             `Manage annotation queues for review workflows.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

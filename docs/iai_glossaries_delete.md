@@ -42,5 +42,5 @@ iai glossaries delete <name> [flags]
 
 ### SEE ALSO
 
-* [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
+* [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
 

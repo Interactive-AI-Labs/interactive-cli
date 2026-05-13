@@ -30,5 +30,5 @@ iai score-configs get <id> [flags]
 
 ### SEE ALSO
 
-* [iai score-configs](iai_score-configs.md)	 - Manage score configs
+* [iai score-configs](iai_score-configs.md)	 - Define scoring schemas for evaluation
 

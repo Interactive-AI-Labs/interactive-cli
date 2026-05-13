@@ -29,7 +29,8 @@ var (
 var sessionsCmd = &cobra.Command{
 	Use:              "sessions",
 	Aliases:          []string{"session"},
-	Short:            "Manage sessions",
+	Short:            "Browse trace-derived conversation sessions",
+	GroupID:          groupObserve,
 	Long:             `Manage trace-derived sessions. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

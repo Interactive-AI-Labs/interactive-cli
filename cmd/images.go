@@ -31,7 +31,8 @@ var (
 var imageCmd = &cobra.Command{
 	Use:     "images",
 	Aliases: []string{"image"},
-	Short:   "Build and manage container images",
+	Short:   "Build and push container images",
+	GroupID: groupInfra,
 	Long:    `Manage container images used by services.`,
 }
 

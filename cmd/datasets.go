@@ -31,7 +31,8 @@ var (
 var datasetsCmd = &cobra.Command{
 	Use:              "datasets",
 	Aliases:          []string{"dataset"},
-	Short:            "Manage evaluation datasets",
+	Short:            "Create and list evaluation datasets",
+	GroupID:          groupEvaluation,
 	Long:             `Manage evaluation datasets. Works with API key or session login.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

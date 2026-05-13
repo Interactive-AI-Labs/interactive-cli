@@ -33,5 +33,5 @@ iai databases describe <database_name> [flags]
 
 ### SEE ALSO
 
-* [iai databases](iai_databases.md)	 - Manage databases
+* [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
 

@@ -74,5 +74,5 @@ iai traces list [flags]
 
 ### SEE ALSO
 
-* [iai traces](iai_traces.md)	 - Manage traces
+* [iai traces](iai_traces.md)	 - Browse agent decision traces with full attribution
 

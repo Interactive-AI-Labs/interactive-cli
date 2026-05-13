@@ -39,5 +39,5 @@ iai policies describe <name> [flags]
 
 ### SEE ALSO
 
-* [iai policies](iai_policies.md)	 - Manage policies
+* [iai policies](iai_policies.md)	 - Single-step behavioral rules for agents
 

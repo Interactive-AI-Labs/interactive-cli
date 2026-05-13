@@ -36,5 +36,5 @@ iai observations get <observation-id> [flags]
 
 ### SEE ALSO
 
-* [iai observations](iai_observations.md)	 - Manage observations
+* [iai observations](iai_observations.md)	 - Inspect spans within traces
 

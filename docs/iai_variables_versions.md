@@ -32,5 +32,5 @@ iai variables versions <name> [flags]
 
 ### SEE ALSO
 
-* [iai variables](iai_variables.md)	 - Manage variables
+* [iai variables](iai_variables.md)	 - Contextual attributes referenced in policies and routines
 

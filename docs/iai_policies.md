@@ -1,6 +1,6 @@
 ## iai policies
 
-Manage policies
+Single-step behavioral rules for agents
 
 ### Synopsis
 

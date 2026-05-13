@@ -32,5 +32,5 @@ iai queues assign <queue-id> [flags]
 
 ### SEE ALSO
 
-* [iai queues](iai_queues.md)	 - Manage annotation queues
+* [iai queues](iai_queues.md)	 - Annotation queues for human review workflows
 

@@ -96,5 +96,5 @@ vector-stores:
 
 ### SEE ALSO
 
-* [iai stacks](iai_stacks.md)	 - Manage stacks
+* [iai stacks](iai_stacks.md)	 - Declarative resource sync from config files
 
