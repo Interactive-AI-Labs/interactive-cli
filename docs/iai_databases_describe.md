@@ -1,15 +1,25 @@
-## iai stacks
+## iai databases describe
 
-Manage stacks
+Describe a database in detail
 
 ### Synopsis
 
-Manage stacks and their resources (services, agents, vector stores) from stack configuration files.
+Show detailed information about a database including configuration, runtime
+status, and connection credentials.
+
+Examples:
+  iai databases describe my-db
+
+```
+iai databases describe <database_name> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for stacks
+  -h, --help                  help for describe
+  -o, --organization string   Organization name
+  -p, --project string        Project name
 ```
 
 ### Options inherited from parent commands
@@ -23,6 +33,5 @@ Manage stacks and their resources (services, agents, vector stores) from stack c
 
 ### SEE ALSO
 
-* [iai](iai.md)	 - InteractiveAI's CLI
-* [iai stacks sync](iai_stacks_sync.md)	 - Sync services, agents, vector stores, and databases from a stack config file
+* [iai databases](iai_databases.md)	 - Manage databases
 

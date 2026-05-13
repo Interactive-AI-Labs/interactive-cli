@@ -62,6 +62,7 @@ services:
 				},
 				VectorStores: map[string]VectorStoreConfig{},
 				Agents:       map[string]AgentConfig{},
+				Databases:    map[string]DatabaseConfig{},
 			},
 		},
 		{
@@ -113,6 +114,7 @@ services:
 				},
 				VectorStores: map[string]VectorStoreConfig{},
 				Agents:       map[string]AgentConfig{},
+				Databases:    map[string]DatabaseConfig{},
 			},
 		},
 		{
@@ -163,7 +165,8 @@ vector-stores:
 						Storage:   clients.VectorStoreStorage{Size: 20},
 					},
 				},
-				Agents: map[string]AgentConfig{},
+				Agents:    map[string]AgentConfig{},
+				Databases: map[string]DatabaseConfig{},
 			},
 		},
 		{
@@ -200,7 +203,51 @@ vector-stores:
 						Backups: true,
 					},
 				},
-				Agents: map[string]AgentConfig{},
+				Agents:    map[string]AgentConfig{},
+				Databases: map[string]DatabaseConfig{},
+			},
+		},
+		{
+			name: "valid config with databases",
+			content: `organization: test-org
+project: test-project
+stack-id: stack-123
+databases:
+  my-db:
+    instances: 2
+    postgresVersion: "16"
+    resources:
+      cpu: "1"
+      memory: "2G"
+    storage:
+      size: "20G"
+    extensions:
+      - vector
+      - pg_trgm
+    backup:
+      schedule: "0 0 2 * * *"
+      retentionpolicy: "30d"
+`,
+			want: &StackConfig{
+				Organization: "test-org",
+				Project:      "test-project",
+				StackId:      "stack-123",
+				Services:     map[string]ServiceConfig{},
+				VectorStores: map[string]VectorStoreConfig{},
+				Agents:       map[string]AgentConfig{},
+				Databases: map[string]DatabaseConfig{
+					"my-db": {
+						Instances:       2,
+						PostgresVersion: "16",
+						Resources:       clients.Resources{CPU: "1", Memory: "2G"},
+						Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+						Extensions:      []string{"vector", "pg_trgm"},
+						Backup: &clients.DatabaseBackupConfig{
+							Schedule:        "0 0 2 * * *",
+							RetentionPolicy: "30d",
+						},
+					},
+				},
 			},
 		},
 		{
@@ -458,5 +505,66 @@ func TestVectorStoreConfigToCreateRequest(t *testing.T) {
 	got := input.ToCreateRequest("stack-abc")
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("ToCreateRequest() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestDatabaseConfigToCreateRequest(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   DatabaseConfig
+		stackId string
+		want    clients.CreateDatabaseBody
+	}{
+		{
+			name: "with backup",
+			input: DatabaseConfig{
+				Instances:       2,
+				PostgresVersion: "16",
+				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
+				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Extensions:      []string{"vector", "pg_trgm"},
+				Backup: &clients.DatabaseBackupConfig{
+					Schedule:        "0 0 2 * * *",
+					RetentionPolicy: "30d",
+				},
+			},
+			stackId: "stack-123",
+			want: clients.CreateDatabaseBody{
+				Instances:       2,
+				PostgresVersion: "16",
+				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
+				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Extensions:      []string{"vector", "pg_trgm"},
+				Backup: &clients.DatabaseBackupConfig{
+					Schedule:        "0 0 2 * * *",
+					RetentionPolicy: "30d",
+				},
+				StackId: "stack-123",
+			},
+		},
+		{
+			name: "without backup",
+			input: DatabaseConfig{
+				Instances: 1,
+				Resources: clients.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:   clients.DatabaseStorageConfig{Size: "10G"},
+			},
+			stackId: "stack-456",
+			want: clients.CreateDatabaseBody{
+				Instances: 1,
+				Resources: clients.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:   clients.DatabaseStorageConfig{Size: "10G"},
+				StackId:   "stack-456",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.ToCreateRequest(tt.stackId)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("ToCreateRequest() mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

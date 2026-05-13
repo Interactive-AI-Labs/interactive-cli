@@ -15,6 +15,7 @@ type StackConfig struct {
 	Services     map[string]ServiceConfig     `yaml:"services"`
 	VectorStores map[string]VectorStoreConfig `yaml:"vector-stores"`
 	Agents       map[string]AgentConfig       `yaml:"agents"`
+	Databases    map[string]DatabaseConfig    `yaml:"databases"`
 }
 
 type VectorStoreConfig struct {
@@ -36,6 +37,15 @@ type ServiceConfig struct {
 	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"`
 	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty"`
 	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"`
+}
+
+type DatabaseConfig struct {
+	Instances       int                           `yaml:"instances"`
+	PostgresVersion string                        `yaml:"postgresVersion,omitempty"`
+	Resources       clients.Resources             `yaml:"resources"`
+	Storage         clients.DatabaseStorageConfig `yaml:"storage"`
+	Extensions      []string                      `yaml:"extensions,omitempty"`
+	Backup          *clients.DatabaseBackupConfig `yaml:"backup,omitempty"`
 }
 
 type AgentConfig struct {
@@ -62,10 +72,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	if (len(cfg.Services) > 0 || len(cfg.VectorStores) > 0 || len(cfg.Agents) > 0) &&
+	if (len(cfg.Services) > 0 || len(cfg.VectorStores) > 0 || len(cfg.Agents) > 0 || len(cfg.Databases) > 0) &&
 		cfg.StackId == "" {
 		return nil, fmt.Errorf(
-			"stack-id is required when services, vector stores, or agents are defined in config file",
+			"stack-id is required when services, vector stores, agents, or databases are defined in config file",
 		)
 	}
 
@@ -79,6 +89,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 
 	if cfg.Agents == nil {
 		cfg.Agents = make(map[string]AgentConfig)
+	}
+
+	if cfg.Databases == nil {
+		cfg.Databases = make(map[string]DatabaseConfig)
 	}
 
 	return &cfg, nil
@@ -104,6 +118,18 @@ func (a AgentConfig) ToCreateRequest(stackId string) clients.CreateAgentBody {
 		Schedule:    a.Schedule,
 		Env:         a.Env,
 		StackId:     stackId,
+	}
+}
+
+func (d DatabaseConfig) ToCreateRequest(stackId string) clients.CreateDatabaseBody {
+	return clients.CreateDatabaseBody{
+		Instances:       d.Instances,
+		PostgresVersion: d.PostgresVersion,
+		Resources:       d.Resources,
+		Storage:         d.Storage,
+		Extensions:      d.Extensions,
+		Backup:          d.Backup,
+		StackId:         stackId,
 	}
 }
 
