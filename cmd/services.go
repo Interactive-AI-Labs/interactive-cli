@@ -595,6 +595,43 @@ Examples:
 	},
 }
 
+var (
+	servPFPort      int
+	servPFLocalPort int
+)
+
+var servPortForwardCmd = &cobra.Command{
+	Use:   "port-forward <service_name>",
+	Short: "Forward a local port to a service",
+	Long: `Open a local TCP listener and tunnel traffic through the deployment operator
+to a service running in the cluster.
+
+The remote port defaults to the service's configured port. Use --port to
+override. Use --local-port to choose the local listening port (defaults to
+--port when set, or an available OS-assigned port otherwise).
+
+Examples:
+  iai services port-forward my-svc
+  iai services port-forward my-svc --port 8080
+  iai services port-forward my-svc --port 8080 --local-port 9090`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		serviceName := strings.TrimSpace(args[0])
+		localPort := servPFLocalPort
+		if localPort == 0 {
+			localPort = servPFPort
+		}
+		return runPortForward(cmd.Context(), portForwardOpts{
+			resourceType: "services",
+			resourceName: serviceName,
+			remotePort:   servPFPort,
+			localPort:    localPort,
+			org:          serviceOrganization,
+			project:      serviceProject,
+		})
+	},
+}
+
 var servicesSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync services in a project from a stack config file",
@@ -863,6 +900,16 @@ func init() {
 	servDiffCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
 
+	// Flags for "services port-forward"
+	servPortForwardCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servPortForwardCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+	servPortForwardCmd.Flags().
+		IntVar(&servPFPort, "port", 0, "Remote port on the service (defaults to the service's configured port)")
+	servPortForwardCmd.Flags().
+		IntVar(&servPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
+
 	// Flags for "services sync"
 	servicesSyncCmd.Flags().
 		StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
@@ -880,5 +927,6 @@ func init() {
 	servicesCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servRevisionsCmd)
 	servicesCmd.AddCommand(servDiffCmd)
+	servicesCmd.AddCommand(servPortForwardCmd)
 	servicesCmd.AddCommand(servicesSyncCmd)
 }

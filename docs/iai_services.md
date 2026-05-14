@@ -30,6 +30,7 @@ Manage deployment of services to InteractiveAI projects.
 * [iai services diff](iai_services_diff.md)	 - Compare two revisions of a service
 * [iai services list](iai_services_list.md)	 - List services in a project
 * [iai services logs](iai_services_logs.md)	 - Show logs for a service
+* [iai services port-forward](iai_services_port-forward.md)	 - Forward a local port to a service
 * [iai services restart](iai_services_restart.md)	 - Restart a service in a project
 * [iai services revisions](iai_services_revisions.md)	 - List revisions of a service
 * [iai services update](iai_services_update.md)	 - Update a service in a project

@@ -616,6 +616,43 @@ Examples:
 	},
 }
 
+var (
+	agentPFPort      int
+	agentPFLocalPort int
+)
+
+var agentPortForwardCmd = &cobra.Command{
+	Use:   "port-forward <agent_name>",
+	Short: "Forward a local port to an agent",
+	Long: `Open a local TCP listener and tunnel traffic through the deployment operator
+to an agent running in the cluster.
+
+The remote port defaults to the agent's configured port. Use --port to
+override. Use --local-port to choose the local listening port (defaults to
+--port when set, or an available OS-assigned port otherwise).
+
+Examples:
+  iai agents port-forward my-agent
+  iai agents port-forward my-agent --port 8080
+  iai agents port-forward my-agent --port 8080 --local-port 9090`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		agentName := strings.TrimSpace(args[0])
+		localPort := agentPFLocalPort
+		if localPort == 0 {
+			localPort = agentPFPort
+		}
+		return runPortForward(cmd.Context(), portForwardOpts{
+			resourceType: "agents",
+			resourceName: agentName,
+			remotePort:   agentPFPort,
+			localPort:    localPort,
+			org:          agentOrganization,
+			project:      agentProject,
+		})
+	},
+}
+
 func init() {
 	// Flags for "agents create"
 	agentCreateCmd.Flags().
@@ -726,6 +763,16 @@ func init() {
 	agentDiffCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
+	// Flags for "agents port-forward"
+	agentPortForwardCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentPortForwardCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+	agentPortForwardCmd.Flags().
+		IntVar(&agentPFPort, "port", 0, "Remote port on the agent (defaults to the agent's configured port)")
+	agentPortForwardCmd.Flags().
+		IntVar(&agentPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
+
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
 	agentsCmd.AddCommand(agentCreateCmd)
@@ -739,4 +786,5 @@ func init() {
 	agentsCmd.AddCommand(agentCatalogCmd)
 	agentsCmd.AddCommand(agentRevisionsCmd)
 	agentsCmd.AddCommand(agentDiffCmd)
+	agentsCmd.AddCommand(agentPortForwardCmd)
 }

@@ -487,6 +487,48 @@ Examples:
 	},
 }
 
+var (
+	dbPFPort      int
+	dbPFLocalPort int
+)
+
+var dbPortForwardCmd = &cobra.Command{
+	Use:   "port-forward <database_name>",
+	Short: "Forward a local port to a database",
+	Long: `Open a local TCP listener and tunnel traffic through the deployment operator
+to a PostgreSQL database running in the cluster.
+
+The remote port defaults to 5432. Use --port to override. Use --local-port
+to choose the local listening port (defaults to the remote port).
+
+After connecting you can use psql, pgAdmin, or any PostgreSQL client against
+localhost:<local-port>.
+
+Examples:
+  iai databases port-forward my-db
+  iai databases port-forward my-db --local-port 15432`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		databaseName := strings.TrimSpace(args[0])
+		remotePort := dbPFPort
+		if remotePort == 0 {
+			remotePort = 5432
+		}
+		localPort := dbPFLocalPort
+		if localPort == 0 {
+			localPort = remotePort
+		}
+		return runPortForward(cmd.Context(), portForwardOpts{
+			resourceType: "databases",
+			resourceName: databaseName,
+			remotePort:   remotePort,
+			localPort:    localPort,
+			org:          dbOrganization,
+			project:      dbProject,
+		})
+	},
+}
+
 func addDatabaseResourceFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		IntVar(&dbInstances, "instances", 0, "Number of PostgreSQL instances (minimum 1); values above 1 enable high availability")
@@ -587,10 +629,20 @@ func init() {
 		StringVar(&dbTargetTime, "target-time", "", "RFC3339 timestamp for point-in-time recovery (e.g. 2026-05-12T10:00:00Z); omit to restore the latest backup")
 	_ = dbRestoreCmd.MarkFlagRequired("source-database")
 
+	// Flags for "databases port-forward"
+	dbPortForwardCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbPortForwardCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+	dbPortForwardCmd.Flags().
+		IntVar(&dbPFPort, "port", 0, "Remote port on the database (defaults to 5432)")
+	dbPortForwardCmd.Flags().
+		IntVar(&dbPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
+
 	// Wire up command hierarchy
 	databasesCmd.AddCommand(
 		dbListCmd, dbDescribeCmd, dbCreateCmd, dbUpdateCmd, dbDeleteCmd,
-		dbLogsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd,
+		dbLogsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd, dbPortForwardCmd,
 	)
 	rootCmd.AddCommand(databasesCmd)
 }
