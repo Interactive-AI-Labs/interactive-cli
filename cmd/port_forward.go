@@ -51,6 +51,7 @@ func runPortForward(cmdCtx context.Context, opts portForwardOpts) error {
 		return err
 	}
 
+	// Port 0 makes the OS assign a random available port.
 	localAddr := fmt.Sprintf("127.0.0.1:%d", opts.localPort)
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
@@ -61,8 +62,13 @@ func runPortForward(cmdCtx context.Context, opts portForwardOpts) error {
 	ctx, stop := signal.NotifyContext(cmdCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	_, localPort, _ := net.SplitHostPort(listener.Addr().String())
-	displayAddr := "localhost:" + localPort
+	displayPort := opts.localPort
+	if displayPort == 0 {
+		// OS assigned the port; read it back from the listener.
+		_, p, _ := net.SplitHostPort(listener.Addr().String())
+		fmt.Sscanf(p, "%d", &displayPort)
+	}
+	displayAddr := fmt.Sprintf("localhost:%d", displayPort)
 
 	if opts.remotePort > 0 {
 		fmt.Fprintf(os.Stderr, "Forwarding %s → %s/%s (port %d)\n",
@@ -78,6 +84,7 @@ func runPortForward(cmdCtx context.Context, opts portForwardOpts) error {
 		listener.Close()
 	}()
 
+	// Accept connections in a loop; each gets its own WS tunnel.
 	var wg sync.WaitGroup
 	for {
 		conn, err := listener.Accept()
@@ -88,11 +95,9 @@ func runPortForward(cmdCtx context.Context, opts portForwardOpts) error {
 			log.Printf("accept error: %v", err)
 			continue
 		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			handlePortForwardConn(ctx, conn, wsURL, headers)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -121,12 +126,18 @@ func handlePortForwardConn(
 	}
 	defer wsConn.Close()
 
+	// wsMu serializes WebSocket writes: gorilla/websocket does not
+	// support concurrent writers, so WriteMessage and WriteControl
+	// must not overlap.
+	var wsMu sync.Mutex
 	var shutdownOnce sync.Once
 	shutdown := func() {
 		shutdownOnce.Do(func() {
+			wsMu.Lock()
 			deadline := time.Now().Add(time.Second)
 			msg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
 			wsConn.WriteControl(websocket.CloseMessage, msg, deadline)
+			wsMu.Unlock()
 			wsConn.Close()
 			tcpConn.Close()
 		})
@@ -150,10 +161,13 @@ func handlePortForwardConn(
 		for {
 			n, readErr := tcpConn.Read(buf)
 			if n > 0 {
-				if writeErr := wsConn.WriteMessage(
+				wsMu.Lock()
+				writeErr := wsConn.WriteMessage(
 					websocket.BinaryMessage,
 					buf[:n],
-				); writeErr != nil {
+				)
+				wsMu.Unlock()
+				if writeErr != nil {
 					return
 				}
 			}

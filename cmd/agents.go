@@ -14,7 +14,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -371,52 +370,17 @@ Examples:
 			defer stop()
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
 		timeout := 1 * time.Minute
 		if agentLogsFollow {
 			timeout = 0
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			timeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(), agentOrganization, agentProject,
+			resolveOpts{deployTimeout: timeout},
 		)
 		if err != nil {
 			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		opts := clients.LogsOptions{
@@ -426,7 +390,7 @@ Examples:
 			EndTime:   agentLogsEndTime,
 		}
 
-		logsResp, err := deployClient.GetAgentLogs(ctx, orgId, projectId, agentName, opts)
+		logsResp, err := deployClient.GetAgentLogs(ctx, pCtx.orgId, pCtx.projectId, agentName, opts)
 		if err != nil {
 			return err
 		}

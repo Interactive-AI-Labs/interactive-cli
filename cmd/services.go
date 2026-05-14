@@ -427,52 +427,17 @@ Returns up to 5000 log entries in chronological order.`,
 			defer stop()
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
 		timeout := 1 * time.Minute
 		if servLogsFollow {
 			timeout = 0
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			timeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(), serviceOrganization, serviceProject,
+			resolveOpts{deployTimeout: timeout},
 		)
 		if err != nil {
 			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, serviceOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, serviceProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		opts := clients.LogsOptions{
@@ -482,7 +447,13 @@ Returns up to 5000 log entries in chronological order.`,
 			EndTime:   servLogsEndTime,
 		}
 
-		logsResp, err := deployClient.GetServiceLogs(ctx, orgId, projectId, serviceName, opts)
+		logsResp, err := deployClient.GetServiceLogs(
+			ctx,
+			pCtx.orgId,
+			pCtx.projectId,
+			serviceName,
+			opts,
+		)
 		if err != nil {
 			return err
 		}

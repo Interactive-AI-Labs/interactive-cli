@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -16,9 +17,14 @@ type projectContext struct {
 	projectName string
 }
 
+type resolveOpts struct {
+	deployTimeout time.Duration
+}
+
 func resolveProject(
 	ctx context.Context,
 	org, project string,
+	opts ...resolveOpts,
 ) (*projectContext, *clients.APIClient, *clients.DeploymentClient, error) {
 	cfg, err := files.LoadStackConfig(cfgFilePath)
 	if err != nil {
@@ -35,9 +41,14 @@ func resolveProject(
 		return nil, nil, nil, err
 	}
 
+	deployTimeout := defaultHTTPTimeout
+	if len(opts) > 0 {
+		deployTimeout = opts[0].deployTimeout
+	}
+
 	deployClient, err := clients.NewDeploymentClient(
 		deploymentHostname,
-		defaultHTTPTimeout,
+		deployTimeout,
 		token,
 		apiKey,
 		cookies,
