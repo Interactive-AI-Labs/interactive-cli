@@ -14,7 +14,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -371,52 +370,17 @@ Examples:
 			defer stop()
 		}
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
 		timeout := 1 * time.Minute
 		if agentLogsFollow {
 			timeout = 0
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname,
-			timeout,
-			token,
-			apiKey,
-			cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(), agentOrganization, agentProject,
+			resolveOpts{deployTimeout: timeout},
 		)
 		if err != nil {
 			return err
-		}
-
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, agentOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, agentProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
 		opts := clients.LogsOptions{
@@ -426,7 +390,7 @@ Examples:
 			EndTime:   agentLogsEndTime,
 		}
 
-		logsResp, err := deployClient.GetAgentLogs(ctx, orgId, projectId, agentName, opts)
+		logsResp, err := deployClient.GetAgentLogs(ctx, pCtx.orgId, pCtx.projectId, agentName, opts)
 		if err != nil {
 			return err
 		}
@@ -616,6 +580,43 @@ Examples:
 	},
 }
 
+var (
+	agentPFPort      int
+	agentPFLocalPort int
+)
+
+var agentPortForwardCmd = &cobra.Command{
+	Use:   "port-forward <agent_name>",
+	Short: "Forward a local port to an agent",
+	Long: `Open a local TCP listener and tunnel traffic through the deployment operator
+to an agent running in the cluster.
+
+The remote port defaults to the agent's configured port. Use --port to
+override. Use --local-port to choose the local listening port (defaults to
+--port when set, or an available OS-assigned port otherwise).
+
+Examples:
+  iai agents port-forward my-agent
+  iai agents port-forward my-agent --port 8080
+  iai agents port-forward my-agent --port 8080 --local-port 9090`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		agentName := strings.TrimSpace(args[0])
+		localPort := agentPFLocalPort
+		if localPort == 0 {
+			localPort = agentPFPort
+		}
+		return runPortForward(cmd.Context(), portForwardOpts{
+			resourceType: "agents",
+			resourceName: agentName,
+			remotePort:   agentPFPort,
+			localPort:    localPort,
+			org:          agentOrganization,
+			project:      agentProject,
+		})
+	},
+}
+
 func init() {
 	// Flags for "agents create"
 	agentCreateCmd.Flags().
@@ -726,6 +727,16 @@ func init() {
 	agentDiffCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
+	// Flags for "agents port-forward"
+	agentPortForwardCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentPortForwardCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+	agentPortForwardCmd.Flags().
+		IntVar(&agentPFPort, "port", 0, "Remote port on the agent (defaults to the agent's configured port)")
+	agentPortForwardCmd.Flags().
+		IntVar(&agentPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
+
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
 	agentsCmd.AddCommand(agentCreateCmd)
@@ -739,4 +750,5 @@ func init() {
 	agentsCmd.AddCommand(agentCatalogCmd)
 	agentsCmd.AddCommand(agentRevisionsCmd)
 	agentsCmd.AddCommand(agentDiffCmd)
+	agentsCmd.AddCommand(agentPortForwardCmd)
 }
