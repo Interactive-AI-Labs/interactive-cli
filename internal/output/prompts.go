@@ -67,6 +67,15 @@ func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
 		fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(prompt.UpdatedAt))
 	}
 
+	if hasConfigPayload(prompt.Config) {
+		var indented bytes.Buffer
+		if err := json.Indent(&indented, prompt.Config, "", "  "); err == nil {
+			fmt.Fprintln(w)
+			fmt.Fprintln(w, "Config:")
+			fmt.Fprintln(w, indented.String())
+		}
+	}
+
 	if len(prompt.Prompt) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Content:")
@@ -83,6 +92,20 @@ func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
 	}
 
 	return w.Flush()
+}
+
+// hasConfigPayload reports whether the prompt's config field carries any
+// fields worth rendering. The backend returns "{}" (or omits the field) when
+// no config is set; treat both as empty.
+func hasConfigPayload(raw json.RawMessage) bool {
+	if len(raw) == 0 {
+		return false
+	}
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return false
+	}
+	return len(m) > 0
 }
 
 func PrintPromptVersions(out io.Writer, versions []int) error {

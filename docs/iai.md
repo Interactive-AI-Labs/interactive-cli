@@ -81,6 +81,7 @@ iai --help
 * [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services and agents
 * [iai services](iai_services.md)	 - Deploy and manage HTTP services
 * [iai sessions](iai_sessions.md)	 - Browse trace-derived conversation sessions
+* [iai skills](iai_skills.md)	 - Copilot skills loaded by interactive-chat at runtime
 * [iai stacks](iai_stacks.md)	 - Declarative resource sync from config files
 * [iai traces](iai_traces.md)	 - Browse agent decision traces with full attribution
 * [iai variables](iai_variables.md)	 - Contextual attributes referenced in policies and routines

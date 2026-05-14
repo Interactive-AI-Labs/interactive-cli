@@ -1,0 +1,39 @@
+## iai skills
+
+Copilot skills loaded by interactive-chat at runtime
+
+### Synopsis
+
+Manage Copilot skills in InteractiveAI projects.
+
+Skills are free-form markdown bundles materialized as <name>/SKILL.md by the
+Copilot runtime. Each skill carries a short description and an "intents" list
+of natural-language triggers (stored in config.skill) the Copilot uses to
+build its intent → skill table. No schema validation is applied to the body.
+
+### Options
+
+```
+  -h, --help   help for skills
+```
+
+### Options inherited from parent commands
+
+```
+      --api-key string               API key for authentication
+      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
+      --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
+      --hostname string              Hostname for the API (default "https://app.interactive.ai")
+```
+
+### SEE ALSO
+
+* [iai](iai.md)	 - InteractiveAI's CLI
+* [iai skills create](iai_skills_create.md)	 - Create a skill
+* [iai skills delete](iai_skills_delete.md)	 - Delete a skill
+* [iai skills describe](iai_skills_describe.md)	 - Describe a skill in detail
+* [iai skills diff](iai_skills_diff.md)	 - Compare two versions of a skill
+* [iai skills list](iai_skills_list.md)	 - List skills in a project
+* [iai skills update](iai_skills_update.md)	 - Update a skill (creates a new version)
+* [iai skills versions](iai_skills_versions.md)	 - List versions of a skill
+
