@@ -16,13 +16,16 @@ Copilot runtime. Each skill carries a short description and an "intents" list
 of natural-language triggers (stored in config.skill) the Copilot uses to
 build its intent → skill table. No schema validation is applied to the body.`,
 		RouteSegment:          "skills",
-		BindCreateConfigFlags: bindSkillConfigFlags,
+		BindPromptConfigFlags: bindSkillConfigFlags,
 		CreateLong: `Create a new skill in an InteractiveAI project.
 
-The skill body is provided as markdown — either inline via --body or as a
-path via --file. Optional --description and --intents populate the
-config.skill block consumed by the Copilot runtime to assemble its intent →
-skill table.
+The skill body is provided as markdown — either as a path via --file
+(recommended for multi-line content) or inline via --body for one-liners.
+Optional --description and --intents populate the config.skill block
+consumed by the Copilot runtime to assemble its intent → skill table.
+
+Pass --intents once per intent; the flag is repeatable so individual
+intents may contain commas (e.g. "summarize, then explain").
 
 Example (skill.md):
   # Summarize Trace
@@ -37,8 +40,9 @@ assign the "production" label with --labels production.
 Examples:
   iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
-    --intents "summarize trace,explain trace"
-  iai skills create greet --body "# Greet\n\nSay hello." --description "Greet the user"
+    --intents "summarize trace" --intents "explain trace"
+  iai skills create greet --body "Say hello to the user." \
+    --description "Greet the user"
   iai skills create summarize-trace --file ./skill.md --labels production`,
 		ListLong: `List skills in a specific project.
 
@@ -61,15 +65,21 @@ Examples:
   iai skills describe summarize-trace --label staging`,
 		UpdateLong: `Update a skill by creating a new version with updated content.
 
-This creates a new version of the skill using the content from the provided
-file or --body string. --description and --intents are written into the new
-version's config.skill block; omit them to leave the previous version's
-config alone (they are stored per version).
+Each update creates a brand-new version with exactly the content and config
+provided on the command line — the previous version is preserved unchanged
+but is not inherited from. In particular, if --description or --intents are
+omitted the new version's config.skill block will be empty, even if the
+prior version had values for them. Pass them again on every update if you
+want the new version to keep them.
+
+Pass --intents once per intent (the flag is repeatable).
 
 Examples:
-  iai skills update summarize-trace --file ./skill.md
-  iai skills update summarize-trace --body "# Greet\n\nSay hello." \
-    --description "Greet the user" --intents "say hi,greet"
+  iai skills update summarize-trace --file ./skill.md \
+    --description "Summarize a Langfuse trace" \
+    --intents "summarize trace" --intents "explain trace"
+  iai skills update greet --body "Say hi to the user." \
+    --description "Greet the user" --intents "say hi" --intents "greet"
   iai skills update summarize-trace --file ./skill.md --labels production,staging`,
 		DeleteLong: `Delete a skill and all its versions, or delete specific versions.
 
@@ -99,10 +109,10 @@ func bindSkillConfigFlags(cmd *cobra.Command) ConfigFlagBuilder {
 		&description, "description", "",
 		"Short description of the skill (stored in config.skill.description)",
 	)
-	cmd.Flags().StringSliceVar(
+	cmd.Flags().StringArrayVar(
 		&intents, "intents", nil,
-		"Natural-language intents that trigger this skill (comma-separated; "+
-			"stored in config.skill.intents)",
+		"Natural-language intent that triggers this skill — repeat the flag "+
+			"once per intent (stored in config.skill.intents)",
 	)
 
 	return func() map[string]any {

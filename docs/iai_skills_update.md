@@ -6,15 +6,21 @@ Update a skill (creates a new version)
 
 Update a skill by creating a new version with updated content.
 
-This creates a new version of the skill using the content from the provided
-file or --body string. --description and --intents are written into the new
-version's config.skill block; omit them to leave the previous version's
-config alone (they are stored per version).
+Each update creates a brand-new version with exactly the content and config
+provided on the command line — the previous version is preserved unchanged
+but is not inherited from. In particular, if --description or --intents are
+omitted the new version's config.skill block will be empty, even if the
+prior version had values for them. Pass them again on every update if you
+want the new version to keep them.
+
+Pass --intents once per intent (the flag is repeatable).
 
 Examples:
-  iai skills update summarize-trace --file ./skill.md
-  iai skills update summarize-trace --body "# Greet\n\nSay hello." \
-    --description "Greet the user" --intents "say hi,greet"
+  iai skills update summarize-trace --file ./skill.md \
+    --description "Summarize a Langfuse trace" \
+    --intents "summarize trace" --intents "explain trace"
+  iai skills update greet --body "Say hi to the user." \
+    --description "Greet the user" --intents "say hi" --intents "greet"
   iai skills update summarize-trace --file ./skill.md --labels production,staging
 
 ```
@@ -28,7 +34,7 @@ iai skills update <name> [flags]
       --description string    Short description of the skill (stored in config.skill.description)
       --file string           Path to the file containing the updated prompt content
   -h, --help                  help for update
-      --intents strings       Natural-language intents that trigger this skill (comma-separated; stored in config.skill.intents)
+      --intents stringArray   Natural-language intent that triggers this skill — repeat the flag once per intent (stored in config.skill.intents)
       --labels strings        Labels for the new prompt version (comma-separated)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts

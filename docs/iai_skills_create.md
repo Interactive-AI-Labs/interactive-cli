@@ -6,10 +6,13 @@ Create a skill
 
 Create a new skill in an InteractiveAI project.
 
-The skill body is provided as markdown — either inline via --body or as a
-path via --file. Optional --description and --intents populate the
-config.skill block consumed by the Copilot runtime to assemble its intent →
-skill table.
+The skill body is provided as markdown — either as a path via --file
+(recommended for multi-line content) or inline via --body for one-liners.
+Optional --description and --intents populate the config.skill block
+consumed by the Copilot runtime to assemble its intent → skill table.
+
+Pass --intents once per intent; the flag is repeatable so individual
+intents may contain commas (e.g. "summarize, then explain").
 
 Example (skill.md):
   # Summarize Trace
@@ -24,8 +27,9 @@ assign the "production" label with --labels production.
 Examples:
   iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
-    --intents "summarize trace,explain trace"
-  iai skills create greet --body "# Greet\n\nSay hello." --description "Greet the user"
+    --intents "summarize trace" --intents "explain trace"
+  iai skills create greet --body "Say hello to the user." \
+    --description "Greet the user"
   iai skills create summarize-trace --file ./skill.md --labels production
 
 ```
@@ -39,7 +43,7 @@ iai skills create <name> [flags]
       --description string    Short description of the skill (stored in config.skill.description)
       --file string           Path to the file containing the prompt content
   -h, --help                  help for create
-      --intents strings       Natural-language intents that trigger this skill (comma-separated; stored in config.skill.intents)
+      --intents stringArray   Natural-language intent that triggers this skill — repeat the flag once per intent (stored in config.skill.intents)
       --labels strings        Labels for the prompt version (comma-separated)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts

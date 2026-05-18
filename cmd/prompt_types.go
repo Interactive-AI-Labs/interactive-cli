@@ -33,12 +33,12 @@ type PromptTypeConfig struct {
 	// create and update subcommands. When set, exactly one of --file or
 	// --body must be provided.
 	AllowInlineBody bool
-	// BindCreateConfigFlags optionally registers type-specific flags on the
+	// BindPromptConfigFlags optionally registers type-specific flags on the
 	// given create or update command (e.g. --description, --intents for
 	// skills) and returns a builder that materializes those flags into the
 	// payload's `config` field at run time. Called once per command so each
 	// create/update gets its own flag-bound variables.
-	BindCreateConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
+	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
 	CreateLong            string // long description for the create subcommand
 	ListLong              string // long description for the list subcommand
 	GetLong               string // long description for the describe subcommand
@@ -123,15 +123,15 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	}
 
 	var configBuilder ConfigFlagBuilder
-	if ptCfg.BindCreateConfigFlags != nil {
-		configBuilder = ptCfg.BindCreateConfigFlags(cmd)
+	if ptCfg.BindPromptConfigFlags != nil {
+		configBuilder = ptCfg.BindPromptConfigFlags(cmd)
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		name := strings.TrimSpace(args[0])
 
-		content, err := readPromptContent(ptCfg, file, body)
+		content, err := readPromptContent(cmd, ptCfg, file, body)
 		if err != nil {
 			return err
 		}
@@ -188,10 +188,14 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 // readPromptContent returns the prompt body, resolving --file vs --body per
 // the type's AllowInlineBody setting. Cobra's MarkFlagsOneRequired /
-// MarkFlagsMutuallyExclusive already validate that exactly one is set when
-// inline bodies are allowed, so this only needs to dispatch.
-func readPromptContent(ptCfg PromptTypeConfig, file, inline string) (string, error) {
-	if ptCfg.AllowInlineBody && inline != "" {
+// MarkFlagsMutuallyExclusive already validate that exactly one of the two
+// is set when inline bodies are allowed, so this only needs to dispatch and
+// validate that the chosen flag is non-empty.
+func readPromptContent(cmd *cobra.Command, ptCfg PromptTypeConfig, file, inline string) (string, error) {
+	if ptCfg.AllowInlineBody && cmd.Flags().Changed("body") {
+		if strings.TrimSpace(inline) == "" {
+			return "", fmt.Errorf("--body must not be empty")
+		}
 		return inline, nil
 	}
 	content, err := os.ReadFile(file)
@@ -327,15 +331,15 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	}
 
 	var configBuilder ConfigFlagBuilder
-	if ptCfg.BindCreateConfigFlags != nil {
-		configBuilder = ptCfg.BindCreateConfigFlags(cmd)
+	if ptCfg.BindPromptConfigFlags != nil {
+		configBuilder = ptCfg.BindPromptConfigFlags(cmd)
 	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		name := strings.TrimSpace(args[0])
 
-		content, err := readPromptContent(ptCfg, file, body)
+		content, err := readPromptContent(cmd, ptCfg, file, body)
 		if err != nil {
 			return err
 		}
