@@ -4,9 +4,9 @@ List skills in a project
 
 ### Synopsis
 
-List skills in a specific project.
+List Copilot skills in a project (interactive-chat only — not interactive-agent).
 
-Returns all skills with their name, labels, tags, and last update time.
+Returns all Copilot skills with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
@@ -41,5 +41,5 @@ iai skills list [flags]
 
 ### SEE ALSO
 
-* [iai skills](iai_skills.md)	 - Copilot skills loaded by interactive-chat at runtime
+* [iai skills](iai_skills.md)	 - Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors
 

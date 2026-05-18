@@ -1,15 +1,23 @@
 ## iai skills
 
-Copilot skills loaded by interactive-chat at runtime
+Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors
 
 ### Synopsis
 
-Manage Copilot skills in InteractiveAI projects.
+Manage Copilot skills for the interactive-chat service.
 
-Skills are free-form markdown bundles materialized as <name>/SKILL.md by the
-Copilot runtime. Each skill carries a short description and an "intents" list
-of natural-language triggers (stored in config.skill) the Copilot uses to
-build its intent → skill table. No schema validation is applied to the body.
+IMPORTANT: These are Copilot skills — they are NOT interactive-agent behaviors.
+Skills here are loaded by the Copilot runtime (interactive-chat) and injected
+into Copilot conversations as context. They have no effect on the conversational
+agent (interactive-agent). To configure the agent use:
+  iai routines    — conversation flow scripts
+  iai policies    — behavioral guardrails
+  iai glossaries  — domain terminology
+  iai macros      — reusable text snippets
+
+Each Copilot skill is a free-form markdown bundle. It carries a short description
+and an "intents" list of natural-language triggers (stored in config.skill) that
+the Copilot uses to route incoming queries to the right skill at runtime.
 
 ### Options
 

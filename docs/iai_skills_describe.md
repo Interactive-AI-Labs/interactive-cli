@@ -4,7 +4,9 @@ Describe a skill in detail
 
 ### Synopsis
 
-Show detailed information about a specific skill, including its full content.
+Show a Copilot skill in detail, including its config and full content.
+
+NOTE: Copilot skills (interactive-chat) only — not interactive-agent behaviors.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
@@ -39,5 +41,5 @@ iai skills describe <name> [flags]
 
 ### SEE ALSO
 
-* [iai skills](iai_skills.md)	 - Copilot skills loaded by interactive-chat at runtime
+* [iai skills](iai_skills.md)	 - Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors
 

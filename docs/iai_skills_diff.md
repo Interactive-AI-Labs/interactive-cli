@@ -32,5 +32,5 @@ iai skills diff <name> <version_a> <version_b> [flags]
 
 ### SEE ALSO
 
-* [iai skills](iai_skills.md)	 - Copilot skills loaded by interactive-chat at runtime
+* [iai skills](iai_skills.md)	 - Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors
 

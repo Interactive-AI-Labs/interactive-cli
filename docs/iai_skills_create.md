@@ -4,12 +4,16 @@ Create a skill
 
 ### Synopsis
 
-Create a new skill in an InteractiveAI project.
+Create a new Copilot skill for the interactive-chat service.
 
-The skill body is provided as markdown — either as a path via --file
-(recommended for multi-line content) or inline via --body for one-liners.
-Optional --description and --intents populate the config.skill block
-consumed by the Copilot runtime to assemble its intent → skill table.
+NOTE: This manages Copilot skills only — it does NOT affect the conversational
+agent (interactive-agent). For agent behaviors use 'iai routines', 'iai policies',
+'iai glossaries', or 'iai macros'.
+
+The skill body is markdown — either a file path via --file (recommended for
+multi-line content) or inline text via --body for one-liners. Optional
+--description and --intents populate the config.skill block consumed by the
+Copilot runtime to assemble its intent → skill routing table.
 
 Pass --intents once per intent; the flag is repeatable so individual
 intents may contain commas (e.g. "summarize, then explain").
@@ -61,5 +65,5 @@ iai skills create <name> [flags]
 
 ### SEE ALSO
 
-* [iai skills](iai_skills.md)	 - Copilot skills loaded by interactive-chat at runtime
+* [iai skills](iai_skills.md)	 - Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors
 

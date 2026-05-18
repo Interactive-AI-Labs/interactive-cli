@@ -4,7 +4,7 @@ Update a skill (creates a new version)
 
 ### Synopsis
 
-Update a skill by creating a new version with updated content.
+Update a Copilot skill (interactive-chat only — not interactive-agent) by creating a new version.
 
 Each update creates a brand-new version with exactly the content and config
 provided on the command line — the previous version is preserved unchanged
@@ -52,5 +52,5 @@ iai skills update <name> [flags]
 
 ### SEE ALSO
 
-* [iai skills](iai_skills.md)	 - Copilot skills loaded by interactive-chat at runtime
+* [iai skills](iai_skills.md)	 - Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors
 
