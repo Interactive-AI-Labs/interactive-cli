@@ -77,7 +77,8 @@ Examples:
   iai skills describe summarize-trace
   iai skills describe summarize-trace --version 3
   iai skills describe summarize-trace --label staging`,
-		UpdateLong: `Update a Copilot skill (interactive-chat only — not interactive-agent) by creating a new version.
+		UpdateLong: `Update a Copilot skill (interactive-chat only — not interactive-agent) by creating a
+new version.
 
 Each update creates a brand-new version with exactly the content and config
 provided on the command line — the previous version is preserved unchanged
@@ -95,7 +96,8 @@ Examples:
   iai skills update greet --body "Say hi to the user." \
     --description "Greet the user" --intents "say hi" --intents "greet"
   iai skills update summarize-trace --file ./skill.md --labels production,staging`,
-		DeleteLong: `Delete a Copilot skill (interactive-chat only — not interactive-agent) and all its versions, or delete specific versions.
+		DeleteLong: `Delete a Copilot skill (interactive-chat only — not interactive-agent) and all its
+versions, or delete specific versions.
 
 Without flags, deletes the skill and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions

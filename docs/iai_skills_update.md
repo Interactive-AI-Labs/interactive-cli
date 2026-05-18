@@ -4,7 +4,8 @@ Update a skill (creates a new version)
 
 ### Synopsis
 
-Update a Copilot skill (interactive-chat only — not interactive-agent) by creating a new version.
+Update a Copilot skill (interactive-chat only — not interactive-agent) by creating a
+new version.
 
 Each update creates a brand-new version with exactly the content and config
 provided on the command line — the previous version is preserved unchanged

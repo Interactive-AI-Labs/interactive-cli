@@ -4,7 +4,8 @@ Delete a skill
 
 ### Synopsis
 
-Delete a Copilot skill (interactive-chat only — not interactive-agent) and all its versions, or delete specific versions.
+Delete a Copilot skill (interactive-chat only — not interactive-agent) and all its
+versions, or delete specific versions.
 
 Without flags, deletes the skill and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions
