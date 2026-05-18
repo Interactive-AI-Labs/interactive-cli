@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ConfigFlagBuilder is returned by BindCreateConfigFlags to assemble the
+// ConfigFlagBuilder is returned by BindPromptConfigFlags to assemble the
 // "config" field of a create/update payload from per-command flag values at
 // run time. Returns nil when the caller supplied no config-related flags so
 // the field is omitted from the request body.
