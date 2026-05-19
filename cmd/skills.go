@@ -8,13 +8,13 @@ func init() {
 		Plural:   "skills",
 		Aliases:  []string{"skill"},
 		GroupID:  groupCopilot,
-		Short:    "Manage Copilot (interactive-copilot) skills — NOT interactive-agent behaviors",
-		Long: `Manage Copilot skills for the interactive-copilot service.
+		Short:    "Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)",
+		Long: `Manage Interactive Copilot skills for the interactive-copilot service.
 
-IMPORTANT: These are Copilot skills — they are NOT interactive-agent behaviors.
-Skills here are loaded by the Copilot runtime and injected into Copilot
-conversations as context. They have no effect on the conversational agent
-(interactive-agent).
+IMPORTANT: These are Interactive Copilot skills, not to be confused with
+context items that configure the Interactive Agent. Skills are loaded by the
+Copilot runtime and injected into Copilot conversations as context. They
+have no effect on the Interactive Agent.
 
 Each Copilot skill is a free-form markdown bundle. It carries a short description
 and an "intents" list of natural-language triggers (stored in config.skill) that
