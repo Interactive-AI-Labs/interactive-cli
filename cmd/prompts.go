@@ -36,6 +36,7 @@ types: "text" (default) and "chat".`,
 		makeGenericDeleteCmd(),
 		makeGenericVersionsCmd(),
 		makeGenericDiffCmd(),
+		makeGenericLabelsCmd(),
 	)
 
 	rootCmd.AddCommand(parentCmd)
@@ -524,6 +525,83 @@ Examples:
 		},
 	}
 
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+
+	return cmd
+}
+
+func makeGenericLabelsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "labels",
+		Aliases: []string{"label"},
+		Short:   "Manage labels on prompt versions",
+		Long: `Manage labels on existing prompt versions.
+
+This command group reassigns labels to existing versions without creating a
+new version. Labels are unique per prompt: assigning a label to one version
+removes it from any other version that currently has it.`,
+	}
+
+	cmd.AddCommand(makeGenericLabelsSetCmd())
+
+	return cmd
+}
+
+func makeGenericLabelsSetCmd() *cobra.Command {
+	var (
+		version int
+		labels  []string
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "set <name>",
+		Short: "Set labels on a prompt version",
+		Long: `Set labels on an existing prompt version, identified by name and version number.
+
+Labels are unique per prompt: assigning a label to one version removes it
+from any other version that currently has it. No new version is created.
+
+Examples:
+  iai prompts labels set greeting --version 3 --labels production
+  iai prompts labels set greeting --version 1 --labels staging,canary`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintln(out)
+			fmt.Fprintf(out, "Setting labels on prompt %q version %d...\n", name, version)
+
+			result, err := apiClient.SetPromptLabels(
+				cmd.Context(),
+				pCtx.projectId,
+				"", // empty route segment → generic /prompts endpoint
+				name,
+				version,
+				labels,
+			)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintln(out)
+			return output.PrintPromptDetail(out, result)
+		},
+	}
+
+	cmd.Flags().IntVar(&version, "version", 0, "Version number to assign labels to")
+	_ = cmd.MarkFlagRequired("version")
+	cmd.Flags().
+		StringSliceVar(&labels, "labels", nil, "Labels to assign (comma-separated)")
+	_ = cmd.MarkFlagRequired("labels")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
