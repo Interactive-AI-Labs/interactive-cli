@@ -60,8 +60,18 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 
 	versionsCmd := makeVersionsCmd(ptCfg)
 	diffCmd := makeDiffCmd(ptCfg)
+	labelsCmd := makeLabelsCmd(ptCfg)
 
-	parentCmd.AddCommand(createCmd, listCmd, getCmd, updateCmd, deleteCmd, versionsCmd, diffCmd)
+	parentCmd.AddCommand(
+		createCmd,
+		listCmd,
+		getCmd,
+		updateCmd,
+		deleteCmd,
+		versionsCmd,
+		diffCmd,
+		labelsCmd,
+	)
 
 	if ptCfg.HasSchema {
 		schemaCmd := makeSchemaCmd(ptCfg)
@@ -532,6 +542,96 @@ Examples:
 		},
 	}
 
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+
+	return cmd
+}
+
+func makeLabelsCmd(ptCfg PromptTypeConfig) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "labels",
+		Aliases: []string{"label"},
+		Short:   fmt.Sprintf("Manage labels on %s versions", ptCfg.Plural),
+		Long: fmt.Sprintf(`Manage labels on existing %s versions.
+
+This command group reassigns labels to existing versions without creating a
+new version. Labels are unique per prompt: assigning a label to one version
+removes it from any other version that currently has it.`, ptCfg.Plural),
+	}
+
+	cmd.AddCommand(makeLabelsSetCmd(ptCfg))
+
+	return cmd
+}
+
+func makeLabelsSetCmd(ptCfg PromptTypeConfig) *cobra.Command {
+	var (
+		version int
+		labels  []string
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "set <name>",
+		Short: fmt.Sprintf("Set labels on a %s version", ptCfg.TypeName),
+		Long: fmt.Sprintf(
+			`Set labels on an existing %s version, identified by name and version number.
+
+Labels are unique per prompt: assigning a label to one version removes it
+from any other version that currently has it. No new version is created.
+
+Examples:
+  iai %s labels set my-%s --version 3 --labels production
+  iai %s labels set my-%s --version 1 --labels staging,canary`,
+			ptCfg.TypeName,
+			ptCfg.Plural,
+			ptCfg.TypeName,
+			ptCfg.Plural,
+			ptCfg.TypeName,
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintln(out)
+			fmt.Fprintf(
+				out,
+				"Setting labels on %s %q version %d...\n",
+				ptCfg.TypeName,
+				name,
+				version,
+			)
+
+			result, err := apiClient.SetPromptLabels(
+				cmd.Context(),
+				pCtx.projectId,
+				ptCfg.RouteSegment,
+				name,
+				version,
+				labels,
+			)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintln(out)
+			return output.PrintPromptDetail(out, result)
+		},
+	}
+
+	cmd.Flags().IntVar(&version, "version", 0, "Version number to assign labels to")
+	_ = cmd.MarkFlagRequired("version")
+	cmd.Flags().
+		StringSliceVar(&labels, "labels", nil, "Labels to assign (comma-separated)")
+	_ = cmd.MarkFlagRequired("labels")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 

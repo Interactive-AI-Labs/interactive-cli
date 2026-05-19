@@ -31,6 +31,7 @@ No schema validation is applied — any text content is accepted.
 * [iai macros delete](iai_macros_delete.md)	 - Delete a macro
 * [iai macros describe](iai_macros_describe.md)	 - Describe a macro in detail
 * [iai macros diff](iai_macros_diff.md)	 - Compare two versions of a macro
+* [iai macros labels](iai_macros_labels.md)	 - Manage labels on macros versions
 * [iai macros list](iai_macros_list.md)	 - List macros in a project
 * [iai macros update](iai_macros_update.md)	 - Update a macro (creates a new version)
 * [iai macros versions](iai_macros_versions.md)	 - List versions of a macro

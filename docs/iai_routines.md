@@ -31,6 +31,7 @@ states (YAML format).
 * [iai routines delete](iai_routines_delete.md)	 - Delete a routine
 * [iai routines describe](iai_routines_describe.md)	 - Describe a routine in detail
 * [iai routines diff](iai_routines_diff.md)	 - Compare two versions of a routine
+* [iai routines labels](iai_routines_labels.md)	 - Manage labels on routines versions
 * [iai routines list](iai_routines_list.md)	 - List routines in a project
 * [iai routines schema](iai_routines_schema.md)	 - Display the JSON Schema for routines
 * [iai routines update](iai_routines_update.md)	 - Update a routine (creates a new version)
