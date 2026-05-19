@@ -27,7 +27,10 @@ var (
 	dbBackupSchedule  string
 	dbBackupRetention string
 
-	dbClearBackup bool
+	dbClearBackup  bool
+	dbClearStackId bool
+
+	dbStackId string
 
 	dbSourceDatabase string
 	dbTargetTime     string
@@ -143,6 +146,7 @@ Examples:
 			Extensions:      dbExtensions,
 			BackupSchedule:  dbBackupSchedule,
 			BackupRetention: dbBackupRetention,
+			StackId:         dbStackId,
 		})
 		if err != nil {
 			return err
@@ -180,12 +184,16 @@ Storage can only be increased. Use --clear-backup to disable backups entirely.
 Changing the PostgreSQL major version triggers an automatic upgrade with cluster
 downtime.
 
+Use --clear-stack-id to remove the database from its stack.
+
 Examples:
   iai databases update my-db --instances 3
   iai databases update my-db --cpu 2 --memory 4G
   iai databases update my-db --storage-size 50G
   iai databases update my-db --backup-schedule "0 0 3 * * *" --backup-retention 60d
-  iai databases update my-db --clear-backup`,
+  iai databases update my-db --clear-backup
+  iai databases update my-db --stack-id my-stack
+  iai databases update my-db --clear-stack-id`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -205,7 +213,8 @@ Examples:
 			Extensions:      dbExtensions,
 			BackupSchedule:  dbBackupSchedule,
 			BackupRetention: dbBackupRetention,
-		}, dbClearBackup, cmd.Flags().Changed)
+			StackId:         dbStackId,
+		}, dbClearBackup, dbClearStackId, cmd.Flags().Changed)
 		if err != nil {
 			return err
 		}
@@ -536,6 +545,8 @@ func init() {
 	dbCreateCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 	addDatabaseResourceFlags(dbCreateCmd)
+	dbCreateCmd.Flags().
+		StringVar(&dbStackId, "stack-id", "", "Stack ID to assign the database to")
 	_ = dbCreateCmd.MarkFlagRequired("instances")
 	_ = dbCreateCmd.MarkFlagRequired("cpu")
 	_ = dbCreateCmd.MarkFlagRequired("memory")
@@ -549,6 +560,10 @@ func init() {
 	addDatabaseResourceFlags(dbUpdateCmd)
 	dbUpdateCmd.Flags().
 		BoolVar(&dbClearBackup, "clear-backup", false, "Remove backup configuration from the database")
+	dbUpdateCmd.Flags().
+		StringVar(&dbStackId, "stack-id", "", "Stack ID to assign the database to")
+	dbUpdateCmd.Flags().
+		BoolVar(&dbClearStackId, "clear-stack-id", false, "Remove the database from its stack")
 
 	// databases delete
 	dbDeleteCmd.Flags().

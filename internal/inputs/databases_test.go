@@ -204,7 +204,7 @@ func TestBuildDatabaseUpdatePatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			changedFn := func(name string) bool { return tt.changed[name] }
 
-			got, err := BuildDatabaseUpdatePatch(tt.in, tt.clearBackup, changedFn)
+			got, err := BuildDatabaseUpdatePatch(tt.in, tt.clearBackup, false, changedFn)
 
 			if tt.wantErr != "" {
 				if err == nil {
@@ -238,7 +238,7 @@ func TestBuildDatabaseUpdatePatch(t *testing.T) {
 
 func TestBuildDatabaseUpdatePatchClearBackupIsNull(t *testing.T) {
 	changedFn := func(string) bool { return false }
-	got, err := BuildDatabaseUpdatePatch(DatabaseInput{}, true, changedFn)
+	got, err := BuildDatabaseUpdatePatch(DatabaseInput{}, true, false, changedFn)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestBuildDatabaseUpdatePatchClearBackupIsNull(t *testing.T) {
 
 func TestBuildDatabaseUpdatePatchResourcesPartial(t *testing.T) {
 	changedFn := func(name string) bool { return name == "cpu" }
-	got, err := BuildDatabaseUpdatePatch(DatabaseInput{CPU: "2"}, false, changedFn)
+	got, err := BuildDatabaseUpdatePatch(DatabaseInput{CPU: "2"}, false, false, changedFn)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

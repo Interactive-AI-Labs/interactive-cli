@@ -36,6 +36,9 @@ var (
 	agentClearSchedule bool
 	agentClearEnv      bool
 	agentClearSecret   bool
+	agentClearStackId  bool
+
+	agentStackId string
 )
 
 var agentsCmd = &cobra.Command{
@@ -80,6 +83,7 @@ Examples:
 			ScheduleUptime:   agentScheduleUptime,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
+			StackId:          agentStackId,
 		})
 		if err != nil {
 			return err
@@ -126,15 +130,17 @@ For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
 alongside either to change the timezone.
 
-Use --clear-env, --clear-secret, or --clear-schedule to remove those
-configurations entirely.
+Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
+remove those configurations entirely.
 
 Examples:
   iai agents update chat-agent --version 0.0.3
   iai agents update chat-agent --file agent-config.yaml
   iai agents update chat-agent --endpoint=false
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
-  iai agents update chat-agent --clear-schedule`,
+  iai agents update chat-agent --clear-schedule
+  iai agents update chat-agent --stack-id my-stack
+  iai agents update chat-agent --clear-stack-id`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -155,7 +161,8 @@ Examples:
 			ScheduleUptime:   agentScheduleUptime,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
-		}, agentClearEnv, agentClearSecret, agentClearSchedule, cmd.Flags().Changed)
+			StackId:          agentStackId,
+		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
 		if err != nil {
 			return err
 		}
@@ -641,6 +648,8 @@ func init() {
 		StringVar(&agentScheduleDowntime, "schedule-downtime", "", "When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'")
 	agentCreateCmd.Flags().
 		StringVar(&agentScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
+	agentCreateCmd.Flags().
+		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
 	_ = agentCreateCmd.MarkFlagRequired("id")
 	_ = agentCreateCmd.MarkFlagRequired("version")
 	_ = agentCreateCmd.MarkFlagRequired("file")
@@ -674,6 +683,10 @@ func init() {
 		BoolVar(&agentClearSecret, "clear-secret", false, "Remove all secret references from the agent")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentClearSchedule, "clear-schedule", false, "Remove the schedule configuration from the agent")
+	agentUpdateCmd.Flags().
+		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().

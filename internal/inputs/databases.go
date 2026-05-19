@@ -15,6 +15,7 @@ type DatabaseInput struct {
 	Extensions      []string
 	BackupSchedule  string
 	BackupRetention string
+	StackId         string
 }
 
 type RestoreInput struct {
@@ -44,6 +45,8 @@ func BuildDatabaseRequestBody(in DatabaseInput) (clients.CreateDatabaseBody, err
 		}
 	}
 
+	body.StackId = in.StackId
+
 	return body, nil
 }
 
@@ -69,6 +72,7 @@ var DatabaseUpdateFlags = struct {
 	Extensions      string
 	BackupSchedule  string
 	BackupRetention string
+	StackId         string
 }{
 	Instances:       "instances",
 	PostgresVersion: "postgres-version",
@@ -78,11 +82,12 @@ var DatabaseUpdateFlags = struct {
 	Extensions:      "extensions",
 	BackupSchedule:  "backup-schedule",
 	BackupRetention: "backup-retention",
+	StackId:         "stack-id",
 }
 
 func BuildDatabaseUpdatePatch(
 	in DatabaseInput,
-	clearBackup bool,
+	clearBackup, clearStackId bool,
 	changed func(string) bool,
 ) (clients.UpdatePatch, error) {
 	f := DatabaseUpdateFlags
@@ -146,6 +151,10 @@ func BuildDatabaseUpdatePatch(
 		if err := setJSON(patch, "backup", backup); err != nil {
 			return nil, err
 		}
+	}
+
+	if err := setStackIdPatch(patch, in.StackId, changed(f.StackId), clearStackId); err != nil {
+		return nil, err
 	}
 
 	return patch, nil

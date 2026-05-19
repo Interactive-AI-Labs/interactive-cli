@@ -34,6 +34,8 @@ type ServiceInput struct {
 	ScheduleUptime   string
 	ScheduleDowntime string
 	ScheduleTimezone string
+
+	StackId string
 }
 
 func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error) {
@@ -74,6 +76,7 @@ func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error)
 		Env:        env,
 		SecretRefs: secretRefs,
 		Endpoint:   in.Endpoint,
+		StackId:    in.StackId,
 	}
 
 	if in.AutoscalingMin > 0 || in.AutoscalingMax > 0 || in.AutoscalingCPU > 0 ||
@@ -138,6 +141,7 @@ var ServiceUpdateFlags = struct {
 	ScheduleUptime    string
 	ScheduleDowntime  string
 	ScheduleTimezone  string
+	StackId           string
 }{
 	Port:              "port",
 	ImageType:         "image-type",
@@ -159,6 +163,7 @@ var ServiceUpdateFlags = struct {
 	ScheduleUptime:    "schedule-uptime",
 	ScheduleDowntime:  "schedule-downtime",
 	ScheduleTimezone:  "schedule-timezone",
+	StackId:           "stack-id",
 }
 
 // BuildServiceUpdatePatch produces a partial-update body containing only the
@@ -166,7 +171,7 @@ var ServiceUpdateFlags = struct {
 // name was provided on the command line (typically cmd.Flags().Changed).
 func BuildServiceUpdatePatch(
 	in ServiceInput,
-	clearEnv, clearSecret, clearHealthcheck, clearSchedule bool,
+	clearEnv, clearSecret, clearHealthcheck, clearSchedule, clearStackId bool,
 	changed func(string) bool,
 ) (clients.UpdatePatch, error) {
 	f := ServiceUpdateFlags
@@ -285,6 +290,10 @@ func BuildServiceUpdatePatch(
 		TimezoneChanged: changed(f.ScheduleTimezone),
 		Clear:           clearSchedule,
 	}); err != nil {
+		return nil, err
+	}
+
+	if err := setStackIdPatch(patch, in.StackId, changed(f.StackId), clearStackId); err != nil {
 		return nil, err
 	}
 

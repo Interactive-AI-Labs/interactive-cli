@@ -32,6 +32,9 @@ func PrintAgentList(out io.Writer, agents []clients.AgentOutput) error {
 func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", agent.Name)
+	if agent.StackId != "" {
+		fmt.Fprintf(w, "Stack Id:\t%s\n", agent.StackId)
+	}
 	fmt.Fprintf(w, "Id:\t%s\n", agent.Id)
 	fmt.Fprintf(w, "Version:\t%s\n", agent.Version)
 	fmt.Fprintf(w, "Revision:\t%d\n", agent.Revision)
@@ -46,10 +49,6 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 	if agent.Endpoint != "" {
 		fmt.Fprintf(w, "Endpoint:\t%s\n", agent.Endpoint)
 	}
-	if agent.StackId != "" {
-		fmt.Fprintf(w, "Stack:\t%s\n", agent.StackId)
-	}
-
 	if len(agent.Env) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
@@ -124,6 +123,9 @@ func PrintAgentRevisions(out io.Writer, revisions []clients.RevisionMeta) error 
 func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
+	if rev.StackId != "" {
+		fmt.Fprintf(w, "Stack Id:\t%s\n", rev.StackId)
+	}
 	fmt.Fprintf(w, "Status:\t%s\n", rev.Status)
 	if rev.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(rev.Updated))
@@ -135,10 +137,6 @@ func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error
 	if rev.Endpoint != "" {
 		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
 	}
-	if rev.StackId != "" {
-		fmt.Fprintf(w, "Stack:\t%s\n", rev.StackId)
-	}
-
 	if len(rev.Env) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
