@@ -1001,11 +1001,12 @@ type PromptDetail struct {
 }
 
 type CreatePromptBody struct {
-	Name       string   `json:"name"`
-	Prompt     string   `json:"prompt"`
-	Labels     []string `json:"labels,omitempty"`
-	Tags       []string `json:"tags,omitempty"`
-	PromptType string   `json:"promptType,omitempty"`
+	Name       string         `json:"name"`
+	Prompt     string         `json:"prompt"`
+	Labels     []string       `json:"labels,omitempty"`
+	Tags       []string       `json:"tags,omitempty"`
+	PromptType string         `json:"promptType,omitempty"`
+	Config     map[string]any `json:"config,omitempty"`
 }
 
 type promptAPIResponse struct {

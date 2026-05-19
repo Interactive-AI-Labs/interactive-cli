@@ -15,6 +15,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ConfigFlagBuilder assembles the payload's "config" field from flag values.
+// Returns nil if no config flags were set.
+type ConfigFlagBuilder func() map[string]any
+
 type PromptTypeConfig struct {
 	TypeName     string   // singular name, e.g. "routine"
 	Plural       string   // plural name used as command, e.g. "routines"
@@ -23,11 +27,15 @@ type PromptTypeConfig struct {
 	Long         string   // long description for the parent command
 	RouteSegment string   // API URL segment for type-specific routes, e.g. "routines"
 	HasSchema    bool     // whether this type supports the schema subcommand
-	CreateLong   string   // long description for the create subcommand
-	ListLong     string   // long description for the list subcommand
-	GetLong      string   // long description for the describe subcommand
-	UpdateLong   string   // long description for the update subcommand
-	DeleteLong   string   // long description for the delete subcommand
+	GroupID      string   // command group shown in iai --help; defaults to groupContext
+	// BindPromptConfigFlags registers type-specific flags on create/update
+	// and returns a builder for the payload's config field.
+	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
+	CreateLong            string // long description for the create subcommand
+	ListLong              string // long description for the list subcommand
+	GetLong               string // long description for the describe subcommand
+	UpdateLong            string // long description for the update subcommand
+	DeleteLong            string // long description for the delete subcommand
 }
 
 func registerPromptType(ptCfg PromptTypeConfig) {
@@ -36,7 +44,12 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 		Aliases: ptCfg.Aliases,
 		Short:   ptCfg.Short,
 		Long:    ptCfg.Long,
-		GroupID: groupContext,
+		GroupID: func() string {
+			if ptCfg.GroupID != "" {
+				return ptCfg.GroupID
+			}
+			return groupContext
+		}(),
 	}
 
 	createCmd := makeCreateCmd(ptCfg)
@@ -103,52 +116,61 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Short: fmt.Sprintf("Create a %s", ptCfg.TypeName),
 		Long:  ptCfg.CreateLong,
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			out := cmd.OutOrStdout()
-			name := strings.TrimSpace(args[0])
+	}
 
-			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
-			if err != nil {
-				return err
-			}
+	var configBuilder ConfigFlagBuilder
+	if ptCfg.BindPromptConfigFlags != nil {
+		configBuilder = ptCfg.BindPromptConfigFlags(cmd)
+	}
 
-			content, err := os.ReadFile(file)
-			if err != nil {
-				return fmt.Errorf("failed to read file %q: %w", file, err)
-			}
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		name := strings.TrimSpace(args[0])
 
-			body := clients.CreatePromptBody{
-				Name:   name,
-				Prompt: string(content),
-				Labels: labels,
-				Tags:   tags,
-			}
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to read file %q: %w", file, err)
+		}
 
-			fmt.Fprintln(out)
-			fmt.Fprintf(out, "Creating %s %q...\n", ptCfg.TypeName, name)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+		if err != nil {
+			return err
+		}
 
-			result, err := apiClient.CreatePrompt(
-				cmd.Context(),
-				pCtx.projectId,
-				ptCfg.RouteSegment,
-				body,
-			)
-			if err != nil {
-				return err
-			}
+		payload := clients.CreatePromptBody{
+			Name:   name,
+			Prompt: string(content),
+			Labels: labels,
+			Tags:   tags,
+		}
+		if configBuilder != nil {
+			payload.Config = configBuilder()
+		}
 
-			fmt.Fprintln(out)
-			return output.PrintPromptDetail(out, result)
-		},
+		fmt.Fprintln(out)
+		fmt.Fprintf(out, "Creating %s %q...\n", ptCfg.TypeName, name)
+
+		result, err := apiClient.CreatePrompt(
+			cmd.Context(),
+			pCtx.projectId,
+			ptCfg.RouteSegment,
+			payload,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		return output.PrintPromptDetail(out, result)
 	}
 
 	cmd.Flags().StringVar(&file, "file", "", "Path to the file containing the prompt content")
+	_ = cmd.MarkFlagRequired("file")
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-	_ = cmd.MarkFlagRequired("file")
 
 	return cmd
 }
@@ -275,55 +297,64 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Short: fmt.Sprintf("Update a %s (creates a new version)", ptCfg.TypeName),
 		Long:  ptCfg.UpdateLong,
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			out := cmd.OutOrStdout()
-			name := strings.TrimSpace(args[0])
+	}
 
-			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
-			if err != nil {
-				return err
-			}
+	var configBuilder ConfigFlagBuilder
+	if ptCfg.BindPromptConfigFlags != nil {
+		configBuilder = ptCfg.BindPromptConfigFlags(cmd)
+	}
 
-			content, err := os.ReadFile(file)
-			if err != nil {
-				return fmt.Errorf("failed to read file %q: %w", file, err)
-			}
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		name := strings.TrimSpace(args[0])
 
-			body := clients.CreatePromptBody{
-				Name:   name,
-				Prompt: string(content),
-				Labels: labels,
-				Tags:   tags,
-			}
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to read file %q: %w", file, err)
+		}
 
-			fmt.Fprintln(out)
-			fmt.Fprintf(out, "Updating %s %q...\n", ptCfg.TypeName, name)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+		if err != nil {
+			return err
+		}
 
-			// CreatePrompt is intentional: the API creates a new version when the
-			// prompt name already exists, so create and update use the same endpoint.
-			result, err := apiClient.CreatePrompt(
-				cmd.Context(),
-				pCtx.projectId,
-				ptCfg.RouteSegment,
-				body,
-			)
-			if err != nil {
-				return err
-			}
+		payload := clients.CreatePromptBody{
+			Name:   name,
+			Prompt: string(content),
+			Labels: labels,
+			Tags:   tags,
+		}
+		if configBuilder != nil {
+			payload.Config = configBuilder()
+		}
 
-			fmt.Fprintln(out)
-			return output.PrintPromptDetail(out, result)
-		},
+		fmt.Fprintln(out)
+		fmt.Fprintf(out, "Updating %s %q...\n", ptCfg.TypeName, name)
+
+		// CreatePrompt is intentional: the API creates a new version when the
+		// prompt name already exists, so create and update use the same endpoint.
+		result, err := apiClient.CreatePrompt(
+			cmd.Context(),
+			pCtx.projectId,
+			ptCfg.RouteSegment,
+			payload,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		return output.PrintPromptDetail(out, result)
 	}
 
 	cmd.Flags().
 		StringVar(&file, "file", "", "Path to the file containing the updated prompt content")
+	_ = cmd.MarkFlagRequired("file")
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the new prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-	_ = cmd.MarkFlagRequired("file")
 
 	return cmd
 }

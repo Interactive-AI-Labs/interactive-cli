@@ -67,6 +67,23 @@ func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
 		fmt.Fprintf(w, "Updated At:\t%s\n", LocalTime(prompt.UpdatedAt))
 	}
 
+	if len(prompt.Config) > 0 {
+		var cfg struct {
+			Skill *struct {
+				Description string   `json:"description"`
+				Intents     []string `json:"intents"`
+			} `json:"skill"`
+		}
+		if err := json.Unmarshal(prompt.Config, &cfg); err == nil && cfg.Skill != nil {
+			if cfg.Skill.Description != "" {
+				fmt.Fprintf(w, "Description:\t%s\n", cfg.Skill.Description)
+			}
+			if len(cfg.Skill.Intents) > 0 {
+				fmt.Fprintf(w, "Intents:\t%s\n", strings.Join(cfg.Skill.Intents, ", "))
+			}
+		}
+	}
+
 	if len(prompt.Prompt) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Content:")

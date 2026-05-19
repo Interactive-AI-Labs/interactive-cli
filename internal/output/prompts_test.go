@@ -320,6 +320,48 @@ func TestPrintPromptDetail(t *testing.T) {
 				"Version:   1\n" +
 				"Labels:    draft\n",
 		},
+		{
+			name: "skill with config block",
+			prompt: &clients.PromptDetail{
+				Name:    "summarize-trace",
+				Type:    "skill",
+				Version: 2,
+				Labels:  []string{"production"},
+				Config: json.RawMessage(
+					`{"skill":{"description":"Summarize a Langfuse trace","intents":["summarize trace","explain trace"]}}`,
+				),
+				Prompt: json.RawMessage(`"# Summarize Trace\n\nDo the thing."`),
+			},
+			want: "Name:          summarize-trace\n" +
+				"Version:       2\n" +
+				"Labels:        production\n" +
+				"Description:   Summarize a Langfuse trace\n" +
+				"Intents:       summarize trace, explain trace\n" +
+				"\n" +
+				"Content:\n" +
+				"# Summarize Trace\n" +
+				"\n" +
+				"Do the thing.\n",
+		},
+		{
+			// Existing typed prompts (routines, macros, etc.) often have an
+			// empty config object. The renderer must NOT print a Config
+			// block in that case — pre-PR behavior must be preserved.
+			name: "empty config object is not rendered",
+			prompt: &clients.PromptDetail{
+				Name:    "no-config-prompt",
+				Type:    "macro",
+				Version: 1,
+				Prompt:  json.RawMessage(`"id: x\ntext: hi"`),
+				Config:  json.RawMessage(`{}`),
+			},
+			want: "Name:      no-config-prompt\n" +
+				"Version:   1\n" +
+				"\n" +
+				"Content:\n" +
+				"id: x\n" +
+				"text: hi\n",
+		},
 	}
 
 	for _, tt := range tests {
