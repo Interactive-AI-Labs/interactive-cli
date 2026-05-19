@@ -17,6 +17,7 @@ const (
 	groupAuth       = "auth"
 	groupInfra      = "infra"
 	groupContext    = "context"
+	groupCopilot    = "copilot"
 	groupObserve    = "observe"
 	groupEvaluation = "evaluation"
 )
@@ -88,6 +89,7 @@ func init() {
 		&cobra.Group{ID: groupAuth, Title: "Auth:"},
 		&cobra.Group{ID: groupInfra, Title: "Infrastructure:"},
 		&cobra.Group{ID: groupContext, Title: "Context:"},
+		&cobra.Group{ID: groupCopilot, Title: "Copilot:"},
 		&cobra.Group{ID: groupObserve, Title: "Observability:"},
 		&cobra.Group{ID: groupEvaluation, Title: "Evaluation & Annotation:"},
 	)

@@ -27,6 +27,7 @@ type PromptTypeConfig struct {
 	Long         string   // long description for the parent command
 	RouteSegment string   // API URL segment for type-specific routes, e.g. "routines"
 	HasSchema    bool     // whether this type supports the schema subcommand
+	GroupID      string   // command group shown in iai --help; defaults to groupContext
 	// BindPromptConfigFlags registers type-specific flags on create/update
 	// and returns a builder for the payload's config field.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
@@ -43,7 +44,12 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 		Aliases: ptCfg.Aliases,
 		Short:   ptCfg.Short,
 		Long:    ptCfg.Long,
-		GroupID: groupContext,
+		GroupID: func() string {
+			if ptCfg.GroupID != "" {
+				return ptCfg.GroupID
+			}
+			return groupContext
+		}(),
 	}
 
 	createCmd := makeCreateCmd(ptCfg)

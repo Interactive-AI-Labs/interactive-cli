@@ -7,6 +7,7 @@ func init() {
 		TypeName: "skill",
 		Plural:   "skills",
 		Aliases:  []string{"skill"},
+		GroupID:  groupCopilot,
 		Short:    "Manage Copilot (interactive-copilot) skills — NOT interactive-agent behaviors",
 		Long: `Manage Copilot skills for the interactive-copilot service.
 
