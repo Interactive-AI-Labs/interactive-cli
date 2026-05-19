@@ -21,6 +21,8 @@ type AgentInput struct {
 	ScheduleUptime   string
 	ScheduleDowntime string
 	ScheduleTimezone string
+
+	StackId string
 }
 
 func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
@@ -67,6 +69,7 @@ func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
 		SecretRefs:  secretRefs,
 		Endpoint:    in.Endpoint,
 		Env:         env,
+		StackId:     in.StackId,
 	}
 
 	if in.ScheduleUptime != "" || in.ScheduleDowntime != "" || in.ScheduleTimezone != "" {
@@ -92,6 +95,7 @@ var AgentUpdateFlags = struct {
 	ScheduleUptime   string
 	ScheduleDowntime string
 	ScheduleTimezone string
+	StackId          string
 }{
 	Id:               "id",
 	Version:          "version",
@@ -102,6 +106,7 @@ var AgentUpdateFlags = struct {
 	ScheduleUptime:   "schedule-uptime",
 	ScheduleDowntime: "schedule-downtime",
 	ScheduleTimezone: "schedule-timezone",
+	StackId:          "stack-id",
 }
 
 // BuildAgentUpdatePatch produces a partial-update body containing only the
@@ -109,7 +114,7 @@ var AgentUpdateFlags = struct {
 // name was provided on the command line (typically cmd.Flags().Changed).
 func BuildAgentUpdatePatch(
 	in AgentInput,
-	clearEnv, clearSecret, clearSchedule bool,
+	clearEnv, clearSecret, clearSchedule, clearStackId bool,
 	changed func(string) bool,
 ) (clients.UpdatePatch, error) {
 	f := AgentUpdateFlags
@@ -160,6 +165,10 @@ func BuildAgentUpdatePatch(
 		TimezoneChanged: changed(f.ScheduleTimezone),
 		Clear:           clearSchedule,
 	}); err != nil {
+		return nil, err
+	}
+
+	if err := setStackIdPatch(patch, in.StackId, changed(f.StackId), clearStackId); err != nil {
 		return nil, err
 	}
 

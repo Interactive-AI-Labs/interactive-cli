@@ -19,8 +19,8 @@ For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
 alongside either to change the timezone.
 
-Use --clear-env, --clear-secret, --clear-healthcheck, or --clear-schedule to
-remove those configurations entirely.
+Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
+--clear-stack-id to remove those configurations entirely.
 
 Examples:
   iai services update my-svc --image-tag v2
@@ -29,6 +29,8 @@ Examples:
   iai services update my-svc --autoscaling-max-replicas 8
   iai services update my-svc --schedule-downtime "Sat-Sun 00:00-24:00"
   iai services update my-svc --clear-healthcheck
+  iai services update my-svc --stack-id my-stack
+  iai services update my-svc --clear-stack-id
 
 ```
 iai services update <service_name> [flags]
@@ -45,6 +47,7 @@ iai services update <service_name> [flags]
       --clear-healthcheck                   Remove the healthcheck configuration from the service
       --clear-schedule                      Remove the schedule configuration from the service
       --clear-secret                        Remove all secret references from the service
+      --clear-stack-id                      Remove the service from its stack
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
@@ -64,6 +67,7 @@ iai services update <service_name> [flags]
       --schedule-timezone string            IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
       --schedule-uptime string              When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'
       --secret stringArray                  Secrets to be loaded as env vars; can be repeated
+      --stack-id string                     Stack ID to assign the service to
 ```
 
 ### Options inherited from parent commands

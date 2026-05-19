@@ -211,6 +211,7 @@ func TestPrintServiceDescribe(t *testing.T) {
 				},
 			},
 			want: "Name:       full-svc\n" +
+				"Stack Id:   my-stack\n" +
 				"Revision:   10\n" +
 				"Status:     deployed\n" +
 				"Port:       443\n" +
@@ -229,7 +230,6 @@ func TestPrintServiceDescribe(t *testing.T) {
 				"  CPU%:           65\n" +
 				"  Memory%:        80\n" +
 				"Endpoint:         full-svc-abc.dev.interactive.ai\n" +
-				"Stack:            my-stack\n" +
 				"\n" +
 				"Healthcheck:\n" +
 				"  Path:            /healthz\n" +

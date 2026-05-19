@@ -51,6 +51,9 @@ var (
 	serviceClearSchedule    bool
 	serviceClearEnv         bool
 	serviceClearSecret      bool
+	serviceClearStackId     bool
+
+	serviceStackId string
 )
 
 var servicesCmd = &cobra.Command{
@@ -101,6 +104,7 @@ var servCCmd = &cobra.Command{
 			ScheduleUptime:          serviceScheduleUptime,
 			ScheduleDowntime:        serviceScheduleDowntime,
 			ScheduleTimezone:        serviceScheduleTimezone,
+			StackId:                 serviceStackId,
 		})
 		if err != nil {
 			return err
@@ -146,8 +150,8 @@ For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
 alongside either to change the timezone.
 
-Use --clear-env, --clear-secret, --clear-healthcheck, or --clear-schedule to
-remove those configurations entirely.
+Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
+--clear-stack-id to remove those configurations entirely.
 
 Examples:
   iai services update my-svc --image-tag v2
@@ -155,7 +159,9 @@ Examples:
   iai services update my-svc --replicas 3
   iai services update my-svc --autoscaling-max-replicas 8
   iai services update my-svc --schedule-downtime "Sat-Sun 00:00-24:00"
-  iai services update my-svc --clear-healthcheck`,
+  iai services update my-svc --clear-healthcheck
+  iai services update my-svc --stack-id my-stack
+  iai services update my-svc --clear-stack-id`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -191,7 +197,8 @@ Examples:
 			ScheduleUptime:          serviceScheduleUptime,
 			ScheduleDowntime:        serviceScheduleDowntime,
 			ScheduleTimezone:        serviceScheduleTimezone,
-		}, serviceClearEnv, serviceClearSecret, serviceClearHealthcheck, serviceClearSchedule, cmd.Flags().Changed)
+			StackId:                 serviceStackId,
+		}, serviceClearEnv, serviceClearSecret, serviceClearHealthcheck, serviceClearSchedule, serviceClearStackId, cmd.Flags().Changed)
 		if err != nil {
 			return err
 		}
@@ -762,6 +769,8 @@ func init() {
 		StringVar(&serviceScheduleDowntime, "schedule-downtime", "", "When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'")
 	servCCmd.Flags().
 		StringVar(&serviceScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
+	servCCmd.Flags().
+		StringVar(&serviceStackId, "stack-id", "", "Stack ID to assign the service to")
 
 	// Flags for "services update"
 	servUCmd.Flags().
@@ -818,6 +827,10 @@ func init() {
 		BoolVar(&serviceClearHealthcheck, "clear-healthcheck", false, "Remove the healthcheck configuration from the service")
 	servUCmd.Flags().
 		BoolVar(&serviceClearSchedule, "clear-schedule", false, "Remove the schedule configuration from the service")
+	servUCmd.Flags().
+		StringVar(&serviceStackId, "stack-id", "", "Stack ID to assign the service to")
+	servUCmd.Flags().
+		BoolVar(&serviceClearStackId, "clear-stack-id", false, "Remove the service from its stack")
 
 	// Flags for "services list"
 	servListCmd.Flags().

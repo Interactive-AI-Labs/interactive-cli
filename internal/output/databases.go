@@ -31,6 +31,9 @@ func PrintDatabaseList(out io.Writer, databases []clients.DatabaseOutput) error 
 func PrintDatabaseDescribe(out io.Writer, db *clients.DescribeDatabaseResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", db.Name)
+	if db.StackId != "" {
+		fmt.Fprintf(w, "Stack Id:\t%s\n", db.StackId)
+	}
 	fmt.Fprintf(w, "Revision:\t%d\n", db.Revision)
 	fmt.Fprintf(w, "Status:\t%s\n", db.Status)
 	if db.Message != "" {
@@ -58,10 +61,6 @@ func PrintDatabaseDescribe(out io.Writer, db *clients.DescribeDatabaseResponse) 
 		fmt.Fprintln(w, "Backup:")
 		fmt.Fprintf(w, "  Schedule:\t%s\n", db.Backup.Schedule)
 		fmt.Fprintf(w, "  Retention:\t%s\n", db.Backup.RetentionPolicy)
-	}
-
-	if db.StackId != "" {
-		fmt.Fprintf(w, "Stack:\t%s\n", db.StackId)
 	}
 
 	if db.CredentialsSecret != "" {

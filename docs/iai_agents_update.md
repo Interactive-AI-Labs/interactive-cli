@@ -20,8 +20,8 @@ For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
 alongside either to change the timezone.
 
-Use --clear-env, --clear-secret, or --clear-schedule to remove those
-configurations entirely.
+Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
+remove those configurations entirely.
 
 Examples:
   iai agents update chat-agent --version 0.0.3
@@ -29,6 +29,8 @@ Examples:
   iai agents update chat-agent --endpoint=false
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
   iai agents update chat-agent --clear-schedule
+  iai agents update chat-agent --stack-id my-stack
+  iai agents update chat-agent --clear-stack-id
 
 ```
 iai agents update <agent_name> [flags]
@@ -40,6 +42,7 @@ iai agents update <agent_name> [flags]
       --clear-env                  Remove all environment variables from the agent
       --clear-schedule             Remove the schedule configuration from the agent
       --clear-secret               Remove all secret references from the agent
+      --clear-stack-id             Remove the agent from its stack
       --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
@@ -51,6 +54,7 @@ iai agents update <agent_name> [flags]
       --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
       --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
       --secret stringArray         Secret to inject as environment variables; can be repeated
+      --stack-id string            Stack ID to assign the agent to
       --version string             Agent image version to deploy (e.g. 0.0.1)
 ```
 

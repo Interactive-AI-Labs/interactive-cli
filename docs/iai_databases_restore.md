@@ -32,6 +32,7 @@ iai databases restore <database_name> [flags]
       --postgres-version string   PostgreSQL major or major.minor version (e.g. 17, 16.4); supported range 15–17; defaults to latest if omitted
   -p, --project string            Project name
       --source-database string    Name of the database to restore from; must have backups enabled
+      --stack-id string           Stack ID to assign the restored database to
       --storage-size string       Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased
       --target-time string        RFC3339 timestamp for point-in-time recovery (e.g. 2026-05-12T10:00:00Z); omit to restore the latest backup
 ```

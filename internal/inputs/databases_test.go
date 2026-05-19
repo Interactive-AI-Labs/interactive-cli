@@ -1,7 +1,6 @@
 package inputs
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -127,12 +126,14 @@ func TestBuildRestoreRequestBody(t *testing.T) {
 
 func TestBuildDatabaseUpdatePatch(t *testing.T) {
 	tests := []struct {
-		name        string
-		in          DatabaseInput
-		clearBackup bool
-		changed     map[string]bool
-		wantKeys    []string
-		wantErr     string
+		name         string
+		in           DatabaseInput
+		clearBackup  bool
+		clearStackId bool
+		changed      map[string]bool
+		wantKeys     []string
+		wantValues   map[string]string
+		wantErr      string
 	}{
 		{
 			name:     "single field instances",
@@ -141,10 +142,11 @@ func TestBuildDatabaseUpdatePatch(t *testing.T) {
 			wantKeys: []string{"instances"},
 		},
 		{
-			name:     "resources partial cpu only",
-			in:       DatabaseInput{CPU: "2"},
-			changed:  map[string]bool{"cpu": true},
-			wantKeys: []string{"resources"},
+			name:       "resources partial cpu only",
+			in:         DatabaseInput{CPU: "2"},
+			changed:    map[string]bool{"cpu": true},
+			wantKeys:   []string{"resources"},
+			wantValues: map[string]string{"resources": `{"cpu":"2"}`},
 		},
 		{
 			name:     "resources both cpu and memory",
@@ -169,6 +171,7 @@ func TestBuildDatabaseUpdatePatch(t *testing.T) {
 			clearBackup: true,
 			changed:     map[string]bool{},
 			wantKeys:    []string{"backup"},
+			wantValues:  map[string]string{"backup": "null"},
 		},
 		{
 			name:     "backup schedule only",
@@ -198,13 +201,39 @@ func TestBuildDatabaseUpdatePatch(t *testing.T) {
 			},
 			wantKeys: []string{"instances", "resources", "storage"},
 		},
+		{
+			name:       "stack-id set",
+			in:         DatabaseInput{StackId: "my-stack"},
+			changed:    map[string]bool{"stack-id": true},
+			wantKeys:   []string{"stackId"},
+			wantValues: map[string]string{"stackId": `"my-stack"`},
+		},
+		{
+			name:    "stack-id not changed produces no key",
+			in:      DatabaseInput{StackId: "my-stack"},
+			changed: map[string]bool{},
+		},
+		{
+			name:         "clear stack-id",
+			clearStackId: true,
+			changed:      map[string]bool{},
+			wantKeys:     []string{"stackId"},
+			wantValues:   map[string]string{"stackId": "null"},
+		},
+		{
+			name:         "clear stack-id conflicts with stack-id",
+			in:           DatabaseInput{StackId: "my-stack"},
+			clearStackId: true,
+			changed:      map[string]bool{"stack-id": true},
+			wantErr:      "--clear-stack-id cannot be combined with --stack-id",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			changedFn := func(name string) bool { return tt.changed[name] }
 
-			got, err := BuildDatabaseUpdatePatch(tt.in, tt.clearBackup, changedFn)
+			got, err := BuildDatabaseUpdatePatch(tt.in, tt.clearBackup, tt.clearStackId, changedFn)
 
 			if tt.wantErr != "" {
 				if err == nil {
@@ -232,43 +261,17 @@ func TestBuildDatabaseUpdatePatch(t *testing.T) {
 					t.Errorf("patch missing key %q", key)
 				}
 			}
+
+			for key, want := range tt.wantValues {
+				raw, ok := got[key]
+				if !ok {
+					t.Errorf("patch missing key %q for value check", key)
+					continue
+				}
+				if string(raw) != want {
+					t.Errorf("patch[%q] = %s, want %s", key, string(raw), want)
+				}
+			}
 		})
-	}
-}
-
-func TestBuildDatabaseUpdatePatchClearBackupIsNull(t *testing.T) {
-	changedFn := func(string) bool { return false }
-	got, err := BuildDatabaseUpdatePatch(DatabaseInput{}, true, changedFn)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	raw, ok := got["backup"]
-	if !ok {
-		t.Fatal("patch missing 'backup' key")
-	}
-	if string(raw) != "null" {
-		t.Errorf("backup value = %q, want %q", string(raw), "null")
-	}
-}
-
-func TestBuildDatabaseUpdatePatchResourcesPartial(t *testing.T) {
-	changedFn := func(name string) bool { return name == "cpu" }
-	got, err := BuildDatabaseUpdatePatch(DatabaseInput{CPU: "2"}, false, changedFn)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	raw, ok := got["resources"]
-	if !ok {
-		t.Fatal("patch missing 'resources' key")
-	}
-	var res map[string]any
-	if err := json.Unmarshal(raw, &res); err != nil {
-		t.Fatalf("failed to unmarshal resources: %v", err)
-	}
-	if res["cpu"] != "2" {
-		t.Errorf("cpu = %v, want %q", res["cpu"], "2")
-	}
-	if _, hasMemory := res["memory"]; hasMemory {
-		t.Error("resources should not contain memory when only cpu changed")
 	}
 }
