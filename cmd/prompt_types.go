@@ -191,7 +191,11 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 // MarkFlagsMutuallyExclusive already validate that exactly one of the two
 // is set when inline bodies are allowed, so this only needs to dispatch and
 // validate that the chosen flag is non-empty.
-func readPromptContent(cmd *cobra.Command, ptCfg PromptTypeConfig, file, inline string) (string, error) {
+func readPromptContent(
+	cmd *cobra.Command,
+	ptCfg PromptTypeConfig,
+	file, inline string,
+) (string, error) {
 	if ptCfg.AllowInlineBody && cmd.Flags().Changed("body") {
 		if strings.TrimSpace(inline) == "" {
 			return "", fmt.Errorf("--body must not be empty")

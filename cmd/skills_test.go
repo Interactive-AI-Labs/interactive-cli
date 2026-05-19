@@ -68,7 +68,10 @@ func TestBindSkillConfigFlags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := &cobra.Command{Use: "fake", RunE: func(*cobra.Command, []string) error { return nil }}
+			cmd := &cobra.Command{
+				Use:  "fake",
+				RunE: func(*cobra.Command, []string) error { return nil },
+			}
 			build := bindSkillConfigFlags(cmd)
 			cmd.SetArgs(tt.args)
 			if err := cmd.Execute(); err != nil {
