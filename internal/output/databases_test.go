@@ -99,6 +99,7 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 				CredentialsSecret: "my-db-app",
 			},
 			want: "Name:                 my-db\n" +
+				"Stack Id:             my-stack\n" +
 				"Revision:             2\n" +
 				"Status:               Healthy\n" +
 				"Message:              All instances running\n" +
@@ -115,7 +116,6 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 				"Backup:\n" +
 				"  Schedule:           0 0 2 * * *\n" +
 				"  Retention:          30d\n" +
-				"Stack:                my-stack\n" +
 				"Credentials Secret:   my-db-app\n",
 		},
 		{

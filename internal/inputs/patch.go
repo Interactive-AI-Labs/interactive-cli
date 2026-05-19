@@ -105,6 +105,23 @@ type ScheduleInput struct {
 	Clear           bool
 }
 
+// setStackIdPatch handles the stackId field: emits null on clear, sets the
+// value on --stack-id, leaves it alone otherwise. Rejects clear combined with
+// --stack-id.
+func setStackIdPatch(patch clients.UpdatePatch, stackId string, changed, clear bool) error {
+	if clear && changed {
+		return fmt.Errorf("--clear-stack-id cannot be combined with --stack-id")
+	}
+	if clear {
+		patch["stackId"] = json.RawMessage("null")
+		return nil
+	}
+	if !changed {
+		return nil
+	}
+	return setJSON(patch, "stackId", stackId)
+}
+
 // setSchedulePatch handles the schedule field for both services and agents:
 // emits null on Clear, builds a partial object from the changed sub-flags
 // otherwise. Rejects clear combined with any --schedule-* setter.

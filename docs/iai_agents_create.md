@@ -34,6 +34,7 @@ iai agents create <agent_name> [flags]
       --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
       --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
       --secret stringArray         Secret to inject as environment variables; can be repeated
+      --stack-id string            Stack ID to assign the agent to
       --version string             Agent image version to deploy (e.g. 0.0.1)
 ```
 

@@ -31,6 +31,9 @@ func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
 func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", svc.Name)
+	if svc.StackId != "" {
+		fmt.Fprintf(w, "Stack Id:\t%s\n", svc.StackId)
+	}
 	fmt.Fprintf(w, "Revision:\t%d\n", svc.Revision)
 	fmt.Fprintf(w, "Status:\t%s\n", svc.Status)
 	if svc.Message != "" {
@@ -71,10 +74,6 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 
 	if svc.Endpoint != "" {
 		fmt.Fprintf(w, "Endpoint:\t%s\n", svc.Endpoint)
-	}
-
-	if svc.StackId != "" {
-		fmt.Fprintf(w, "Stack:\t%s\n", svc.StackId)
 	}
 
 	if svc.Healthcheck != nil {
@@ -149,6 +148,9 @@ func PrintServiceRevisions(out io.Writer, revisions []clients.RevisionMeta) erro
 func PrintServiceRevision(out io.Writer, rev *clients.ServiceRevisionResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
+	if rev.StackId != "" {
+		fmt.Fprintf(w, "Stack Id:\t%s\n", rev.StackId)
+	}
 	fmt.Fprintf(w, "Status:\t%s\n", rev.Status)
 	if rev.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(rev.Updated))
@@ -184,10 +186,6 @@ func PrintServiceRevision(out io.Writer, rev *clients.ServiceRevisionResponse) e
 
 	if rev.Endpoint != "" {
 		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
-	}
-
-	if rev.StackId != "" {
-		fmt.Fprintf(w, "Stack:\t%s\n", rev.StackId)
 	}
 
 	if rev.Healthcheck != nil {
