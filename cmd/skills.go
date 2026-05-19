@@ -4,37 +4,27 @@ import "github.com/spf13/cobra"
 
 func init() {
 	registerPromptType(PromptTypeConfig{
-		TypeName:        "skill",
-		Plural:          "skills",
-		Aliases:         []string{"skill"},
-		Short:           "Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors",
-		AllowInlineBody: true,
-		Long: `Manage Copilot skills for the interactive-chat service.
+		TypeName: "skill",
+		Plural:   "skills",
+		Aliases:  []string{"skill"},
+		Short:    "Manage Copilot (interactive-copilot) skills — NOT interactive-agent behaviors",
+		Long: `Manage Copilot skills for the interactive-copilot service.
 
 IMPORTANT: These are Copilot skills — they are NOT interactive-agent behaviors.
-Skills here are loaded by the Copilot runtime (interactive-chat) and injected
-into Copilot conversations as context. They have no effect on the conversational
-agent (interactive-agent). To configure the agent use:
-  iai routines    — conversation flow scripts
-  iai policies    — behavioral guardrails
-  iai glossaries  — domain terminology
-  iai macros      — reusable text snippets
+Skills here are loaded by the Copilot runtime and injected into Copilot
+conversations as context. They have no effect on the conversational agent
+(interactive-agent).
 
 Each Copilot skill is a free-form markdown bundle. It carries a short description
 and an "intents" list of natural-language triggers (stored in config.skill) that
 the Copilot uses to route incoming queries to the right skill at runtime.`,
 		RouteSegment:          "skills",
 		BindPromptConfigFlags: bindSkillConfigFlags,
-		CreateLong: `Create a new Copilot skill for the interactive-chat service.
+		CreateLong: `Create a new Copilot skill for the interactive-copilot service.
 
-NOTE: This manages Copilot skills only — it does NOT affect the conversational
-agent (interactive-agent). For agent behaviors use 'iai routines', 'iai policies',
-'iai glossaries', or 'iai macros'.
-
-The skill body is markdown — either a file path via --file (recommended for
-multi-line content) or inline text via --body for one-liners. Optional
---description and --intents populate the config.skill block consumed by the
-Copilot runtime to assemble its intent → skill routing table.
+The skill body is provided as markdown via --file. Optional --description and
+--intents populate the config.skill block consumed by the Copilot runtime to
+assemble its intent → skill routing table.
 
 Pass --intents once per intent; the flag is repeatable so individual
 intents may contain commas (e.g. "summarize, then explain").
@@ -53,10 +43,8 @@ Examples:
   iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills create greet --body "Say hello to the user." \
-    --description "Greet the user"
   iai skills create summarize-trace --file ./skill.md --labels production`,
-		ListLong: `List Copilot skills in a project (interactive-chat only — not interactive-agent).
+		ListLong: `List Copilot skills in a project.
 
 Returns all Copilot skills with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
@@ -68,8 +56,6 @@ Examples:
   iai skills list --page 2 --limit 10`,
 		GetLong: `Show a Copilot skill in detail, including its config and full content.
 
-NOTE: Copilot skills (interactive-chat) only — not interactive-agent behaviors.
-
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
@@ -77,8 +63,7 @@ Examples:
   iai skills describe summarize-trace
   iai skills describe summarize-trace --version 3
   iai skills describe summarize-trace --label staging`,
-		UpdateLong: `Update a Copilot skill (interactive-chat only — not interactive-agent) by creating a
-new version.
+		UpdateLong: `Update a Copilot skill by creating a new version with updated content.
 
 Each update creates a brand-new version with exactly the content and config
 provided on the command line — the previous version is preserved unchanged
@@ -93,11 +78,8 @@ Examples:
   iai skills update summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills update greet --body "Say hi to the user." \
-    --description "Greet the user" --intents "say hi" --intents "greet"
   iai skills update summarize-trace --file ./skill.md --labels production,staging`,
-		DeleteLong: `Delete a Copilot skill (interactive-chat only — not interactive-agent) and all its
-versions, or delete specific versions.
+		DeleteLong: `Delete a Copilot skill and all its versions, or delete specific versions.
 
 Without flags, deletes the skill and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions
@@ -111,11 +93,8 @@ Examples:
 	})
 }
 
-// bindSkillConfigFlags registers --description and --intents for Copilot skill
-// create/update commands and returns a builder that assembles them into the
-// payload's config.skill block. These flags configure the Copilot runtime
-// (interactive-chat) only — they have no relation to interactive-agent
-// behaviors. Wire shape: config = {"skill": {"description": "...", "intents": [...]}}.
+// bindSkillConfigFlags registers --description and --intents and builds the
+// config.skill payload block.
 func bindSkillConfigFlags(cmd *cobra.Command) ConfigFlagBuilder {
 	var (
 		description string

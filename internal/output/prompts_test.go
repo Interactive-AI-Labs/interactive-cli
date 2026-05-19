@@ -321,9 +321,6 @@ func TestPrintPromptDetail(t *testing.T) {
 				"Labels:    draft\n",
 		},
 		{
-			// Skills (and any future typed prompt that stores per-version
-			// metadata) carry a non-empty config block. The renderer must
-			// surface it between the metadata and the content sections.
 			name: "skill with config block",
 			prompt: &clients.PromptDetail{
 				Name:    "summarize-trace",
@@ -335,20 +332,11 @@ func TestPrintPromptDetail(t *testing.T) {
 				),
 				Prompt: json.RawMessage(`"# Summarize Trace\n\nDo the thing."`),
 			},
-			want: "Name:      summarize-trace\n" +
-				"Version:   2\n" +
-				"Labels:    production\n" +
-				"\n" +
-				"Config:\n" +
-				"{\n" +
-				"  \"skill\": {\n" +
-				"    \"description\": \"Summarize a Langfuse trace\",\n" +
-				"    \"intents\": [\n" +
-				"      \"summarize trace\",\n" +
-				"      \"explain trace\"\n" +
-				"    ]\n" +
-				"  }\n" +
-				"}\n" +
+			want: "Name:          summarize-trace\n" +
+				"Version:       2\n" +
+				"Labels:        production\n" +
+				"Description:   Summarize a Langfuse trace\n" +
+				"Intents:       summarize trace, explain trace\n" +
 				"\n" +
 				"Content:\n" +
 				"# Summarize Trace\n" +

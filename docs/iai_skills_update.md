@@ -4,8 +4,7 @@ Update a skill (creates a new version)
 
 ### Synopsis
 
-Update a Copilot skill (interactive-chat only — not interactive-agent) by creating a
-new version.
+Update a Copilot skill by creating a new version with updated content.
 
 Each update creates a brand-new version with exactly the content and config
 provided on the command line — the previous version is preserved unchanged
@@ -20,8 +19,6 @@ Examples:
   iai skills update summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills update greet --body "Say hi to the user." \
-    --description "Greet the user" --intents "say hi" --intents "greet"
   iai skills update summarize-trace --file ./skill.md --labels production,staging
 
 ```
@@ -31,7 +28,6 @@ iai skills update <name> [flags]
 ### Options
 
 ```
-      --body string           Prompt content provided inline (alternative to --file)
       --description string    Short description of the skill (stored in config.skill.description)
       --file string           Path to the file containing the updated prompt content
   -h, --help                  help for update
@@ -53,5 +49,5 @@ iai skills update <name> [flags]
 
 ### SEE ALSO
 
-* [iai skills](iai_skills.md)	 - Manage Copilot (interactive-chat) skills — NOT interactive-agent behaviors
+* [iai skills](iai_skills.md)	 - Manage Copilot (interactive-copilot) skills — NOT interactive-agent behaviors
 

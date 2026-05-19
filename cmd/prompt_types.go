@@ -15,10 +15,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ConfigFlagBuilder is returned by BindPromptConfigFlags to assemble the
-// "config" field of a create/update payload from per-command flag values at
-// run time. Returns nil when the caller supplied no config-related flags so
-// the field is omitted from the request body.
+// ConfigFlagBuilder assembles the payload's "config" field from flag values.
+// Returns nil if no config flags were set.
 type ConfigFlagBuilder func() map[string]any
 
 type PromptTypeConfig struct {
@@ -29,15 +27,8 @@ type PromptTypeConfig struct {
 	Long         string   // long description for the parent command
 	RouteSegment string   // API URL segment for type-specific routes, e.g. "routines"
 	HasSchema    bool     // whether this type supports the schema subcommand
-	// AllowInlineBody adds a --body flag as an alternative to --file on the
-	// create and update subcommands. When set, exactly one of --file or
-	// --body must be provided.
-	AllowInlineBody bool
-	// BindPromptConfigFlags optionally registers type-specific flags on the
-	// given create or update command (e.g. --description, --intents for
-	// skills) and returns a builder that materializes those flags into the
-	// payload's `config` field at run time. Called once per command so each
-	// create/update gets its own flag-bound variables.
+	// BindPromptConfigFlags registers type-specific flags on create/update
+	// and returns a builder for the payload's config field.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
 	CreateLong            string // long description for the create subcommand
 	ListLong              string // long description for the list subcommand
@@ -108,7 +99,6 @@ This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		file    string
-		body    string
 		labels  []string
 		tags    []string
 		project string
@@ -131,9 +121,9 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		out := cmd.OutOrStdout()
 		name := strings.TrimSpace(args[0])
 
-		content, err := readPromptContent(cmd, ptCfg, file, body)
+		content, err := os.ReadFile(file)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read file %q: %w", file, err)
 		}
 
 		pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
@@ -143,7 +133,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 		payload := clients.CreatePromptBody{
 			Name:   name,
-			Prompt: content,
+			Prompt: string(content),
 			Labels: labels,
 			Tags:   tags,
 		}
@@ -169,14 +159,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&file, "file", "", "Path to the file containing the prompt content")
-	if ptCfg.AllowInlineBody {
-		cmd.Flags().
-			StringVar(&body, "body", "", "Prompt content provided inline (alternative to --file)")
-		cmd.MarkFlagsOneRequired("file", "body")
-		cmd.MarkFlagsMutuallyExclusive("file", "body")
-	} else {
-		_ = cmd.MarkFlagRequired("file")
-	}
+	_ = cmd.MarkFlagRequired("file")
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
@@ -184,29 +167,6 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
-}
-
-// readPromptContent returns the prompt body, resolving --file vs --body per
-// the type's AllowInlineBody setting. Cobra's MarkFlagsOneRequired /
-// MarkFlagsMutuallyExclusive already validate that exactly one of the two
-// is set when inline bodies are allowed, so this only needs to dispatch and
-// validate that the chosen flag is non-empty.
-func readPromptContent(
-	cmd *cobra.Command,
-	ptCfg PromptTypeConfig,
-	file, inline string,
-) (string, error) {
-	if ptCfg.AllowInlineBody && cmd.Flags().Changed("body") {
-		if strings.TrimSpace(inline) == "" {
-			return "", fmt.Errorf("--body must not be empty")
-		}
-		return inline, nil
-	}
-	content, err := os.ReadFile(file)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file %q: %w", file, err)
-	}
-	return string(content), nil
 }
 
 func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
@@ -320,7 +280,6 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		file    string
-		body    string
 		labels  []string
 		tags    []string
 		project string
@@ -343,9 +302,9 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		out := cmd.OutOrStdout()
 		name := strings.TrimSpace(args[0])
 
-		content, err := readPromptContent(cmd, ptCfg, file, body)
+		content, err := os.ReadFile(file)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read file %q: %w", file, err)
 		}
 
 		pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
@@ -355,7 +314,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 		payload := clients.CreatePromptBody{
 			Name:   name,
-			Prompt: content,
+			Prompt: string(content),
 			Labels: labels,
 			Tags:   tags,
 		}
@@ -384,14 +343,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 	cmd.Flags().
 		StringVar(&file, "file", "", "Path to the file containing the updated prompt content")
-	if ptCfg.AllowInlineBody {
-		cmd.Flags().
-			StringVar(&body, "body", "", "Prompt content provided inline (alternative to --file)")
-		cmd.MarkFlagsOneRequired("file", "body")
-		cmd.MarkFlagsMutuallyExclusive("file", "body")
-	} else {
-		_ = cmd.MarkFlagRequired("file")
-	}
+	_ = cmd.MarkFlagRequired("file")
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the new prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
