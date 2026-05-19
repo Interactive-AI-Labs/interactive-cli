@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -1291,12 +1290,10 @@ func (c *APIClient) SetPromptLabels(
 		return nil, fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	path := promptBasePath(
-		projectId,
-		routeSegment,
-	) + "/" + url.PathEscape(
-		name,
-	) + "/versions/" + strconv.Itoa(
+	path := fmt.Sprintf(
+		"%s/%s/versions/%d",
+		promptBasePath(projectId, routeSegment),
+		url.PathEscape(name),
 		version,
 	)
 	req, err := c.newRequest(ctx, http.MethodPatch, path)
