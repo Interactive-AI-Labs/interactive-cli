@@ -84,5 +84,6 @@ iai --help
 * [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)
 * [iai stacks](iai_stacks.md)	 - Declarative resource sync from config files
 * [iai traces](iai_traces.md)	 - Browse agent decision traces with full attribution
+* [iai update](iai_update.md)	 - Update iai to the latest version
 * [iai variables](iai_variables.md)	 - Contextual attributes referenced in policies and routines
 
