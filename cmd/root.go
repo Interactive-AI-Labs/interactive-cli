@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/versioncheck"
 	"github.com/spf13/cobra"
 )
 
@@ -44,9 +46,26 @@ Use the subcommands below to manage your organizations, projects, agents, servic
 				!strings.HasPrefix(deploymentHostname, "https://") {
 				deploymentHostname = "https://" + deploymentHostname
 			}
+
+			if cmd.Name() != "update" {
+				go checkForUpdate()
+			}
 		},
 	}
 )
+
+func checkForUpdate() {
+	latest, err := versioncheck.GetLatestVersion(cfgDirName)
+	if err != nil {
+		return
+	}
+	if versioncheck.IsNewer(version, latest) {
+		updateMessage <- fmt.Sprintf(
+			"\nA new version of iai is available: v%s → v%s\nRun \"iai update\" to upgrade.",
+			version, latest,
+		)
+	}
+}
 
 // chainRootPersistentPreRun calls the root command's PersistentPreRun manually.
 // Cobra doesn't chain PersistentPreRun hooks, so subcommands that define their
@@ -57,8 +76,17 @@ var chainRootPersistentPreRun = func(cmd *cobra.Command, args []string) {
 	}
 }
 
+var updateMessage = make(chan string, 1)
+
 func Execute() {
 	err := rootCmd.Execute()
+
+	select {
+	case msg := <-updateMessage:
+		fmt.Fprintln(os.Stderr, msg)
+	default:
+	}
+
 	if err != nil {
 		os.Exit(1)
 	}
