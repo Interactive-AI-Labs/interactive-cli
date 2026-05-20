@@ -60,6 +60,9 @@ func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
 	if len(prompt.Tags) > 0 {
 		fmt.Fprintf(w, "Tags:\t%s\n", strings.Join(prompt.Tags, ", "))
 	}
+	if prompt.SchemaVersion != "" {
+		fmt.Fprintf(w, "Schema:\t%s\n", prompt.SchemaVersion)
+	}
 	if prompt.CreatedAt != "" {
 		fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(prompt.CreatedAt))
 	}

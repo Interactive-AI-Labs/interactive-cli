@@ -998,15 +998,17 @@ type PromptDetail struct {
 	CreatedAt      string          `json:"createdAt"`
 	UpdatedAt      string          `json:"updatedAt"`
 	ExpectedFormat string          `json:"expectedFormat"`
+	SchemaVersion  string          `json:"schemaVersion,omitempty"`
 }
 
 type CreatePromptBody struct {
-	Name       string         `json:"name"`
-	Prompt     string         `json:"prompt"`
-	Labels     []string       `json:"labels,omitempty"`
-	Tags       []string       `json:"tags,omitempty"`
-	PromptType string         `json:"promptType,omitempty"`
-	Config     map[string]any `json:"config,omitempty"`
+	Name          string         `json:"name"`
+	Prompt        string         `json:"prompt"`
+	Labels        []string       `json:"labels,omitempty"`
+	Tags          []string       `json:"tags,omitempty"`
+	PromptType    string         `json:"promptType,omitempty"`
+	Config        map[string]any `json:"config,omitempty"`
+	SchemaVersion string         `json:"schemaVersion,omitempty"`
 }
 
 type promptAPIResponse struct {
@@ -1286,6 +1288,7 @@ func GetPromptSchema(
 	hostname string,
 	timeout time.Duration,
 	typeName string,
+	version string,
 ) (*SchemaResponse, error) {
 	u, err := url.Parse(hostname)
 	if err != nil {
@@ -1296,6 +1299,12 @@ func GetPromptSchema(
 	u.Path = decodedPath
 	u.RawPath = rawPath
 
+	if version != "" {
+		q := u.Query()
+		q.Set("schema_version", version)
+		u.RawQuery = q.Encode()
+	}
+
 	httpClient := &http.Client{Timeout: timeout}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -1304,7 +1313,7 @@ func GetPromptSchema(
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Could not fetch schema. Ensure --hostname is correct: %w", err)
+		return nil, fmt.Errorf("could not fetch schema, ensure --hostname is correct: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -1320,6 +1329,8 @@ func GetPromptSchema(
 		return nil, fmt.Errorf("failed to fetch schema: server returned %s", resp.Status)
 	}
 
+	// Prompt schema endpoint wraps the response in a {success, data} envelope,
+	// unlike the agent schema endpoint which returns SchemaResponse directly.
 	var envelope struct {
 		Success bool           `json:"success"`
 		Data    SchemaResponse `json:"data"`
@@ -1335,19 +1346,85 @@ func GetPromptSchema(
 	return &envelope.Data, nil
 }
 
+type CompatibilityEntry struct {
+	AgentVersion  string `json:"agentVersion"`
+	SchemaVersion string `json:"schemaVersion"`
+}
+
+func GetAgentCompatibilityMatrix(
+	ctx context.Context,
+	hostname string,
+	timeout time.Duration,
+) ([]CompatibilityEntry, error) {
+	u, err := url.Parse(hostname)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse hostname: %w", err)
+	}
+	u.Path = "/api/platform/v1/agents/compatibility-matrix"
+
+	httpClient := &http.Client{Timeout: timeout}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to create compatibility-matrix request: %w",
+			err,
+		)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"could not fetch compatibility matrix, ensure --hostname is correct: %w",
+			err,
+		)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read compatibility-matrix response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(body); msg != "" {
+			return nil, fmt.Errorf("failed to fetch compatibility matrix: %s", msg)
+		}
+		return nil, fmt.Errorf(
+			"failed to fetch compatibility matrix: server returned %s",
+			resp.Status,
+		)
+	}
+
+	var matrix []CompatibilityEntry
+	if err := json.Unmarshal(body, &matrix); err != nil {
+		return nil, fmt.Errorf(
+			"failed to decode compatibility-matrix response: %w",
+			err,
+		)
+	}
+
+	return matrix, nil
+}
+
 // GetAgentSchema fetches the JSON Schema for agent configuration from the
 // platform API. Requires authentication with prompts:read capability.
 func (c *APIClient) GetAgentSchema(
 	ctx context.Context,
+	version string,
 ) (*SchemaResponse, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, "/api/platform/v1/agents/schema")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schema request: %w", err)
 	}
+	if version != "" {
+		q := req.URL.Query()
+		q.Set("schema_version", version)
+		req.URL.RawQuery = q.Encode()
+	}
 
 	resp, err := c.do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Could not fetch schema. Ensure --hostname is correct: %w", err)
+		return nil, fmt.Errorf("could not fetch schema, ensure --hostname is correct: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -1356,6 +1433,8 @@ func (c *APIClient) GetAgentSchema(
 		return nil, fmt.Errorf("failed to read schema response: %w", err)
 	}
 
+	// Agent schema endpoint returns SchemaResponse directly, without the
+	// {success, data} envelope used by the prompt schema endpoint.
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg := ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to fetch schema: %s", msg)

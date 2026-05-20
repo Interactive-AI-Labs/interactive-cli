@@ -17,6 +17,11 @@ Variables are persistent data fields that survive across conversation sessions
 Content is provided via a JSON file using the --file flag.
 Run 'iai variables schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this variable (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (variables.json):
   {
     "variables": {
@@ -39,6 +44,7 @@ the "production" label with --labels production.
 
 Examples:
   iai variables create session-vars --file variables.json
+  iai variables create session-vars --file variables.json --schema-version 2.1.0
   iai variables create session-vars --file variables.json --labels production
   iai variables create session-vars --file variables.json --tags core`,
 		ListLong: `List variables in a specific project.
@@ -68,6 +74,11 @@ The previous versions are preserved and can still be accessed by version number.
 
 Run 'iai variables schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this variable (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (variables.json):
   {
     "variables": {
@@ -86,6 +97,7 @@ Example (variables.json):
 
 Examples:
   iai variables update session-vars --file variables.json
+  iai variables update session-vars --file variables.json --schema-version 2.1.0
   iai variables update session-vars --file variables.json --labels production,staging`,
 		DeleteLong: `Delete a variable definition and all its versions, or delete specific versions.
 

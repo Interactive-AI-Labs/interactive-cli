@@ -6,10 +6,17 @@ Create an agent in a project
 
 Create an agent in a specific project.
 
-The --file flag takes a YAML file matching the agent_config schema — run
-'iai agents schema' to see the expected shape. Pass the agent name as the
-positional argument and id/version/env/secrets/endpoint/schedule via flags;
-do not include them inside the file.
+The --file flag takes a YAML file matching the agent_config schema. Pass the
+agent name as the positional argument and id/version/env/secrets/endpoint/schedule
+via flags; do not include them inside the file.
+
+The config schema depends on the agent version. Run
+'iai agents compatibility-matrix' to find which schema version applies, then
+'iai agents schema --schema-version <schema>' to see the expected fields.
+
+Routines and policies referenced in the config must already exist in the project
+and should be validated against the matching schema version (see --schema-version
+on their create/update commands).
 
 Examples:
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml

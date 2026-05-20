@@ -17,6 +17,11 @@ format).`,
 Content is provided via a JSON file using the --file flag.
 Run 'iai glossaries schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this glossary (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (glossary.json):
   {
     "terms": {
@@ -41,6 +46,7 @@ the "production" label with --labels production.
 
 Examples:
   iai glossaries create finance-terms --file glossary.json
+  iai glossaries create finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries create finance-terms --file glossary.json --labels production
   iai glossaries create finance-terms --file glossary.json --tags domain`,
 		ListLong: `List glossary definitions in a specific project.
@@ -70,6 +76,11 @@ The previous versions are preserved and can still be accessed by version number.
 
 Run 'iai glossaries schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this glossary (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (glossary.json):
   {
     "terms": {
@@ -90,6 +101,7 @@ Example (glossary.json):
 
 Examples:
   iai glossaries update finance-terms --file glossary.json
+  iai glossaries update finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries update finance-terms --file glossary.json --labels production,staging`,
 		DeleteLong: `Delete a glossary definition and all its versions, or delete specific versions.
 

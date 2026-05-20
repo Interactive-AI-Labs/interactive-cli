@@ -1,6 +1,7 @@
 package output
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -207,6 +208,31 @@ func PrintAgentVersions(out io.Writer, agentId string, versions []string) error 
 	rows := make([][]string, len(versions))
 	for i, v := range versions {
 		rows[i] = []string{v}
+	}
+
+	return PrintTable(out, headers, rows)
+}
+
+func PrintCompatibilityMatrix(
+	out io.Writer,
+	matrix []clients.CompatibilityEntry,
+	asJSON bool,
+) error {
+	if asJSON {
+		enc := json.NewEncoder(out)
+		enc.SetIndent("", "  ")
+		return enc.Encode(matrix)
+	}
+
+	if len(matrix) == 0 {
+		fmt.Fprintln(out, "No compatibility data available.")
+		return nil
+	}
+
+	headers := []string{"AGENT VERSION", "SCHEMA VERSION"}
+	rows := make([][]string, len(matrix))
+	for i, e := range matrix {
+		rows[i] = []string{e.AgentVersion, e.SchemaVersion}
 	}
 
 	return PrintTable(out, headers, rows)

@@ -25,6 +25,7 @@ Manage deployment of agents to InteractiveAI projects.
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai agents catalog](iai_agents_catalog.md)	 - List available agent types and versions
+* [iai agents compatibility-matrix](iai_agents_compatibility-matrix.md)	 - Show agent version to schema version compatibility
 * [iai agents create](iai_agents_create.md)	 - Create an agent in a project
 * [iai agents delete](iai_agents_delete.md)	 - Delete an agent from a project
 * [iai agents describe](iai_agents_describe.md)	 - Describe an agent in detail
