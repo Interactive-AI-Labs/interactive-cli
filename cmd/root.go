@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	version            = "0.28.2"
+	version            = "0.28.2-beta.1"
 	cfgDirName         = ".interactiveai"
 	sessionFileName    = "session_cookies.json"
 	defaultHTTPTimeout = 30 * time.Second
