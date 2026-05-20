@@ -410,6 +410,9 @@ var (
 	servLogsSince     string
 	servLogsStartTime string
 	servLogsEndTime   string
+	servLogsJSON      bool
+	servLogsFields    []string
+	servLogsAllFields bool
 )
 
 var servLogsCmd = &cobra.Command{
@@ -417,7 +420,11 @@ var servLogsCmd = &cobra.Command{
 	Short: "Show logs for a service",
 	Long: `Show logs for all replicas of a service in a project.
 
-Returns up to 5000 log entries in chronological order.`,
+Returns up to 5000 log entries in chronological order.
+
+Structured (JSON) logs are automatically formatted: the level and message
+fields are extracted and displayed as "LEVEL message". Use --fields or
+--all-fields to include additional fields after the message.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -467,11 +474,56 @@ Returns up to 5000 log entries in chronological order.`,
 		defer logsResp.Body.Close()
 
 		meta := output.LogsMeta{Since: logsResp.Since, Truncated: logsResp.Truncated}
-		err = output.PrintLogStream(out, logsResp.Body, true, meta)
+		fmtOpts := output.LogFormatOptions{
+			JSON:      servLogsJSON,
+			Fields:    servLogsFields,
+			AllFields: servLogsAllFields,
+		}
+		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
 		if servLogsFollow && ctx.Err() != nil {
 			return nil
 		}
 		return err
+	},
+}
+
+var servLogFieldsSince string
+
+var servLogFieldsCmd = &cobra.Command{
+	Use:   "log-fields <service_name>",
+	Short: "List available fields in structured logs",
+	Long: `Scan recent logs and list the extra fields present in structured (JSON) log entries.
+
+Use the reported field names with 'iai services logs --fields' to include them in output.
+
+Examples:
+  iai services log-fields my-service
+  iai services log-fields my-service --since 1h`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		serviceName := strings.TrimSpace(args[0])
+
+		since := servLogFieldsSince
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(), serviceOrganization, serviceProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		opts := clients.LogsOptions{Since: since}
+		logsResp, err := deployClient.GetServiceLogs(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, serviceName, opts,
+		)
+		if err != nil {
+			return err
+		}
+		defer logsResp.Body.Close()
+
+		fields := output.DiscoverLogFields(logsResp.Body)
+		return output.PrintLogFields(out, fields)
 	},
 }
 
@@ -871,6 +923,23 @@ func init() {
 		StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	servLogsCmd.Flags().
 		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
+	servLogsCmd.Flags().
+		BoolVar(&servLogsJSON, "json", false, "Output raw JSON log lines without formatting")
+	servLogsCmd.Flags().
+		StringSliceVar(&servLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --json for raw output")
+	servLogsCmd.Flags().
+		BoolVar(&servLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
+	servLogsCmd.MarkFlagsMutuallyExclusive("json", "fields")
+	servLogsCmd.MarkFlagsMutuallyExclusive("json", "all-fields")
+	servLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
+
+	// Flags for "services log-fields"
+	servLogFieldsCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servLogFieldsCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+	servLogFieldsCmd.Flags().
+		StringVar(&servLogFieldsSince, "since", "1h", "Relative duration to scan (e.g. 5m, 1h)")
 
 	// Flags for "services revisions"
 	servRevisionsCmd.Flags().
@@ -913,4 +982,5 @@ func init() {
 	servicesCmd.AddCommand(servDiffCmd)
 	servicesCmd.AddCommand(servPortForwardCmd)
 	servicesCmd.AddCommand(servicesSyncCmd)
+	servicesCmd.AddCommand(servLogFieldsCmd)
 }
