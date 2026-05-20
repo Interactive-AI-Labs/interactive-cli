@@ -35,12 +35,13 @@ glossary accepts any number of entries.
 ### Options
 
 ```
-      --file string           Path to the file containing the prompt content
-  -h, --help                  help for create
-      --labels strings        Labels for the prompt version (comma-separated)
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the prompts
-      --tags strings          Tags for the prompt (comma-separated)
+      --file string             Path to the file containing the prompt content
+  -h, --help                    help for create
+      --labels strings          Labels for the prompt version (comma-separated)
+  -o, --organization string     Organization name that owns the project
+  -p, --project string          Project name that owns the prompts
+      --schema-version string   Schema version to validate against (defaults to latest stable)
+      --tags strings            Tags for the prompt (comma-separated)
 ```
 
 ### Options inherited from parent commands

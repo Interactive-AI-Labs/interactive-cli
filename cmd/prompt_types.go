@@ -72,10 +72,18 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 }
 
 func makeSchemaCmd(ptCfg PromptTypeConfig) *cobra.Command {
-	return &cobra.Command{
+	var (
+		schemaVersion string
+		asJSON        bool
+	)
+
+	cmd := &cobra.Command{
 		Use:   "schema",
 		Short: fmt.Sprintf("Display the JSON Schema for %s", ptCfg.Plural),
-		Long: fmt.Sprintf(`Fetch and display the current JSON Schema for %s from the backend API.
+		Long: fmt.Sprintf(`Fetch and display the JSON Schema for %s from the backend API.
+
+Use --schema-version to request a specific schema version (defaults to latest stable).
+Use --json to output the raw JSON Schema instead of a formatted table.
 
 This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 		Args: cobra.NoArgs,
@@ -83,32 +91,43 @@ This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 			out := cmd.OutOrStdout()
 
 			result, err := clients.GetPromptSchema(
-				cmd.Context(), hostname, defaultHTTPTimeout, ptCfg.TypeName,
+				cmd.Context(), hostname, defaultHTTPTimeout, ptCfg.TypeName, schemaVersion,
 			)
 			if err != nil {
 				return err
 			}
 
-			fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
+			if asJSON {
+				fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
 
-			var indented bytes.Buffer
-			if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
-				return fmt.Errorf("failed to format schema: %w", err)
+				var indented bytes.Buffer
+				if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
+					return fmt.Errorf("failed to format schema: %w", err)
+				}
+				fmt.Fprintln(out, indented.String())
+				return nil
 			}
-			fmt.Fprintln(out, indented.String())
 
-			return nil
+			return output.PrintSchemaPretty(out, result.Schema, result.SchemaVersion)
 		},
 	}
+
+	cmd.Flags().
+		StringVar(&schemaVersion, "schema-version", "", "Schema version to fetch (defaults to latest stable)")
+	cmd.Flags().
+		BoolVar(&asJSON, "json", false, "Output raw JSON Schema instead of a formatted table")
+
+	return cmd
 }
 
 func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
-		file    string
-		labels  []string
-		tags    []string
-		project string
-		org     string
+		file          string
+		labels        []string
+		tags          []string
+		project       string
+		org           string
+		schemaVersion string
 	)
 
 	cmd := &cobra.Command{
@@ -138,10 +157,11 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		}
 
 		payload := clients.CreatePromptBody{
-			Name:   name,
-			Prompt: string(content),
-			Labels: labels,
-			Tags:   tags,
+			Name:          name,
+			Prompt:        string(content),
+			Labels:        labels,
+			Tags:          tags,
+			SchemaVersion: schemaVersion,
 		}
 		if configBuilder != nil {
 			payload.Config = configBuilder()
@@ -169,6 +189,8 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
+	cmd.Flags().
+		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
@@ -285,11 +307,12 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
-		file    string
-		labels  []string
-		tags    []string
-		project string
-		org     string
+		file          string
+		labels        []string
+		tags          []string
+		project       string
+		org           string
+		schemaVersion string
 	)
 
 	cmd := &cobra.Command{
@@ -319,10 +342,11 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		}
 
 		payload := clients.CreatePromptBody{
-			Name:   name,
-			Prompt: string(content),
-			Labels: labels,
-			Tags:   tags,
+			Name:          name,
+			Prompt:        string(content),
+			Labels:        labels,
+			Tags:          tags,
+			SchemaVersion: schemaVersion,
 		}
 		if configBuilder != nil {
 			payload.Config = configBuilder()
@@ -353,6 +377,8 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the new prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
+	cmd.Flags().
+		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 

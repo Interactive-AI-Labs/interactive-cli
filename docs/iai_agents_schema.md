@@ -4,10 +4,17 @@ Display the JSON Schema for agent configuration
 
 ### Synopsis
 
-Fetch and display the current JSON Schema for the agent_config block.
+Fetch and display the JSON Schema for the agent_config block.
+
+Defaults to the latest schema version. Use --schema-version to fetch a specific
+version (run 'iai agents compatibility-matrix' to see available versions).
+
+Use --json for the raw JSON Schema output.
 
 Examples:
   iai agents schema
+  iai agents schema --schema-version 2.1.0
+  iai agents schema --json
 
 ```
 iai agents schema [flags]
@@ -16,7 +23,9 @@ iai agents schema [flags]
 ### Options
 
 ```
-  -h, --help   help for schema
+  -h, --help                    help for schema
+      --json                    Output raw JSON Schema instead of a formatted table
+      --schema-version string   Schema version to fetch (defaults to latest stable)
 ```
 
 ### Options inherited from parent commands

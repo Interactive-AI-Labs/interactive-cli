@@ -41,6 +41,11 @@ var (
 	agentStackId string
 )
 
+var (
+	agentSchemaVersion string
+	agentSchemaJSON    bool
+)
+
 var agentsCmd = &cobra.Command{
 	Use:     "agents",
 	Aliases: []string{"agent"},
@@ -54,10 +59,17 @@ var agentCreateCmd = &cobra.Command{
 	Short: "Create an agent in a project",
 	Long: `Create an agent in a specific project.
 
-The --file flag takes a YAML file matching the agent_config schema — run
-'iai agents schema' to see the expected shape. Pass the agent name as the
-positional argument and id/version/env/secrets/endpoint/schedule via flags;
-do not include them inside the file.
+The --file flag takes a YAML file matching the agent_config schema. Pass the
+agent name as the positional argument and id/version/env/secrets/endpoint/schedule
+via flags; do not include them inside the file.
+
+The config schema depends on the agent version. Run
+'iai agents compatibility-matrix' to find which schema version applies, then
+'iai agents schema --schema-version <schema>' to see the expected fields.
+
+Routines and policies referenced in the config must already exist in the project
+and should be validated against the matching schema version (see --schema-version
+on their create/update commands).
 
 Examples:
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
@@ -119,9 +131,15 @@ var agentUpdateCmd = &cobra.Command{
 Only the flags you pass are applied; everything else is left at its current
 value.
 
---file takes a YAML file matching the agent_config schema — run
-'iai agents schema' to see the expected shape — and replaces the entire agent
-config in full when provided (no per-field merge).
+--file takes a YAML file matching the agent_config schema and replaces the
+entire agent config in full when provided (no per-field merge). The config
+schema depends on the agent version — run 'iai agents compatibility-matrix'
+to find which schema version applies, then 'iai agents schema --schema-version <schema>'
+to see the expected fields.
+
+When upgrading to a new agent version with a different schema, update your
+routines and policies first using --schema-version on their create/update
+commands, then update the agent with the new config and version.
 
 Lists (--env, --secret) replace the entire current list when provided — pass
 every value you want to keep.
@@ -467,10 +485,17 @@ Examples:
 var agentSchemaCmd = &cobra.Command{
 	Use:   "schema",
 	Short: "Display the JSON Schema for agent configuration",
-	Long: `Fetch and display the current JSON Schema for the agent_config block.
+	Long: `Fetch and display the JSON Schema for the agent_config block.
+
+Defaults to the latest schema version. Use --schema-version to fetch a specific
+version (run 'iai agents compatibility-matrix' to see available versions).
+
+Use --json for the raw JSON Schema output.
 
 Examples:
-  iai agents schema`,
+  iai agents schema
+  iai agents schema --schema-version 2.1.0
+  iai agents schema --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -485,20 +510,59 @@ Examples:
 			return err
 		}
 
-		result, err := apiClient.GetAgentSchema(cmd.Context())
+		result, err := apiClient.GetAgentSchema(cmd.Context(), agentSchemaVersion)
 		if err != nil {
 			return err
 		}
 
-		fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
-
-		var indented bytes.Buffer
-		if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
-			return fmt.Errorf("failed to format schema: %w", err)
+		if agentSchemaJSON {
+			fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
+			var indented bytes.Buffer
+			if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
+				return fmt.Errorf("failed to format schema: %w", err)
+			}
+			fmt.Fprintln(out, indented.String())
+			return nil
 		}
-		fmt.Fprintln(out, indented.String())
 
-		return nil
+		return output.PrintSchemaPretty(out, result.Schema, result.SchemaVersion)
+	},
+}
+
+var agentCompatibilityMatrixJSON bool
+
+var agentCompatibilityMatrixCmd = &cobra.Command{
+	Use:   "compatibility-matrix",
+	Short: "Show agent version to schema version compatibility",
+	Long: `Display the compatibility matrix between agent versions and schema versions.
+
+Each agent version requires a specific config schema. Use this command to find
+the schema version for your target agent version, then run
+'iai agents schema --schema-version <schema>' to see the expected config fields.
+
+Prompt types (routines, policies, etc.) also support versioned schemas — use
+--schema-version on their create/update commands to validate against the
+matching version.
+
+By default, output is a formatted table. Use --json for machine-readable output.
+
+Examples:
+  iai agents compatibility-matrix
+  iai agents compatibility-matrix --json`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		matrix, err := clients.GetAgentCompatibilityMatrix(
+			cmd.Context(),
+			hostname,
+			defaultHTTPTimeout,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintCompatibilityMatrix(out, matrix, agentCompatibilityMatrixJSON)
 	},
 }
 
@@ -750,6 +814,16 @@ func init() {
 	agentPortForwardCmd.Flags().
 		IntVar(&agentPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
 
+	// Flags for "agents schema"
+	agentSchemaCmd.Flags().
+		StringVar(&agentSchemaVersion, "schema-version", "", "Schema version to fetch (defaults to latest stable)")
+	agentSchemaCmd.Flags().
+		BoolVar(&agentSchemaJSON, "json", false, "Output raw JSON Schema instead of a formatted table")
+
+	// Flags for "agents compatibility-matrix"
+	agentCompatibilityMatrixCmd.Flags().
+		BoolVar(&agentCompatibilityMatrixJSON, "json", false, "Output raw JSON instead of a formatted table")
+
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
 	agentsCmd.AddCommand(agentCreateCmd)
@@ -764,4 +838,5 @@ func init() {
 	agentsCmd.AddCommand(agentRevisionsCmd)
 	agentsCmd.AddCommand(agentDiffCmd)
 	agentsCmd.AddCommand(agentPortForwardCmd)
+	agentsCmd.AddCommand(agentCompatibilityMatrixCmd)
 }

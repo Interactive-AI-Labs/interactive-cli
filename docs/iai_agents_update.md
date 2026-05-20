@@ -9,9 +9,15 @@ Update an agent in a specific project.
 Only the flags you pass are applied; everything else is left at its current
 value.
 
---file takes a YAML file matching the agent_config schema — run
-'iai agents schema' to see the expected shape — and replaces the entire agent
-config in full when provided (no per-field merge).
+--file takes a YAML file matching the agent_config schema and replaces the
+entire agent config in full when provided (no per-field merge). The config
+schema depends on the agent version — run 'iai agents compatibility-matrix'
+to find which schema version applies, then 'iai agents schema --schema-version <schema>'
+to see the expected fields.
+
+When upgrading to a new agent version with a different schema, update your
+routines and policies first using --schema-version on their create/update
+commands, then update the agent with the new config and version.
 
 Lists (--env, --secret) replace the entire current list when provided — pass
 every value you want to keep.

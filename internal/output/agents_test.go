@@ -267,6 +267,53 @@ func TestPrintAgentCatalog(t *testing.T) {
 	}
 }
 
+func TestPrintCompatibilityMatrix(t *testing.T) {
+	tests := []struct {
+		name   string
+		matrix []clients.CompatibilityEntry
+		asJSON bool
+		want   string
+	}{
+		{
+			name:   "empty matrix prints message",
+			matrix: []clients.CompatibilityEntry{},
+			want:   "No compatibility data available.\n",
+		},
+		{
+			name: "table output",
+			matrix: []clients.CompatibilityEntry{
+				{AgentVersion: "0.1.0", SchemaVersion: "1.0.0"},
+				{AgentVersion: "0.2.0", SchemaVersion: "2.0.0"},
+			},
+			want: "AGENT VERSION   SCHEMA VERSION\n" +
+				"0.1.0           1.0.0\n" +
+				"0.2.0           2.0.0\n",
+		},
+		{
+			name: "json output",
+			matrix: []clients.CompatibilityEntry{
+				{AgentVersion: "0.1.0", SchemaVersion: "1.0.0"},
+			},
+			asJSON: true,
+			want: "[\n  {\n    \"agentVersion\": \"0.1.0\",\n" +
+				"    \"schemaVersion\": \"1.0.0\"\n  }\n]\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintCompatibilityMatrix(&buf, tt.matrix, tt.asJSON)
+			if err != nil {
+				t.Fatalf("PrintCompatibilityMatrix() error = %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPrintAgentVersions(t *testing.T) {
 	tests := []struct {
 		name     string

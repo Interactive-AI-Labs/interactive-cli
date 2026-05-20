@@ -36,14 +36,15 @@ iai skills create <name> [flags]
 ### Options
 
 ```
-      --description string    Short description of the skill (stored in config.skill.description)
-      --file string           Path to the file containing the prompt content
-  -h, --help                  help for create
-      --intents stringArray   Natural-language intent that triggers this skill — repeat the flag once per intent (stored in config.skill.intents)
-      --labels strings        Labels for the prompt version (comma-separated)
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the prompts
-      --tags strings          Tags for the prompt (comma-separated)
+      --description string      Short description of the skill (stored in config.skill.description)
+      --file string             Path to the file containing the prompt content
+  -h, --help                    help for create
+      --intents stringArray     Natural-language intent that triggers this skill — repeat the flag once per intent (stored in config.skill.intents)
+      --labels strings          Labels for the prompt version (comma-separated)
+  -o, --organization string     Organization name that owns the project
+  -p, --project string          Project name that owns the prompts
+      --schema-version string   Schema version to validate against (defaults to latest stable)
+      --tags strings            Tags for the prompt (comma-separated)
 ```
 
 ### Options inherited from parent commands

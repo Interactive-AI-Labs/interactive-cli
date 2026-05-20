@@ -17,6 +17,11 @@ states (YAML format).`,
 Content is provided via a YAML file using the --file flag.
 Run 'iai routines schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this routine (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (routine.yaml):
   title: My Routine
   conditions: When user needs help
@@ -36,6 +41,7 @@ the "production" label with --labels production.
 
 Examples:
   iai routines create onboarding-flow --file routine.yaml
+  iai routines create onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines create onboarding-flow --file routine.yaml --labels production
   iai routines create onboarding-flow --file routine.yaml --tags v2,experimental`,
 		ListLong: `List routines in a specific project.
@@ -65,6 +71,11 @@ The previous versions are preserved and can still be accessed by version number.
 
 Run 'iai routines schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this routine (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (routine.yaml):
   title: My Routine
   conditions: When user needs help
@@ -80,6 +91,7 @@ Example (routine.yaml):
 
 Examples:
   iai routines update onboarding-flow --file routine.yaml
+  iai routines update onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines update onboarding-flow --file routine.yaml --labels production,staging`,
 		DeleteLong: `Delete a routine and all its versions, or delete specific versions.
 

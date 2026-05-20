@@ -4,7 +4,10 @@ Display the JSON Schema for variables
 
 ### Synopsis
 
-Fetch and display the current JSON Schema for variables from the backend API.
+Fetch and display the JSON Schema for variables from the backend API.
+
+Use --schema-version to request a specific schema version (defaults to latest stable).
+Use --json to output the raw JSON Schema instead of a formatted table.
 
 This is a public endpoint and does not require authentication.
 
@@ -15,7 +18,9 @@ iai variables schema [flags]
 ### Options
 
 ```
-  -h, --help   help for schema
+  -h, --help                    help for schema
+      --json                    Output raw JSON Schema instead of a formatted table
+      --schema-version string   Schema version to fetch (defaults to latest stable)
 ```
 
 ### Options inherited from parent commands

@@ -18,6 +18,11 @@ Each prompt holds exactly one policy (flat YAML, fields at the root).
 Content is provided via a YAML file using the --file flag.
 Run 'iai policies schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this policy (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (policy.yaml):
   id: escalate
   name: Escalation Policy
@@ -31,6 +36,7 @@ the "production" label with --labels production.
 
 Examples:
   iai policies create safety-rules --file policy.yaml
+  iai policies create safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies create safety-rules --file policy.yaml --labels production
   iai policies create safety-rules --file policy.yaml --tags compliance`,
 		ListLong: `List policies in a specific project.
@@ -61,6 +67,11 @@ The previous versions are preserved and can still be accessed by version number.
 Each prompt holds exactly one policy (flat YAML, fields at the root).
 Run 'iai policies schema' to see the current field definitions.
 
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this policy (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
+
 Example (policy.yaml):
   id: escalate
   name: Escalation Policy
@@ -70,6 +81,7 @@ Example (policy.yaml):
 
 Examples:
   iai policies update safety-rules --file policy.yaml
+  iai policies update safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies update safety-rules --file policy.yaml --labels production,staging`,
 		DeleteLong: `Delete a policy and all its versions, or delete specific versions.
 
