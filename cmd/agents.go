@@ -369,6 +369,9 @@ var (
 	agentLogsSince     string
 	agentLogsStartTime string
 	agentLogsEndTime   string
+	agentLogsRaw       bool
+	agentLogsFields    []string
+	agentLogsAllFields bool
 )
 
 var agentLogsCmd = &cobra.Command{
@@ -377,6 +380,10 @@ var agentLogsCmd = &cobra.Command{
 	Long: `Show logs for an agent in a project.
 
 Returns up to 5000 log entries in chronological order.
+
+Structured (JSON) logs are automatically formatted: the level and message
+fields are extracted and displayed as "LEVEL message". Use --fields or
+--all-fields to include additional fields after the message.
 
 Examples:
   iai agents logs my-agent
@@ -426,7 +433,12 @@ Examples:
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
 		}
-		err = output.PrintLogStream(out, logsResp.Body, true, meta)
+		fmtOpts := output.LogFormatOptions{
+			Raw:       agentLogsRaw,
+			Fields:    agentLogsFields,
+			AllFields: agentLogsAllFields,
+		}
+		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
 		if agentLogsFollow && ctx.Err() != nil {
 			return nil
 		}
@@ -688,6 +700,48 @@ Examples:
 	},
 }
 
+var agentLogFieldsSince string
+
+var agentLogFieldsCmd = &cobra.Command{
+	Use:   "log-fields <agent_name>",
+	Short: "List available fields in structured logs",
+	Long: `Scan recent logs and list the extra fields present in structured (JSON) log entries.
+
+Use the reported field names with 'iai agents logs --fields' to include them in output.
+
+Examples:
+  iai agents log-fields my-agent
+  iai agents log-fields my-agent --since 1h`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		agentName := strings.TrimSpace(args[0])
+
+		since := agentLogFieldsSince
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+
+		opts := clients.LogsOptions{Since: since}
+		logsResp, err := deployClient.GetAgentLogs(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+			opts,
+		)
+		if err != nil {
+			return err
+		}
+		defer logsResp.Body.Close()
+
+		fields := output.DiscoverLogFields(logsResp.Body)
+		return output.PrintLogFields(out, fields)
+	},
+}
+
 func init() {
 	// Flags for "agents create"
 	agentCreateCmd.Flags().
@@ -791,6 +845,23 @@ func init() {
 		StringVar(&agentLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
+	agentLogsCmd.Flags().
+		BoolVar(&agentLogsRaw, "raw", false, "Output raw server JSON without formatting")
+	agentLogsCmd.Flags().
+		StringSliceVar(&agentLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for raw output")
+	agentLogsCmd.Flags().
+		BoolVar(&agentLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
+	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
+	agentLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
+
+	// Flags for "agents log-fields"
+	agentLogFieldsCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentLogFieldsCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+	agentLogFieldsCmd.Flags().
+		StringVar(&agentLogFieldsSince, "since", "1h", "Relative duration to scan (e.g. 5m, 1h)")
 
 	// Flags for "agents revisions"
 	agentRevisionsCmd.Flags().
@@ -839,4 +910,5 @@ func init() {
 	agentsCmd.AddCommand(agentDiffCmd)
 	agentsCmd.AddCommand(agentPortForwardCmd)
 	agentsCmd.AddCommand(agentCompatibilityMatrixCmd)
+	agentsCmd.AddCommand(agentLogFieldsCmd)
 }

@@ -37,6 +37,7 @@ connection credentials (host, port, username, password, URI).
 * [iai databases delete](iai_databases_delete.md)	 - Delete a database from a project
 * [iai databases describe](iai_databases_describe.md)	 - Describe a database in detail
 * [iai databases list](iai_databases_list.md)	 - List databases in a project
+* [iai databases log-fields](iai_databases_log-fields.md)	 - List available fields in structured logs
 * [iai databases logs](iai_databases_logs.md)	 - Show logs for a database
 * [iai databases port-forward](iai_databases_port-forward.md)	 - Forward a local port to a database
 * [iai databases restore](iai_databases_restore.md)	 - Restore a new database from a backup

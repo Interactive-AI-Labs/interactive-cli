@@ -39,6 +39,9 @@ var (
 	dbLogsSince     string
 	dbLogsStartTime string
 	dbLogsEndTime   string
+	dbLogsRaw       bool
+	dbLogsFields    []string
+	dbLogsAllFields bool
 )
 
 var databasesCmd = &cobra.Command{
@@ -285,7 +288,11 @@ var dbLogsCmd = &cobra.Command{
 	Short: "Show logs for a database",
 	Long: `Show logs for a database in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.`,
+Returns up to 5000 log entries in chronological order. Default lookback is 1h.
+
+Structured (JSON) logs are automatically formatted: the level and message are
+extracted and displayed. PostgreSQL-style logs wrapped in a "record" envelope
+are unwrapped transparently.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -335,11 +342,54 @@ Returns up to 5000 log entries in chronological order. Default lookback is 1h.`,
 		defer logsResp.Body.Close()
 
 		meta := output.LogsMeta{Since: logsResp.Since, Truncated: logsResp.Truncated}
-		err = output.PrintLogStream(out, logsResp.Body, true, meta)
+		fmtOpts := output.LogFormatOptions{
+			Raw:       dbLogsRaw,
+			Fields:    dbLogsFields,
+			AllFields: dbLogsAllFields,
+		}
+		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
 		if dbLogsFollow && ctx.Err() != nil {
 			return nil
 		}
 		return err
+	},
+}
+
+var dbLogFieldsSince string
+
+var dbLogFieldsCmd = &cobra.Command{
+	Use:   "log-fields <database_name>",
+	Short: "List available fields in structured logs",
+	Long: `Scan recent logs and list the extra fields present in structured (JSON) log entries.
+
+Use the reported field names with 'iai databases logs --fields' to include them in output.
+
+Examples:
+  iai databases log-fields my-db
+  iai databases log-fields my-db --since 1h`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		databaseName := strings.TrimSpace(args[0])
+
+		since := dbLogFieldsSince
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
+		if err != nil {
+			return err
+		}
+
+		opts := clients.LogsOptions{Since: since}
+		logsResp, err := deployClient.GetDatabaseLogs(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, databaseName, opts,
+		)
+		if err != nil {
+			return err
+		}
+		defer logsResp.Body.Close()
+
+		fields := output.DiscoverLogFields(logsResp.Body)
+		return output.PrintLogFields(out, fields)
 	},
 }
 
@@ -585,6 +635,15 @@ func init() {
 		StringVar(&dbLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	dbLogsCmd.Flags().
 		StringVar(&dbLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
+	dbLogsCmd.Flags().
+		BoolVar(&dbLogsRaw, "raw", false, "Output raw server JSON without formatting")
+	dbLogsCmd.Flags().
+		StringSliceVar(&dbLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for raw output")
+	dbLogsCmd.Flags().
+		BoolVar(&dbLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
 
 	// databases backups
 	dbBackupsCmd.Flags().
@@ -626,10 +685,18 @@ func init() {
 	dbPortForwardCmd.Flags().
 		IntVar(&dbPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
 
+	// Flags for "databases log-fields"
+	dbLogFieldsCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbLogFieldsCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+	dbLogFieldsCmd.Flags().
+		StringVar(&dbLogFieldsSince, "since", "1h", "Relative duration to scan (e.g. 5m, 1h)")
+
 	// Wire up command hierarchy
 	databasesCmd.AddCommand(
 		dbListCmd, dbDescribeCmd, dbCreateCmd, dbUpdateCmd, dbDeleteCmd,
-		dbLogsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd, dbPortForwardCmd,
+		dbLogsCmd, dbLogFieldsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd, dbPortForwardCmd,
 	)
 	rootCmd.AddCommand(databasesCmd)
 }

@@ -108,6 +108,9 @@ var (
 	replicaLogsSince     string
 	replicaLogsStartTime string
 	replicaLogsEndTime   string
+	replicaLogsRaw       bool
+	replicaLogsFields    []string
+	replicaLogsAllFields bool
 )
 
 var replicasLogsCmd = &cobra.Command{
@@ -115,7 +118,11 @@ var replicasLogsCmd = &cobra.Command{
 	Short: "Show logs for a specific replica",
 	Long: `Show logs for a specific replica in a project.
 
-Returns up to 5000 log entries in chronological order.`,
+Returns up to 5000 log entries in chronological order.
+
+Structured (JSON) logs are automatically formatted: the level and message
+fields are extracted and displayed as "LEVEL message". Use --fields or
+--all-fields to include additional fields after the message.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -198,11 +205,62 @@ Returns up to 5000 log entries in chronological order.`,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
 		}
-		err = output.PrintLogStream(out, logsResp.Body, false, meta)
+		fmtOpts := output.LogFormatOptions{
+			Raw:       replicaLogsRaw,
+			Fields:    replicaLogsFields,
+			AllFields: replicaLogsAllFields,
+		}
+		err = output.PrintLogStream(out, logsResp.Body, false, meta, fmtOpts)
 		if replicaLogsFollow && ctx.Err() != nil {
 			return nil
 		}
 		return err
+	},
+}
+
+var replicaLogFieldsSince string
+
+var replicaLogFieldsCmd = &cobra.Command{
+	Use:   "log-fields <replica_name>",
+	Short: "List available fields in structured logs",
+	Long: `Scan recent logs and list the extra fields present in structured (JSON) log entries.
+
+Use the reported field names with 'iai replicas logs --fields' to include them in output.
+
+Examples:
+  iai replicas log-fields my-service-abc123
+  iai replicas log-fields my-service-abc123 --since 1h`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		replicaName := strings.TrimSpace(args[0])
+
+		since := replicaLogFieldsSince
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			replicasOrganization,
+			replicasProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		opts := clients.LogsOptions{Since: since}
+		logsResp, err := deployClient.GetReplicaLogs(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			replicaName,
+			opts,
+		)
+		if err != nil {
+			return err
+		}
+		defer logsResp.Body.Close()
+
+		fields := output.DiscoverLogFields(logsResp.Body)
+		return output.PrintLogFields(out, fields)
 	},
 }
 
@@ -232,9 +290,27 @@ func init() {
 		StringVar(&replicaLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	replicasLogsCmd.Flags().
 		StringVar(&replicaLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
+	replicasLogsCmd.Flags().
+		BoolVar(&replicaLogsRaw, "raw", false, "Output raw server JSON without formatting")
+	replicasLogsCmd.Flags().
+		StringSliceVar(&replicaLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for raw output")
+	replicasLogsCmd.Flags().
+		BoolVar(&replicaLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
+	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
+	replicasLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
+
+	// Flags for "replicas log-fields"
+	replicaLogFieldsCmd.Flags().
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+	replicaLogFieldsCmd.Flags().
+		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+	replicaLogFieldsCmd.Flags().
+		StringVar(&replicaLogFieldsSince, "since", "1h", "Relative duration to scan (e.g. 5m, 1h)")
 
 	replicasCmd.AddCommand(replicasListCmd)
 	replicasCmd.AddCommand(replicasDescribeCmd)
 	replicasCmd.AddCommand(replicasLogsCmd)
+	replicasCmd.AddCommand(replicaLogFieldsCmd)
 	rootCmd.AddCommand(replicasCmd)
 }

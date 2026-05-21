@@ -31,6 +31,7 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai agents describe](iai_agents_describe.md)	 - Describe an agent in detail
 * [iai agents diff](iai_agents_diff.md)	 - Compare two revisions of an agent
 * [iai agents list](iai_agents_list.md)	 - List agents in a project
+* [iai agents log-fields](iai_agents_log-fields.md)	 - List available fields in structured logs
 * [iai agents logs](iai_agents_logs.md)	 - Show logs for an agent
 * [iai agents port-forward](iai_agents_port-forward.md)	 - Forward a local port to an agent
 * [iai agents restart](iai_agents_restart.md)	 - Restart an agent in a project
