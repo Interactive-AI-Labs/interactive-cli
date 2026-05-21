@@ -140,6 +140,20 @@ func TestFormatAgentValidationError(t *testing.T) {
 			want: "Agent configuration validation failed:\n  - agent_config.context.description: Field required\n  - agent_config.context.language: Input should be a valid string",
 		},
 		{
+			name: "schema validation error single",
+			body: []byte(
+				`{"code":422,"message":"Agent configuration validation failed","detail":{"detail":"Agent config does not match schema","errors":[{"path":"context.preamble","message":"'examples' is a required property"}]}}`,
+			),
+			want: "Agent config does not match schema\n  - context.preamble: 'examples' is a required property",
+		},
+		{
+			name: "schema validation error multiple",
+			body: []byte(
+				`{"code":422,"message":"Agent configuration validation failed","detail":{"detail":"Agent config does not match schema","errors":[{"path":"llms","message":"'llms' is a required property"},{"path":"context","message":"Additional properties are not allowed ('description' was unexpected)"},{"path":"context.system_prompt","message":"'system_prompt' is a required property"}]}}`,
+			),
+			want: "Agent config does not match schema\n  - llms: 'llms' is a required property\n  - context: Additional properties are not allowed ('description' was unexpected)\n  - context.system_prompt: 'system_prompt' is a required property",
+		},
+		{
 			name: "no detail field falls back to message",
 			body: []byte(`{"code":422,"message":"Agent configuration validation failed"}`),
 			want: "Agent configuration validation failed",

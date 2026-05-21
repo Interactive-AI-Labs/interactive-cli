@@ -1426,6 +1426,7 @@ type refValidationError struct {
 	Reason            string  `json:"reason"`
 	ActualType        string  `json:"actual_type,omitempty"`
 	AvailableVersions []int   `json:"available_versions,omitempty"`
+	Message           string  `json:"message"`
 }
 
 // formatAgentValidationError parses a 422 response from the deployment-operator
@@ -1495,6 +1496,9 @@ func formatRefErrors(ref refValidationDetail) string {
 }
 
 func (e refValidationError) formatMessage() string {
+	if e.Message != "" {
+		return e.Message
+	}
 	switch e.Reason {
 	case "version_not_found":
 		versions := make([]string, len(e.AvailableVersions))
