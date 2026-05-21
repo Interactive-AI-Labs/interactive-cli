@@ -617,6 +617,201 @@ func TestAPIClientListMetricsDailySuccess(t *testing.T) {
 	}
 }
 
+func TestAPIClientSetPromptLabelsGenericPath(t *testing.T) {
+	var capturedBody SetLabelsBody
+	var capturedContentType string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Fatalf("method = %s, want PATCH", r.Method)
+		}
+		if r.URL.Path != "/api/platform/v1/projects/proj-1/prompts/my-prompt/versions/3" {
+			t.Fatalf("path = %s", r.URL.Path)
+		}
+		capturedContentType = r.Header.Get("Content-Type")
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &capturedBody); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"id":"p-1","name":"my-prompt","type":"text","version":3,"projectId":"proj-1","labels":["production"]}}`,
+		)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	result, err := client.SetPromptLabels(
+		context.Background(),
+		"proj-1",
+		"",
+		"my-prompt",
+		3,
+		[]string{"production"},
+	)
+	if err != nil {
+		t.Fatalf("SetPromptLabels() error = %v", err)
+	}
+	if result == nil || result.Name != "my-prompt" || result.Version != 3 {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+	if len(capturedBody.NewLabels) != 1 || capturedBody.NewLabels[0] != "production" {
+		t.Fatalf("captured body = %#v, want newLabels=[production]", capturedBody)
+	}
+	if capturedContentType != "application/json" {
+		t.Fatalf("content-type = %q, want application/json", capturedContentType)
+	}
+}
+
+func TestAPIClientSetPromptLabelsTypedPath(t *testing.T) {
+	var capturedBody SetLabelsBody
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Fatalf("method = %s, want PATCH", r.Method)
+		}
+		if r.URL.Path != "/api/platform/v1/projects/proj-1/prompts/routines/morning-routine/versions/7" {
+			t.Fatalf("path = %s", r.URL.Path)
+		}
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &capturedBody); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"id":"p-2","name":"morning-routine","type":"routine","version":7,"projectId":"proj-1","labels":["staging","canary"]}}`,
+		)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	result, err := client.SetPromptLabels(
+		context.Background(),
+		"proj-1",
+		"routines",
+		"morning-routine",
+		7,
+		[]string{"staging", "canary"},
+	)
+	if err != nil {
+		t.Fatalf("SetPromptLabels() error = %v", err)
+	}
+	if result == nil || result.Version != 7 {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+	if len(capturedBody.NewLabels) != 2 ||
+		capturedBody.NewLabels[0] != "staging" ||
+		capturedBody.NewLabels[1] != "canary" {
+		t.Fatalf("captured body = %#v, want newLabels=[staging canary]", capturedBody)
+	}
+}
+
+func TestAPIClientSetPromptLabelsRequestBodyContainsNewLabelsKey(t *testing.T) {
+	var rawBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rawBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"id":"p-3","name":"my-prompt","version":1,"projectId":"proj-1"}}`,
+		)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	_, err = client.SetPromptLabels(
+		context.Background(),
+		"proj-1",
+		"",
+		"my-prompt",
+		1,
+		[]string{"production", "stable"},
+	)
+	if err != nil {
+		t.Fatalf("SetPromptLabels() error = %v", err)
+	}
+
+	if !strings.Contains(string(rawBody), `"newLabels"`) {
+		t.Fatalf("request body %q does not contain newLabels key", string(rawBody))
+	}
+	if !strings.Contains(string(rawBody), `"production"`) {
+		t.Fatalf("request body %q does not contain production label", string(rawBody))
+	}
+	if !strings.Contains(string(rawBody), `"stable"`) {
+		t.Fatalf("request body %q does not contain stable label", string(rawBody))
+	}
+}
+
+func TestAPIClientSetPromptLabelsReturnsServerMessage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(
+			w,
+			`{"success":false,"error":{"message":"prompt version not found"}}`,
+		)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	_, err = client.SetPromptLabels(
+		context.Background(),
+		"proj-1",
+		"",
+		"missing",
+		999,
+		[]string{"production"},
+	)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "prompt version not found") {
+		t.Fatalf("error = %v, want extracted server message", err)
+	}
+}
+
 func TestAPIClientListMetricsDailyReturnsServerMessage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)

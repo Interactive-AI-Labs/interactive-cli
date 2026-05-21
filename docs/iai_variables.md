@@ -31,6 +31,7 @@ Variables are persistent data fields that survive across conversation sessions
 * [iai variables delete](iai_variables_delete.md)	 - Delete a variable
 * [iai variables describe](iai_variables_describe.md)	 - Describe a variable in detail
 * [iai variables diff](iai_variables_diff.md)	 - Compare two versions of a variable
+* [iai variables labels](iai_variables_labels.md)	 - Manage labels on variables versions
 * [iai variables list](iai_variables_list.md)	 - List variables in a project
 * [iai variables schema](iai_variables_schema.md)	 - Display the JSON Schema for variables
 * [iai variables update](iai_variables_update.md)	 - Update a variable (creates a new version)

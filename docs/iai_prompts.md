@@ -32,6 +32,7 @@ types: "text" (default) and "chat".
 * [iai prompts delete](iai_prompts_delete.md)	 - Delete a prompt
 * [iai prompts describe](iai_prompts_describe.md)	 - Describe a prompt in detail
 * [iai prompts diff](iai_prompts_diff.md)	 - Compare two versions of a prompt
+* [iai prompts labels](iai_prompts_labels.md)	 - Manage labels on prompt versions
 * [iai prompts list](iai_prompts_list.md)	 - List prompts in a project
 * [iai prompts update](iai_prompts_update.md)	 - Update a prompt (creates a new version)
 * [iai prompts versions](iai_prompts_versions.md)	 - List versions of a prompt
