@@ -1429,10 +1429,10 @@ type refValidationError struct {
 	Message           string  `json:"message"`
 }
 
-// formatAgentValidationError parses a 422 response from the deployment-operator
+// fmtAgentValErr parses a 422 response from the deployment-operator
 // and returns a human-readable error message. The detail field contains either
 // a JSON array (structural/Pydantic errors) or a JSON object (reference errors).
-func formatAgentValidationError(body []byte) string {
+func fmtAgentValErr(body []byte) string {
 	var envelope agentValidationEnvelope
 	if err := json.Unmarshal(body, &envelope); err != nil || len(envelope.Detail) == 0 {
 		return ExtractServerMessage(body)
@@ -1558,7 +1558,7 @@ func (c *DeploymentClient) CreateAgent(
 	}
 
 	if resp.StatusCode == http.StatusUnprocessableEntity {
-		return "", fmt.Errorf("%s", formatAgentValidationError(respBody))
+		return "", fmt.Errorf("%s", fmtAgentValErr(respBody))
 	}
 
 	serverMessage := ExtractServerMessage(respBody)
@@ -1633,7 +1633,7 @@ func (c *DeploymentClient) sendAgentUpdate(
 	}
 
 	if resp.StatusCode == http.StatusUnprocessableEntity {
-		return "", fmt.Errorf("%s", formatAgentValidationError(respBody))
+		return "", fmt.Errorf("%s", fmtAgentValErr(respBody))
 	}
 
 	serverMessage := ExtractServerMessage(respBody)
