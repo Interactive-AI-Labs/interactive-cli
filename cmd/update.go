@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	installPkg   = "github.com/Interactive-AI-Labs/interactive-cli/cmd/iai@latest"
-	minGoVersion = "1.25.1"
+	installPkgBase = "github.com/Interactive-AI-Labs/interactive-cli/cmd/iai"
+	minGoVersion   = "1.25.1"
 )
 
 var updateCmd = &cobra.Command{
@@ -37,6 +37,26 @@ var updateCmd = &cobra.Command{
 			)
 		}
 
+		targetVersion, _ := cmd.Flags().GetString("version")
+
+		if targetVersion != "" {
+			if !strings.HasPrefix(targetVersion, "v") {
+				targetVersion = "v" + targetVersion
+			}
+			pkg := installPkgBase + "@" + targetVersion
+			fmt.Fprintf(out, "Installing iai %s...\n", targetVersion)
+
+			install := exec.CommandContext(cmd.Context(), "go", "install", pkg)
+			install.Stdout = out
+			install.Stderr = cmd.ErrOrStderr()
+			if err := install.Run(); err != nil {
+				return fmt.Errorf("update failed: %w", err)
+			}
+
+			fmt.Fprintf(out, "Successfully installed %s.\n", targetVersion)
+			return nil
+		}
+
 		fmt.Fprintln(out, "Checking for updates...")
 
 		latest, err := versioncheck.FetchLatestVersion()
@@ -51,7 +71,7 @@ var updateCmd = &cobra.Command{
 
 		fmt.Fprintf(out, "Updating iai: v%s → v%s\n", version, latest)
 
-		install := exec.CommandContext(cmd.Context(), "go", "install", installPkg)
+		install := exec.CommandContext(cmd.Context(), "go", "install", installPkgBase+"@latest")
 		install.Stdout = out
 		install.Stderr = cmd.ErrOrStderr()
 		if err := install.Run(); err != nil {
@@ -64,5 +84,6 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
+	updateCmd.Flags().String("version", "", "Install a specific version (e.g. 0.29.0 or v0.29.0)")
 	rootCmd.AddCommand(updateCmd)
 }
