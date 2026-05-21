@@ -13,7 +13,8 @@ iai update [flags]
 ### Options
 
 ```
-  -h, --help   help for update
+  -h, --help             help for update
+      --version string   Install a specific version (e.g. 0.29.0 or v0.29.0)
 ```
 
 ### Options inherited from parent commands
