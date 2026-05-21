@@ -369,7 +369,7 @@ var (
 	agentLogsSince     string
 	agentLogsStartTime string
 	agentLogsEndTime   string
-	agentLogsJSON      bool
+	agentLogsRaw       bool
 	agentLogsFields    []string
 	agentLogsAllFields bool
 )
@@ -434,7 +434,7 @@ Examples:
 			Empty:     logsResp.Empty,
 		}
 		fmtOpts := output.LogFormatOptions{
-			JSON:      agentLogsJSON,
+			Raw:       agentLogsRaw,
 			Fields:    agentLogsFields,
 			AllFields: agentLogsAllFields,
 		}
@@ -846,13 +846,13 @@ func init() {
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	agentLogsCmd.Flags().
-		BoolVar(&agentLogsJSON, "json", false, "Output raw JSON log lines without formatting")
+		BoolVar(&agentLogsRaw, "raw", false, "Output raw server JSON without formatting")
 	agentLogsCmd.Flags().
-		StringSliceVar(&agentLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --json for raw output")
+		StringSliceVar(&agentLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for raw output")
 	agentLogsCmd.Flags().
 		BoolVar(&agentLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
-	agentLogsCmd.MarkFlagsMutuallyExclusive("json", "fields")
-	agentLogsCmd.MarkFlagsMutuallyExclusive("json", "all-fields")
+	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
 
 	// Flags for "agents log-fields"

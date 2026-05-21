@@ -39,7 +39,7 @@ var (
 	dbLogsSince     string
 	dbLogsStartTime string
 	dbLogsEndTime   string
-	dbLogsJSON      bool
+	dbLogsRaw       bool
 	dbLogsFields    []string
 	dbLogsAllFields bool
 )
@@ -343,7 +343,7 @@ are unwrapped transparently.`,
 
 		meta := output.LogsMeta{Since: logsResp.Since, Truncated: logsResp.Truncated}
 		fmtOpts := output.LogFormatOptions{
-			JSON:      dbLogsJSON,
+			Raw:       dbLogsRaw,
 			Fields:    dbLogsFields,
 			AllFields: dbLogsAllFields,
 		}
@@ -636,13 +636,13 @@ func init() {
 	dbLogsCmd.Flags().
 		StringVar(&dbLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	dbLogsCmd.Flags().
-		BoolVar(&dbLogsJSON, "json", false, "Output raw JSON log lines without formatting")
+		BoolVar(&dbLogsRaw, "raw", false, "Output raw server JSON without formatting")
 	dbLogsCmd.Flags().
-		StringSliceVar(&dbLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --json for raw output")
+		StringSliceVar(&dbLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for raw output")
 	dbLogsCmd.Flags().
 		BoolVar(&dbLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
-	dbLogsCmd.MarkFlagsMutuallyExclusive("json", "fields")
-	dbLogsCmd.MarkFlagsMutuallyExclusive("json", "all-fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
 
 	// databases backups

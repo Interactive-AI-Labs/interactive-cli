@@ -410,7 +410,7 @@ var (
 	servLogsSince     string
 	servLogsStartTime string
 	servLogsEndTime   string
-	servLogsJSON      bool
+	servLogsRaw       bool
 	servLogsFields    []string
 	servLogsAllFields bool
 )
@@ -475,7 +475,7 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 
 		meta := output.LogsMeta{Since: logsResp.Since, Truncated: logsResp.Truncated}
 		fmtOpts := output.LogFormatOptions{
-			JSON:      servLogsJSON,
+			Raw:       servLogsRaw,
 			Fields:    servLogsFields,
 			AllFields: servLogsAllFields,
 		}
@@ -924,13 +924,13 @@ func init() {
 	servLogsCmd.Flags().
 		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	servLogsCmd.Flags().
-		BoolVar(&servLogsJSON, "json", false, "Output raw JSON log lines without formatting")
+		BoolVar(&servLogsRaw, "raw", false, "Output raw server JSON without formatting")
 	servLogsCmd.Flags().
-		StringSliceVar(&servLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --json for raw output")
+		StringSliceVar(&servLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for raw output")
 	servLogsCmd.Flags().
 		BoolVar(&servLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
-	servLogsCmd.MarkFlagsMutuallyExclusive("json", "fields")
-	servLogsCmd.MarkFlagsMutuallyExclusive("json", "all-fields")
+	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
 
 	// Flags for "services log-fields"

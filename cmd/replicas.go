@@ -108,7 +108,7 @@ var (
 	replicaLogsSince     string
 	replicaLogsStartTime string
 	replicaLogsEndTime   string
-	replicaLogsJSON      bool
+	replicaLogsRaw       bool
 	replicaLogsFields    []string
 	replicaLogsAllFields bool
 )
@@ -206,7 +206,7 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 			Empty:     logsResp.Empty,
 		}
 		fmtOpts := output.LogFormatOptions{
-			JSON:      replicaLogsJSON,
+			Raw:       replicaLogsRaw,
 			Fields:    replicaLogsFields,
 			AllFields: replicaLogsAllFields,
 		}
@@ -237,50 +237,20 @@ Examples:
 
 		since := replicaLogFieldsSince
 
-		cfg, err := files.LoadStackConfig(cfgFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to load config file: %w", err)
-		}
-
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-		if err != nil {
-			return err
-		}
-
-		deployClient, err := clients.NewDeploymentClient(
-			deploymentHostname, defaultHTTPTimeout, token, apiKey, cookies,
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			replicasOrganization,
+			replicasProject,
 		)
 		if err != nil {
 			return err
 		}
 
-		sess := session.NewSession(cfgDirName)
-
-		orgName, err := sess.ResolveOrganization(cfg.Organization, replicasOrganization)
-		if err != nil {
-			return err
-		}
-
-		projectName, err := sess.ResolveProject(cfg.Project, replicasProject)
-		if err != nil {
-			return err
-		}
-
-		orgId, projectId, err := apiClient.GetProjectId(cmd.Context(), orgName, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
-		}
-
 		opts := clients.LogsOptions{Since: since}
 		logsResp, err := deployClient.GetReplicaLogs(
 			cmd.Context(),
-			orgId,
-			projectId,
+			pCtx.orgId,
+			pCtx.projectId,
 			replicaName,
 			opts,
 		)
@@ -321,13 +291,13 @@ func init() {
 	replicasLogsCmd.Flags().
 		StringVar(&replicaLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	replicasLogsCmd.Flags().
-		BoolVar(&replicaLogsJSON, "json", false, "Output raw JSON log lines without formatting")
+		BoolVar(&replicaLogsRaw, "raw", false, "Output raw server JSON without formatting")
 	replicasLogsCmd.Flags().
-		StringSliceVar(&replicaLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --json for raw output")
+		StringSliceVar(&replicaLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for raw output")
 	replicasLogsCmd.Flags().
 		BoolVar(&replicaLogsAllFields, "all-fields", false, "Show all extra fields from structured (JSON) logs after the message")
-	replicasLogsCmd.MarkFlagsMutuallyExclusive("json", "fields")
-	replicasLogsCmd.MarkFlagsMutuallyExclusive("json", "all-fields")
+	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
 
 	// Flags for "replicas log-fields"

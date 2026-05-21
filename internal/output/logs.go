@@ -60,7 +60,7 @@ type LogsMeta struct {
 }
 
 type LogFormatOptions struct {
-	JSON      bool
+	Raw       bool
 	Fields    []string
 	AllFields bool
 }
@@ -95,7 +95,7 @@ func PrintLogStream(
 			continue
 		}
 
-		if opts.JSON {
+		if opts.Raw {
 			fmt.Fprintln(out, string(line))
 			continue
 		}
@@ -170,14 +170,12 @@ func formatLogLine(
 		msg = extractString(fields, "message")
 	}
 
-	if msg == "record" {
-		if rec, ok := fields["record"].(map[string]any); ok {
-			if recMsg := extractString(rec, "message"); recMsg != "" {
-				msg = recMsg
-			}
-			if recLevel := extractString(rec, "error_severity"); recLevel != "" {
-				level = recLevel
-			}
+	if rec, ok := fields["record"].(map[string]any); ok {
+		if recMsg := extractString(rec, "message"); recMsg != "" {
+			msg = recMsg
+		}
+		if recLevel := extractString(rec, "error_severity"); recLevel != "" {
+			level = recLevel
 		}
 	}
 
@@ -227,11 +225,11 @@ func formatLogLine(
 			pairs = append(pairs, fmt.Sprintf("%s=%s", k, string(encoded)))
 		}
 		if len(pairs) > 0 {
-			line := strings.Join(pairs, " ")
+			extrasLine := strings.Join(pairs, " ")
 			if useColor {
-				extras = fmt.Sprintf("%s%s%s", colorGray, line, colorReset)
+				extras = fmt.Sprintf("%s%s%s", colorGray, extrasLine, colorReset)
 			} else {
-				extras = line
+				extras = extrasLine
 			}
 		}
 	}

@@ -112,9 +112,9 @@ func TestPrintLogStreamStructuredJSON(t *testing.T) {
 			want:  "ERROR Something failed\n",
 		},
 		{
-			name:  "json flag outputs raw server envelope",
+			name:  "raw flag outputs raw server envelope",
 			input: `{"line":"{\"level\":\"info\",\"msg\":\"hello\"}"}` + "\n",
-			opts:  LogFormatOptions{JSON: true},
+			opts:  LogFormatOptions{Raw: true},
 			want:  `{"line":"{\"level\":\"info\",\"msg\":\"hello\"}"}` + "\n",
 		},
 		{
