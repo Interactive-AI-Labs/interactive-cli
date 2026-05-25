@@ -39,6 +39,10 @@ var (
 	dbLogsSince     string
 	dbLogsStartTime string
 	dbLogsEndTime   string
+	dbLogsRaw       bool
+	dbLogsDecode    bool
+	dbLogsFields    []string
+	dbLogsAllFields bool
 )
 
 var databasesCmd = &cobra.Command{
@@ -285,7 +289,14 @@ var dbLogsCmd = &cobra.Command{
 	Short: "Show logs for a database",
 	Long: `Show logs for a database in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.`,
+Returns up to 5000 log entries in chronological order. Default lookback is 1h.
+
+Structured (JSON) logs are automatically formatted: the level and message are
+extracted and displayed. PostgreSQL-style logs use a "record" envelope — the
+severity and message are extracted from it automatically. Use --fields record
+to see the nested PostgreSQL details; --all-fields includes extra top-level
+fields only. Use --raw for exact server JSON, or --decode to decode embedded
+JSON strings into nested JSON values.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -334,12 +345,77 @@ Returns up to 5000 log entries in chronological order. Default lookback is 1h.`,
 		}
 		defer logsResp.Body.Close()
 
-		meta := output.LogsMeta{Since: logsResp.Since, Truncated: logsResp.Truncated}
-		err = output.PrintLogStream(out, logsResp.Body, true, meta)
+		meta := output.LogsMeta{
+			Since:     logsResp.Since,
+			Truncated: logsResp.Truncated,
+			Empty:     logsResp.Empty,
+		}
+		fmtOpts := output.LogFormatOptions{
+			Raw:        dbLogsRaw || dbLogsDecode,
+			Decode:     dbLogsDecode,
+			Fields:     dbLogsFields,
+			AllFields:  dbLogsAllFields,
+			CNPGFormat: true,
+		}
+		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
 		if dbLogsFollow && ctx.Err() != nil {
 			return nil
 		}
 		return err
+	},
+}
+
+var dbLogFieldsSince string
+
+var dbLogFieldsCmd = &cobra.Command{
+	Use:   "log-fields <database_name>",
+	Short: "List available fields in structured logs",
+	Long: `Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
+
+PostgreSQL-specific details are often nested under the 'record' field, so seeing
+'record' in the results is expected. Use the reported field names with
+'iai databases logs --fields' to include them in output.
+
+Examples:
+  iai databases log-fields my-db
+  iai databases log-fields my-db --since 1h`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		databaseName := strings.TrimSpace(args[0])
+
+		since := dbLogFieldsSince
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
+		if err != nil {
+			return err
+		}
+
+		opts := clients.LogsOptions{Since: since}
+		logsResp, err := deployClient.GetDatabaseLogs(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, databaseName, opts,
+		)
+		if err != nil {
+			return err
+		}
+		defer logsResp.Body.Close()
+
+		if logsResp.Empty {
+			output.PrintNoLogsFound(cmd.ErrOrStderr())
+			return nil
+		}
+
+		fields, err := output.DiscoverLogFields(logsResp.Body)
+		if err != nil {
+			return err
+		}
+		if err := output.PrintLogFields(out, fields); err != nil {
+			return err
+		}
+		if logsResp.Truncated {
+			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr())
+		}
+		return nil
 	},
 }
 
@@ -585,6 +661,19 @@ func init() {
 		StringVar(&dbLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	dbLogsCmd.Flags().
 		StringVar(&dbLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
+	dbLogsCmd.Flags().
+		BoolVar(&dbLogsRaw, "raw", false, "Output exact server JSON lines without formatting")
+	dbLogsCmd.Flags().
+		BoolVar(&dbLogsDecode, "decode", false, "Decode embedded JSON strings into nested JSON values; outputs raw JSON")
+	dbLogsCmd.Flags().
+		StringSliceVar(&dbLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields record); ignored for plain-text logs; use --raw for exact server JSON")
+	dbLogsCmd.Flags().
+		BoolVar(&dbLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
+	dbLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
 
 	// databases backups
 	dbBackupsCmd.Flags().
@@ -626,10 +715,18 @@ func init() {
 	dbPortForwardCmd.Flags().
 		IntVar(&dbPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
 
+	// Flags for "databases log-fields"
+	dbLogFieldsCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbLogFieldsCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+	dbLogFieldsCmd.Flags().
+		StringVar(&dbLogFieldsSince, "since", "1h", "Relative duration to scan (e.g. 5m, 1h)")
+
 	// Wire up command hierarchy
 	databasesCmd.AddCommand(
 		dbListCmd, dbDescribeCmd, dbCreateCmd, dbUpdateCmd, dbDeleteCmd,
-		dbLogsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd, dbPortForwardCmd,
+		dbLogsCmd, dbLogFieldsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd, dbPortForwardCmd,
 	)
 	rootCmd.AddCommand(databasesCmd)
 }
