@@ -103,7 +103,7 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 				"Revision:             2\n" +
 				"Status:               Healthy\n" +
 				"Message:              All instances running\n" +
-				"Updated:              Wed, 15 Jan 2025 11:30:00 +0100\n" +
+				"Updated:              2025-01-15 11:30:00 CET\n" +
 				"PostgreSQL Version:   17\n" +
 				"Instances:            2\n" +
 				"Resources:\n" +

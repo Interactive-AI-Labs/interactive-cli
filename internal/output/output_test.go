@@ -81,27 +81,27 @@ func TestLocalTime(t *testing.T) {
 		{
 			name:  "RFC3339 converts UTC to local timezone",
 			input: "2025-06-15T10:30:00Z",
-			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+			want:  "2025-06-15 12:30:00 CEST",
 		},
 		{
 			name:  "RFC3339 with offset",
 			input: "2025-06-15T10:30:00+03:00",
-			want:  "Sun, 15 Jun 2025 09:30:00 +0200",
+			want:  "2025-06-15 09:30:00 CEST",
 		},
 		{
 			name:  "RFC3339Nano",
 			input: "2025-06-15T10:30:00.123456789Z",
-			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+			want:  "2025-06-15 12:30:00 CEST",
 		},
 		{
 			name:  "microsecond precision format",
 			input: "2025-06-15T10:30:00.123456",
-			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+			want:  "2025-06-15 12:30:00 CEST",
 		},
 		{
 			name:  "bare datetime without fractional seconds",
 			input: "2025-06-15T10:30:00",
-			want:  "Sun, 15 Jun 2025 12:30:00 +0200",
+			want:  "2025-06-15 12:30:00 CEST",
 		},
 		{
 			name:  "returns original string on parse failure",

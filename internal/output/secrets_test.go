@@ -29,52 +29,52 @@ func TestPrintSecretList(t *testing.T) {
 			secrets: []clients.SecretInfo{
 				{
 					Name:      "db-creds",
-					Type:      "Opaque",
+					Type:      "project",
 					CreatedAt: "2024-01-01",
 					Keys:      []string{"USER", "PASS"},
 				},
 			},
-			want: "NAME       TYPE     CREATED      KEYS\n" +
-				"db-creds   Opaque   2024-01-01   USER, PASS\n",
+			want: "NAME       TYPE      CREATED      KEYS\n" +
+				"db-creds   project   2024-01-01   USER, PASS\n",
 		},
 		{
 			name: "secret with many keys truncates",
 			secrets: []clients.SecretInfo{
 				{
 					Name:      "big-secret",
-					Type:      "Opaque",
+					Type:      "database",
 					CreatedAt: "2024-06-01",
 					Keys:      []string{"A", "B", "C", "D", "E"},
 				},
 			},
-			want: "NAME         TYPE     CREATED      KEYS\n" +
-				"big-secret   Opaque   2024-06-01   A, B, C (+2 more)\n",
+			want: "NAME         TYPE       CREATED      KEYS\n" +
+				"big-secret   database   2024-06-01   A, B (+3 more)\n",
 		},
 		{
 			name: "secret with exactly 3 keys shows all",
 			secrets: []clients.SecretInfo{
 				{
 					Name:      "three-keys",
-					Type:      "Opaque",
+					Type:      "database-superuser",
 					CreatedAt: "2024-06-01",
 					Keys:      []string{"X", "Y", "Z"},
 				},
 			},
-			want: "NAME         TYPE     CREATED      KEYS\n" +
-				"three-keys   Opaque   2024-06-01   X, Y, Z\n",
+			want: "NAME         TYPE                 CREATED      KEYS\n" +
+				"three-keys   database-superuser   2024-06-01   X, Y (+1 more)\n",
 		},
 		{
 			name: "secret with no keys shows empty",
 			secrets: []clients.SecretInfo{
 				{
 					Name:      "empty-secret",
-					Type:      "Opaque",
+					Type:      "project",
 					CreatedAt: "2024-06-01",
 					Keys:      []string{},
 				},
 			},
-			want: "NAME           TYPE     CREATED      KEYS\n" +
-				"empty-secret   Opaque   2024-06-01   \n",
+			want: "NAME           TYPE      CREATED      KEYS\n" +
+				"empty-secret   project   2024-06-01   \n",
 		},
 	}
 

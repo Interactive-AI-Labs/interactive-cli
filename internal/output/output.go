@@ -54,7 +54,7 @@ func LocalTime(s string) string {
 		"2006-01-02T15:04:05",
 	} {
 		if t, err := time.Parse(layout, s); err == nil {
-			return t.Local().Format(time.RFC1123Z)
+			return t.Local().Format("2006-01-02 15:04:05 MST")
 		}
 	}
 	return s
