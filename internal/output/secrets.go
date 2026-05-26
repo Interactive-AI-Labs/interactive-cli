@@ -23,7 +23,7 @@ func PrintSecretList(out io.Writer, secrets []clients.SecretInfo) error {
 			s.Name,
 			s.Type,
 			LocalTime(s.CreatedAt),
-			formatSecretKeys(s.Keys, 3),
+			formatSecretKeys(s.Keys, 2),
 		}
 	}
 

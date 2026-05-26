@@ -115,7 +115,7 @@ func TestPrintVectorStoreDescribe(t *testing.T) {
 			want: "Name:             my-store\n" +
 				"Status:           ready\n" +
 				"Engine Version:   POSTGRES_15\n" +
-				"Created At:       Wed, 15 Jan 2025 11:30:00 +0100\n" +
+				"Created At:       2025-01-15 11:30:00 CET\n" +
 				"HA:               Yes\n" +
 				"Backups:          Yes\n" +
 				"Backup Time:      03:00\n" +
@@ -176,7 +176,7 @@ func TestPrintVectorStoreDescribe(t *testing.T) {
 			want: "Name:             no-resize\n" +
 				"Status:           ready\n" +
 				"Engine Version:   POSTGRES_15\n" +
-				"Created At:       Sat, 01 Feb 2025 01:00:00 +0100\n" +
+				"Created At:       2025-02-01 01:00:00 CET\n" +
 				"HA:               No\n" +
 				"Backups:          No\n" +
 				"Secret:           no-resize-credentials\n" +

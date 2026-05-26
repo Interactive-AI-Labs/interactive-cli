@@ -38,7 +38,7 @@ func TestPrintPromptList(t *testing.T) {
 				},
 			},
 			want: "NAME              LABELS       TAGS         UPDATED\n" +
-				"welcome-message   production   onboarding   Wed, 15 Jan 2025 11:30:00 +0100\n",
+				"welcome-message   production   onboarding   2025-01-15 11:30:00 CET\n",
 		},
 		{
 			name: "multiple prompts",
@@ -59,8 +59,8 @@ func TestPrintPromptList(t *testing.T) {
 				},
 			},
 			want: "NAME         LABELS       TAGS            UPDATED\n" +
-				"escalation                compliance      Fri, 10 Jan 2025 09:00:00 +0100\n" +
-				"routing      production   core, routing   Mon, 20 Jan 2025 15:00:00 +0100\n",
+				"escalation                compliance      2025-01-10 09:00:00 CET\n" +
+				"routing      production   core, routing   2025-01-20 15:00:00 CET\n",
 		},
 		{
 			name: "truncates long labels list",
@@ -74,7 +74,7 @@ func TestPrintPromptList(t *testing.T) {
 				},
 			},
 			want: "NAME        LABELS                               TAGS   UPDATED\n" +
-				"my-prompt   production, staging, dev (+1 more)          Sat, 01 Mar 2025 13:00:00 +0100\n",
+				"my-prompt   production, staging, dev (+1 more)          2025-03-01 13:00:00 CET\n",
 		},
 		{
 			name: "folder rows display trailing slash",
@@ -92,7 +92,7 @@ func TestPrintPromptList(t *testing.T) {
 			},
 			want: "NAME         LABELS               TAGS   UPDATED\n" +
 				"team-a/                                  \n" +
-				"faq-lookup   production, latest          Sat, 01 Mar 2025 13:00:00 +0100\n",
+				"faq-lookup   production, latest          2025-03-01 13:00:00 CET\n",
 		},
 	}
 
@@ -256,8 +256,8 @@ func TestPrintPromptDetail(t *testing.T) {
 				"Version:      3\n" +
 				"Labels:       production, staging\n" +
 				"Tags:         v2, experimental\n" +
-				"Created At:   Fri, 10 Jan 2025 09:00:00 +0100\n" +
-				"Updated At:   Wed, 15 Jan 2025 11:30:00 +0100\n" +
+				"Created At:   2025-01-10 09:00:00 CET\n" +
+				"Updated At:   2025-01-15 11:30:00 CET\n" +
 				"\n" +
 				"Content:\n" +
 				"steps:\n" +
