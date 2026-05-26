@@ -59,7 +59,7 @@ var updateCmd = &cobra.Command{
 
 		fmt.Fprintln(out, "Checking for updates...")
 
-		latest, err := versioncheck.FetchLatestVersion()
+		latest, err := versioncheck.FetchLatestVersion(0)
 		if err != nil {
 			return fmt.Errorf("failed to check latest version: %w", err)
 		}
