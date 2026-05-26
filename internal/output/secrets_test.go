@@ -51,7 +51,7 @@ func TestPrintSecretList(t *testing.T) {
 				"big-secret   database   2024-06-01   A, B (+3 more)\n",
 		},
 		{
-			name: "secret with exactly 3 keys shows all",
+			name: "secret with exactly 3 keys truncates to 2 visible",
 			secrets: []clients.SecretInfo{
 				{
 					Name:      "three-keys",
