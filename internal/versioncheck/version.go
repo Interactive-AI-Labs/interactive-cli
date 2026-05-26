@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,7 @@ import (
 
 const (
 	goProxyURL   = "https://proxy.golang.org/github.com/!interactive-!a!i-!labs/interactive-cli/@latest"
-	fetchTimeout = 2 * time.Second
+	fetchTimeout = 10 * time.Second
 )
 
 type proxyInfo struct {
@@ -21,10 +22,18 @@ type proxyInfo struct {
 }
 
 // FetchLatestVersion queries the Go module proxy for the latest tagged version.
-func FetchLatestVersion() (string, error) {
-	client := &http.Client{Timeout: fetchTimeout}
+// A zero timeout uses the default fetch timeout.
+func FetchLatestVersion(timeout time.Duration) (string, error) {
+	if timeout == 0 {
+		timeout = fetchTimeout
+	}
+
+	client := &http.Client{Timeout: timeout}
 	resp, err := client.Get(goProxyURL)
 	if err != nil {
+		if os.IsTimeout(err) {
+			return "", fmt.Errorf("module proxy request timed out after %s", timeout)
+		}
 		return "", fmt.Errorf("failed to reach module proxy: %w", err)
 	}
 	defer resp.Body.Close()
@@ -49,7 +58,7 @@ func GetLatestVersion(cfgDirName string) (string, error) {
 		return v, nil
 	}
 
-	v, err := FetchLatestVersion()
+	v, err := FetchLatestVersion(0)
 	if err != nil {
 		return "", err
 	}
