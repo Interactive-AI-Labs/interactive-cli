@@ -3,8 +3,11 @@ package cmd
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -134,14 +137,7 @@ Examples:
 }
 
 func validateMcpAuth(authType, credential string) error {
-	valid := false
-	for _, a := range validMcpAuthTypes {
-		if authType == a {
-			valid = true
-			break
-		}
-	}
-	if !valid {
+	if !slices.Contains(validMcpAuthTypes, authType) {
 		return fmt.Errorf("invalid --auth-type %q: must be one of %s", authType, strings.Join(validMcpAuthTypes, ", "))
 	}
 	if authType == "none" && credential != "" {
@@ -154,12 +150,10 @@ func validateMcpAuth(authType, credential string) error {
 }
 
 func validateMcpTransport(transport string) error {
-	for _, tr := range validMcpTransports {
-		if transport == tr {
-			return nil
-		}
+	if !slices.Contains(validMcpTransports, transport) {
+		return fmt.Errorf("invalid --transport %q: must be one of %s", transport, strings.Join(validMcpTransports, ", "))
 	}
-	return fmt.Errorf("invalid --transport %q: must be one of %s", transport, strings.Join(validMcpTransports, ", "))
+	return nil
 }
 
 func parseHeaderFlags(pairs []string) (map[string]string, error) {
@@ -174,17 +168,33 @@ func parseHeaderFlags(pairs []string) (map[string]string, error) {
 	return headers, nil
 }
 
+// resolveCredential returns the credential to send. With --credential-stdin it
+// reads the credential from in (trimming a single trailing newline) so the
+// secret never appears in the process list or shell history; otherwise it
+// returns the --credential flag value unchanged.
+func resolveCredential(in io.Reader, credential string, fromStdin bool) (string, error) {
+	if !fromStdin {
+		return credential, nil
+	}
+	data, err := io.ReadAll(in)
+	if err != nil {
+		return "", fmt.Errorf("failed to read credential from stdin: %w", err)
+	}
+	return strings.TrimRight(string(data), "\r\n"), nil
+}
+
 func makeIntegrationsCreateCustomCmd() *cobra.Command {
 	var (
-		endpointURL string
-		authType    string
-		credential  string
-		transport   string
-		slug        string
-		description string
-		headers     []string
-		project     string
-		org         string
+		endpointURL     string
+		authType        string
+		credential      string
+		credentialStdin bool
+		transport       string
+		slug            string
+		description     string
+		headers         []string
+		project         string
+		org             string
 	)
 	cmd := &cobra.Command{
 		Use:   "create-custom <name>",
@@ -200,6 +210,9 @@ Examples:
   iai integrations create-custom github \
     --endpoint-url https://api.githubcopilot.com/mcp \
     --auth-type bearer --credential "$GITHUB_TOKEN"
+  iai integrations create-custom github \
+    --endpoint-url https://api.githubcopilot.com/mcp \
+    --auth-type bearer --credential-stdin < token.txt
   iai integrations create-custom internal \
     --endpoint-url https://mcp.internal/sse --transport sse \
     --auth-type api_key --credential "$KEY" --header "X-Team=platform"`,
@@ -208,6 +221,10 @@ Examples:
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
+			credential, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
+			if err != nil {
+				return err
+			}
 			if err := validateMcpAuth(authType, credential); err != nil {
 				return err
 			}
@@ -247,12 +264,14 @@ Examples:
 	cmd.Flags().StringVar(&endpointURL, "endpoint-url", "", "MCP server endpoint URL (required)")
 	cmd.Flags().StringVar(&authType, "auth-type", "", "Auth type: api_key, bearer, or none (required)")
 	cmd.Flags().StringVar(&credential, "credential", "", "API key or bearer token (required unless auth-type=none)")
+	cmd.Flags().BoolVar(&credentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
 	cmd.Flags().StringVar(&transport, "transport", "streamable_http", "Transport: streamable_http (default) or sse")
 	cmd.Flags().StringVar(&slug, "slug", "", "Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)")
 	cmd.Flags().StringVar(&description, "description", "", "Human-readable description")
 	cmd.Flags().StringArrayVar(&headers, "header", nil, "Extra header as KEY=VALUE (repeatable)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the connection")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 	_ = cmd.MarkFlagRequired("endpoint-url")
 	_ = cmd.MarkFlagRequired("auth-type")
 	return cmd
@@ -260,13 +279,14 @@ Examples:
 
 func makeIntegrationsCreateFromCatalogCmd() *cobra.Command {
 	var (
-		catalogID   string
-		authType    string
-		credential  string
-		slug        string
-		description string
-		project     string
-		org         string
+		catalogID       string
+		authType        string
+		credential      string
+		credentialStdin bool
+		slug            string
+		description     string
+		project         string
+		org             string
 	)
 	cmd := &cobra.Command{
 		Use:   "create-from-catalog <name>",
@@ -287,6 +307,10 @@ Examples:
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
+			credential, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
+			if err != nil {
+				return err
+			}
 			if err := validateMcpAuth(authType, credential); err != nil {
 				return err
 			}
@@ -317,13 +341,28 @@ Examples:
 	cmd.Flags().StringVar(&catalogID, "catalog-id", "", "Catalog entry id (required; see 'iai integrations catalog')")
 	cmd.Flags().StringVar(&authType, "auth-type", "", "Auth type: api_key, bearer, or none (required)")
 	cmd.Flags().StringVar(&credential, "credential", "", "API key or bearer token (required unless auth-type=none)")
+	cmd.Flags().BoolVar(&credentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
 	cmd.Flags().StringVar(&slug, "slug", "", "Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)")
 	cmd.Flags().StringVar(&description, "description", "", "Human-readable description")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the connection")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 	_ = cmd.MarkFlagRequired("catalog-id")
 	_ = cmd.MarkFlagRequired("auth-type")
 	return cmd
+}
+
+// confirmDeletion prompts on out and reads a y/N answer from in. It returns true
+// only when the user typed "y". Input that ends without a trailing newline (e.g.
+// `echo -n y | ...`, where ReadString yields the bytes alongside io.EOF) is still
+// honored; a bare EOF with no input is treated as a decline, not an error.
+func confirmDeletion(in io.Reader, out io.Writer, id string) (bool, error) {
+	fmt.Fprintf(out, "This will delete integration connection %q. Continue? [y/N] ", id)
+	answer, err := bufio.NewReader(in).ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false, fmt.Errorf("failed to read confirmation: %w", err)
+	}
+	return strings.ToLower(strings.TrimSpace(answer)) == "y", nil
 }
 
 func makeIntegrationsDeleteCmd() *cobra.Command {
@@ -348,13 +387,11 @@ Examples:
 			id := strings.TrimSpace(args[0])
 
 			if !force {
-				fmt.Fprintf(out, "This will delete integration connection %q. Continue? [y/N] ", id)
-				reader := bufio.NewReader(cmd.InOrStdin())
-				answer, err := reader.ReadString('\n')
+				confirmed, err := confirmDeletion(cmd.InOrStdin(), out, id)
 				if err != nil {
-					return fmt.Errorf("failed to read confirmation: %w", err)
+					return err
 				}
-				if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+				if !confirmed {
 					fmt.Fprintln(out, "Aborted.")
 					return nil
 				}
@@ -423,6 +460,11 @@ func resolveToolArgs(inline, file string) (map[string]any, error) {
 	var args map[string]any
 	if err := json.Unmarshal([]byte(raw), &args); err != nil {
 		return nil, fmt.Errorf("invalid tool arguments: must be a JSON object: %w", err)
+	}
+	// JSON null unmarshals to a nil map without error; reject it like any other
+	// non-object so it can't masquerade as an empty argument set.
+	if args == nil {
+		return nil, fmt.Errorf("invalid tool arguments: must be a JSON object, got null")
 	}
 	return args, nil
 }

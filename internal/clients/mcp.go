@@ -2,7 +2,6 @@ package clients
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 )
 
@@ -107,22 +106,12 @@ type McpConnectionCreateBody struct {
 	CustomHeaders map[string]string `json:"custom_headers,omitempty"`
 }
 
-// mcpBasePath builds the org+project-scoped platform prefix, mirroring
-// evalBasePath in api_client_eval.go.
-func mcpBasePath(orgID, projectID string) string {
-	return fmt.Sprintf(
-		"/api/platform/v1/organizations/%s/projects/%s",
-		url.PathEscape(orgID),
-		url.PathEscape(projectID),
-	)
-}
-
 // --- Read methods (List, Get, Catalog)
 
 func (c *APIClient) ListMcpConnections(
 	ctx context.Context, orgID, projectID string,
 ) (*McpConnectionListData, error) {
-	path := mcpBasePath(orgID, projectID) + "/mcp-connections"
+	path := evalBasePath(orgID, projectID) + "/mcp-connections"
 	data, _, err := doGet[McpConnectionListData](c, ctx, path, "list mcp connections")
 	if err != nil {
 		return nil, err
@@ -133,7 +122,7 @@ func (c *APIClient) ListMcpConnections(
 func (c *APIClient) GetMcpConnection(
 	ctx context.Context, orgID, projectID, id string,
 ) (*McpConnectionDetail, error) {
-	path := mcpBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id)
+	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id)
 	data, _, err := doGet[McpConnectionDetailData](c, ctx, path, "get mcp connection")
 	if err != nil {
 		return nil, err
@@ -144,7 +133,7 @@ func (c *APIClient) GetMcpConnection(
 func (c *APIClient) ListMcpCatalog(
 	ctx context.Context, orgID, projectID string,
 ) (*McpCatalogListData, error) {
-	path := mcpBasePath(orgID, projectID) + "/mcp-catalog"
+	path := evalBasePath(orgID, projectID) + "/mcp-catalog"
 	data, _, err := doGet[McpCatalogListData](c, ctx, path, "list mcp catalog")
 	if err != nil {
 		return nil, err
@@ -157,17 +146,11 @@ func (c *APIClient) ListMcpCatalog(
 // endpoints accept session-cookie and bearer-token auth with RBAC, and the
 // copilot authenticates with a bearer JWT. Gating on API-key mode would break
 // both iai-login (cookie) users and the copilot.
-//
-// Create/Verify/RunTool discard the raw json.RawMessage returned by doCreate.
-// Integrations commands render typed output only and have no raw/JSON output
-// mode, so surfacing the raw body would be an unused return value. If a
-// raw/JSON output mode is added in the future, thread the second return value
-// through here and expose it in the command layer.
 
 func (c *APIClient) CreateMcpConnection(
 	ctx context.Context, orgID, projectID string, body McpConnectionCreateBody,
 ) (*McpConnectionDetail, error) {
-	path := mcpBasePath(orgID, projectID) + "/mcp-connections"
+	path := evalBasePath(orgID, projectID) + "/mcp-connections"
 	data, _, err := doCreate[McpConnectionDetailData](c, ctx, path, body, "create mcp connection")
 	if err != nil {
 		return nil, err
@@ -178,7 +161,7 @@ func (c *APIClient) CreateMcpConnection(
 func (c *APIClient) DeleteMcpConnection(
 	ctx context.Context, orgID, projectID, id string,
 ) error {
-	path := mcpBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id)
+	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id)
 	_, err := c.doDelete(ctx, path, "delete mcp connection")
 	return err
 }
@@ -186,7 +169,7 @@ func (c *APIClient) DeleteMcpConnection(
 func (c *APIClient) VerifyMcpConnection(
 	ctx context.Context, orgID, projectID, id string,
 ) (*McpVerifyData, error) {
-	path := mcpBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id) + "/verify"
+	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id) + "/verify"
 	// POST with no body; doCreate handles a nil body via newJSONRequest.
 	data, _, err := doCreate[McpVerifyData](c, ctx, path, nil, "verify mcp connection")
 	if err != nil {
@@ -201,7 +184,7 @@ func (c *APIClient) RunMcpTool(
 	if arguments == nil {
 		arguments = map[string]any{}
 	}
-	path := mcpBasePath(orgID, projectID) + "/mcp-connections/" +
+	path := evalBasePath(orgID, projectID) + "/mcp-connections/" +
 		url.PathEscape(id) + "/tools/" + url.PathEscape(tool) + "/run"
 	body := struct {
 		Arguments map[string]any `json:"arguments"`

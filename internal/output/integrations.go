@@ -76,11 +76,16 @@ func PrintMcpConnectionDetail(out io.Writer, conn *clients.McpConnectionDetail) 
 		fmt.Fprintln(out, "\nNo tools discovered yet. Run 'iai integrations verify' to refresh.")
 		return nil
 	}
+	return printMcpToolsTable(out, conn.Tools)
+}
+
+// printMcpToolsTable renders the shared NAME/ENABLED/DESCRIPTION tool table.
+// InputSchema is omitted — too verbose for terminal display.
+func printMcpToolsTable(out io.Writer, tools []clients.McpTool) error {
 	fmt.Fprintln(out, "\nTools:")
-	// InputSchema is omitted from the table — too verbose for terminal display.
 	headers := []string{"NAME", "ENABLED", "DESCRIPTION"}
-	rows := make([][]string, len(conn.Tools))
-	for i, tl := range conn.Tools {
+	rows := make([][]string, len(tools))
+	for i, tl := range tools {
 		rows[i] = []string{tl.Name, fmt.Sprintf("%t", tl.Enabled), tl.Description}
 	}
 	return PrintTable(out, headers, rows)
@@ -114,18 +119,12 @@ func PrintMcpVerifyResult(out io.Writer, res *clients.McpVerifyData) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-	// Intentional early return: the status block above already conveyed the outcome.
+	// The status block above already conveyed the outcome; nothing more to show
+	// when there are no tools (ServerInfo is intentionally not rendered).
 	if len(res.Tools) == 0 {
 		return nil
 	}
-	// ServerInfo and InputSchema are omitted from table display — too verbose for terminal output.
-	fmt.Fprintln(out, "\nTools:")
-	headers := []string{"NAME", "ENABLED", "DESCRIPTION"}
-	rows := make([][]string, len(res.Tools))
-	for i, tl := range res.Tools {
-		rows[i] = []string{tl.Name, fmt.Sprintf("%t", tl.Enabled), tl.Description}
-	}
-	return PrintTable(out, headers, rows)
+	return printMcpToolsTable(out, res.Tools)
 }
 
 func PrintMcpToolResult(out io.Writer, res *clients.McpToolCallData) error {

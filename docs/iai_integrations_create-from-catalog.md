@@ -26,6 +26,7 @@ iai integrations create-from-catalog <name> [flags]
       --auth-type string      Auth type: api_key, bearer, or none (required)
       --catalog-id string     Catalog entry id (required; see 'iai integrations catalog')
       --credential string     API key or bearer token (required unless auth-type=none)
+      --credential-stdin      Read the credential from stdin instead of --credential
       --description string    Human-readable description
   -h, --help                  help for create-from-catalog
   -o, --organization string   Organization name that owns the project

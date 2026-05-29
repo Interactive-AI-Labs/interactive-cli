@@ -110,6 +110,35 @@ func TestCreateMcpConnection(t *testing.T) {
 	}
 }
 
+func TestCreateMcpConnectionFromCatalog(t *testing.T) {
+	var gotBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.WriteHeader(http.StatusCreated)
+		_, _ = io.WriteString(w, `{"success":true,"data":{"connection":{"id":"c5","name":"gh","type":"platform","status":"ok"}}}`)
+	}))
+	defer server.Close()
+
+	conn, err := cookieClient(t, server.URL).CreateMcpConnection(
+		context.Background(), "org-1", "proj-1",
+		McpConnectionCreateBody{Type: "platform", CatalogID: "github", Name: "gh", AuthType: "bearer", Credential: "tok"},
+	)
+	if err != nil {
+		t.Fatalf("CreateMcpConnection() error = %v", err)
+	}
+	if conn.ID != "c5" {
+		t.Fatalf("unexpected connection: %#v", conn)
+	}
+	if !strings.Contains(gotBody, `"type":"platform"`) || !strings.Contains(gotBody, `"catalog_id":"github"`) {
+		t.Fatalf("unexpected request body: %s", gotBody)
+	}
+	// endpoint_url/transport are omitempty for catalog connections and must not be sent.
+	if strings.Contains(gotBody, "endpoint_url") || strings.Contains(gotBody, "transport") {
+		t.Fatalf("catalog body should omit endpoint_url/transport: %s", gotBody)
+	}
+}
+
 func TestDeleteMcpConnection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
@@ -175,5 +204,26 @@ func TestRunMcpTool(t *testing.T) {
 	}
 	if !strings.Contains(gotBody, `"arguments":{"q":"foo"}`) {
 		t.Fatalf("unexpected request body: %s", gotBody)
+	}
+}
+
+func TestRunMcpToolNilArgs(t *testing.T) {
+	var gotBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		_, _ = io.WriteString(w, `{"success":true,"data":{"status":"ok"}}`)
+	}))
+	defer server.Close()
+
+	_, err := cookieClient(t, server.URL).RunMcpTool(
+		context.Background(), "org-1", "proj-1", "c1", "search", nil,
+	)
+	if err != nil {
+		t.Fatalf("RunMcpTool() error = %v", err)
+	}
+	// nil arguments must serialize as an empty object, never JSON null.
+	if !strings.Contains(gotBody, `"arguments":{}`) {
+		t.Fatalf("nil args should send empty object, got: %s", gotBody)
 	}
 }

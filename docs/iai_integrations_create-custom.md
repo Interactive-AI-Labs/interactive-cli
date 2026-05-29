@@ -15,6 +15,9 @@ Examples:
   iai integrations create-custom github \
     --endpoint-url https://api.githubcopilot.com/mcp \
     --auth-type bearer --credential "$GITHUB_TOKEN"
+  iai integrations create-custom github \
+    --endpoint-url https://api.githubcopilot.com/mcp \
+    --auth-type bearer --credential-stdin < token.txt
   iai integrations create-custom internal \
     --endpoint-url https://mcp.internal/sse --transport sse \
     --auth-type api_key --credential "$KEY" --header "X-Team=platform"
@@ -28,6 +31,7 @@ iai integrations create-custom <name> [flags]
 ```
       --auth-type string      Auth type: api_key, bearer, or none (required)
       --credential string     API key or bearer token (required unless auth-type=none)
+      --credential-stdin      Read the credential from stdin instead of --credential
       --description string    Human-readable description
       --endpoint-url string   MCP server endpoint URL (required)
       --header stringArray    Extra header as KEY=VALUE (repeatable)

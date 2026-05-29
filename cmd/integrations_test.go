@@ -1,10 +1,46 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+// TestConfirmDeletion verifies the confirmation prompt honors input that ends
+// without a trailing newline (ReadString returns it alongside io.EOF) and treats
+// empty input as a safe decline rather than an error.
+func TestConfirmDeletion(t *testing.T) {
+	tests := []struct {
+		name   string
+		stdin  string
+		wantOK bool
+	}{
+		{"yes with newline", "y\n", true},
+		{"yes without newline (EOF mid-line)", "y", true},
+		{"uppercase yes", "Y\n", true},
+		{"yes with surrounding space", "  y  \n", true},
+		{"no", "n\n", false},
+		{"empty stdin (bare EOF)", "", false},
+		{"anything else declines", "yes please\n", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			ok, err := confirmDeletion(strings.NewReader(tt.stdin), &out, "some-id")
+			if err != nil {
+				t.Fatalf("stdin=%q unexpected error: %v", tt.stdin, err)
+			}
+			if ok != tt.wantOK {
+				t.Fatalf("stdin=%q ok=%v wantOK=%v", tt.stdin, ok, tt.wantOK)
+			}
+			if !strings.Contains(out.String(), "some-id") {
+				t.Fatalf("prompt did not mention the connection id: %q", out.String())
+			}
+		})
+	}
+}
 
 func TestValidateMcpAuth(t *testing.T) {
 	tests := []struct {
@@ -53,6 +89,9 @@ func TestParseHeaderFlags(t *testing.T) {
 	if _, err := parseHeaderFlags([]string{"bad-no-equals"}); err == nil {
 		t.Fatal("expected error for header without '='")
 	}
+	if _, err := parseHeaderFlags([]string{"=value"}); err == nil {
+		t.Fatal("expected error for header with empty key")
+	}
 }
 
 func TestResolveToolArgs(t *testing.T) {
@@ -79,9 +118,43 @@ func TestResolveToolArgs(t *testing.T) {
 		t.Fatal("expected error for non-object JSON")
 	}
 
+	// JSON null rejected (would otherwise unmarshal to a nil map)
+	if _, err := resolveToolArgs(`null`, ""); err == nil {
+		t.Fatal("expected error for JSON null")
+	}
+
 	// invalid JSON rejected
 	if _, err := resolveToolArgs(`{not json}`, ""); err == nil {
 		t.Fatal("expected error for invalid JSON")
+	}
+}
+
+func TestResolveCredential(t *testing.T) {
+	// flag value passes through unchanged when not reading stdin
+	got, err := resolveCredential(strings.NewReader("ignored"), "flag-secret", false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "flag-secret" {
+		t.Fatalf("got %q, want flag-secret", got)
+	}
+
+	// stdin value is read and a single trailing newline trimmed
+	got, err = resolveCredential(strings.NewReader("stdin-secret\n"), "", true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "stdin-secret" {
+		t.Fatalf("got %q, want stdin-secret", got)
+	}
+
+	// CRLF trailing newline also trimmed
+	got, err = resolveCredential(strings.NewReader("stdin-secret\r\n"), "", true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "stdin-secret" {
+		t.Fatalf("got %q, want stdin-secret", got)
 	}
 }
 
