@@ -5,8 +5,8 @@ import (
 	"net/url"
 )
 
-// --- Read shapes (mirror backend api/platform/v1/schemas/mcp_connections.py).
-// The credential is never returned by the API, so it has no field here.
+// These mirror the backend mcp_connections schemas; the credential is never
+// returned by the API, so it has no field here.
 
 type ConnectedAgentRef struct {
 	ID   string `json:"id"`
@@ -90,9 +90,8 @@ type McpCatalogListData struct {
 	Entries []McpCatalogEntry `json:"entries"`
 }
 
-// --- Create request. One body covers both connection types; the two
-// create-* commands populate it differently.
-
+// One body covers both connection types; the create-* commands populate it
+// differently.
 type McpConnectionCreateBody struct {
 	Type          string            `json:"type"`
 	CatalogID     string            `json:"catalog_id,omitempty"`
@@ -105,8 +104,6 @@ type McpConnectionCreateBody struct {
 	Credential    string            `json:"credential,omitempty"`
 	CustomHeaders map[string]string `json:"custom_headers,omitempty"`
 }
-
-// --- Read methods (List, Get, Catalog)
 
 func (c *APIClient) ListMcpConnections(
 	ctx context.Context, orgID, projectID string,
@@ -141,12 +138,8 @@ func (c *APIClient) ListMcpCatalog(
 	return &data, nil
 }
 
-// --- Write methods (Create, Delete, Verify, RunTool)
-// These deliberately do NOT call requireAPIKeyMode() — the backend MCP
-// endpoints accept session-cookie and bearer-token auth with RBAC, and the
-// copilot authenticates with a bearer JWT. Gating on API-key mode would break
-// both iai-login (cookie) users and the copilot.
-
+// No requireAPIKeyMode() on these writes: the MCP endpoints accept cookie and
+// bearer auth, so gating on API-key mode would break iai-login users and the copilot.
 func (c *APIClient) CreateMcpConnection(
 	ctx context.Context, orgID, projectID string, body McpConnectionCreateBody,
 ) (*McpConnectionDetail, error) {
@@ -170,7 +163,6 @@ func (c *APIClient) VerifyMcpConnection(
 	ctx context.Context, orgID, projectID, id string,
 ) (*McpVerifyData, error) {
 	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id) + "/verify"
-	// POST with no body; doCreate handles a nil body via newJSONRequest.
 	data, _, err := doCreate[McpVerifyData](c, ctx, path, nil, "verify mcp connection")
 	if err != nil {
 		return nil, err

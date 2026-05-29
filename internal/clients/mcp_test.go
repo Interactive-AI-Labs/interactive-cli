@@ -30,11 +30,17 @@ func TestListMcpConnections(t *testing.T) {
 		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/mcp-connections" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
-		_, _ = io.WriteString(w, `{"success":true,"data":{"connections":[{"id":"c1","name":"github","type":"custom","status":"ok","tool_count":3}]}}`)
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"connections":[{"id":"c1","name":"github","type":"custom","status":"ok","tool_count":3}]}}`,
+		)
 	}))
 	defer server.Close()
 
-	data, err := cookieClient(t, server.URL).ListMcpConnections(context.Background(), "org-1", "proj-1")
+	data, err := cookieClient(
+		t,
+		server.URL,
+	).ListMcpConnections(context.Background(), "org-1", "proj-1")
 	if err != nil {
 		t.Fatalf("ListMcpConnections() error = %v", err)
 	}
@@ -48,11 +54,17 @@ func TestGetMcpConnection(t *testing.T) {
 		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/mcp-connections/c1" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
-		_, _ = io.WriteString(w, `{"success":true,"data":{"connection":{"id":"c1","name":"github","type":"custom","status":"ok","tools":[{"name":"search","enabled":true}]}}}`)
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"connection":{"id":"c1","name":"github","type":"custom","status":"ok","tools":[{"name":"search","enabled":true}]}}}`,
+		)
 	}))
 	defer server.Close()
 
-	conn, err := cookieClient(t, server.URL).GetMcpConnection(context.Background(), "org-1", "proj-1", "c1")
+	conn, err := cookieClient(
+		t,
+		server.URL,
+	).GetMcpConnection(context.Background(), "org-1", "proj-1", "c1")
 	if err != nil {
 		t.Fatalf("GetMcpConnection() error = %v", err)
 	}
@@ -66,7 +78,10 @@ func TestListMcpCatalog(t *testing.T) {
 		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/mcp-catalog" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
-		_, _ = io.WriteString(w, `{"success":true,"data":{"entries":[{"id":"e1","name":"GitHub","category":"dev","type":"platform","auth_methods":["api_key"]}]}}`)
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"entries":[{"id":"e1","name":"GitHub","category":"dev","type":"platform","auth_methods":["api_key"]}]}}`,
+		)
 	}))
 	defer server.Close()
 
@@ -91,13 +106,21 @@ func TestCreateMcpConnection(t *testing.T) {
 		b, _ := io.ReadAll(r.Body)
 		gotBody = string(b)
 		w.WriteHeader(http.StatusCreated)
-		_, _ = io.WriteString(w, `{"success":true,"data":{"connection":{"id":"c9","name":"db","type":"custom","status":"ok"}}}`)
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"connection":{"id":"c9","name":"db","type":"custom","status":"ok"}}}`,
+		)
 	}))
 	defer server.Close()
 
 	conn, err := cookieClient(t, server.URL).CreateMcpConnection(
 		context.Background(), "org-1", "proj-1",
-		McpConnectionCreateBody{Type: "custom", Name: "db", EndpointURL: "https://x", AuthType: "none"},
+		McpConnectionCreateBody{
+			Type:        "custom",
+			Name:        "db",
+			EndpointURL: "https://x",
+			AuthType:    "none",
+		},
 	)
 	if err != nil {
 		t.Fatalf("CreateMcpConnection() error = %v", err)
@@ -105,7 +128,8 @@ func TestCreateMcpConnection(t *testing.T) {
 	if conn.ID != "c9" {
 		t.Fatalf("unexpected connection: %#v", conn)
 	}
-	if !strings.Contains(gotBody, `"type":"custom"`) || !strings.Contains(gotBody, `"endpoint_url":"https://x"`) {
+	if !strings.Contains(gotBody, `"type":"custom"`) ||
+		!strings.Contains(gotBody, `"endpoint_url":"https://x"`) {
 		t.Fatalf("unexpected request body: %s", gotBody)
 	}
 }
@@ -116,13 +140,22 @@ func TestCreateMcpConnectionFromCatalog(t *testing.T) {
 		b, _ := io.ReadAll(r.Body)
 		gotBody = string(b)
 		w.WriteHeader(http.StatusCreated)
-		_, _ = io.WriteString(w, `{"success":true,"data":{"connection":{"id":"c5","name":"gh","type":"platform","status":"ok"}}}`)
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"connection":{"id":"c5","name":"gh","type":"platform","status":"ok"}}}`,
+		)
 	}))
 	defer server.Close()
 
 	conn, err := cookieClient(t, server.URL).CreateMcpConnection(
 		context.Background(), "org-1", "proj-1",
-		McpConnectionCreateBody{Type: "platform", CatalogID: "github", Name: "gh", AuthType: "bearer", Credential: "tok"},
+		McpConnectionCreateBody{
+			Type:       "platform",
+			CatalogID:  "github",
+			Name:       "gh",
+			AuthType:   "bearer",
+			Credential: "tok",
+		},
 	)
 	if err != nil {
 		t.Fatalf("CreateMcpConnection() error = %v", err)
@@ -130,7 +163,8 @@ func TestCreateMcpConnectionFromCatalog(t *testing.T) {
 	if conn.ID != "c5" {
 		t.Fatalf("unexpected connection: %#v", conn)
 	}
-	if !strings.Contains(gotBody, `"type":"platform"`) || !strings.Contains(gotBody, `"catalog_id":"github"`) {
+	if !strings.Contains(gotBody, `"type":"platform"`) ||
+		!strings.Contains(gotBody, `"catalog_id":"github"`) {
 		t.Fatalf("unexpected request body: %s", gotBody)
 	}
 	// endpoint_url/transport are omitempty for catalog connections and must not be sent.
@@ -151,7 +185,10 @@ func TestDeleteMcpConnection(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := cookieClient(t, server.URL).DeleteMcpConnection(context.Background(), "org-1", "proj-1", "c1"); err != nil {
+	if err := cookieClient(
+		t,
+		server.URL,
+	).DeleteMcpConnection(context.Background(), "org-1", "proj-1", "c1"); err != nil {
 		t.Fatalf("DeleteMcpConnection() error = %v", err)
 	}
 }
@@ -164,11 +201,17 @@ func TestVerifyMcpConnection(t *testing.T) {
 		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/mcp-connections/c1/verify" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
-		_, _ = io.WriteString(w, `{"success":true,"data":{"status":"ok","protocol_version":"2025-03-26","tools":[{"name":"t","enabled":true}]}}`)
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"status":"ok","protocol_version":"2025-03-26","tools":[{"name":"t","enabled":true}]}}`,
+		)
 	}))
 	defer server.Close()
 
-	res, err := cookieClient(t, server.URL).VerifyMcpConnection(context.Background(), "org-1", "proj-1", "c1")
+	res, err := cookieClient(
+		t,
+		server.URL,
+	).VerifyMcpConnection(context.Background(), "org-1", "proj-1", "c1")
 	if err != nil {
 		t.Fatalf("VerifyMcpConnection() error = %v", err)
 	}
@@ -188,7 +231,10 @@ func TestRunMcpTool(t *testing.T) {
 		}
 		b, _ := io.ReadAll(r.Body)
 		gotBody = string(b)
-		_, _ = io.WriteString(w, `{"success":true,"data":{"status":"ok","result":{"content":"hi"}}}`)
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"status":"ok","result":{"content":"hi"}}}`,
+		)
 	}))
 	defer server.Close()
 

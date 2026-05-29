@@ -10,9 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TestConfirmDeletion verifies the confirmation prompt honors input that ends
-// without a trailing newline (ReadString returns it alongside io.EOF) and treats
-// empty input as a safe decline rather than an error.
+// Confirmation must honor input without a trailing newline and treat empty input
+// as a decline, not an error.
 func TestConfirmDeletion(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -44,9 +43,8 @@ func TestConfirmDeletion(t *testing.T) {
 	}
 }
 
-// TestIntegrationsEmptyArgGuards verifies each command rejects an empty or
-// whitespace-only positional argument before doing any network work, matching
-// the "<resource> ... is required" convention used by secrets/services.
+// Each command must reject an empty or whitespace-only positional arg before
+// doing any network work.
 func TestIntegrationsEmptyArgGuards(t *testing.T) {
 	cases := []struct {
 		name string
@@ -57,10 +55,30 @@ func TestIntegrationsEmptyArgGuards(t *testing.T) {
 		{"get", makeIntegrationsGetCmd(), []string{"  "}, "connection id is required"},
 		{"verify", makeIntegrationsVerifyCmd(), []string{"  "}, "connection id is required"},
 		{"delete", makeIntegrationsDeleteCmd(), []string{"  "}, "connection id is required"},
-		{"create-custom", makeIntegrationsCreateCustomCmd(), []string{"  "}, "connection name is required"},
-		{"create-from-catalog", makeIntegrationsCreateFromCatalogCmd(), []string{"  "}, "connection name is required"},
-		{"tools run empty id", makeIntegrationsToolsRunCmd(), []string{"  ", "search"}, "connection id is required"},
-		{"tools run empty tool", makeIntegrationsToolsRunCmd(), []string{"c1", "  "}, "tool name is required"},
+		{
+			"create-custom",
+			makeIntegrationsCreateCustomCmd(),
+			[]string{"  "},
+			"connection name is required",
+		},
+		{
+			"create-from-catalog",
+			makeIntegrationsCreateFromCatalogCmd(),
+			[]string{"  "},
+			"connection name is required",
+		},
+		{
+			"tools run empty id",
+			makeIntegrationsToolsRunCmd(),
+			[]string{"  ", "search"},
+			"connection id is required",
+		},
+		{
+			"tools run empty tool",
+			makeIntegrationsToolsRunCmd(),
+			[]string{"c1", "  "},
+			"tool name is required",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -90,7 +108,13 @@ func TestValidateMcpAuth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateMcpAuth(tt.authType, tt.credential)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("validateMcpAuth(%q,%q) err=%v wantErr=%v", tt.authType, tt.credential, err, tt.wantErr)
+				t.Fatalf(
+					"validateMcpAuth(%q,%q) err=%v wantErr=%v",
+					tt.authType,
+					tt.credential,
+					err,
+					tt.wantErr,
+				)
 			}
 		})
 	}

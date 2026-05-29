@@ -79,7 +79,6 @@ func PrintMcpConnectionDetail(out io.Writer, conn *clients.McpConnectionDetail) 
 	return printMcpToolsTable(out, conn.Tools)
 }
 
-// printMcpToolsTable renders the shared NAME/ENABLED/DESCRIPTION tool table.
 // InputSchema is omitted — too verbose for terminal display.
 func printMcpToolsTable(out io.Writer, tools []clients.McpTool) error {
 	fmt.Fprintln(out, "\nTools:")
@@ -119,8 +118,6 @@ func PrintMcpVerifyResult(out io.Writer, res *clients.McpVerifyData) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-	// The status block above already conveyed the outcome; nothing more to show
-	// when there are no tools (ServerInfo is intentionally not rendered).
 	if len(res.Tools) == 0 {
 		return nil
 	}

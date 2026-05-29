@@ -15,8 +15,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var validMcpAuthTypes = []string{"api_key", "bearer", "none"}
-var validMcpTransports = []string{"streamable_http", "sse"}
+var (
+	validMcpAuthTypes  = []string{"api_key", "bearer", "none"}
+	validMcpTransports = []string{"streamable_http", "sse"}
+)
 
 func init() {
 	parentCmd := &cobra.Command{
@@ -141,7 +143,11 @@ Examples:
 
 func validateMcpAuth(authType, credential string) error {
 	if !slices.Contains(validMcpAuthTypes, authType) {
-		return fmt.Errorf("invalid --auth-type %q: must be one of %s", authType, strings.Join(validMcpAuthTypes, ", "))
+		return fmt.Errorf(
+			"invalid --auth-type %q: must be one of %s",
+			authType,
+			strings.Join(validMcpAuthTypes, ", "),
+		)
 	}
 	if authType == "none" && credential != "" {
 		return fmt.Errorf("--credential must not be set when --auth-type is 'none'")
@@ -154,7 +160,11 @@ func validateMcpAuth(authType, credential string) error {
 
 func validateMcpTransport(transport string) error {
 	if !slices.Contains(validMcpTransports, transport) {
-		return fmt.Errorf("invalid --transport %q: must be one of %s", transport, strings.Join(validMcpTransports, ", "))
+		return fmt.Errorf(
+			"invalid --transport %q: must be one of %s",
+			transport,
+			strings.Join(validMcpTransports, ", "),
+		)
 	}
 	return nil
 }
@@ -171,10 +181,8 @@ func parseHeaderFlags(pairs []string) (map[string]string, error) {
 	return headers, nil
 }
 
-// resolveCredential returns the credential to send. With --credential-stdin it
-// reads the credential from in (trimming a single trailing newline) so the
-// secret never appears in the process list or shell history; otherwise it
-// returns the --credential flag value unchanged.
+// Reading the credential from stdin keeps the secret out of the process list
+// and shell history.
 func resolveCredential(in io.Reader, credential string, fromStdin bool) (string, error) {
 	if !fromStdin {
 		return credential, nil
@@ -260,7 +268,12 @@ Examples:
 			}
 
 			fmt.Fprintf(out, "\nConnecting %q and verifying...\n\n", name)
-			conn, err := apiClient.CreateMcpConnection(cmd.Context(), pCtx.orgId, pCtx.projectId, body)
+			conn, err := apiClient.CreateMcpConnection(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+				body,
+			)
 			if err != nil {
 				return err
 			}
@@ -268,11 +281,16 @@ Examples:
 		},
 	}
 	cmd.Flags().StringVar(&endpointURL, "endpoint-url", "", "MCP server endpoint URL (required)")
-	cmd.Flags().StringVar(&authType, "auth-type", "", "Auth type: api_key, bearer, or none (required)")
-	cmd.Flags().StringVar(&credential, "credential", "", "API key or bearer token (required unless auth-type=none)")
-	cmd.Flags().BoolVar(&credentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
-	cmd.Flags().StringVar(&transport, "transport", "streamable_http", "Transport: streamable_http (default) or sse")
-	cmd.Flags().StringVar(&slug, "slug", "", "Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)")
+	cmd.Flags().
+		StringVar(&authType, "auth-type", "", "Auth type: api_key, bearer, or none (required)")
+	cmd.Flags().
+		StringVar(&credential, "credential", "", "API key or bearer token (required unless auth-type=none)")
+	cmd.Flags().
+		BoolVar(&credentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
+	cmd.Flags().
+		StringVar(&transport, "transport", "streamable_http", "Transport: streamable_http (default) or sse")
+	cmd.Flags().
+		StringVar(&slug, "slug", "", "Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)")
 	cmd.Flags().StringVar(&description, "description", "", "Human-readable description")
 	cmd.Flags().StringArrayVar(&headers, "header", nil, "Extra header as KEY=VALUE (repeatable)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the connection")
@@ -339,19 +357,34 @@ Examples:
 				Credential:  credential,
 			}
 
-			fmt.Fprintf(out, "\nConnecting %q from catalog entry %q and verifying...\n\n", name, catalogID)
-			conn, err := apiClient.CreateMcpConnection(cmd.Context(), pCtx.orgId, pCtx.projectId, body)
+			fmt.Fprintf(
+				out,
+				"\nConnecting %q from catalog entry %q and verifying...\n\n",
+				name,
+				catalogID,
+			)
+			conn, err := apiClient.CreateMcpConnection(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+				body,
+			)
 			if err != nil {
 				return err
 			}
 			return output.PrintMcpConnectionDetail(out, conn)
 		},
 	}
-	cmd.Flags().StringVar(&catalogID, "catalog-id", "", "Catalog entry id (required; see 'iai integrations catalog')")
-	cmd.Flags().StringVar(&authType, "auth-type", "", "Auth type: api_key, bearer, or none (required)")
-	cmd.Flags().StringVar(&credential, "credential", "", "API key or bearer token (required unless auth-type=none)")
-	cmd.Flags().BoolVar(&credentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
-	cmd.Flags().StringVar(&slug, "slug", "", "Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)")
+	cmd.Flags().
+		StringVar(&catalogID, "catalog-id", "", "Catalog entry id (required; see 'iai integrations catalog')")
+	cmd.Flags().
+		StringVar(&authType, "auth-type", "", "Auth type: api_key, bearer, or none (required)")
+	cmd.Flags().
+		StringVar(&credential, "credential", "", "API key or bearer token (required unless auth-type=none)")
+	cmd.Flags().
+		BoolVar(&credentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
+	cmd.Flags().
+		StringVar(&slug, "slug", "", "Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)")
 	cmd.Flags().StringVar(&description, "description", "", "Human-readable description")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the connection")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
@@ -361,10 +394,8 @@ Examples:
 	return cmd
 }
 
-// confirmDeletion prompts on out and reads a y/N answer from in. It returns true
-// only when the user typed "y". Input that ends without a trailing newline (e.g.
-// `echo -n y | ...`, where ReadString yields the bytes alongside io.EOF) is still
-// honored; a bare EOF with no input is treated as a decline, not an error.
+// Tolerating io.EOF honors input without a trailing newline (echo -n y); a bare
+// EOF with no input declines rather than erroring.
 func confirmDeletion(in io.Reader, out io.Writer, id string) (bool, error) {
 	fmt.Fprintf(out, "This will delete integration connection %q. Continue? [y/N] ", id)
 	answer, err := bufio.NewReader(in).ReadString('\n')
@@ -413,7 +444,12 @@ Examples:
 			if err != nil {
 				return err
 			}
-			if err := apiClient.DeleteMcpConnection(cmd.Context(), pCtx.orgId, pCtx.projectId, id); err != nil {
+			if err := apiClient.DeleteMcpConnection(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+				id,
+			); err != nil {
 				return err
 			}
 			fmt.Fprintf(out, "Successfully deleted integration connection %q.\n", id)
@@ -476,8 +512,7 @@ func resolveToolArgs(inline, file string) (map[string]any, error) {
 	if err := json.Unmarshal([]byte(raw), &args); err != nil {
 		return nil, fmt.Errorf("invalid tool arguments: must be a JSON object: %w", err)
 	}
-	// JSON null unmarshals to a nil map without error; reject it like any other
-	// non-object so it can't masquerade as an empty argument set.
+	// null unmarshals to a nil map without error, so reject it like any non-object.
 	if args == nil {
 		return nil, fmt.Errorf("invalid tool arguments: must be a JSON object, got null")
 	}
@@ -534,7 +569,14 @@ Examples:
 			if err != nil {
 				return err
 			}
-			res, err := apiClient.RunMcpTool(cmd.Context(), pCtx.orgId, pCtx.projectId, id, tool, toolArgs)
+			res, err := apiClient.RunMcpTool(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+				id,
+				tool,
+				toolArgs,
+			)
 			if err != nil {
 				return err
 			}
@@ -542,7 +584,8 @@ Examples:
 		},
 	}
 	cmd.Flags().StringVar(&argsJSON, "args", "", "Tool arguments as an inline JSON object")
-	cmd.Flags().StringVar(&argsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
+	cmd.Flags().
+		StringVar(&argsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the connection")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 	cmd.MarkFlagsMutuallyExclusive("args", "args-file")

@@ -21,13 +21,21 @@ func TestPrintMcpConnectionListEmpty(t *testing.T) {
 func TestPrintMcpConnectionListRows(t *testing.T) {
 	var buf bytes.Buffer
 	conns := []clients.McpConnection{
-		{Name: "github", Type: "custom", Status: "ok", ToolCount: 3, EndpointURL: "https://api.githubcopilot.com/mcp", UpdatedAt: "2026-05-01T10:00:00Z"},
+		{
+			Name:        "github",
+			Type:        "custom",
+			Status:      "ok",
+			ToolCount:   3,
+			EndpointURL: "https://api.githubcopilot.com/mcp",
+			UpdatedAt:   "2026-05-01T10:00:00Z",
+		},
 	}
 	if err := PrintMcpConnectionList(&buf, conns); err != nil {
 		t.Fatalf("error = %v", err)
 	}
 	out := buf.String()
-	if !strings.Contains(out, "NAME") || !strings.Contains(out, "github") || !strings.Contains(out, "custom") {
+	if !strings.Contains(out, "NAME") || !strings.Contains(out, "github") ||
+		!strings.Contains(out, "custom") {
 		t.Fatalf("unexpected output:\n%s", out)
 	}
 }
@@ -57,7 +65,13 @@ func TestPrintMcpConnectionDetailWithTools(t *testing.T) {
 func TestPrintMcpCatalog(t *testing.T) {
 	var buf bytes.Buffer
 	entries := []clients.McpCatalogEntry{
-		{ID: "e1", Name: "GitHub", Category: "dev", Type: "platform", AuthMethods: []string{"api_key"}},
+		{
+			ID:          "e1",
+			Name:        "GitHub",
+			Category:    "dev",
+			Type:        "platform",
+			AuthMethods: []string{"api_key"},
+		},
 	}
 	if err := PrintMcpCatalog(&buf, entries); err != nil {
 		t.Fatalf("error = %v", err)
@@ -69,12 +83,17 @@ func TestPrintMcpCatalog(t *testing.T) {
 
 func TestPrintMcpVerifyResultError(t *testing.T) {
 	var buf bytes.Buffer
-	res := &clients.McpVerifyData{Status: "error", ErrorClass: "unauthorized", ErrorMessage: "bad token"}
+	res := &clients.McpVerifyData{
+		Status:       "error",
+		ErrorClass:   "unauthorized",
+		ErrorMessage: "bad token",
+	}
 	if err := PrintMcpVerifyResult(&buf, res); err != nil {
 		t.Fatalf("error = %v", err)
 	}
 	out := buf.String()
-	if !strings.Contains(out, "error") || !strings.Contains(out, "unauthorized") || !strings.Contains(out, "bad token") {
+	if !strings.Contains(out, "error") || !strings.Contains(out, "unauthorized") ||
+		!strings.Contains(out, "bad token") {
 		t.Fatalf("unexpected output:\n%s", out)
 	}
 }
