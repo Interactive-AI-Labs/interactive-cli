@@ -301,6 +301,23 @@ Examples:
 	return cmd
 }
 
+// catalogEndpointURL returns the canonical endpoint of a catalog entry, which
+// the backend requires when creating a connection from the catalog.
+func catalogEndpointURL(entries []clients.McpCatalogEntry, catalogID string) (string, error) {
+	for _, e := range entries {
+		if e.ID == catalogID {
+			if strings.TrimSpace(e.EndpointURL) == "" {
+				return "", fmt.Errorf(
+					"catalog entry %q has no managed endpoint; use 'create-custom' with --endpoint-url",
+					catalogID,
+				)
+			}
+			return e.EndpointURL, nil
+		}
+	}
+	return "", fmt.Errorf("catalog entry %q not found; see 'iai integrations catalog'", catalogID)
+}
+
 func makeIntegrationsCreateFromCatalogCmd() *cobra.Command {
 	var (
 		catalogID       string
@@ -347,12 +364,24 @@ Examples:
 				return err
 			}
 
+			// The backend requires the canonical endpoint_url even for catalog
+			// connections (it verifies it matches the entry), so forward it.
+			catalogData, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
+			if err != nil {
+				return err
+			}
+			endpointURL, err := catalogEndpointURL(catalogData.Entries, catalogID)
+			if err != nil {
+				return err
+			}
+
 			body := clients.McpConnectionCreateBody{
 				Type:        "platform",
 				CatalogID:   catalogID,
 				Name:        name,
 				Slug:        slug,
 				Description: description,
+				EndpointURL: endpointURL,
 				AuthType:    authType,
 				Credential:  cred,
 			}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/spf13/cobra"
 )
 
@@ -87,6 +88,28 @@ func TestIntegrationsEmptyArgGuards(t *testing.T) {
 				t.Fatalf("got %v, want error containing %q", err, tc.want)
 			}
 		})
+	}
+}
+
+func TestCatalogEndpointURL(t *testing.T) {
+	entries := []clients.McpCatalogEntry{
+		{ID: "kiwi", EndpointURL: "https://mcp.kiwi.com/"},
+		{ID: "selfhosted", EndpointURL: ""},
+	}
+
+	got, err := catalogEndpointURL(entries, "kiwi")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "https://mcp.kiwi.com/" {
+		t.Fatalf("got %q, want kiwi endpoint", got)
+	}
+
+	if _, err := catalogEndpointURL(entries, "missing"); err == nil {
+		t.Fatal("expected error for unknown catalog id")
+	}
+	if _, err := catalogEndpointURL(entries, "selfhosted"); err == nil {
+		t.Fatal("expected error for entry without a managed endpoint")
 	}
 }
 
