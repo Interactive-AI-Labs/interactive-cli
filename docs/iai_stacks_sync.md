@@ -1,14 +1,13 @@
 ## iai stacks sync
 
-Sync services, agents, vector stores, and databases from a stack config file
+Sync services, agents, and databases from a stack config file
 
 ### Synopsis
 
-Sync services, agents, vector stores, and databases in a project from a stack configuration file.
+Sync services, agents, and databases in a project from a stack configuration file.
 
 Services are created, updated, or deleted to match the config file.
 Agents are created, updated, or deleted to match the config file.
-Vector stores are created or deleted (--allow-delete=vector-stores). Updates are not yet supported.
 Databases are created, updated, or deleted (--allow-delete=databases) to match the config file.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
@@ -50,18 +49,6 @@ services:
     schedule:
       uptime: "Mon-Fri 07:30-20:30"
       timezone: "Europe/Berlin"
-
-vector-stores:
-  knowledge-base:
-    resources:
-      cpu: 2
-      memory: 4
-    storage:
-      size: 50
-      autoResize: true
-      autoResizeLimit: 200
-    ha: false
-    backups: true
 ```
 
 > **Note:** `replicas` and `autoscaling` are mutually exclusive for services. To use autoscaling instead:
@@ -78,7 +65,7 @@ vector-stores:
 ### Options
 
 ```
-      --allow-delete strings   Resource types to allow deletion for (e.g. vector-stores)
+      --allow-delete strings   Resource types to allow deletion for (e.g. databases)
   -f, --file string            Path to stack configuration file
   -h, --help                   help for sync
   -o, --organization string    Organization name that owns the project

@@ -10,7 +10,7 @@
 #   iai stack sync --cfg-file stack-config.yaml
 #
 # The organization and project fields are optional and provide defaults for all commands.
-# The stack-id, services, agents, and vector-stores maps are used by the 'stack sync' command.
+# The stack-id, services, agents, and databases maps are used by the 'stack sync' command.
 #
 # Note: The stack-id is used to group resources together. Resources with the same stack-id
 # are managed as a unit. When syncing, the command will:

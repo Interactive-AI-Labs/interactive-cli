@@ -23,17 +23,16 @@ var stackCmd = &cobra.Command{
 	Aliases: []string{"stack", "st"},
 	Short:   "Declarative resource sync from config files",
 	GroupID: groupInfra,
-	Long:    `Manage stacks and their resources (services, agents, vector stores, databases) from stack configuration files.`,
+	Long:    `Manage stacks and their resources (services, agents, databases) from stack configuration files.`,
 }
 
 var stackSyncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync services, agents, vector stores, and databases from a stack config file",
-	Long: `Sync services, agents, vector stores, and databases in a project from a stack configuration file.
+	Short: "Sync services, agents, and databases from a stack config file",
+	Long: `Sync services, agents, and databases in a project from a stack configuration file.
 
 Services are created, updated, or deleted to match the config file.
 Agents are created, updated, or deleted to match the config file.
-Vector stores are created or deleted (--allow-delete=vector-stores). Updates are not yet supported.
 Databases are created, updated, or deleted (--allow-delete=databases) to match the config file.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
@@ -178,50 +177,6 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		vsBodies := make(map[string]clients.CreateVectorStoreBody)
-		for name, vsCfg := range cfg.VectorStores {
-			vsBodies[name] = vsCfg.ToCreateRequest(cfg.StackId)
-		}
-
-		hasVectorStores := false
-		if len(vsBodies) == 0 {
-			hasVectorStores, err = sync.HasVectorStores(
-				cmd.Context(),
-				deployClient,
-				orgId,
-				projectId,
-				cfg.StackId,
-			)
-			if err != nil {
-				return err
-			}
-		}
-
-		if len(vsBodies) > 0 || hasVectorStores {
-			ranSync = true
-			fmt.Fprint(out, "Syncing vector stores")
-			done := output.PrintLoadingDots(out)
-
-			allowDeleteVS := sync.AllowDeleteResource(
-				stackSyncAllowDelete,
-				"vector-stores",
-			)
-			vsResult, err := sync.VectorStores(
-				cmd.Context(),
-				deployClient,
-				orgId,
-				projectId,
-				cfg.StackId,
-				vsBodies,
-				allowDeleteVS,
-			)
-			close(done)
-			fmt.Fprintln(out)
-			if err := sync.PrintResult(out, "vector stores", vsResult, err); err != nil {
-				return err
-			}
-		}
-
 		dbBodies := make(map[string]clients.CreateDatabaseBody)
 		for name, dbCfg := range cfg.Databases {
 			dbBodies[name] = dbCfg.ToCreateRequest(cfg.StackId)
@@ -282,7 +237,7 @@ func init() {
 	stackSyncCmd.Flags().
 		StringVarP(&stackSyncOrganization, "organization", "o", "", "Organization name that owns the project")
 	stackSyncCmd.Flags().
-		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types to allow deletion for (e.g. vector-stores)")
+		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types to allow deletion for (e.g. databases)")
 
 	stackCmd.AddCommand(stackSyncCmd)
 	rootCmd.AddCommand(stackCmd)

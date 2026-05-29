@@ -16,49 +16,49 @@ func TestAllowDeleteResource(t *testing.T) {
 		{
 			name:     "nil list",
 			allowed:  nil,
-			resource: "vector-stores",
+			resource: "databases",
 			want:     false,
 		},
 		{
 			name:     "empty list",
 			allowed:  []string{},
-			resource: "vector-stores",
+			resource: "databases",
 			want:     false,
 		},
 		{
 			name:     "exact match",
-			allowed:  []string{"vector-stores"},
-			resource: "vector-stores",
+			allowed:  []string{"databases"},
+			resource: "databases",
 			want:     true,
 		},
 		{
 			name:     "case insensitive match",
-			allowed:  []string{"Vector-Stores"},
-			resource: "vector-stores",
+			allowed:  []string{"Databases"},
+			resource: "databases",
 			want:     true,
 		},
 		{
 			name:     "all keyword",
 			allowed:  []string{"all"},
-			resource: "vector-stores",
+			resource: "databases",
 			want:     true,
 		},
 		{
 			name:     "ALL keyword uppercase",
 			allowed:  []string{"ALL"},
-			resource: "vector-stores",
+			resource: "databases",
 			want:     true,
 		},
 		{
 			name:     "no match",
 			allowed:  []string{"services"},
-			resource: "vector-stores",
+			resource: "databases",
 			want:     false,
 		},
 		{
 			name:     "multiple entries with match",
-			allowed:  []string{"services", "vector-stores"},
-			resource: "vector-stores",
+			allowed:  []string{"services", "databases"},
+			resource: "databases",
 			want:     true,
 		},
 	}
@@ -87,13 +87,13 @@ func TestPrintResult(t *testing.T) {
 	}{
 		{
 			name:  "created and deleted",
-			label: "vector stores",
+			label: "databases",
 			result: &Result{
-				Created: []string{"new-vs"},
-				Deleted: []string{"old-vs"},
+				Created: []string{"new-db"},
+				Deleted: []string{"old-db"},
 			},
-			want: "Created vector stores: new-vs\n" +
-				"Deleted vector stores: old-vs\n",
+			want: "Created databases: new-db\n" +
+				"Deleted databases: old-db\n",
 		},
 		{
 			name:  "updated items",
@@ -102,14 +102,6 @@ func TestPrintResult(t *testing.T) {
 				Updated: []string{"svc-a"},
 			},
 			want: "Updated services: svc-a\n",
-		},
-		{
-			name:  "skipped items",
-			label: "vector stores",
-			result: &Result{
-				Skipped: []string{"existing-vs"},
-			},
-			want: "Skipped vector stores (already exist, updates not supported): existing-vs\n",
 		},
 		{
 			name:   "no changes",
@@ -129,14 +121,14 @@ func TestPrintResult(t *testing.T) {
 		},
 		{
 			name:  "protected items print warning",
-			label: "vector stores",
+			label: "databases",
 			result: &Result{
-				Created:   []string{"new-vs"},
-				Protected: []string{"old-vs"},
+				Created:   []string{"new-db"},
+				Protected: []string{"old-db"},
 			},
-			want: "Created vector stores: new-vs\n" +
-				"\nProtected vector stores (not deleted): old-vs\n" +
-				"Use --allow-delete=vector-stores to delete them.\n",
+			want: "Created databases: new-db\n" +
+				"\nProtected databases (not deleted): old-db\n" +
+				"Use --allow-delete=databases to delete them.\n",
 		},
 		{
 			name:    "error with partial result",
