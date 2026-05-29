@@ -4,7 +4,7 @@ Declarative resource sync from config files
 
 ### Synopsis
 
-Manage stacks and their resources (services, agents, vector stores, databases) from stack configuration files.
+Manage stacks and their resources (services, agents, databases) from stack configuration files.
 
 ### Options
 
@@ -24,5 +24,5 @@ Manage stacks and their resources (services, agents, vector stores, databases) f
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai stacks sync](iai_stacks_sync.md)	 - Sync services, agents, vector stores, and databases from a stack config file
+* [iai stacks sync](iai_stacks_sync.md)	 - Sync services, agents, and databases from a stack config file
 

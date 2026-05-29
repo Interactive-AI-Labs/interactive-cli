@@ -24,7 +24,6 @@ type Result struct {
 	Created   []string
 	Updated   []string
 	Deleted   []string
-	Skipped   []string
 	Protected []string // would be deleted but deletion was not allowed
 }
 
@@ -73,21 +72,6 @@ func HasDatabases(
 	return len(existing) > 0, nil
 }
 
-func HasVectorStores(
-	ctx context.Context,
-	deployClient *clients.DeploymentClient,
-	orgId,
-	projectId,
-	stackId string,
-) (bool, error) {
-	existing, err := deployClient.ListVectorStores(ctx, orgId, projectId, stackId)
-	if err != nil {
-		return false, fmt.Errorf("failed to list vector stores: %w", err)
-	}
-
-	return len(existing) > 0, nil
-}
-
 func PrintResult(
 	out io.Writer,
 	label string,
@@ -102,7 +86,6 @@ func PrintResult(
 				result.Created,
 				result.Updated,
 				result.Deleted,
-				result.Skipped,
 			)
 		}
 		return err
@@ -113,7 +96,6 @@ func PrintResult(
 		result.Created,
 		result.Updated,
 		result.Deleted,
-		result.Skipped,
 	)
 	if len(result.Protected) > 0 {
 		fmt.Fprintf(
@@ -354,83 +336,6 @@ func Databases(
 			if err != nil {
 				return result, fmt.Errorf(
 					"failed to delete database %q: %w", name, err,
-				)
-			}
-			result.Deleted = append(result.Deleted, name)
-		}
-	}
-
-	return result, nil
-}
-
-// VectorStores syncs vector stores. Existing stores are skipped (no update endpoint).
-// When allowDelete is false, stores that would be deleted are collected in Protected instead.
-func VectorStores(
-	ctx context.Context,
-	deployClient *clients.DeploymentClient,
-	orgId,
-	projectId,
-	stackId string,
-	desired map[string]clients.CreateVectorStoreBody,
-	allowDelete bool,
-) (*Result, error) {
-	existing, err := deployClient.ListVectorStores(
-		ctx, orgId, projectId, stackId,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list vector stores: %w", err)
-	}
-
-	existingByName := make(map[string]clients.VectorStoreInfo)
-	for _, vs := range existing {
-		existingByName[vs.VectorStoreName] = vs
-	}
-
-	result := &Result{}
-
-	desiredNames := make([]string, 0, len(desired))
-	for name := range desired {
-		desiredNames = append(desiredNames, name)
-	}
-	sort.Strings(desiredNames)
-
-	for _, name := range desiredNames {
-		body := desired[name]
-		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateVectorStore(
-				ctx, orgId, projectId, name, body,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to create vector store %q: %w",
-					name, err,
-				)
-			}
-			result.Created = append(result.Created, name)
-		} else {
-			result.Skipped = append(result.Skipped, name)
-		}
-	}
-
-	existingNames := make([]string, 0, len(existingByName))
-	for name := range existingByName {
-		existingNames = append(existingNames, name)
-	}
-	sort.Strings(existingNames)
-
-	for _, name := range existingNames {
-		if _, ok := desired[name]; !ok {
-			if !allowDelete {
-				result.Protected = append(result.Protected, name)
-				continue
-			}
-			_, err := deployClient.DeleteVectorStore(
-				ctx, orgId, projectId, name,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to delete vector store %q: %w",
-					name, err,
 				)
 			}
 			result.Deleted = append(result.Deleted, name)
