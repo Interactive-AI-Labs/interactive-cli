@@ -235,11 +235,11 @@ Examples:
 				return fmt.Errorf("connection name is required")
 			}
 
-			credential, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
+			cred, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
 			if err != nil {
 				return err
 			}
-			if err := validateMcpAuth(authType, credential); err != nil {
+			if err := validateMcpAuth(authType, cred); err != nil {
 				return err
 			}
 			if err := validateMcpTransport(transport); err != nil {
@@ -263,7 +263,7 @@ Examples:
 				EndpointURL:   endpointURL,
 				Transport:     transport,
 				AuthType:      authType,
-				Credential:    credential,
+				Credential:    cred,
 				CustomHeaders: customHeaders,
 			}
 
@@ -334,11 +334,11 @@ Examples:
 				return fmt.Errorf("connection name is required")
 			}
 
-			credential, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
+			cred, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
 			if err != nil {
 				return err
 			}
-			if err := validateMcpAuth(authType, credential); err != nil {
+			if err := validateMcpAuth(authType, cred); err != nil {
 				return err
 			}
 
@@ -354,7 +354,7 @@ Examples:
 				Slug:        slug,
 				Description: description,
 				AuthType:    authType,
-				Credential:  credential,
+				Credential:  cred,
 			}
 
 			fmt.Fprintf(
