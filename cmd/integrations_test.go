@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 // TestConfirmDeletion verifies the confirmation prompt honors input that ends
@@ -37,6 +39,34 @@ func TestConfirmDeletion(t *testing.T) {
 			}
 			if !strings.Contains(out.String(), "some-id") {
 				t.Fatalf("prompt did not mention the connection id: %q", out.String())
+			}
+		})
+	}
+}
+
+// TestIntegrationsEmptyArgGuards verifies each command rejects an empty or
+// whitespace-only positional argument before doing any network work, matching
+// the "<resource> ... is required" convention used by secrets/services.
+func TestIntegrationsEmptyArgGuards(t *testing.T) {
+	cases := []struct {
+		name string
+		cmd  *cobra.Command
+		args []string
+		want string
+	}{
+		{"get", makeIntegrationsGetCmd(), []string{"  "}, "connection id is required"},
+		{"verify", makeIntegrationsVerifyCmd(), []string{"  "}, "connection id is required"},
+		{"delete", makeIntegrationsDeleteCmd(), []string{"  "}, "connection id is required"},
+		{"create-custom", makeIntegrationsCreateCustomCmd(), []string{"  "}, "connection name is required"},
+		{"create-from-catalog", makeIntegrationsCreateFromCatalogCmd(), []string{"  "}, "connection name is required"},
+		{"tools run empty id", makeIntegrationsToolsRunCmd(), []string{"  ", "search"}, "connection id is required"},
+		{"tools run empty tool", makeIntegrationsToolsRunCmd(), []string{"c1", "  "}, "tool name is required"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.cmd.RunE(tc.cmd, tc.args)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("got %v, want error containing %q", err, tc.want)
 			}
 		})
 	}

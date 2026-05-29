@@ -15,7 +15,7 @@ Examples:
   iai integrations tools run 3f9c1a2e-... search --args-file ./args.json
 
 ```
-iai integrations tools run <connection-id> <tool-name> [flags]
+iai integrations tools run <connection_id> <tool_name> [flags]
 ```
 
 ### Options

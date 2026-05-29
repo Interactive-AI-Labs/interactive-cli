@@ -78,7 +78,7 @@ Examples:
 func makeIntegrationsGetCmd() *cobra.Command {
 	var project, org string
 	cmd := &cobra.Command{
-		Use:     "get <connection-id>",
+		Use:     "get <connection_id>",
 		Aliases: []string{"describe", "desc"},
 		Short:   "Show an integration connection and its tools",
 		Long: `Show detailed information about a single integration connection, including the
@@ -90,6 +90,9 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			id := strings.TrimSpace(args[0])
+			if id == "" {
+				return fmt.Errorf("connection id is required")
+			}
 			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
@@ -197,7 +200,7 @@ func makeIntegrationsCreateCustomCmd() *cobra.Command {
 		org             string
 	)
 	cmd := &cobra.Command{
-		Use:   "create-custom <name>",
+		Use:   "create-custom <connection_name>",
 		Short: "Connect a custom MCP endpoint",
 		Long: `Create an integration connection to a custom (user-defined) MCP endpoint.
 
@@ -220,6 +223,9 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
+			if name == "" {
+				return fmt.Errorf("connection name is required")
+			}
 
 			credential, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
 			if err != nil {
@@ -289,7 +295,7 @@ func makeIntegrationsCreateFromCatalogCmd() *cobra.Command {
 		org             string
 	)
 	cmd := &cobra.Command{
-		Use:   "create-from-catalog <name>",
+		Use:   "create-from-catalog <connection_name>",
 		Short: "Connect an MCP server from the catalog",
 		Long: `Create an integration connection from a curated catalog entry. The endpoint and
 transport come from the catalog entry; you supply a name and (unless the entry
@@ -306,6 +312,9 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
+			if name == "" {
+				return fmt.Errorf("connection name is required")
+			}
 
 			credential, err := resolveCredential(cmd.InOrStdin(), credential, credentialStdin)
 			if err != nil {
@@ -372,7 +381,7 @@ func makeIntegrationsDeleteCmd() *cobra.Command {
 		org     string
 	)
 	cmd := &cobra.Command{
-		Use:     "delete <connection-id>",
+		Use:     "delete <connection_id>",
 		Aliases: []string{"rm"},
 		Short:   "Delete an integration connection",
 		Long: `Delete an integration connection and its cached tools. This does not affect the
@@ -385,6 +394,9 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			id := strings.TrimSpace(args[0])
+			if id == "" {
+				return fmt.Errorf("connection id is required")
+			}
 
 			if !force {
 				confirmed, err := confirmDeletion(cmd.InOrStdin(), out, id)
@@ -417,7 +429,7 @@ Examples:
 func makeIntegrationsVerifyCmd() *cobra.Command {
 	var project, org string
 	cmd := &cobra.Command{
-		Use:   "verify <connection-id>",
+		Use:   "verify <connection_id>",
 		Short: "Re-verify a connection and refresh its tools",
 		Long: `Re-dial the MCP server for a connection (initialize + list tools) and refresh the
 cached tool list. Reports the connection status and, on failure, the error class
@@ -429,6 +441,9 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			id := strings.TrimSpace(args[0])
+			if id == "" {
+				return fmt.Errorf("connection id is required")
+			}
 			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
@@ -487,7 +502,7 @@ func makeIntegrationsToolsRunCmd() *cobra.Command {
 		org      string
 	)
 	cmd := &cobra.Command{
-		Use:   "run <connection-id> <tool-name>",
+		Use:   "run <connection_id> <tool_name>",
 		Short: "Run a tool on a connection",
 		Long: `Invoke a tool exposed by a connection's MCP server and print the result.
 
@@ -503,6 +518,12 @@ Examples:
 			out := cmd.OutOrStdout()
 			id := strings.TrimSpace(args[0])
 			tool := strings.TrimSpace(args[1])
+			if id == "" {
+				return fmt.Errorf("connection id is required")
+			}
+			if tool == "" {
+				return fmt.Errorf("tool name is required")
+			}
 
 			toolArgs, err := resolveToolArgs(argsJSON, argsFile)
 			if err != nil {

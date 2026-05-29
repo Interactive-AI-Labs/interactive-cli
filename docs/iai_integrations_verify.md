@@ -12,7 +12,7 @@ Examples:
   iai integrations verify 3f9c1a2e-...
 
 ```
-iai integrations verify <connection-id> [flags]
+iai integrations verify <connection_id> [flags]
 ```
 
 ### Options

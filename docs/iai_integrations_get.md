@@ -11,7 +11,7 @@ Examples:
   iai integrations get 3f9c1a2e-...
 
 ```
-iai integrations get <connection-id> [flags]
+iai integrations get <connection_id> [flags]
 ```
 
 ### Options

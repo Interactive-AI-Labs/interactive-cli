@@ -23,7 +23,7 @@ Examples:
     --auth-type api_key --credential "$KEY" --header "X-Team=platform"
 
 ```
-iai integrations create-custom <name> [flags]
+iai integrations create-custom <connection_name> [flags]
 ```
 
 ### Options

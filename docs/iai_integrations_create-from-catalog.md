@@ -17,7 +17,7 @@ Examples:
     --catalog-id github --auth-type bearer --credential "$GITHUB_TOKEN"
 
 ```
-iai integrations create-from-catalog <name> [flags]
+iai integrations create-from-catalog <connection_name> [flags]
 ```
 
 ### Options

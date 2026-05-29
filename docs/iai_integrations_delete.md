@@ -12,7 +12,7 @@ Examples:
   iai integrations delete 3f9c1a2e-... -f
 
 ```
-iai integrations delete <connection-id> [flags]
+iai integrations delete <connection_id> [flags]
 ```
 
 ### Options
