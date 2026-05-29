@@ -62,6 +62,7 @@ iai --help
 * [iai datasets](iai_datasets.md)	 - Create and list evaluation datasets
 * [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
 * [iai images](iai_images.md)	 - Build and push container images
+* [iai integrations](iai_integrations.md)	 - MCP integration connections for a project
 * [iai login](iai_login.md)	 - Authenticate with InteractiveAI
 * [iai logout](iai_logout.md)	 - Clear local session
 * [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines
