@@ -141,14 +141,16 @@ func TestPrintMcpToolResult(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name: "error status returns non-nil error",
+			// The printer only formats; the exit-code decision for a failed
+			// call lives in the run-tool command, so this returns no error.
+			name: "error status formats without erroring",
 			res: &clients.McpToolCallData{
 				Status:       "error",
 				ErrorClass:   "tool_error",
 				ErrorMessage: "boom",
 			},
 			wantOutput: []string{"error", "tool_error", "boom"},
-			wantErr:    true,
+			wantErr:    false,
 		},
 	}
 	for _, tt := range tests {

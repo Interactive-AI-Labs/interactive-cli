@@ -145,10 +145,5 @@ func PrintMcpToolResult(out io.Writer, res *clients.McpToolCallData) error {
 		}
 		fmt.Fprintf(out, "\nResult:\n%s\n", pretty.String())
 	}
-	// A failed tool call must surface as a non-zero exit code so it can't be
-	// silently chained with '&&'; the status/error block above is already printed.
-	if res.Status != "ok" {
-		return fmt.Errorf("tool call failed with status %q", res.Status)
-	}
 	return nil
 }

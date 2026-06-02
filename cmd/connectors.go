@@ -171,7 +171,13 @@ Examples:
 			return err
 		}
 
-		var body clients.McpConnectionCreateBody
+		body := clients.McpConnectionCreateBody{
+			Name:        name,
+			Slug:        connectorSlug,
+			Description: connectorDescription,
+			AuthType:    connectorAuthType,
+			Credential:  cred,
+		}
 		if connectorCatalogID != "" {
 			// The backend requires the canonical endpoint_url even for catalog
 			// connections (it verifies it matches the entry), so forward it.
@@ -183,16 +189,9 @@ Examples:
 			if err != nil {
 				return err
 			}
-			body = clients.McpConnectionCreateBody{
-				Type:        "platform",
-				CatalogID:   connectorCatalogID,
-				Name:        name,
-				Slug:        connectorSlug,
-				Description: connectorDescription,
-				EndpointURL: endpointURL,
-				AuthType:    connectorAuthType,
-				Credential:  cred,
-			}
+			body.Type = "platform"
+			body.CatalogID = connectorCatalogID
+			body.EndpointURL = endpointURL
 			fmt.Fprintf(
 				out,
 				"\nConnecting %q from catalog entry %q and verifying...\n\n",
@@ -207,17 +206,10 @@ Examples:
 			if err != nil {
 				return err
 			}
-			body = clients.McpConnectionCreateBody{
-				Type:          "custom",
-				Name:          name,
-				Slug:          connectorSlug,
-				Description:   connectorDescription,
-				EndpointURL:   connectorEndpointURL,
-				Transport:     connectorTransport,
-				AuthType:      connectorAuthType,
-				Credential:    cred,
-				CustomHeaders: customHeaders,
-			}
+			body.Type = "custom"
+			body.EndpointURL = connectorEndpointURL
+			body.Transport = connectorTransport
+			body.CustomHeaders = customHeaders
 			fmt.Fprintf(out, "\nConnecting %q and verifying...\n\n", name)
 		}
 
@@ -345,7 +337,15 @@ Examples:
 		if err != nil {
 			return err
 		}
-		return output.PrintMcpToolResult(out, res)
+		if err := output.PrintMcpToolResult(out, res); err != nil {
+			return err
+		}
+		// A failed tool call must surface as a non-zero exit code so it can't be
+		// silently chained with '&&'; the status/error block is already printed.
+		if res.Status != "ok" {
+			return fmt.Errorf("tool call failed with status %q", res.Status)
+		}
+		return nil
 	},
 }
 
