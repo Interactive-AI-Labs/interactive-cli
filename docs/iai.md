@@ -56,13 +56,13 @@ iai --help
 * [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
 * [iai comments](iai_comments.md)	 - Annotate traces, observations, and sessions
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
+* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
 * [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
 * [iai dataset-items](iai_dataset-items.md)	 - Manage items in evaluation datasets
 * [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
 * [iai datasets](iai_datasets.md)	 - Create and list evaluation datasets
 * [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
 * [iai images](iai_images.md)	 - Build and push container images
-* [iai integrations](iai_integrations.md)	 - MCP integration connections for a project
 * [iai login](iai_login.md)	 - Authenticate with InteractiveAI
 * [iai logout](iai_logout.md)	 - Clear local session
 * [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines

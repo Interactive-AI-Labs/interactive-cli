@@ -1,27 +1,25 @@
-## iai integrations delete
+## iai connectors describe
 
-Delete an integration connection
+Show a connector and its tools
 
 ### Synopsis
 
-Delete an integration connection and its cached tools. This does not affect the
-remote MCP server. Use -f to skip the confirmation prompt.
+Show a connector in detail, including the cached list of tools discovered from
+the MCP server.
 
 Examples:
-  iai integrations delete 3f9c1a2e-...
-  iai integrations delete 3f9c1a2e-... -f
+  iai connectors describe 3f9c1a2e-...
 
 ```
-iai integrations delete <connection_id> [flags]
+iai connectors describe <connector_id> [flags]
 ```
 
 ### Options
 
 ```
-  -f, --force                 Skip confirmation prompt
-  -h, --help                  help for delete
+  -h, --help                  help for describe
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the connection
+  -p, --project string        Project name that owns the connector
 ```
 
 ### Options inherited from parent commands
@@ -35,5 +33,5 @@ iai integrations delete <connection_id> [flags]
 
 ### SEE ALSO
 
-* [iai integrations](iai_integrations.md)	 - MCP integration connections for a project
+* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
 

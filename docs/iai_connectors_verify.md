@@ -1,25 +1,25 @@
-## iai integrations list
+## iai connectors verify
 
-List integration connections in a project
+Re-verify a connector and refresh its tools
 
 ### Synopsis
 
-List the MCP integration connections in a project, showing each connection's
-type, status, tool count, and endpoint.
+Re-dial the MCP server for a connector (initialize + list tools) and refresh the
+cached tool list. Reports the status and, on failure, the error class and message.
 
 Examples:
-  iai integrations list
+  iai connectors verify 3f9c1a2e-...
 
 ```
-iai integrations list [flags]
+iai connectors verify <connector_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
+  -h, --help                  help for verify
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the connections
+  -p, --project string        Project name that owns the connector
 ```
 
 ### Options inherited from parent commands
@@ -33,5 +33,5 @@ iai integrations list [flags]
 
 ### SEE ALSO
 
-* [iai integrations](iai_integrations.md)	 - MCP integration connections for a project
+* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
 

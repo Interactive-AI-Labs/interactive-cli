@@ -2,6 +2,7 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 )
 
@@ -32,7 +33,7 @@ type McpConnection struct {
 	Transport       string              `json:"transport"`
 	AuthType        string              `json:"auth_type"`
 	HasCredential   bool                `json:"has_credential"`
-	CustomHeaders   map[string]string   `json:"custom_headers"`
+	CustomHeaders   map[string]string   `json:"custom_headers,omitempty"`
 	Status          string              `json:"status"`
 	LastVerifiedAt  string              `json:"last_verified_at,omitempty"`
 	LastErrorClass  string              `json:"last_error_class,omitempty"`
@@ -68,10 +69,13 @@ type McpVerifyData struct {
 }
 
 type McpToolCallData struct {
-	Status       string         `json:"status"`
-	Result       map[string]any `json:"result,omitempty"`
-	ErrorClass   string         `json:"error_class,omitempty"`
-	ErrorMessage string         `json:"error_message,omitempty"`
+	Status string `json:"status"`
+	// Result is kept as raw JSON: a tool may return an object, array, or scalar
+	// at the top level, and decoding into a typed map would silently drop the
+	// non-object shapes.
+	Result       json.RawMessage `json:"result,omitempty"`
+	ErrorClass   string          `json:"error_class,omitempty"`
+	ErrorMessage string          `json:"error_message,omitempty"`
 }
 
 type McpCatalogEntry struct {
@@ -163,7 +167,10 @@ func (c *APIClient) VerifyMcpConnection(
 	ctx context.Context, orgID, projectID, id string,
 ) (*McpVerifyData, error) {
 	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id) + "/verify"
-	data, _, err := doCreate[McpVerifyData](c, ctx, path, nil, "verify mcp connection")
+	// Send an empty JSON object rather than nil: a nil body skips the
+	// Content-Type: application/json header (see newJSONRequest), which some
+	// servers reject on a POST.
+	data, _, err := doCreate[McpVerifyData](c, ctx, path, struct{}{}, "verify mcp connection")
 	if err != nil {
 		return nil, err
 	}

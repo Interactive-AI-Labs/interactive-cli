@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -13,7 +14,7 @@ func TestPrintMcpConnectionListEmpty(t *testing.T) {
 	if err := PrintMcpConnectionList(&buf, nil); err != nil {
 		t.Fatalf("error = %v", err)
 	}
-	if buf.String() != "No integration connections found.\n" {
+	if buf.String() != "No connectors found.\n" {
 		t.Fatalf("got %q", buf.String())
 	}
 }
@@ -45,7 +46,8 @@ func TestPrintMcpConnectionDetailWithTools(t *testing.T) {
 	conn := &clients.McpConnectionDetail{
 		McpConnection: clients.McpConnection{
 			ID: "c1", Name: "github", Type: "custom", Status: "ok",
-			EndpointURL: "https://x", Transport: "streamable_http", AuthType: "bearer",
+			EndpointURL: "https://x", Transport: "streamable_http",
+			AuthType: "bearer", HasCredential: true,
 		},
 		Tools: []clients.McpTool{{Name: "search", Enabled: true, Description: "Search repos"}},
 	}
@@ -56,9 +58,30 @@ func TestPrintMcpConnectionDetailWithTools(t *testing.T) {
 	if !strings.Contains(out, "github") || !strings.Contains(out, "search") {
 		t.Fatalf("unexpected output:\n%s", out)
 	}
+	// Connectors that require auth must report whether a credential is stored.
+	if !strings.Contains(out, "Credential Set:") || !strings.Contains(out, "true") {
+		t.Fatalf("expected credential-set line:\n%s", out)
+	}
 	// Describe block (flushed before the tools table) must appear first.
 	if strings.Index(out, "ID:") > strings.Index(out, "NAME") {
 		t.Fatalf("describe block should render before tools table:\n%s", out)
+	}
+}
+
+// auth_type=none connectors have no credential, so the line must be suppressed.
+func TestPrintMcpConnectionDetailNoAuthHidesCredential(t *testing.T) {
+	var buf bytes.Buffer
+	conn := &clients.McpConnectionDetail{
+		McpConnection: clients.McpConnection{
+			ID: "c2", Name: "open", Type: "custom", Status: "ok",
+			EndpointURL: "https://x", Transport: "streamable_http", AuthType: "none",
+		},
+	}
+	if err := PrintMcpConnectionDetail(&buf, conn); err != nil {
+		t.Fatalf("error = %v", err)
+	}
+	if strings.Contains(buf.String(), "Credential Set:") {
+		t.Fatalf("credential-set line should be hidden for auth_type=none:\n%s", buf.String())
 	}
 }
 
@@ -98,14 +121,49 @@ func TestPrintMcpVerifyResultError(t *testing.T) {
 	}
 }
 
-func TestPrintMcpToolResultOk(t *testing.T) {
-	var buf bytes.Buffer
-	res := &clients.McpToolCallData{Status: "ok", Result: map[string]any{"content": "hi"}}
-	if err := PrintMcpToolResult(&buf, res); err != nil {
-		t.Fatalf("error = %v", err)
+func TestPrintMcpToolResult(t *testing.T) {
+	tests := []struct {
+		name       string
+		res        *clients.McpToolCallData
+		wantOutput []string
+		wantErr    bool
+	}{
+		{
+			name:       "ok with object result",
+			res:        &clients.McpToolCallData{Status: "ok", Result: json.RawMessage(`{"content":"hi"}`)},
+			wantOutput: []string{"ok", "content"},
+			wantErr:    false,
+		},
+		{
+			name:       "ok with array result is preserved",
+			res:        &clients.McpToolCallData{Status: "ok", Result: json.RawMessage(`[1,2,3]`)},
+			wantOutput: []string{"Result:", "1"},
+			wantErr:    false,
+		},
+		{
+			name: "error status returns non-nil error",
+			res: &clients.McpToolCallData{
+				Status:       "error",
+				ErrorClass:   "tool_error",
+				ErrorMessage: "boom",
+			},
+			wantOutput: []string{"error", "tool_error", "boom"},
+			wantErr:    true,
+		},
 	}
-	out := buf.String()
-	if !strings.Contains(out, "ok") || !strings.Contains(out, "content") {
-		t.Fatalf("unexpected output:\n%s", out)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintMcpToolResult(&buf, tt.res)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err=%v wantErr=%v", err, tt.wantErr)
+			}
+			out := buf.String()
+			for _, want := range tt.wantOutput {
+				if !strings.Contains(out, want) {
+					t.Fatalf("output missing %q:\n%s", want, out)
+				}
+			}
+		})
 	}
 }

@@ -1,21 +1,20 @@
-## iai integrations tools run
+## iai connectors run-tool
 
-Run a tool on a connection
+Run a tool on a connector
 
 ### Synopsis
 
-Invoke a tool exposed by a connection's MCP server and print the result.
+Invoke a tool on a connector and print the result. Only enabled tools can run.
 
-Only enabled, server-advertised tools can run. Arguments are a JSON object passed
-inline with --args or from a file with --args-file (mutually exclusive). When
-omitted, an empty argument object is sent.
+Pass arguments as a JSON object with --args or --args-file (mutually exclusive);
+omit both to send an empty object.
 
 Examples:
-  iai integrations tools run 3f9c1a2e-... search --args '{"query":"langfuse"}'
-  iai integrations tools run 3f9c1a2e-... search --args-file ./args.json
+  iai connectors run-tool 3f9c1a2e-... search --args '{"query":"langfuse"}'
+  iai connectors run-tool 3f9c1a2e-... search --args-file ./args.json
 
 ```
-iai integrations tools run <connection_id> <tool_name> [flags]
+iai connectors run-tool <connector_id> <tool_name> [flags]
 ```
 
 ### Options
@@ -23,9 +22,9 @@ iai integrations tools run <connection_id> <tool_name> [flags]
 ```
       --args string           Tool arguments as an inline JSON object
       --args-file string      Path to a file containing the tool arguments as a JSON object
-  -h, --help                  help for run
+  -h, --help                  help for run-tool
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the connection
+  -p, --project string        Project name that owns the connector
 ```
 
 ### Options inherited from parent commands
@@ -39,5 +38,5 @@ iai integrations tools run <connection_id> <tool_name> [flags]
 
 ### SEE ALSO
 
-* [iai integrations tools](iai_integrations_tools.md)	 - Inspect and run tools on a connection
+* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
 

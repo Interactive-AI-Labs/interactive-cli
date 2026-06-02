@@ -194,6 +194,7 @@ func TestDeleteMcpConnection(t *testing.T) {
 }
 
 func TestVerifyMcpConnection(t *testing.T) {
+	var gotBody, gotContentType string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("method = %s, want POST", r.Method)
@@ -201,6 +202,9 @@ func TestVerifyMcpConnection(t *testing.T) {
 		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/mcp-connections/c1/verify" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
+		gotContentType = r.Header.Get("Content-Type")
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
 		_, _ = io.WriteString(
 			w,
 			`{"success":true,"data":{"status":"ok","protocol_version":"2025-03-26","tools":[{"name":"t","enabled":true}]}}`,
@@ -217,6 +221,14 @@ func TestVerifyMcpConnection(t *testing.T) {
 	}
 	if res.Status != "ok" || len(res.Tools) != 1 {
 		t.Fatalf("unexpected verify: %#v", res)
+	}
+	// The POST must carry an empty JSON object and the JSON Content-Type, not a
+	// bodyless request (which omits the header and some servers reject).
+	if gotContentType != "application/json" {
+		t.Fatalf("Content-Type = %q, want application/json", gotContentType)
+	}
+	if strings.TrimSpace(gotBody) != "{}" {
+		t.Fatalf("verify body = %q, want {}", gotBody)
 	}
 }
 

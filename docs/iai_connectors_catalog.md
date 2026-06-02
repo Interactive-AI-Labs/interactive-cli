@@ -1,25 +1,26 @@
-## iai integrations get
+## iai connectors catalog
 
-Show an integration connection and its tools
+Browse the connector catalog
 
 ### Synopsis
 
-Show detailed information about a single integration connection, including the
-cached list of tools discovered from the MCP server.
+List the curated catalog of MCP servers you can connect to with
+'iai connectors create --catalog-id', showing each entry's id, category, and
+supported auth methods.
 
 Examples:
-  iai integrations get 3f9c1a2e-...
+  iai connectors catalog
 
 ```
-iai integrations get <connection_id> [flags]
+iai connectors catalog [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for get
+  -h, --help                  help for catalog
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the connection
+  -p, --project string        Project name to browse the catalog for
 ```
 
 ### Options inherited from parent commands
@@ -33,5 +34,5 @@ iai integrations get <connection_id> [flags]
 
 ### SEE ALSO
 
-* [iai integrations](iai_integrations.md)	 - MCP integration connections for a project
+* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
 

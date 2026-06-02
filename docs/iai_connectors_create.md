@@ -1,45 +1,47 @@
-## iai integrations create-custom
+## iai connectors create
 
-Connect a custom MCP endpoint
+Create a connector
 
 ### Synopsis
 
-Create an integration connection to a custom (user-defined) MCP endpoint.
+Create an MCP connector, verified against the live server on save. If the server
+cannot be reached or rejects the credential, creation fails and nothing is stored.
 
-The connection is verified against the live server on save; if the server cannot
-be reached or rejects the credential, creation fails and nothing is stored.
+Pass --catalog-id to connect a catalog entry (the endpoint and transport come from
+the catalog; see 'iai connectors catalog'). Otherwise the connector is custom and
+--endpoint-url is required.
 
 Examples:
-  iai integrations create-custom my-server \
+  iai connectors create github \
+    --catalog-id github --auth-type bearer --credential "$GITHUB_TOKEN"
+  iai connectors create my-server \
     --endpoint-url https://mcp.example.com/mcp --auth-type none
-  iai integrations create-custom github \
-    --endpoint-url https://api.githubcopilot.com/mcp \
-    --auth-type bearer --credential "$GITHUB_TOKEN"
-  iai integrations create-custom github \
+  iai connectors create github \
     --endpoint-url https://api.githubcopilot.com/mcp \
     --auth-type bearer --credential-stdin < token.txt
-  iai integrations create-custom internal \
+  iai connectors create internal \
     --endpoint-url https://mcp.internal/sse --transport sse \
     --auth-type api_key --credential "$KEY" --header "X-Team=platform"
 
 ```
-iai integrations create-custom <connection_name> [flags]
+iai connectors create <connector_name> [flags]
 ```
 
 ### Options
 
 ```
       --auth-type string      Auth type: api_key, bearer, or none (required)
+      --catalog-id string     Catalog entry id for a catalog connector (see 'iai connectors catalog')
       --credential string     API key or bearer token (required unless auth-type=none)
       --credential-stdin      Read the credential from stdin instead of --credential
       --description string    Human-readable description
-      --endpoint-url string   MCP server endpoint URL (required)
-      --header stringArray    Extra header as KEY=VALUE (repeatable)
-  -h, --help                  help for create-custom
+      --endpoint-url string   MCP server endpoint URL (required for a custom connector)
+      --header stringArray    Extra header as KEY=VALUE for a custom connector (repeatable)
+  -h, --help                  help for create
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the connection
+  -p, --project string        Project name that owns the connector
       --slug string           Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)
-      --transport string      Transport: streamable_http (default) or sse (default "streamable_http")
+      --transport string      Transport for a custom connector: streamable_http (default) or sse (default "streamable_http")
 ```
 
 ### Options inherited from parent commands
@@ -53,5 +55,5 @@ iai integrations create-custom <connection_name> [flags]
 
 ### SEE ALSO
 
-* [iai integrations](iai_integrations.md)	 - MCP integration connections for a project
+* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
 
