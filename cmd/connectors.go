@@ -337,14 +337,20 @@ Examples:
 		if err != nil {
 			return err
 		}
-		// A failed tool call must surface as a non-zero exit code so it can't be
-		// silently chained with '&&'. Return the formatted error instead of
-		// printing it, so the user sees one coherent failure message.
-		if res.Status != "ok" {
-			return output.McpToolCallError(res)
-		}
-		return output.PrintMcpToolResult(out, res)
+		return emitToolResult(out, res)
 	},
+}
+
+// emitToolResult prints a successful tool call and, for any non-ok status,
+// returns a single formatted error instead of printing it. Returning the error
+// gives a non-zero exit code so a failed call can't be silently chained with
+// '&&', and routes one coherent message to stderr rather than a stdout block
+// plus a generic stderr error.
+func emitToolResult(out io.Writer, res *clients.McpToolCallData) error {
+	if res.Status != "ok" {
+		return output.McpToolCallError(res)
+	}
+	return output.PrintMcpToolResult(out, res)
 }
 
 func init() {

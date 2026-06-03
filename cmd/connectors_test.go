@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +67,37 @@ func TestConnectorEmptyArgGuards(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A failed tool call must return an error (non-zero exit) so it can't be
+// silently chained with '&&', while a successful call prints the result and
+// returns nil. This is the headline fix: previously run-tool always exited 0.
+func TestEmitToolResult(t *testing.T) {
+	t.Run("ok status prints result and returns nil", func(t *testing.T) {
+		var out bytes.Buffer
+		res := &clients.McpToolCallData{Status: "ok", Result: json.RawMessage(`{"hits":3}`)}
+		if err := emitToolResult(&out, res); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !strings.Contains(out.String(), "hits") {
+			t.Fatalf("result not printed: %q", out.String())
+		}
+	})
+
+	t.Run("error status returns error and prints nothing", func(t *testing.T) {
+		var out bytes.Buffer
+		res := &clients.McpToolCallData{Status: "error", ErrorClass: "tool_error", ErrorMessage: "boom"}
+		err := emitToolResult(&out, res)
+		if err == nil {
+			t.Fatal("expected a non-nil error for a failed tool call")
+		}
+		if !strings.Contains(err.Error(), "boom") {
+			t.Fatalf("error missing detail: %v", err)
+		}
+		if out.Len() != 0 {
+			t.Fatalf("nothing should be printed on failure, got: %q", out.String())
+		}
+	})
 }
 
 // A custom connector (no --catalog-id) must require --endpoint-url before any
