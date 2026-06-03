@@ -132,12 +132,6 @@ func PrintMcpVerifyResult(out io.Writer, res *clients.McpVerifyData) error {
 
 func PrintMcpToolResult(out io.Writer, res *clients.McpToolCallData) error {
 	fmt.Fprintf(out, "Status: %s\n", res.Status)
-	if res.ErrorClass != "" {
-		fmt.Fprintf(out, "Error Class: %s\n", res.ErrorClass)
-	}
-	if res.ErrorMessage != "" {
-		fmt.Fprintf(out, "Error: %s\n", res.ErrorMessage)
-	}
 	if len(res.Result) > 0 {
 		var pretty bytes.Buffer
 		if err := json.Indent(&pretty, res.Result, "", "  "); err != nil {
@@ -146,4 +140,24 @@ func PrintMcpToolResult(out io.Writer, res *clients.McpToolCallData) error {
 		fmt.Fprintf(out, "\nResult:\n%s\n", pretty.String())
 	}
 	return nil
+}
+
+// McpToolCallError formats a failed tool call as a single error. The run-tool
+// command returns this instead of printing the error fields to stdout, so the
+// user sees one coherent failure message (on stderr, via cobra) rather than a
+// stdout error block followed by a generic stderr error.
+func McpToolCallError(res *clients.McpToolCallData) error {
+	switch {
+	case res.ErrorClass != "" && res.ErrorMessage != "":
+		return fmt.Errorf(
+			"tool call failed with status %q [%s]: %s",
+			res.Status, res.ErrorClass, res.ErrorMessage,
+		)
+	case res.ErrorMessage != "":
+		return fmt.Errorf("tool call failed with status %q: %s", res.Status, res.ErrorMessage)
+	case res.ErrorClass != "":
+		return fmt.Errorf("tool call failed with status %q [%s]", res.Status, res.ErrorClass)
+	default:
+		return fmt.Errorf("tool call failed with status %q", res.Status)
+	}
 }

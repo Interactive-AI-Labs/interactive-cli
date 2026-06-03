@@ -117,18 +117,18 @@ func TestResolveCredential(t *testing.T) {
 
 func TestResolveToolArgs(t *testing.T) {
 	tests := []struct {
-		name      string
-		inline    string
-		wantEmpty bool
-		wantKey   string
-		wantVal   string
-		wantErr   bool
+		name    string
+		inline  string
+		wantLen int
+		wantKey string
+		wantVal string
+		wantErr bool
 	}{
-		{"empty yields empty object", "", true, "", "", false},
-		{"inline object", `{"q":"foo","n":2}`, false, "q", "foo", false},
-		{"non-object array rejected", `[1,2,3]`, false, "", "", true},
-		{"json null rejected", `null`, false, "", "", true},
-		{"invalid json rejected", `{not json}`, false, "", "", true},
+		{"empty yields empty object", "", 0, "", "", false},
+		{"inline object", `{"q":"foo","n":2}`, 2, "q", "foo", false},
+		{"non-object array rejected", `[1,2,3]`, 0, "", "", true},
+		{"json null rejected", `null`, 0, "", "", true},
+		{"invalid json rejected", `{not json}`, 0, "", "", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -139,8 +139,8 @@ func TestResolveToolArgs(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-			if tt.wantEmpty && len(got) != 0 {
-				t.Fatalf("expected empty map, got %#v", got)
+			if len(got) != tt.wantLen {
+				t.Fatalf("ResolveToolArgs(%q) parsed %d entries, want %d: %#v", tt.inline, len(got), tt.wantLen, got)
 			}
 			if tt.wantKey != "" && got[tt.wantKey] != tt.wantVal {
 				t.Fatalf("got %#v, want %q=%q", got, tt.wantKey, tt.wantVal)

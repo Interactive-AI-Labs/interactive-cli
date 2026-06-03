@@ -150,11 +150,12 @@ func TestCreateMcpConnectionFromCatalog(t *testing.T) {
 	conn, err := cookieClient(t, server.URL).CreateMcpConnection(
 		context.Background(), "org-1", "proj-1",
 		McpConnectionCreateBody{
-			Type:       "platform",
-			CatalogID:  "github",
-			Name:       "gh",
-			AuthType:   "bearer",
-			Credential: "tok",
+			Type:        "platform",
+			CatalogID:   "github",
+			EndpointURL: "https://mcp.github.com/",
+			Name:        "gh",
+			AuthType:    "bearer",
+			Credential:  "tok",
 		},
 	)
 	if err != nil {
@@ -167,9 +168,14 @@ func TestCreateMcpConnectionFromCatalog(t *testing.T) {
 		!strings.Contains(gotBody, `"catalog_id":"github"`) {
 		t.Fatalf("unexpected request body: %s", gotBody)
 	}
-	// endpoint_url/transport are omitempty for catalog connections and must not be sent.
-	if strings.Contains(gotBody, "endpoint_url") || strings.Contains(gotBody, "transport") {
-		t.Fatalf("catalog body should omit endpoint_url/transport: %s", gotBody)
+	// The backend requires the canonical endpoint_url even for catalog connections
+	// (it verifies the entry), so the command always forwards it.
+	if !strings.Contains(gotBody, `"endpoint_url":"https://mcp.github.com/"`) {
+		t.Fatalf("catalog body should forward endpoint_url: %s", gotBody)
+	}
+	// transport stays omitempty for catalog connections.
+	if strings.Contains(gotBody, "transport") {
+		t.Fatalf("catalog body should omit transport: %s", gotBody)
 	}
 }
 

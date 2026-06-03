@@ -140,18 +140,6 @@ func TestPrintMcpToolResult(t *testing.T) {
 			wantOutput: []string{"Result:", "1"},
 			wantErr:    false,
 		},
-		{
-			// The printer only formats; the exit-code decision for a failed
-			// call lives in the run-tool command, so this returns no error.
-			name: "error status formats without erroring",
-			res: &clients.McpToolCallData{
-				Status:       "error",
-				ErrorClass:   "tool_error",
-				ErrorMessage: "boom",
-			},
-			wantOutput: []string{"error", "tool_error", "boom"},
-			wantErr:    false,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -164,6 +152,48 @@ func TestPrintMcpToolResult(t *testing.T) {
 			for _, want := range tt.wantOutput {
 				if !strings.Contains(out, want) {
 					t.Fatalf("output missing %q:\n%s", want, out)
+				}
+			}
+		})
+	}
+}
+
+func TestMcpToolCallError(t *testing.T) {
+	tests := []struct {
+		name string
+		res  *clients.McpToolCallData
+		want []string
+	}{
+		{
+			name: "class and message",
+			res:  &clients.McpToolCallData{Status: "error", ErrorClass: "tool_error", ErrorMessage: "boom"},
+			want: []string{`status "error"`, "tool_error", "boom"},
+		},
+		{
+			name: "message only",
+			res:  &clients.McpToolCallData{Status: "error", ErrorMessage: "boom"},
+			want: []string{`status "error"`, "boom"},
+		},
+		{
+			name: "class only",
+			res:  &clients.McpToolCallData{Status: "error", ErrorClass: "tool_error"},
+			want: []string{`status "error"`, "tool_error"},
+		},
+		{
+			name: "status only",
+			res:  &clients.McpToolCallData{Status: "timeout"},
+			want: []string{`status "timeout"`},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := McpToolCallError(tt.res)
+			if err == nil {
+				t.Fatal("expected an error, got nil")
+			}
+			for _, want := range tt.want {
+				if !strings.Contains(err.Error(), want) {
+					t.Fatalf("error %q missing %q", err.Error(), want)
 				}
 			}
 		})

@@ -337,15 +337,13 @@ Examples:
 		if err != nil {
 			return err
 		}
-		if err := output.PrintMcpToolResult(out, res); err != nil {
-			return err
-		}
 		// A failed tool call must surface as a non-zero exit code so it can't be
-		// silently chained with '&&'; the status/error block is already printed.
+		// silently chained with '&&'. Return the formatted error instead of
+		// printing it, so the user sees one coherent failure message.
 		if res.Status != "ok" {
-			return fmt.Errorf("tool call failed with status %q", res.Status)
+			return output.McpToolCallError(res)
 		}
-		return nil
+		return output.PrintMcpToolResult(out, res)
 	},
 }
 
