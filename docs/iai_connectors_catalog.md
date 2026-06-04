@@ -21,6 +21,7 @@ iai connectors catalog [flags]
 ```
   -h, --help   help for catalog
       --json   Output raw API response as JSON
+      --yaml   Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

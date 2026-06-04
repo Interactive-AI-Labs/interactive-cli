@@ -20,6 +20,7 @@ iai connectors verify <connector_id> [flags]
 ```
   -h, --help   help for verify
       --json   Output raw API response as JSON
+      --yaml   Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

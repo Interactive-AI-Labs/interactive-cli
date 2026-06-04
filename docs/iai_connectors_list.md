@@ -19,6 +19,7 @@ iai connectors list [flags]
 ```
   -h, --help   help for list
       --json   Output raw API response as JSON
+      --yaml   Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

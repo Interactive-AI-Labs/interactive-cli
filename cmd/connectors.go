@@ -39,9 +39,13 @@ var (
 
 var (
 	connectorListJSON    bool
+	connectorListYAML    bool
 	connectorGetJSON     bool
+	connectorGetYAML     bool
 	connectorCatalogJSON bool
+	connectorCatalogYAML bool
 	connectorVerifyJSON  bool
+	connectorVerifyYAML  bool
 )
 
 var connectorsCmd = &cobra.Command{
@@ -81,6 +85,9 @@ Examples:
 		if connectorListJSON {
 			return output.PrintRawJSON(out, raw)
 		}
+		if connectorListYAML {
+			return output.PrintRawYAML(out, raw)
+		}
 		return output.PrintMcpConnectionList(out, data.Connections)
 	},
 }
@@ -117,6 +124,9 @@ Examples:
 		if connectorGetJSON {
 			return output.PrintRawJSON(out, raw)
 		}
+		if connectorGetYAML {
+			return output.PrintRawYAML(out, raw)
+		}
 		return output.PrintMcpConnectionDetail(out, conn)
 	},
 }
@@ -148,6 +158,9 @@ Examples:
 		}
 		if connectorCatalogJSON {
 			return output.PrintRawJSON(out, raw)
+		}
+		if connectorCatalogYAML {
+			return output.PrintRawYAML(out, raw)
 		}
 		return output.PrintMcpCatalog(out, data.Entries)
 	},
@@ -355,6 +368,9 @@ Examples:
 		if connectorVerifyJSON {
 			return output.PrintRawJSON(out, raw)
 		}
+		if connectorVerifyYAML {
+			return output.PrintRawYAML(out, raw)
+		}
 		return output.PrintMcpVerifyResult(out, res)
 	},
 }
@@ -426,12 +442,20 @@ func init() {
 
 	connectorListCmd.Flags().
 		BoolVar(&connectorListJSON, "json", false, "Output raw API response as JSON")
+	connectorListCmd.Flags().
+		BoolVar(&connectorListYAML, "yaml", false, "Output raw API response as YAML")
 	connectorGetCmd.Flags().
 		BoolVar(&connectorGetJSON, "json", false, "Output raw API response as JSON")
+	connectorGetCmd.Flags().
+		BoolVar(&connectorGetYAML, "yaml", false, "Output raw API response as YAML")
 	connectorCatalogCmd.Flags().
 		BoolVar(&connectorCatalogJSON, "json", false, "Output raw API response as JSON")
+	connectorCatalogCmd.Flags().
+		BoolVar(&connectorCatalogYAML, "yaml", false, "Output raw API response as YAML")
 	connectorVerifyCmd.Flags().
 		BoolVar(&connectorVerifyJSON, "json", false, "Output raw API response as JSON")
+	connectorVerifyCmd.Flags().
+		BoolVar(&connectorVerifyYAML, "yaml", false, "Output raw API response as YAML")
 
 	connectorCreateCmd.Flags().
 		StringVar(&connectorCatalogID, "catalog-id", "", "Catalog entry id for a catalog connector (see 'iai connectors catalog')")
