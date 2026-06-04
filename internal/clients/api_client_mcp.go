@@ -109,35 +109,35 @@ type McpConnectionCreateBody struct {
 
 func (c *APIClient) ListMcpConnections(
 	ctx context.Context, orgID, projectID string,
-) (*McpConnectionListData, error) {
+) (*McpConnectionListData, json.RawMessage, error) {
 	path := evalBasePath(orgID, projectID) + "/mcp-connections"
-	data, _, err := doGet[McpConnectionListData](c, ctx, path, "list mcp connections")
+	data, raw, err := doGet[McpConnectionListData](c, ctx, path, "list mcp connections")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &data, nil
+	return &data, raw, nil
 }
 
 func (c *APIClient) GetMcpConnection(
 	ctx context.Context, orgID, projectID, id string,
-) (*McpConnectionDetail, error) {
+) (*McpConnectionDetail, json.RawMessage, error) {
 	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id)
-	data, _, err := doGet[McpConnectionDetailData](c, ctx, path, "get mcp connection")
+	data, raw, err := doGet[McpConnectionDetailData](c, ctx, path, "get mcp connection")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &data.Connection, nil
+	return &data.Connection, raw, nil
 }
 
 func (c *APIClient) ListMcpCatalog(
 	ctx context.Context, orgID, projectID string,
-) (*McpCatalogListData, error) {
+) (*McpCatalogListData, json.RawMessage, error) {
 	path := evalBasePath(orgID, projectID) + "/mcp-catalog"
-	data, _, err := doGet[McpCatalogListData](c, ctx, path, "list mcp catalog")
+	data, raw, err := doGet[McpCatalogListData](c, ctx, path, "list mcp catalog")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &data, nil
+	return &data, raw, nil
 }
 
 // No requireAPIKeyMode() on these writes: the MCP endpoints accept cookie and
@@ -163,16 +163,16 @@ func (c *APIClient) DeleteMcpConnection(
 
 func (c *APIClient) VerifyMcpConnection(
 	ctx context.Context, orgID, projectID, id string,
-) (*McpVerifyData, error) {
+) (*McpVerifyData, json.RawMessage, error) {
 	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id) + "/verify"
 	// Send an empty JSON object rather than nil: a nil body skips the
 	// Content-Type: application/json header (see newJSONRequest), which some
 	// servers reject on a POST.
-	data, _, err := doCreate[McpVerifyData](c, ctx, path, struct{}{}, "verify mcp connection")
+	data, raw, err := doCreate[McpVerifyData](c, ctx, path, struct{}{}, "verify mcp connection")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &data, nil
+	return &data, raw, nil
 }
 
 func (c *APIClient) RunMcpTool(

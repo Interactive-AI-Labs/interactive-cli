@@ -4,8 +4,9 @@ Create a connector
 
 ### Synopsis
 
-Create an MCP connector, verified against the live server on save. If the server
-cannot be reached or rejects the credential, creation fails and nothing is stored.
+Register an MCP server as a connector, verified against the live server on save.
+If the server cannot be reached or rejects the credential, creation fails and
+nothing is stored.
 
 Pass --catalog-id to connect a catalog entry (the endpoint and transport come from
 the catalog; see 'iai connectors catalog'). Otherwise the connector is custom and
@@ -38,8 +39,6 @@ iai connectors create <connector_name> [flags]
       --endpoint-url string   MCP server endpoint URL (required for a custom connector)
       --header stringArray    Extra header as KEY=VALUE for a custom connector (repeatable)
   -h, --help                  help for create
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the connector
       --slug string           Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)
       --transport string      Transport for a custom connector: streamable_http (default) or sse (default "streamable_http")
 ```
@@ -51,6 +50,8 @@ iai connectors create <connector_name> [flags]
       --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
+  -o, --organization string          Organization name that owns the project
+  -p, --project string               Project name that owns the connectors
 ```
 
 ### SEE ALSO

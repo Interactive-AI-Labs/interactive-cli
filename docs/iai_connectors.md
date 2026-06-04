@@ -4,8 +4,6 @@ Manage MCP connectors in a project
 
 ### Synopsis
 
-Manage MCP connectors in a project.
-
 A connector stores the endpoint, transport, and credentials for an MCP server.
 Pick one from the platform catalog or define a custom endpoint. Once connected,
 verify to discover available tools and run them directly.
@@ -13,7 +11,9 @@ verify to discover available tools and run them directly.
 ### Options
 
 ```
-  -h, --help   help for connectors
+  -h, --help                  help for connectors
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name that owns the connectors
 ```
 
 ### Options inherited from parent commands

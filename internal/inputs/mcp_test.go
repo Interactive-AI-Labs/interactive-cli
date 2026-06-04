@@ -9,60 +9,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
-func TestValidateMcpAuth(t *testing.T) {
-	tests := []struct {
-		name       string
-		authType   string
-		credential string
-		wantErr    bool
-	}{
-		{"none without credential ok", "none", "", false},
-		{"none with credential rejected", "none", "secret", true},
-		{"api_key requires credential", "api_key", "", true},
-		{"api_key with credential ok", "api_key", "secret", false},
-		{"bearer requires credential", "bearer", "", true},
-		{"bearer with credential ok", "bearer", "secret", false},
-		{"invalid auth type", "oauth", "secret", true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateMcpAuth(tt.authType, tt.credential)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf(
-					"ValidateMcpAuth(%q,%q) err=%v wantErr=%v",
-					tt.authType, tt.credential, err, tt.wantErr,
-				)
-			}
-		})
-	}
-}
-
-func TestValidateMcpTransport(t *testing.T) {
-	tests := []struct {
-		name      string
-		transport string
-		wantErr   bool
-	}{
-		{"streamable_http ok", "streamable_http", false},
-		{"sse ok", "sse", false},
-		{"grpc rejected", "grpc", true},
-		{"empty rejected", "", true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateMcpTransport(tt.transport)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf(
-					"ValidateMcpTransport(%q) err=%v wantErr=%v",
-					tt.transport,
-					err,
-					tt.wantErr,
-				)
-			}
-		})
-	}
-}
-
 func TestParseHeaderFlags(t *testing.T) {
 	tests := []struct {
 		name    string

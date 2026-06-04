@@ -10,6 +10,7 @@ supported auth methods.
 
 Examples:
   iai connectors catalog
+  iai connectors catalog --json
 
 ```
 iai connectors catalog [flags]
@@ -18,9 +19,8 @@ iai connectors catalog [flags]
 ### Options
 
 ```
-  -h, --help                  help for catalog
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name to browse the catalog for
+  -h, --help   help for catalog
+      --json   Output raw API response as JSON
 ```
 
 ### Options inherited from parent commands
@@ -30,6 +30,8 @@ iai connectors catalog [flags]
       --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
+  -o, --organization string          Organization name that owns the project
+  -p, --project string               Project name that owns the connectors
 ```
 
 ### SEE ALSO

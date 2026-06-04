@@ -5,44 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
-
-var (
-	validMcpAuthTypes  = []string{"api_key", "bearer", "none"}
-	validMcpTransports = []string{"streamable_http", "sse"}
-)
-
-func ValidateMcpAuth(authType, credential string) error {
-	if !slices.Contains(validMcpAuthTypes, authType) {
-		return fmt.Errorf(
-			"invalid --auth-type %q: must be one of %s",
-			authType,
-			strings.Join(validMcpAuthTypes, ", "),
-		)
-	}
-	if authType == "none" && credential != "" {
-		return fmt.Errorf("--credential must not be set when --auth-type is 'none'")
-	}
-	if authType != "none" && credential == "" {
-		return fmt.Errorf("--credential is required when --auth-type is %q", authType)
-	}
-	return nil
-}
-
-func ValidateMcpTransport(transport string) error {
-	if !slices.Contains(validMcpTransports, transport) {
-		return fmt.Errorf(
-			"invalid --transport %q: must be one of %s",
-			transport,
-			strings.Join(validMcpTransports, ", "),
-		)
-	}
-	return nil
-}
 
 func ParseHeaderFlags(pairs []string) (map[string]string, error) {
 	headers := make(map[string]string, len(pairs))

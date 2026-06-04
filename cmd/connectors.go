@@ -37,14 +37,19 @@ var (
 	connectorArgsFile string
 )
 
+var (
+	connectorListJSON    bool
+	connectorGetJSON     bool
+	connectorCatalogJSON bool
+	connectorVerifyJSON  bool
+)
+
 var connectorsCmd = &cobra.Command{
 	Use:     "connectors",
 	Aliases: []string{"connector"},
 	Short:   "Manage MCP connectors in a project",
 	GroupID: groupInfra,
-	Long: `Manage MCP connectors in a project.
-
-A connector stores the endpoint, transport, and credentials for an MCP server.
+	Long: `A connector stores the endpoint, transport, and credentials for an MCP server.
 Pick one from the platform catalog or define a custom endpoint. Once connected,
 verify to discover available tools and run them directly.`,
 }
@@ -53,10 +58,11 @@ var connectorListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List connectors in a project",
-	Long: `List MCP connectors in a project, showing type, status, tool count, and endpoint.
+	Long: `Show each connector's type, status, tool count, and endpoint in a table.
 
 Examples:
-  iai connectors list`,
+  iai connectors list
+  iai connectors list --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -68,9 +74,12 @@ Examples:
 		if err != nil {
 			return err
 		}
-		data, err := apiClient.ListMcpConnections(cmd.Context(), pCtx.orgId, pCtx.projectId)
+		data, raw, err := apiClient.ListMcpConnections(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
+		}
+		if connectorListJSON {
+			return output.PrintRawJSON(out, raw)
 		}
 		return output.PrintMcpConnectionList(out, data.Connections)
 	},
@@ -80,11 +89,12 @@ var connectorGetCmd = &cobra.Command{
 	Use:     "get <connector_id>",
 	Aliases: []string{"describe", "desc"},
 	Short:   "Show a connector and its tools",
-	Long: `Show a connector in detail, including the cached list of tools discovered from
-the MCP server.
+	Long: `Print a connector's full configuration and status alongside the cached list of
+tools discovered from the MCP server.
 
 Examples:
-  iai connectors get 3f9c1a2e-...`,
+  iai connectors get 3f9c1a2e-...
+  iai connectors get 3f9c1a2e-... --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -100,9 +110,12 @@ Examples:
 		if err != nil {
 			return err
 		}
-		conn, err := apiClient.GetMcpConnection(cmd.Context(), pCtx.orgId, pCtx.projectId, id)
+		conn, raw, err := apiClient.GetMcpConnection(cmd.Context(), pCtx.orgId, pCtx.projectId, id)
 		if err != nil {
 			return err
+		}
+		if connectorGetJSON {
+			return output.PrintRawJSON(out, raw)
 		}
 		return output.PrintMcpConnectionDetail(out, conn)
 	},
@@ -116,7 +129,8 @@ var connectorCatalogCmd = &cobra.Command{
 supported auth methods.
 
 Examples:
-  iai connectors catalog`,
+  iai connectors catalog
+  iai connectors catalog --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -128,9 +142,12 @@ Examples:
 		if err != nil {
 			return err
 		}
-		data, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
+		data, raw, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
+		}
+		if connectorCatalogJSON {
+			return output.PrintRawJSON(out, raw)
 		}
 		return output.PrintMcpCatalog(out, data.Entries)
 	},
@@ -139,8 +156,9 @@ Examples:
 var connectorCreateCmd = &cobra.Command{
 	Use:   "create <connector_name>",
 	Short: "Create a connector",
-	Long: `Create an MCP connector, verified against the live server on save. If the server
-cannot be reached or rejects the credential, creation fails and nothing is stored.
+	Long: `Register an MCP server as a connector, verified against the live server on save.
+If the server cannot be reached or rejects the credential, creation fails and
+nothing is stored.
 
 Pass --catalog-id to connect a catalog entry (the endpoint and transport come from
 the catalog; see 'iai connectors catalog'). Otherwise the connector is custom and
@@ -178,9 +196,6 @@ Examples:
 		if err != nil {
 			return err
 		}
-		if err := inputs.ValidateMcpAuth(connectorAuthType, cred); err != nil {
-			return err
-		}
 
 		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(),
@@ -201,7 +216,11 @@ Examples:
 		if connectorCatalogID != "" {
 			// The backend requires the canonical endpoint_url even for catalog
 			// connections (it verifies it matches the entry), so forward it.
-			catalogData, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
+			catalogData, _, err := apiClient.ListMcpCatalog(
+				cmd.Context(),
+				pCtx.orgId,
+				pCtx.projectId,
+			)
 			if err != nil {
 				return err
 			}
@@ -219,9 +238,6 @@ Examples:
 				connectorCatalogID,
 			)
 		} else {
-			if err := inputs.ValidateMcpTransport(connectorTransport); err != nil {
-				return err
-			}
 			customHeaders, err := inputs.ParseHeaderFlags(connectorHeaders)
 			if err != nil {
 				return err
@@ -257,8 +273,8 @@ var connectorDeleteCmd = &cobra.Command{
 	Use:     "delete <connector_id>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a connector",
-	Long: `Delete a connector and its cached tools. Does not affect the remote MCP server.
-Use -f to skip confirmation.
+	Long: `Remove a connector and its cached tools from the project. The remote MCP server
+is not affected. Use -f to skip the confirmation prompt.
 
 Examples:
   iai connectors delete 3f9c1a2e-...
@@ -310,7 +326,8 @@ var connectorVerifyCmd = &cobra.Command{
 cached tool list. Reports the status and, on failure, the error class and message.
 
 Examples:
-  iai connectors verify 3f9c1a2e-...`,
+  iai connectors verify 3f9c1a2e-...
+  iai connectors verify 3f9c1a2e-... --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -326,9 +343,17 @@ Examples:
 		if err != nil {
 			return err
 		}
-		res, err := apiClient.VerifyMcpConnection(cmd.Context(), pCtx.orgId, pCtx.projectId, id)
+		res, raw, err := apiClient.VerifyMcpConnection(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			id,
+		)
 		if err != nil {
 			return err
+		}
+		if connectorVerifyJSON {
+			return output.PrintRawJSON(out, raw)
 		}
 		return output.PrintMcpVerifyResult(out, res)
 	},
@@ -337,7 +362,7 @@ Examples:
 var connectorRunToolCmd = &cobra.Command{
 	Use:   "run-tool <connector_id> <tool_name>",
 	Short: "Run a tool on a connector",
-	Long: `Invoke a tool on a connector and print the result. Only enabled tools can run.
+	Long: `Call one of a connector's enabled tools and print the result it returns.
 
 Pass arguments as a JSON object with --args or --args-file (mutually exclusive);
 omit both to send an empty object.
@@ -385,11 +410,7 @@ Examples:
 	},
 }
 
-// emitToolResult prints a successful tool call and, for any non-ok status,
-// returns a single formatted error instead of printing it. Returning the error
-// gives a non-zero exit code so a failed call can't be silently chained with
-// '&&', and routes one coherent message to stderr rather than a stdout block
-// plus a generic stderr error.
+// emitToolResult returns failed tool calls as errors so the command exits non-zero.
 func emitToolResult(out io.Writer, res *clients.McpToolCallData) error {
 	if res.Status != "ok" {
 		return output.McpToolCallError(res)
@@ -398,20 +419,19 @@ func emitToolResult(out io.Writer, res *clients.McpToolCallData) error {
 }
 
 func init() {
-	connectorListCmd.Flags().
+	connectorsCmd.PersistentFlags().
 		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connectors")
+	connectorsCmd.PersistentFlags().
+		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
+
 	connectorListCmd.Flags().
-		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
-
+		BoolVar(&connectorListJSON, "json", false, "Output raw API response as JSON")
 	connectorGetCmd.Flags().
-		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
-	connectorGetCmd.Flags().
-		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
-
+		BoolVar(&connectorGetJSON, "json", false, "Output raw API response as JSON")
 	connectorCatalogCmd.Flags().
-		StringVarP(&connectorProject, "project", "p", "", "Project name to browse the catalog for")
-	connectorCatalogCmd.Flags().
-		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
+		BoolVar(&connectorCatalogJSON, "json", false, "Output raw API response as JSON")
+	connectorVerifyCmd.Flags().
+		BoolVar(&connectorVerifyJSON, "json", false, "Output raw API response as JSON")
 
 	connectorCreateCmd.Flags().
 		StringVar(&connectorCatalogID, "catalog-id", "", "Catalog entry id for a catalog connector (see 'iai connectors catalog')")
@@ -431,10 +451,6 @@ func init() {
 		StringVar(&connectorDescription, "description", "", "Human-readable description")
 	connectorCreateCmd.Flags().
 		StringArrayVar(&connectorHeaders, "header", nil, "Extra header as KEY=VALUE for a custom connector (repeatable)")
-	connectorCreateCmd.Flags().
-		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
-	connectorCreateCmd.Flags().
-		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 	connectorCreateCmd.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 	connectorCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "endpoint-url")
 	connectorCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "transport")
@@ -443,24 +459,11 @@ func init() {
 
 	connectorDeleteCmd.Flags().
 		BoolVarP(&connectorForce, "force", "f", false, "Skip confirmation prompt")
-	connectorDeleteCmd.Flags().
-		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
-	connectorDeleteCmd.Flags().
-		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
-
-	connectorVerifyCmd.Flags().
-		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
-	connectorVerifyCmd.Flags().
-		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	connectorRunToolCmd.Flags().
 		StringVar(&connectorArgsJSON, "args", "", "Tool arguments as an inline JSON object")
 	connectorRunToolCmd.Flags().
 		StringVar(&connectorArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
-	connectorRunToolCmd.Flags().
-		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
-	connectorRunToolCmd.Flags().
-		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 	connectorRunToolCmd.MarkFlagsMutuallyExclusive("args", "args-file")
 
 	rootCmd.AddCommand(connectorsCmd)
