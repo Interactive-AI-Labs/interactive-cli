@@ -20,6 +20,7 @@ func TestPrintMcpConnectionListEmpty(t *testing.T) {
 }
 
 func TestPrintMcpConnectionListRows(t *testing.T) {
+	t.Setenv("TZ", "Europe/Madrid")
 	var buf bytes.Buffer
 	conns := []clients.McpConnection{
 		{
