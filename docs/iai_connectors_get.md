@@ -1,4 +1,4 @@
-## iai connectors describe
+## iai connectors get
 
 Show a connector and its tools
 
@@ -8,16 +8,16 @@ Show a connector in detail, including the cached list of tools discovered from
 the MCP server.
 
 Examples:
-  iai connectors describe 3f9c1a2e-...
+  iai connectors get 3f9c1a2e-...
 
 ```
-iai connectors describe <connector_id> [flags]
+iai connectors get <connector_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for describe
+  -h, --help                  help for get
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the connector
 ```

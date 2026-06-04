@@ -60,7 +60,11 @@ Examples:
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), connectorOrganization, connectorProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			connectorOrganization,
+			connectorProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -72,15 +76,15 @@ Examples:
 	},
 }
 
-var connectorDescribeCmd = &cobra.Command{
-	Use:     "describe <connector_id>",
-	Aliases: []string{"get", "desc"},
+var connectorGetCmd = &cobra.Command{
+	Use:     "get <connector_id>",
+	Aliases: []string{"describe", "desc"},
 	Short:   "Show a connector and its tools",
 	Long: `Show a connector in detail, including the cached list of tools discovered from
 the MCP server.
 
 Examples:
-  iai connectors describe 3f9c1a2e-...`,
+  iai connectors get 3f9c1a2e-...`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -88,7 +92,11 @@ Examples:
 		if id == "" {
 			return fmt.Errorf("connector id is required")
 		}
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), connectorOrganization, connectorProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			connectorOrganization,
+			connectorProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -112,7 +120,11 @@ Examples:
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), connectorOrganization, connectorProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			connectorOrganization,
+			connectorProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -158,7 +170,11 @@ Examples:
 			)
 		}
 
-		cred, err := inputs.ResolveCredential(cmd.InOrStdin(), connectorCredential, connectorCredentialStdin)
+		cred, err := inputs.ResolveCredential(
+			cmd.InOrStdin(),
+			connectorCredential,
+			connectorCredentialStdin,
+		)
 		if err != nil {
 			return err
 		}
@@ -166,7 +182,11 @@ Examples:
 			return err
 		}
 
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), connectorOrganization, connectorProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			connectorOrganization,
+			connectorProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -262,11 +282,20 @@ Examples:
 			}
 		}
 
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), connectorOrganization, connectorProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			connectorOrganization,
+			connectorProject,
+		)
 		if err != nil {
 			return err
 		}
-		if err := apiClient.DeleteMcpConnection(cmd.Context(), pCtx.orgId, pCtx.projectId, id); err != nil {
+		if err := apiClient.DeleteMcpConnection(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			id,
+		); err != nil {
 			return err
 		}
 		fmt.Fprintf(out, "Successfully deleted connector %q.\n", id)
@@ -289,7 +318,11 @@ Examples:
 		if id == "" {
 			return fmt.Errorf("connector id is required")
 		}
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), connectorOrganization, connectorProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			connectorOrganization,
+			connectorProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -329,11 +362,22 @@ Examples:
 			return err
 		}
 
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), connectorOrganization, connectorProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			connectorOrganization,
+			connectorProject,
+		)
 		if err != nil {
 			return err
 		}
-		res, err := apiClient.RunMcpTool(cmd.Context(), pCtx.orgId, pCtx.projectId, id, tool, toolArgs)
+		res, err := apiClient.RunMcpTool(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			id,
+			tool,
+			toolArgs,
+		)
 		if err != nil {
 			return err
 		}
@@ -354,25 +398,21 @@ func emitToolResult(out io.Writer, res *clients.McpToolCallData) error {
 }
 
 func init() {
-	// Flags for "connectors list"
 	connectorListCmd.Flags().
 		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connectors")
 	connectorListCmd.Flags().
 		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// Flags for "connectors describe"
-	connectorDescribeCmd.Flags().
+	connectorGetCmd.Flags().
 		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
-	connectorDescribeCmd.Flags().
+	connectorGetCmd.Flags().
 		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// Flags for "connectors catalog"
 	connectorCatalogCmd.Flags().
 		StringVarP(&connectorProject, "project", "p", "", "Project name to browse the catalog for")
 	connectorCatalogCmd.Flags().
 		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// Flags for "connectors create"
 	connectorCreateCmd.Flags().
 		StringVar(&connectorCatalogID, "catalog-id", "", "Catalog entry id for a catalog connector (see 'iai connectors catalog')")
 	connectorCreateCmd.Flags().
@@ -387,7 +427,8 @@ func init() {
 		StringVar(&connectorTransport, "transport", "streamable_http", "Transport for a custom connector: streamable_http (default) or sse")
 	connectorCreateCmd.Flags().
 		StringVar(&connectorSlug, "slug", "", "Tool prefix used as <slug>:<tool> (auto-derived from name if omitted)")
-	connectorCreateCmd.Flags().StringVar(&connectorDescription, "description", "", "Human-readable description")
+	connectorCreateCmd.Flags().
+		StringVar(&connectorDescription, "description", "", "Human-readable description")
 	connectorCreateCmd.Flags().
 		StringArrayVar(&connectorHeaders, "header", nil, "Extra header as KEY=VALUE for a custom connector (repeatable)")
 	connectorCreateCmd.Flags().
@@ -400,21 +441,20 @@ func init() {
 	connectorCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "header")
 	_ = connectorCreateCmd.MarkFlagRequired("auth-type")
 
-	// Flags for "connectors delete"
-	connectorDeleteCmd.Flags().BoolVarP(&connectorForce, "force", "f", false, "Skip confirmation prompt")
+	connectorDeleteCmd.Flags().
+		BoolVarP(&connectorForce, "force", "f", false, "Skip confirmation prompt")
 	connectorDeleteCmd.Flags().
 		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
 	connectorDeleteCmd.Flags().
 		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// Flags for "connectors verify"
 	connectorVerifyCmd.Flags().
 		StringVarP(&connectorProject, "project", "p", "", "Project name that owns the connector")
 	connectorVerifyCmd.Flags().
 		StringVarP(&connectorOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	// Flags for "connectors run-tool"
-	connectorRunToolCmd.Flags().StringVar(&connectorArgsJSON, "args", "", "Tool arguments as an inline JSON object")
+	connectorRunToolCmd.Flags().
+		StringVar(&connectorArgsJSON, "args", "", "Tool arguments as an inline JSON object")
 	connectorRunToolCmd.Flags().
 		StringVar(&connectorArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
 	connectorRunToolCmd.Flags().
@@ -425,7 +465,7 @@ func init() {
 
 	rootCmd.AddCommand(connectorsCmd)
 	connectorsCmd.AddCommand(connectorListCmd)
-	connectorsCmd.AddCommand(connectorDescribeCmd)
+	connectorsCmd.AddCommand(connectorGetCmd)
 	connectorsCmd.AddCommand(connectorCatalogCmd)
 	connectorsCmd.AddCommand(connectorCreateCmd)
 	connectorsCmd.AddCommand(connectorDeleteCmd)

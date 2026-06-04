@@ -168,12 +168,9 @@ func TestCreateMcpConnectionFromCatalog(t *testing.T) {
 		!strings.Contains(gotBody, `"catalog_id":"github"`) {
 		t.Fatalf("unexpected request body: %s", gotBody)
 	}
-	// The backend requires the canonical endpoint_url even for catalog connections
-	// (it verifies the entry), so the command always forwards it.
 	if !strings.Contains(gotBody, `"endpoint_url":"https://mcp.github.com/"`) {
 		t.Fatalf("catalog body should forward endpoint_url: %s", gotBody)
 	}
-	// transport stays omitempty for catalog connections.
 	if strings.Contains(gotBody, "transport") {
 		t.Fatalf("catalog body should omit transport: %s", gotBody)
 	}
@@ -228,8 +225,6 @@ func TestVerifyMcpConnection(t *testing.T) {
 	if res.Status != "ok" || len(res.Tools) != 1 {
 		t.Fatalf("unexpected verify: %#v", res)
 	}
-	// The POST must carry an empty JSON object and the JSON Content-Type, not a
-	// bodyless request (which omits the header and some servers reject).
 	if gotContentType != "application/json" {
 		t.Fatalf("Content-Type = %q, want application/json", gotContentType)
 	}
@@ -286,7 +281,6 @@ func TestRunMcpToolNilArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunMcpTool() error = %v", err)
 	}
-	// nil arguments must serialize as an empty object, never JSON null.
 	if !strings.Contains(gotBody, `"arguments":{}`) {
 		t.Fatalf("nil args should send empty object, got: %s", gotBody)
 	}

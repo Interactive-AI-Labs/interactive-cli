@@ -94,8 +94,6 @@ type McpCatalogListData struct {
 	Entries []McpCatalogEntry `json:"entries"`
 }
 
-// One body covers both connection types; the create-* commands populate it
-// differently.
 type McpConnectionCreateBody struct {
 	Type          string            `json:"type"`
 	CatalogID     string            `json:"catalog_id,omitempty"`

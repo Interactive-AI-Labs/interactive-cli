@@ -31,7 +31,7 @@ verify to discover available tools and run them directly.
 * [iai connectors catalog](iai_connectors_catalog.md)	 - Browse the connector catalog
 * [iai connectors create](iai_connectors_create.md)	 - Create a connector
 * [iai connectors delete](iai_connectors_delete.md)	 - Delete a connector
-* [iai connectors describe](iai_connectors_describe.md)	 - Show a connector and its tools
+* [iai connectors get](iai_connectors_get.md)	 - Show a connector and its tools
 * [iai connectors list](iai_connectors_list.md)	 - List connectors in a project
 * [iai connectors run-tool](iai_connectors_run-tool.md)	 - Run a tool on a connector
 * [iai connectors verify](iai_connectors_verify.md)	 - Re-verify a connector and refresh its tools

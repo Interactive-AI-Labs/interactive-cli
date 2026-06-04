@@ -142,10 +142,7 @@ func PrintMcpToolResult(out io.Writer, res *clients.McpToolCallData) error {
 	return nil
 }
 
-// McpToolCallError formats a failed tool call as a single error. The run-tool
-// command returns this instead of printing the error fields to stdout, so the
-// user sees one coherent failure message (on stderr, via cobra) rather than a
-// stdout error block followed by a generic stderr error.
+// McpToolCallError collapses the error fields of a failed tool call into a single returnable error.
 func McpToolCallError(res *clients.McpToolCallData) error {
 	switch {
 	case res.ErrorClass != "" && res.ErrorMessage != "":

@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Confirmation must honor input without a trailing newline and treat empty input
-// as a decline, not an error.
 func TestConfirmDeletion(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -43,8 +41,6 @@ func TestConfirmDeletion(t *testing.T) {
 	}
 }
 
-// Each command must reject an empty or whitespace-only positional arg before
-// doing any network work.
 func TestConnectorEmptyArgGuards(t *testing.T) {
 	cases := []struct {
 		name string
@@ -52,11 +48,16 @@ func TestConnectorEmptyArgGuards(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"describe", connectorDescribeCmd, []string{"  "}, "connector id is required"},
+		{"describe", connectorGetCmd, []string{"  "}, "connector id is required"},
 		{"verify", connectorVerifyCmd, []string{"  "}, "connector id is required"},
 		{"delete", connectorDeleteCmd, []string{"  "}, "connector id is required"},
 		{"create", connectorCreateCmd, []string{"  "}, "connector name is required"},
-		{"run-tool empty id", connectorRunToolCmd, []string{"  ", "search"}, "connector id is required"},
+		{
+			"run-tool empty id",
+			connectorRunToolCmd,
+			[]string{"  ", "search"},
+			"connector id is required",
+		},
 		{"run-tool empty tool", connectorRunToolCmd, []string{"c1", "  "}, "tool name is required"},
 	}
 	for _, tc := range cases {
@@ -69,9 +70,7 @@ func TestConnectorEmptyArgGuards(t *testing.T) {
 	}
 }
 
-// A failed tool call must return an error (non-zero exit) so it can't be
-// silently chained with '&&', while a successful call prints the result and
-// returns nil. This is the headline fix: previously run-tool always exited 0.
+// Regression guard: run-tool previously always exited 0, so a failed call could be silently chained with '&&'.
 func TestEmitToolResult(t *testing.T) {
 	t.Run("ok status prints result and returns nil", func(t *testing.T) {
 		var out bytes.Buffer
@@ -86,7 +85,11 @@ func TestEmitToolResult(t *testing.T) {
 
 	t.Run("error status returns error and prints nothing", func(t *testing.T) {
 		var out bytes.Buffer
-		res := &clients.McpToolCallData{Status: "error", ErrorClass: "tool_error", ErrorMessage: "boom"}
+		res := &clients.McpToolCallData{
+			Status:       "error",
+			ErrorClass:   "tool_error",
+			ErrorMessage: "boom",
+		}
 		err := emitToolResult(&out, res)
 		if err == nil {
 			t.Fatal("expected a non-nil error for a failed tool call")
@@ -100,8 +103,6 @@ func TestEmitToolResult(t *testing.T) {
 	})
 }
 
-// A custom connector (no --catalog-id) must require --endpoint-url before any
-// network work.
 func TestConnectorCreateRequiresEndpointOrCatalog(t *testing.T) {
 	t.Cleanup(func() {
 		connectorCatalogID = ""

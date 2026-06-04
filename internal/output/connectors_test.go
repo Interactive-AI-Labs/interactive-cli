@@ -58,17 +58,14 @@ func TestPrintMcpConnectionDetailWithTools(t *testing.T) {
 	if !strings.Contains(out, "github") || !strings.Contains(out, "search") {
 		t.Fatalf("unexpected output:\n%s", out)
 	}
-	// Connectors that require auth must report whether a credential is stored.
 	if !strings.Contains(out, "Credential Set:") || !strings.Contains(out, "true") {
 		t.Fatalf("expected credential-set line:\n%s", out)
 	}
-	// Describe block (flushed before the tools table) must appear first.
 	if strings.Index(out, "ID:") > strings.Index(out, "NAME") {
 		t.Fatalf("describe block should render before tools table:\n%s", out)
 	}
 }
 
-// auth_type=none connectors have no credential, so the line must be suppressed.
 func TestPrintMcpConnectionDetailNoAuthHidesCredential(t *testing.T) {
 	var buf bytes.Buffer
 	conn := &clients.McpConnectionDetail{
@@ -129,8 +126,11 @@ func TestPrintMcpToolResult(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name:       "ok with object result",
-			res:        &clients.McpToolCallData{Status: "ok", Result: json.RawMessage(`{"content":"hi"}`)},
+			name: "ok with object result",
+			res: &clients.McpToolCallData{
+				Status: "ok",
+				Result: json.RawMessage(`{"content":"hi"}`),
+			},
 			wantOutput: []string{"ok", "content"},
 			wantErr:    false,
 		},
@@ -166,7 +166,11 @@ func TestMcpToolCallError(t *testing.T) {
 	}{
 		{
 			name: "class and message",
-			res:  &clients.McpToolCallData{Status: "error", ErrorClass: "tool_error", ErrorMessage: "boom"},
+			res: &clients.McpToolCallData{
+				Status:       "error",
+				ErrorClass:   "tool_error",
+				ErrorMessage: "boom",
+			},
 			want: []string{`status "error"`, "tool_error", "boom"},
 		},
 		{

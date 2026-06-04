@@ -69,8 +69,6 @@ func ResolveCredential(in io.Reader, credential string, fromStdin bool) (string,
 	return strings.TrimRight(string(data), "\r\n"), nil
 }
 
-// ResolveToolArgs reads the tool arguments from an inline JSON string or a file
-// and returns them as a JSON object. An empty input yields an empty object.
 func ResolveToolArgs(inline, file string) (map[string]any, error) {
 	raw := inline
 	if file != "" {

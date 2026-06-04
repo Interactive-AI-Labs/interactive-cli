@@ -52,7 +52,12 @@ func TestValidateMcpTransport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateMcpTransport(tt.transport)
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("ValidateMcpTransport(%q) err=%v wantErr=%v", tt.transport, err, tt.wantErr)
+				t.Fatalf(
+					"ValidateMcpTransport(%q) err=%v wantErr=%v",
+					tt.transport,
+					err,
+					tt.wantErr,
+				)
 			}
 		})
 	}
@@ -140,7 +145,13 @@ func TestResolveToolArgs(t *testing.T) {
 				return
 			}
 			if len(got) != tt.wantLen {
-				t.Fatalf("ResolveToolArgs(%q) parsed %d entries, want %d: %#v", tt.inline, len(got), tt.wantLen, got)
+				t.Fatalf(
+					"ResolveToolArgs(%q) parsed %d entries, want %d: %#v",
+					tt.inline,
+					len(got),
+					tt.wantLen,
+					got,
+				)
 			}
 			if tt.wantKey != "" && got[tt.wantKey] != tt.wantVal {
 				t.Fatalf("got %#v, want %q=%q", got, tt.wantKey, tt.wantVal)
