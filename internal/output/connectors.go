@@ -1,6 +1,7 @@
 package output
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +12,7 @@ import (
 
 func PrintMcpConnectionList(out io.Writer, conns []clients.McpConnection) error {
 	if len(conns) == 0 {
-		fmt.Fprintln(out, "No integration connections found.")
+		fmt.Fprintln(out, "No connectors found.")
 		return nil
 	}
 	headers := []string{"ID", "NAME", "TYPE", "STATUS", "TOOLS", "ENDPOINT", "UPDATED"}
@@ -45,6 +46,11 @@ func PrintMcpConnectionDetail(out io.Writer, conn *clients.McpConnectionDetail) 
 	fmt.Fprintf(w, "Endpoint:\t%s\n", conn.EndpointURL)
 	fmt.Fprintf(w, "Transport:\t%s\n", conn.Transport)
 	fmt.Fprintf(w, "Auth Type:\t%s\n", conn.AuthType)
+	// Show whether a credential is stored for connectors that need auth — the
+	// credential itself is never returned, so this is the only confirmation.
+	if conn.AuthType != "" && conn.AuthType != "none" {
+		fmt.Fprintf(w, "Credential Set:\t%t\n", conn.HasCredential)
+	}
 	if conn.CatalogID != "" {
 		fmt.Fprintf(w, "Catalog ID:\t%s\n", conn.CatalogID)
 	}
@@ -73,7 +79,7 @@ func PrintMcpConnectionDetail(out io.Writer, conn *clients.McpConnectionDetail) 
 	}
 
 	if len(conn.Tools) == 0 {
-		fmt.Fprintln(out, "\nNo tools discovered yet. Run 'iai integrations verify' to refresh.")
+		fmt.Fprintln(out, "\nNo tools discovered yet. Run 'iai connectors verify' to refresh.")
 		return nil
 	}
 	return printMcpToolsTable(out, conn.Tools)
@@ -126,18 +132,29 @@ func PrintMcpVerifyResult(out io.Writer, res *clients.McpVerifyData) error {
 
 func PrintMcpToolResult(out io.Writer, res *clients.McpToolCallData) error {
 	fmt.Fprintf(out, "Status: %s\n", res.Status)
-	if res.ErrorClass != "" {
-		fmt.Fprintf(out, "Error Class: %s\n", res.ErrorClass)
-	}
-	if res.ErrorMessage != "" {
-		fmt.Fprintf(out, "Error: %s\n", res.ErrorMessage)
-	}
-	if res.Result != nil {
-		pretty, err := json.MarshalIndent(res.Result, "", "  ")
-		if err != nil {
+	if len(res.Result) > 0 {
+		var pretty bytes.Buffer
+		if err := json.Indent(&pretty, res.Result, "", "  "); err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "\nResult:\n%s\n", string(pretty))
+		fmt.Fprintf(out, "\nResult:\n%s\n", pretty.String())
 	}
 	return nil
+}
+
+// McpToolCallError collapses the error fields of a failed tool call into a single returnable error.
+func McpToolCallError(res *clients.McpToolCallData) error {
+	switch {
+	case res.ErrorClass != "" && res.ErrorMessage != "":
+		return fmt.Errorf(
+			"tool call failed with status %q [%s]: %s",
+			res.Status, res.ErrorClass, res.ErrorMessage,
+		)
+	case res.ErrorMessage != "":
+		return fmt.Errorf("tool call failed with status %q: %s", res.Status, res.ErrorMessage)
+	case res.ErrorClass != "":
+		return fmt.Errorf("tool call failed with status %q [%s]", res.Status, res.ErrorClass)
+	default:
+		return fmt.Errorf("tool call failed with status %q", res.Status)
+	}
 }

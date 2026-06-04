@@ -161,7 +161,12 @@ Aliases: []string{"obs", "observation"},
 - `-o, --organization` — Organization name
 - `-p, --project` — Project name
 - `--json` — Output raw API response as JSON
+- `--yaml` — Output raw API response as YAML
 - `--columns` — Customize displayed table columns (`StringSliceVar`)
+
+`--json` and `--yaml` are mutually exclusive with `--columns`; render the raw
+payload with `output.PrintRawJSON` / `output.PrintRawYAML` and guard table-only
+flags with `validateTableOnlyColumns`.
 
 **Pagination (pick one per command, never both):**
 - Page-based: `--page` (default 1), `--limit`
