@@ -142,6 +142,8 @@ func makeGenericListCmd() *cobra.Command {
 		folder  string
 		project string
 		org     string
+		asJSON  bool
+		asYAML  bool
 	)
 
 	cmd := &cobra.Command{
@@ -193,6 +195,13 @@ Examples:
 				return err
 			}
 
+			if asJSON {
+				return output.PrintStructuredJSON(out, result)
+			}
+			if asYAML {
+				return output.PrintStructuredYAML(out, result)
+			}
+
 			return output.PrintPromptList(out, result.Prompts)
 		},
 	}
@@ -200,6 +209,9 @@ Examples:
 	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
 	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
+	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
+	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	cmd.Flags().
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().
@@ -214,11 +226,13 @@ func makeGenericGetCmd() *cobra.Command {
 		label   string
 		project string
 		org     string
+		asJSON  bool
+		asYAML  bool
 	)
 
 	cmd := &cobra.Command{
-		Use:     "describe <name>",
-		Aliases: []string{"desc", "get"},
+		Use:     "get <name>",
+		Aliases: []string{"describe", "desc"},
 		Short:   "Describe a prompt in detail",
 		Long: `Show detailed information about a specific prompt, including its full content.
 
@@ -226,9 +240,9 @@ By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai prompts describe greeting
-  iai prompts describe greeting --version 3
-  iai prompts describe greeting --label staging`,
+  iai prompts get greeting
+  iai prompts get greeting --version 3
+  iai prompts get greeting --label staging`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
@@ -251,6 +265,13 @@ Examples:
 				return err
 			}
 
+			if asJSON {
+				return output.PrintStructuredJSON(out, result)
+			}
+			if asYAML {
+				return output.PrintStructuredYAML(out, result)
+			}
+
 			return output.PrintPromptDetail(out, result)
 		},
 	}
@@ -260,6 +281,9 @@ Examples:
 		&label, "label", "",
 		`Retrieve the version with this label (default: server resolves "production")`,
 	)
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
+	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
+	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	cmd.Flags().
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().

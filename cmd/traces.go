@@ -39,8 +39,10 @@ var (
 	tracesSearch        string
 	tracesFields        string
 	tracesJSON          bool
+	tracesYAML          bool
 	tracesGetFields     string
 	tracesGetJSON       bool
+	tracesGetYAML       bool
 	tracesListOrg       string
 	tracesListProject   string
 	tracesGetOrg        string
@@ -91,7 +93,10 @@ Examples:
 		if len(columns) == 0 {
 			columns = inputs.DefaultTraceColumns
 		}
-		if !tracesJSON {
+		if err := validateTableOnlyColumns(cmd, tracesJSON, tracesYAML); err != nil {
+			return err
+		}
+		if !tracesJSON && !tracesYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllTraceColumns); err != nil {
 				return err
 			}
@@ -165,6 +170,10 @@ Examples:
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if tracesYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintTraceList(out, traces, meta, columns)
 	},
 }
@@ -199,6 +208,10 @@ Examples:
 
 		if tracesGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if tracesGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintTraceDetail(out, trace)
@@ -324,6 +337,8 @@ func init() {
 
 	// Output flags
 	tracesListCmd.Flags().BoolVar(&tracesJSON, "json", false, "Output raw API response as JSON")
+	tracesListCmd.Flags().BoolVar(&tracesYAML, "yaml", false, "Output raw API response as YAML")
+	tracesListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	// StringSliceVar (not StringArrayVar) so users can pass --columns id,name,cost as a comma-separated list.
 	// --tags and --environment use StringArrayVar to avoid splitting values that may contain commas.
 	tracesListCmd.Flags().
@@ -339,6 +354,8 @@ func init() {
 	tracesGetCmd.Flags().
 		StringVar(&tracesGetFields, "fields", "core,io,metrics", "Field groups to include: core, io, metrics (comma-separated)")
 	tracesGetCmd.Flags().BoolVar(&tracesGetJSON, "json", false, "Output raw API response as JSON")
+	tracesGetCmd.Flags().BoolVar(&tracesGetYAML, "yaml", false, "Output raw API response as YAML")
+	tracesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	tracesGetCmd.Flags().
 		StringVarP(&tracesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	tracesGetCmd.Flags().

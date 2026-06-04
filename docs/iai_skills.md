@@ -35,8 +35,8 @@ the Copilot uses to route incoming queries to the right skill at runtime.
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai skills create](iai_skills_create.md)	 - Create a skill
 * [iai skills delete](iai_skills_delete.md)	 - Delete a skill
-* [iai skills describe](iai_skills_describe.md)	 - Describe a skill in detail
 * [iai skills diff](iai_skills_diff.md)	 - Compare two versions of a skill
+* [iai skills get](iai_skills_get.md)	 - Describe a skill in detail
 * [iai skills list](iai_skills_list.md)	 - List skills in a project
 * [iai skills update](iai_skills_update.md)	 - Update a skill (creates a new version)
 * [iai skills versions](iai_skills_versions.md)	 - List versions of a skill

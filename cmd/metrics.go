@@ -22,6 +22,7 @@ var (
 	metricsListColumns       []string
 	metricsListShowModels    bool
 	metricsListJSON          bool
+	metricsListYAML          bool
 	metricsListOrg           string
 	metricsListProject       string
 	metricsListDaily         bool
@@ -63,7 +64,10 @@ Examples:
 		if len(columns) == 0 {
 			columns = inputs.DefaultMetricsDailyColumns
 		}
-		if !metricsListJSON {
+		if err := validateTableOnlyColumns(cmd, metricsListJSON, metricsListYAML); err != nil {
+			return err
+		}
+		if !metricsListJSON && !metricsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllMetricsDailyColumns); err != nil {
 				return err
 			}
@@ -107,6 +111,10 @@ Examples:
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if metricsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintMetricsDaily(out, metrics, meta, columns, metricsListShowModels)
 	},
 }
@@ -137,6 +145,9 @@ func init() {
 		BoolVar(&metricsListShowModels, "show-models", false, "Show per-model breakdown")
 	metricsListCmd.Flags().
 		BoolVar(&metricsListJSON, "json", false, "Output raw API response as JSON")
+	metricsListCmd.Flags().
+		BoolVar(&metricsListYAML, "yaml", false, "Output raw API response as YAML")
+	metricsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	metricsListCmd.Flags().
 		StringVarP(&metricsListOrg, "organization", "o", "", "Organization name that owns the project")
 	metricsListCmd.Flags().

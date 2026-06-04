@@ -22,6 +22,7 @@ iai queue-items list [flags]
   -p, --project string        Project name
       --queue-id string       Queue ID (required)
       --status string         Filter by status (PENDING/COMPLETED)
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

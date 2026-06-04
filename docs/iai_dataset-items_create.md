@@ -25,6 +25,7 @@ iai dataset-items create [flags]
       --source-observation-id string   Source observation ID
       --source-trace-id string         Source trace ID
       --status string                  Item status (ACTIVE/ARCHIVED)
+      --yaml                           Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

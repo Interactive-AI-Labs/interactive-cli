@@ -1,31 +1,33 @@
-## iai variables describe
+## iai skills get
 
-Describe a variable in detail
+Describe a skill in detail
 
 ### Synopsis
 
-Show detailed information about a specific variable definition, including its full content.
+Show a Copilot skill in detail, including its config and full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai variables describe session-vars
-  iai variables describe session-vars --version 3
-  iai variables describe session-vars --label staging
+  iai skills get summarize-trace
+  iai skills get summarize-trace --version 3
+  iai skills get summarize-trace --label staging
 
 ```
-iai variables describe <name> [flags]
+iai skills get <name> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for describe
+  -h, --help                  help for get
+      --json                  Output response as JSON
       --label string          Retrieve the version with this label (default: server resolves 'production')
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --version int           Retrieve a specific version number
+      --yaml                  Output response as YAML
 ```
 
 ### Options inherited from parent commands
@@ -39,5 +41,5 @@ iai variables describe <name> [flags]
 
 ### SEE ALSO
 
-* [iai variables](iai_variables.md)	 - Contextual attributes referenced in policies and routines
+* [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)
 

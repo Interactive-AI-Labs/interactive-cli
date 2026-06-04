@@ -61,9 +61,9 @@ By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai routines describe onboarding-flow
-  iai routines describe onboarding-flow --version 3
-  iai routines describe onboarding-flow --label staging`,
+  iai routines get onboarding-flow
+  iai routines get onboarding-flow --version 3
+  iai routines get onboarding-flow --label staging`,
 		UpdateLong: `Update a routine by creating a new version with updated content.
 
 This creates a new version of the routine using the content from the provided file.

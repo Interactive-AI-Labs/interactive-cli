@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -219,9 +218,7 @@ func PrintCompatibilityMatrix(
 	asJSON bool,
 ) error {
 	if asJSON {
-		enc := json.NewEncoder(out)
-		enc.SetIndent("", "  ")
-		return enc.Encode(matrix)
+		return PrintStructuredJSON(out, matrix)
 	}
 
 	if len(matrix) == 0 {

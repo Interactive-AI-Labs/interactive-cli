@@ -15,7 +15,9 @@ var (
 	obsIncludeIO   bool
 	obsColumns     []string
 	obsListJSON    bool
+	obsListYAML    bool
 	obsGetJSON     bool
+	obsGetYAML     bool
 	obsListOrg     string
 	obsListProject string
 	obsGetOrg      string
@@ -78,7 +80,10 @@ Examples:
 			if len(columns) == 0 {
 				columns = inputs.DefaultObservationColumns
 			}
-			if !obsListJSON {
+			if err := validateTableOnlyColumns(cmd, obsListJSON, obsListYAML); err != nil {
+				return err
+			}
+			if !obsListJSON && !obsListYAML {
 				if err := inputs.ValidateColumns(
 					columns,
 					inputs.AllObservationColumns,
@@ -103,6 +108,10 @@ Examples:
 				return output.PrintRawJSON(out, rawJSON)
 			}
 
+			if obsListYAML {
+				return output.PrintRawYAML(out, rawJSON)
+			}
+
 			return output.PrintObservationList(out, observations, columns)
 		}
 
@@ -111,7 +120,10 @@ Examples:
 		if len(columns) == 0 {
 			columns = inputs.DefaultStandaloneObservationColumns
 		}
-		if !obsListJSON {
+		if err := validateTableOnlyColumns(cmd, obsListJSON, obsListYAML); err != nil {
+			return err
+		}
+		if !obsListJSON && !obsListYAML {
 			if err := inputs.ValidateColumns(
 				columns,
 				inputs.AllStandaloneObservationColumns,
@@ -163,6 +175,10 @@ Examples:
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if obsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintStandaloneObservationList(out, observations, meta, columns)
 	},
 }
@@ -199,6 +215,10 @@ Examples:
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if obsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintObservationDetail(out, obs)
 	},
 }
@@ -210,6 +230,8 @@ func init() {
 	obsListCmd.Flags().
 		BoolVar(&obsIncludeIO, "include-io", false, "Include input/output/metadata in response (only with --trace-id)")
 	obsListCmd.Flags().BoolVar(&obsListJSON, "json", false, "Output raw API response as JSON")
+	obsListCmd.Flags().BoolVar(&obsListYAML, "yaml", false, "Output raw API response as YAML")
+	obsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	obsListCmd.Flags().
 		StringSliceVar(&obsColumns, "columns", nil, "Columns to display (comma-separated)\nWith --trace-id default: id,type,name,model,latency_ms,total_cost,total_tokens\nWithout --trace-id default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens")
 	obsListCmd.Flags().
@@ -243,6 +265,8 @@ func init() {
 
 	// observations get flags
 	obsGetCmd.Flags().BoolVar(&obsGetJSON, "json", false, "Output raw API response as JSON")
+	obsGetCmd.Flags().BoolVar(&obsGetYAML, "yaml", false, "Output raw API response as YAML")
+	obsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	obsGetCmd.Flags().
 		StringVarP(&obsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	obsGetCmd.Flags().

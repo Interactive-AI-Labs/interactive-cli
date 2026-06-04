@@ -21,6 +21,7 @@ iai queues create <name> [flags]
   -o, --organization string        Organization name that owns the project
   -p, --project string             Project name
       --score-config-ids strings   Score config IDs (comma-separated)
+      --yaml                       Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

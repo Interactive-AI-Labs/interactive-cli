@@ -15,11 +15,13 @@ var (
 	datasetRunsListLimit   int
 	datasetRunsListColumns []string
 	datasetRunsListJSON    bool
+	datasetRunsListYAML    bool
 	datasetRunsListOrg     string
 	datasetRunsListProject string
 
 	datasetRunsGetDataset string
 	datasetRunsGetJSON    bool
+	datasetRunsGetYAML    bool
 	datasetRunsGetOrg     string
 	datasetRunsGetProject string
 
@@ -52,7 +54,14 @@ var datasetRunsListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultDatasetRunColumns
 		}
-		if !datasetRunsListJSON {
+		if err := validateTableOnlyColumns(
+			cmd,
+			datasetRunsListJSON,
+			datasetRunsListYAML,
+		); err != nil {
+			return err
+		}
+		if !datasetRunsListJSON && !datasetRunsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllDatasetRunColumns); err != nil {
 				return err
 			}
@@ -88,6 +97,10 @@ var datasetRunsListCmd = &cobra.Command{
 
 		if datasetRunsListJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if datasetRunsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintDatasetRunList(out, runs, meta, columns)
@@ -128,6 +141,10 @@ var datasetRunsGetCmd = &cobra.Command{
 
 		if datasetRunsGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if datasetRunsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintDatasetRunDetail(out, run)
@@ -182,6 +199,9 @@ func init() {
 	datasetRunsListCmd.Flags().
 		BoolVar(&datasetRunsListJSON, "json", false, "Output raw API response as JSON")
 	datasetRunsListCmd.Flags().
+		BoolVar(&datasetRunsListYAML, "yaml", false, "Output raw API response as YAML")
+	datasetRunsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	datasetRunsListCmd.Flags().
 		StringVarP(&datasetRunsListOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetRunsListCmd.Flags().
 		StringVarP(&datasetRunsListProject, "project", "p", "", "Project name")
@@ -191,6 +211,9 @@ func init() {
 	_ = datasetRunsGetCmd.MarkFlagRequired("dataset-name")
 	datasetRunsGetCmd.Flags().
 		BoolVar(&datasetRunsGetJSON, "json", false, "Output raw API response as JSON")
+	datasetRunsGetCmd.Flags().
+		BoolVar(&datasetRunsGetYAML, "yaml", false, "Output raw API response as YAML")
+	datasetRunsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	datasetRunsGetCmd.Flags().
 		StringVarP(&datasetRunsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetRunsGetCmd.Flags().

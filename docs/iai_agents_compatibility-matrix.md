@@ -29,6 +29,7 @@ iai agents compatibility-matrix [flags]
 ```
   -h, --help   help for compatibility-matrix
       --json   Output raw JSON instead of a formatted table
+      --yaml   Output structured YAML
 ```
 
 ### Options inherited from parent commands

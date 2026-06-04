@@ -25,6 +25,7 @@ iai run-items create [flags]
       --run-description string   Run description
       --run-name string          Run name (required)
       --trace-id string          Trace ID
+      --yaml                     Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
