@@ -61,6 +61,7 @@ iai traces list [flags]
       --to-timestamp string       Filter traces to this timestamp (ISO 8601)
       --user-id string            Filter by user ID
       --version string            Filter by version
+      --yaml                      Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

@@ -18,8 +18,10 @@ var (
 	sessionsEnvironment   string
 	sessionsColumns       []string
 	sessionsListJSON      bool
+	sessionsListYAML      bool
 	sessionsGetFields     string
 	sessionsGetJSON       bool
+	sessionsGetYAML       bool
 	sessionsListOrg       string
 	sessionsListProject   string
 	sessionsGetOrg        string
@@ -51,7 +53,10 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 		if len(columns) == 0 {
 			columns = inputs.DefaultSessionColumns
 		}
-		if !sessionsListJSON {
+		if err := validateTableOnlyColumns(cmd, sessionsListJSON, sessionsListYAML); err != nil {
+			return err
+		}
+		if !sessionsListJSON && !sessionsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllSessionColumns); err != nil {
 				return err
 			}
@@ -96,6 +101,10 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if sessionsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintSessionList(out, sessions, meta, columns)
 	},
 }
@@ -133,6 +142,10 @@ Uses the platform API with dual authentication (API key or session).`,
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if sessionsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintSessionDetail(out, session)
 	},
 }
@@ -155,6 +168,9 @@ func init() {
 	sessionsListCmd.Flags().
 		BoolVar(&sessionsListJSON, "json", false, "Output raw API response as JSON")
 	sessionsListCmd.Flags().
+		BoolVar(&sessionsListYAML, "yaml", false, "Output raw API response as YAML")
+	sessionsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	sessionsListCmd.Flags().
 		StringVarP(&sessionsListOrg, "organization", "o", "", "Organization name that owns the project")
 	sessionsListCmd.Flags().
 		StringVarP(&sessionsListProject, "project", "p", "", "Project name")
@@ -163,6 +179,9 @@ func init() {
 		StringVar(&sessionsGetFields, "fields", "core,traces", "Field groups to include (comma-separated)")
 	sessionsGetCmd.Flags().
 		BoolVar(&sessionsGetJSON, "json", false, "Output raw API response as JSON")
+	sessionsGetCmd.Flags().
+		BoolVar(&sessionsGetYAML, "yaml", false, "Output raw API response as YAML")
+	sessionsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	sessionsGetCmd.Flags().
 		StringVarP(&sessionsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	sessionsGetCmd.Flags().

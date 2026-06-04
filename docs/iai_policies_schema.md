@@ -7,7 +7,7 @@ Display the JSON Schema for policies
 Fetch and display the JSON Schema for policies from the backend API.
 
 Use --schema-version to request a specific schema version (defaults to latest stable).
-Use --json to output the raw JSON Schema instead of a formatted table.
+Use --json or --yaml to output the schema response in a structured format.
 
 This is a public endpoint and does not require authentication.
 
@@ -19,8 +19,9 @@ iai policies schema [flags]
 
 ```
   -h, --help                    help for schema
-      --json                    Output raw JSON Schema instead of a formatted table
+      --json                    Output schema response as JSON
       --schema-version string   Schema version to fetch (defaults to latest stable)
+      --yaml                    Output schema response as YAML
 ```
 
 ### Options inherited from parent commands

@@ -1022,8 +1022,8 @@ type promptListData struct {
 }
 
 type PromptListResponse struct {
-	Prompts    []PromptInfo
-	TotalCount int
+	Prompts    []PromptInfo `json:"prompts"`
+	TotalCount int          `json:"totalCount"`
 }
 
 type PromptListOptions struct {

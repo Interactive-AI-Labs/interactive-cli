@@ -25,6 +25,7 @@ iai traces get <trace-id> [flags]
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

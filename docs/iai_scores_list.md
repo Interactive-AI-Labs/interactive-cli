@@ -42,6 +42,7 @@ iai scores list [flags]
       --trace-tag stringArray   Filter by trace tag (repeatable)
       --user-id string          Filter by user ID
       --value string            Exact value filter
+      --yaml                    Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

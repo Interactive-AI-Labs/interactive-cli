@@ -14,16 +14,19 @@ var (
 	queuesListLimit   int
 	queuesListColumns []string
 	queuesListJSON    bool
+	queuesListYAML    bool
 	queuesListOrg     string
 	queuesListProject string
 
 	queuesGetJSON    bool
+	queuesGetYAML    bool
 	queuesGetOrg     string
 	queuesGetProject string
 
 	queuesCreateDescription  string
 	queuesCreateScoreConfigs []string
 	queuesCreateJSON         bool
+	queuesCreateYAML         bool
 	queuesCreateOrg          string
 	queuesCreateProject      string
 
@@ -58,7 +61,10 @@ var queuesListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultQueueColumns
 		}
-		if !queuesListJSON {
+		if err := validateTableOnlyColumns(cmd, queuesListJSON, queuesListYAML); err != nil {
+			return err
+		}
+		if !queuesListJSON && !queuesListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllQueueColumns); err != nil {
 				return err
 			}
@@ -89,6 +95,10 @@ var queuesListCmd = &cobra.Command{
 
 		if queuesListJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if queuesListYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintQueueList(out, queues, meta, columns)
@@ -123,6 +133,10 @@ var queuesGetCmd = &cobra.Command{
 
 		if queuesGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if queuesGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintQueueDetail(out, queue)
@@ -166,6 +180,10 @@ This command requires API key authentication.`,
 
 		if queuesCreateJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if queuesCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintQueueCreateResult(out, queue)
@@ -254,12 +272,18 @@ func init() {
 	queuesListCmd.Flags().
 		BoolVar(&queuesListJSON, "json", false, "Output raw API response as JSON")
 	queuesListCmd.Flags().
+		BoolVar(&queuesListYAML, "yaml", false, "Output raw API response as YAML")
+	queuesListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	queuesListCmd.Flags().
 		StringVarP(&queuesListOrg, "organization", "o", "", "Organization name that owns the project")
 	queuesListCmd.Flags().
 		StringVarP(&queuesListProject, "project", "p", "", "Project name")
 
 	queuesGetCmd.Flags().
 		BoolVar(&queuesGetJSON, "json", false, "Output raw API response as JSON")
+	queuesGetCmd.Flags().
+		BoolVar(&queuesGetYAML, "yaml", false, "Output raw API response as YAML")
+	queuesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	queuesGetCmd.Flags().
 		StringVarP(&queuesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	queuesGetCmd.Flags().
@@ -274,6 +298,9 @@ func init() {
 		)
 	queuesCreateCmd.Flags().
 		BoolVar(&queuesCreateJSON, "json", false, "Output raw API response as JSON")
+	queuesCreateCmd.Flags().
+		BoolVar(&queuesCreateYAML, "yaml", false, "Output raw API response as YAML")
+	queuesCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	queuesCreateCmd.Flags().
 		StringVarP(&queuesCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	queuesCreateCmd.Flags().

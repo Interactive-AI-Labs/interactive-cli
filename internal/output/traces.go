@@ -165,20 +165,6 @@ func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
 	return w.Flush()
 }
 
-// PrintRawJSON writes pretty-printed JSON to the writer.
-// Used by --json flag across trace and observation commands.
-func PrintRawJSON(out io.Writer, raw json.RawMessage) error {
-	var buf bytes.Buffer
-	if err := json.Indent(&buf, raw, "", "  "); err != nil {
-		// fallback: write raw
-		_, err := out.Write(raw)
-		return err
-	}
-	buf.WriteByte('\n')
-	_, err := buf.WriteTo(out)
-	return err
-}
-
 func indentLines(s, prefix string) string {
 	lines := strings.Split(s, "\n")
 	for i, line := range lines {

@@ -16,11 +16,13 @@ var (
 	queueItemsListLimit   int
 	queueItemsListColumns []string
 	queueItemsListJSON    bool
+	queueItemsListYAML    bool
 	queueItemsListOrg     string
 	queueItemsListProject string
 
 	queueItemsGetQueueID string
 	queueItemsGetJSON    bool
+	queueItemsGetYAML    bool
 	queueItemsGetOrg     string
 	queueItemsGetProject string
 
@@ -29,12 +31,14 @@ var (
 	queueItemsCreateObjectType string
 	queueItemsCreateStatus     string
 	queueItemsCreateJSON       bool
+	queueItemsCreateYAML       bool
 	queueItemsCreateOrg        string
 	queueItemsCreateProject    string
 
 	queueItemsUpdateQueueID string
 	queueItemsUpdateStatus  string
 	queueItemsUpdateJSON    bool
+	queueItemsUpdateYAML    bool
 	queueItemsUpdateOrg     string
 	queueItemsUpdateProject string
 
@@ -67,7 +71,14 @@ var queueItemsListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultQueueItemColumns
 		}
-		if !queueItemsListJSON {
+		if err := validateTableOnlyColumns(
+			cmd,
+			queueItemsListJSON,
+			queueItemsListYAML,
+		); err != nil {
+			return err
+		}
+		if !queueItemsListJSON && !queueItemsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllQueueItemColumns); err != nil {
 				return err
 			}
@@ -104,6 +115,10 @@ var queueItemsListCmd = &cobra.Command{
 
 		if queueItemsListJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if queueItemsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintQueueItemList(out, items, meta, columns)
@@ -144,6 +159,10 @@ var queueItemsGetCmd = &cobra.Command{
 
 		if queueItemsGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if queueItemsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintQueueItemDetail(out, item)
@@ -192,6 +211,10 @@ This command requires API key authentication.`,
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if queueItemsCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintQueueItemCreateResult(out, item)
 	},
 }
@@ -233,6 +256,10 @@ This command requires API key authentication.`,
 
 		if queueItemsUpdateJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if queueItemsUpdateYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintQueueItemUpdateResult(out, item)
@@ -289,6 +316,9 @@ func init() {
 	queueItemsListCmd.Flags().
 		BoolVar(&queueItemsListJSON, "json", false, "Output raw API response as JSON")
 	queueItemsListCmd.Flags().
+		BoolVar(&queueItemsListYAML, "yaml", false, "Output raw API response as YAML")
+	queueItemsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	queueItemsListCmd.Flags().
 		StringVarP(&queueItemsListOrg, "organization", "o", "", "Organization name that owns the project")
 	queueItemsListCmd.Flags().
 		StringVarP(&queueItemsListProject, "project", "p", "", "Project name")
@@ -298,6 +328,9 @@ func init() {
 	_ = queueItemsGetCmd.MarkFlagRequired("queue-id")
 	queueItemsGetCmd.Flags().
 		BoolVar(&queueItemsGetJSON, "json", false, "Output raw API response as JSON")
+	queueItemsGetCmd.Flags().
+		BoolVar(&queueItemsGetYAML, "yaml", false, "Output raw API response as YAML")
+	queueItemsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	queueItemsGetCmd.Flags().
 		StringVarP(&queueItemsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	queueItemsGetCmd.Flags().
@@ -320,6 +353,9 @@ func init() {
 	queueItemsCreateCmd.Flags().
 		BoolVar(&queueItemsCreateJSON, "json", false, "Output raw API response as JSON")
 	queueItemsCreateCmd.Flags().
+		BoolVar(&queueItemsCreateYAML, "yaml", false, "Output raw API response as YAML")
+	queueItemsCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	queueItemsCreateCmd.Flags().
 		StringVarP(&queueItemsCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	queueItemsCreateCmd.Flags().
 		StringVarP(&queueItemsCreateProject, "project", "p", "", "Project name")
@@ -332,6 +368,9 @@ func init() {
 	_ = queueItemsUpdateCmd.MarkFlagRequired("status")
 	queueItemsUpdateCmd.Flags().
 		BoolVar(&queueItemsUpdateJSON, "json", false, "Output raw API response as JSON")
+	queueItemsUpdateCmd.Flags().
+		BoolVar(&queueItemsUpdateYAML, "yaml", false, "Output raw API response as YAML")
+	queueItemsUpdateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	queueItemsUpdateCmd.Flags().
 		StringVarP(&queueItemsUpdateOrg, "organization", "o", "", "Organization name that owns the project")
 	queueItemsUpdateCmd.Flags().

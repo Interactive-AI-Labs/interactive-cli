@@ -61,9 +61,9 @@ By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai skills describe summarize-trace
-  iai skills describe summarize-trace --version 3
-  iai skills describe summarize-trace --label staging`,
+  iai skills get summarize-trace
+  iai skills get summarize-trace --version 3
+  iai skills get summarize-trace --label staging`,
 		UpdateLong: `Update a Copilot skill by creating a new version with updated content.
 
 Each update creates a brand-new version with exactly the content and config

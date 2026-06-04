@@ -51,6 +51,7 @@ iai observations list [flags]
       --type string                    Filter by observation type
       --user-id string                 Filter by user ID
       --version string                 Filter by version
+      --yaml                           Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
