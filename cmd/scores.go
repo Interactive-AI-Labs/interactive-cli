@@ -33,6 +33,7 @@ var (
 	scoresOperator      string
 	scoresColumns       []string
 	scoresListJSON      bool
+	scoresListYAML      bool
 	scoresListOrg       string
 	scoresListProject   string
 
@@ -49,6 +50,7 @@ var (
 	scoreCreateConfigID     string
 	scoreCreateQueueID      string
 	scoreCreateJSON         bool
+	scoreCreateYAML         bool
 	scoreCreateOrg          string
 	scoreCreateProject      string
 
@@ -81,7 +83,10 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 		if len(columns) == 0 {
 			columns = inputs.DefaultScoreColumns
 		}
-		if !scoresListJSON {
+		if err := validateTableOnlyColumns(cmd, scoresListJSON, scoresListYAML); err != nil {
+			return err
+		}
+		if !scoresListJSON && !scoresListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllScoreColumns); err != nil {
 				return err
 			}
@@ -143,6 +148,10 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if scoresListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintScoreList(out, scores, meta, columns)
 	},
 }
@@ -189,6 +198,10 @@ This command currently requires API key authentication.`,
 
 		if scoreCreateJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if scoreCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintScoreCreateResult(out, score)
@@ -265,6 +278,9 @@ func init() {
 	scoresListCmd.Flags().
 		BoolVar(&scoresListJSON, "json", false, "Output raw API response as JSON")
 	scoresListCmd.Flags().
+		BoolVar(&scoresListYAML, "yaml", false, "Output raw API response as YAML")
+	scoresListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	scoresListCmd.Flags().
 		StringVarP(&scoresListOrg, "organization", "o", "", "Organization name that owns the project")
 	scoresListCmd.Flags().
 		StringVarP(&scoresListProject, "project", "p", "", "Project name")
@@ -288,6 +304,9 @@ func init() {
 	scoresCreateCmd.Flags().StringVar(&scoreCreateQueueID, "queue-id", "", "Related queue ID")
 	scoresCreateCmd.Flags().
 		BoolVar(&scoreCreateJSON, "json", false, "Output raw API response as JSON")
+	scoresCreateCmd.Flags().
+		BoolVar(&scoreCreateYAML, "yaml", false, "Output raw API response as YAML")
+	scoresCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	scoresCreateCmd.Flags().
 		StringVarP(&scoreCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	scoresCreateCmd.Flags().

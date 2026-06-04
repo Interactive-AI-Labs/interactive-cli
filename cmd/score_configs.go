@@ -15,10 +15,12 @@ var (
 	scoreConfigsListLimit   int
 	scoreConfigsListColumns []string
 	scoreConfigsListJSON    bool
+	scoreConfigsListYAML    bool
 	scoreConfigsListOrg     string
 	scoreConfigsListProject string
 
 	scoreConfigsGetJSON    bool
+	scoreConfigsGetYAML    bool
 	scoreConfigsGetOrg     string
 	scoreConfigsGetProject string
 
@@ -29,6 +31,7 @@ var (
 	scoreConfigsCreateCategories  string
 	scoreConfigsCreateDescription string
 	scoreConfigsCreateJSON        bool
+	scoreConfigsCreateYAML        bool
 	scoreConfigsCreateOrg         string
 	scoreConfigsCreateProject     string
 
@@ -38,6 +41,7 @@ var (
 	scoreConfigsUpdateMaxValue    float64
 	scoreConfigsUpdateCategories  string
 	scoreConfigsUpdateJSON        bool
+	scoreConfigsUpdateYAML        bool
 	scoreConfigsUpdateOrg         string
 	scoreConfigsUpdateProject     string
 )
@@ -64,7 +68,14 @@ var scoreConfigsListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultScoreConfigColumns
 		}
-		if !scoreConfigsListJSON {
+		if err := validateTableOnlyColumns(
+			cmd,
+			scoreConfigsListJSON,
+			scoreConfigsListYAML,
+		); err != nil {
+			return err
+		}
+		if !scoreConfigsListJSON && !scoreConfigsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllScoreConfigColumns); err != nil {
 				return err
 			}
@@ -99,6 +110,10 @@ var scoreConfigsListCmd = &cobra.Command{
 
 		if scoreConfigsListJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if scoreConfigsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintScoreConfigList(out, configs, meta, columns)
@@ -137,6 +152,10 @@ var scoreConfigsGetCmd = &cobra.Command{
 
 		if scoreConfigsGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if scoreConfigsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintScoreConfigDetail(out, config)
@@ -192,6 +211,10 @@ This command requires API key authentication.`,
 
 		if scoreConfigsCreateJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if scoreConfigsCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintScoreConfigCreateResult(out, config)
@@ -263,6 +286,10 @@ This command requires API key authentication.`,
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if scoreConfigsUpdateYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintScoreConfigUpdateResult(out, config)
 	},
 }
@@ -277,12 +304,18 @@ func init() {
 	scoreConfigsListCmd.Flags().
 		BoolVar(&scoreConfigsListJSON, "json", false, "Output raw API response as JSON")
 	scoreConfigsListCmd.Flags().
+		BoolVar(&scoreConfigsListYAML, "yaml", false, "Output raw API response as YAML")
+	scoreConfigsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	scoreConfigsListCmd.Flags().
 		StringVarP(&scoreConfigsListOrg, "organization", "o", "", "Organization name that owns the project")
 	scoreConfigsListCmd.Flags().
 		StringVarP(&scoreConfigsListProject, "project", "p", "", "Project name")
 
 	scoreConfigsGetCmd.Flags().
 		BoolVar(&scoreConfigsGetJSON, "json", false, "Output raw API response as JSON")
+	scoreConfigsGetCmd.Flags().
+		BoolVar(&scoreConfigsGetYAML, "yaml", false, "Output raw API response as YAML")
+	scoreConfigsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	scoreConfigsGetCmd.Flags().
 		StringVarP(&scoreConfigsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	scoreConfigsGetCmd.Flags().
@@ -306,6 +339,9 @@ func init() {
 	scoreConfigsCreateCmd.Flags().
 		BoolVar(&scoreConfigsCreateJSON, "json", false, "Output raw API response as JSON")
 	scoreConfigsCreateCmd.Flags().
+		BoolVar(&scoreConfigsCreateYAML, "yaml", false, "Output raw API response as YAML")
+	scoreConfigsCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	scoreConfigsCreateCmd.Flags().
 		StringVarP(&scoreConfigsCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	scoreConfigsCreateCmd.Flags().
 		StringVarP(&scoreConfigsCreateProject, "project", "p", "", "Project name")
@@ -324,6 +360,9 @@ func init() {
 		StringVar(&scoreConfigsUpdateCategories, "categories", "", "New categories as JSON array")
 	scoreConfigsUpdateCmd.Flags().
 		BoolVar(&scoreConfigsUpdateJSON, "json", false, "Output raw API response as JSON")
+	scoreConfigsUpdateCmd.Flags().
+		BoolVar(&scoreConfigsUpdateYAML, "yaml", false, "Output raw API response as YAML")
+	scoreConfigsUpdateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	scoreConfigsUpdateCmd.Flags().
 		StringVarP(&scoreConfigsUpdateOrg, "organization", "o", "", "Organization name that owns the project")
 	scoreConfigsUpdateCmd.Flags().

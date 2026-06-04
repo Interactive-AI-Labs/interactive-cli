@@ -56,9 +56,9 @@ By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai policies describe safety-rules
-  iai policies describe safety-rules --version 3
-  iai policies describe safety-rules --label staging`,
+  iai policies get safety-rules
+  iai policies get safety-rules --version 3
+  iai policies get safety-rules --label staging`,
 		UpdateLong: `Update a policy by creating a new version with updated content.
 
 This creates a new version of the policy using the content from the provided file.

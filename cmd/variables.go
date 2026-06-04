@@ -64,9 +64,9 @@ By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai variables describe session-vars
-  iai variables describe session-vars --version 3
-  iai variables describe session-vars --label staging`,
+  iai variables get session-vars
+  iai variables get session-vars --version 3
+  iai variables get session-vars --label staging`,
 		UpdateLong: `Update a variable definition by creating a new version with updated content.
 
 This creates a new version of the variable using the content from the provided file.

@@ -29,8 +29,8 @@ responses (YAML format).
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai policies create](iai_policies_create.md)	 - Create a policy
 * [iai policies delete](iai_policies_delete.md)	 - Delete a policy
-* [iai policies describe](iai_policies_describe.md)	 - Describe a policy in detail
 * [iai policies diff](iai_policies_diff.md)	 - Compare two versions of a policy
+* [iai policies get](iai_policies_get.md)	 - Describe a policy in detail
 * [iai policies list](iai_policies_list.md)	 - List policies in a project
 * [iai policies schema](iai_policies_schema.md)	 - Display the JSON Schema for policies
 * [iai policies update](iai_policies_update.md)	 - Update a policy (creates a new version)

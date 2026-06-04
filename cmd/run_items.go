@@ -14,6 +14,7 @@ var (
 	runItemsListLimit       int
 	runItemsListColumns     []string
 	runItemsListJSON        bool
+	runItemsListYAML        bool
 	runItemsListOrg         string
 	runItemsListProject     string
 
@@ -24,6 +25,7 @@ var (
 	runItemsCreateObservationID  string
 	runItemsCreateMetadataJSON   string
 	runItemsCreateJSON           bool
+	runItemsCreateYAML           bool
 	runItemsCreateOrg            string
 	runItemsCreateProject        string
 )
@@ -50,7 +52,10 @@ var runItemsListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultRunItemColumns
 		}
-		if !runItemsListJSON {
+		if err := validateTableOnlyColumns(cmd, runItemsListJSON, runItemsListYAML); err != nil {
+			return err
+		}
+		if !runItemsListJSON && !runItemsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllRunItemColumns); err != nil {
 				return err
 			}
@@ -87,6 +92,10 @@ var runItemsListCmd = &cobra.Command{
 
 		if runItemsListJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if runItemsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintRunItemList(out, items, meta, columns)
@@ -138,6 +147,10 @@ This command requires API key authentication.`,
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if runItemsCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintRunItemCreateResult(out, item)
 	},
 }
@@ -153,6 +166,9 @@ func init() {
 		StringSliceVar(&runItemsListColumns, "columns", nil, "Columns to display (comma-separated)")
 	runItemsListCmd.Flags().
 		BoolVar(&runItemsListJSON, "json", false, "Output raw API response as JSON")
+	runItemsListCmd.Flags().
+		BoolVar(&runItemsListYAML, "yaml", false, "Output raw API response as YAML")
+	runItemsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	runItemsListCmd.Flags().
 		StringVarP(&runItemsListOrg, "organization", "o", "", "Organization name that owns the project")
 	runItemsListCmd.Flags().
@@ -174,6 +190,9 @@ func init() {
 		StringVar(&runItemsCreateMetadataJSON, "metadata-json", "", "Metadata as JSON object")
 	runItemsCreateCmd.Flags().
 		BoolVar(&runItemsCreateJSON, "json", false, "Output raw API response as JSON")
+	runItemsCreateCmd.Flags().
+		BoolVar(&runItemsCreateYAML, "yaml", false, "Output raw API response as YAML")
+	runItemsCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	runItemsCreateCmd.Flags().
 		StringVarP(&runItemsCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	runItemsCreateCmd.Flags().

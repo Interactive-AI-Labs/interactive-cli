@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -75,6 +73,7 @@ func makeSchemaCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		schemaVersion string
 		asJSON        bool
+		asYAML        bool
 	)
 
 	cmd := &cobra.Command{
@@ -83,7 +82,7 @@ func makeSchemaCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Long: fmt.Sprintf(`Fetch and display the JSON Schema for %s from the backend API.
 
 Use --schema-version to request a specific schema version (defaults to latest stable).
-Use --json to output the raw JSON Schema instead of a formatted table.
+Use --json or --yaml to output the schema response in a structured format.
 
 This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 		Args: cobra.NoArgs,
@@ -98,14 +97,10 @@ This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 			}
 
 			if asJSON {
-				fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
-
-				var indented bytes.Buffer
-				if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
-					return fmt.Errorf("failed to format schema: %w", err)
-				}
-				fmt.Fprintln(out, indented.String())
-				return nil
+				return output.PrintStructuredJSON(out, result)
+			}
+			if asYAML {
+				return output.PrintStructuredYAML(out, result)
 			}
 
 			return output.PrintSchemaPretty(out, result.Schema, result.SchemaVersion)
@@ -114,8 +109,9 @@ This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 
 	cmd.Flags().
 		StringVar(&schemaVersion, "schema-version", "", "Schema version to fetch (defaults to latest stable)")
-	cmd.Flags().
-		BoolVar(&asJSON, "json", false, "Output raw JSON Schema instead of a formatted table")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output schema response as JSON")
+	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output schema response as YAML")
+	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	return cmd
 }
@@ -204,6 +200,8 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		folder  string
 		project string
 		org     string
+		asJSON  bool
+		asYAML  bool
 	)
 
 	cmd := &cobra.Command{
@@ -244,6 +242,13 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
+			if asJSON {
+				return output.PrintStructuredJSON(out, result)
+			}
+			if asYAML {
+				return output.PrintStructuredYAML(out, result)
+			}
+
 			return output.PrintPromptList(out, result.Prompts)
 		},
 	}
@@ -251,6 +256,9 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
 	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
+	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
+	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
@@ -263,11 +271,13 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		label   string
 		project string
 		org     string
+		asJSON  bool
+		asYAML  bool
 	)
 
 	cmd := &cobra.Command{
-		Use:     "describe <name>",
-		Aliases: []string{"desc", "get"},
+		Use:     "get <name>",
+		Aliases: []string{"describe", "desc"},
 		Short:   fmt.Sprintf("Describe a %s in detail", ptCfg.TypeName),
 		Long:    ptCfg.GetLong,
 		Args:    cobra.ExactArgs(1),
@@ -292,6 +302,13 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
+			if asJSON {
+				return output.PrintStructuredJSON(out, result)
+			}
+			if asYAML {
+				return output.PrintStructuredYAML(out, result)
+			}
+
 			return output.PrintPromptDetail(out, result)
 		},
 	}
@@ -299,6 +316,9 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().IntVar(&version, "version", 0, "Retrieve a specific version number")
 	cmd.Flags().
 		StringVar(&label, "label", "", "Retrieve the version with this label (default: server resolves 'production')")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
+	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
+	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 

@@ -14,10 +14,12 @@ var (
 	datasetsListLimit   int
 	datasetsListColumns []string
 	datasetsListJSON    bool
+	datasetsListYAML    bool
 	datasetsListOrg     string
 	datasetsListProject string
 
 	datasetsGetJSON    bool
+	datasetsGetYAML    bool
 	datasetsGetOrg     string
 	datasetsGetProject string
 
@@ -26,6 +28,7 @@ var (
 	datasetsCreateOrg          string
 	datasetsCreateProject      string
 	datasetsCreateJSON         bool
+	datasetsCreateYAML         bool
 )
 
 var datasetsCmd = &cobra.Command{
@@ -50,7 +53,10 @@ var datasetsListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultDatasetColumns
 		}
-		if !datasetsListJSON {
+		if err := validateTableOnlyColumns(cmd, datasetsListJSON, datasetsListYAML); err != nil {
+			return err
+		}
+		if !datasetsListJSON && !datasetsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllDatasetColumns); err != nil {
 				return err
 			}
@@ -87,6 +93,10 @@ var datasetsListCmd = &cobra.Command{
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if datasetsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintDatasetList(out, datasets, meta, columns)
 	},
 }
@@ -119,6 +129,10 @@ var datasetsGetCmd = &cobra.Command{
 
 		if datasetsGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if datasetsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintDatasetDetail(out, dataset)
@@ -165,6 +179,10 @@ var datasetsCreateCmd = &cobra.Command{
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if datasetsCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintDatasetCreateResult(out, dataset)
 	},
 }
@@ -177,12 +195,18 @@ func init() {
 	datasetsListCmd.Flags().
 		BoolVar(&datasetsListJSON, "json", false, "Output raw API response as JSON")
 	datasetsListCmd.Flags().
+		BoolVar(&datasetsListYAML, "yaml", false, "Output raw API response as YAML")
+	datasetsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	datasetsListCmd.Flags().
 		StringVarP(&datasetsListOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetsListCmd.Flags().
 		StringVarP(&datasetsListProject, "project", "p", "", "Project name")
 
 	datasetsGetCmd.Flags().
 		BoolVar(&datasetsGetJSON, "json", false, "Output raw API response as JSON")
+	datasetsGetCmd.Flags().
+		BoolVar(&datasetsGetYAML, "yaml", false, "Output raw API response as YAML")
+	datasetsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	datasetsGetCmd.Flags().
 		StringVarP(&datasetsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetsGetCmd.Flags().
@@ -194,6 +218,9 @@ func init() {
 		StringVar(&datasetsCreateMetadataJSON, "metadata-json", "", "Metadata as JSON object")
 	datasetsCreateCmd.Flags().
 		BoolVar(&datasetsCreateJSON, "json", false, "Output raw API response as JSON")
+	datasetsCreateCmd.Flags().
+		BoolVar(&datasetsCreateYAML, "yaml", false, "Output raw API response as YAML")
+	datasetsCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	datasetsCreateCmd.Flags().
 		StringVarP(&datasetsCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetsCreateCmd.Flags().

@@ -22,6 +22,7 @@ iai run-items list [flags]
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
       --run-name string       Filter by run name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

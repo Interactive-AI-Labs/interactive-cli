@@ -23,6 +23,7 @@ iai dataset-items list [flags]
   -p, --project string                 Project name
       --source-observation-id string   Filter by source observation ID
       --source-trace-id string         Filter by source trace ID
+      --yaml                           Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

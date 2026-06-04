@@ -18,6 +18,7 @@ iai queue-items get <item-id> [flags]
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
       --queue-id string       Queue ID (required)
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

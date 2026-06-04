@@ -27,6 +27,7 @@ iai sessions list [flags]
       --page int                Page number (starts at 1) (default 1)
   -p, --project string          Project name
       --to-timestamp string     Filter sessions to this timestamp (ISO 8601)
+      --yaml                    Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

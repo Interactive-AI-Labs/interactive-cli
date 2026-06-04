@@ -20,6 +20,7 @@ iai score-configs list [flags]
   -o, --organization string   Organization name that owns the project
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

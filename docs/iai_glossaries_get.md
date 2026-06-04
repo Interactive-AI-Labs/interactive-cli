@@ -1,10 +1,10 @@
 ## iai glossaries get
 
-Get details of a glossary
+Describe a glossary in detail
 
 ### Synopsis
 
-Get details of a specific glossary definition, including its full content.
+Show detailed information about a specific glossary definition, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
@@ -22,10 +22,12 @@ iai glossaries get <name> [flags]
 
 ```
   -h, --help                  help for get
+      --json                  Output response as JSON
       --label string          Retrieve the version with this label (default: server resolves 'production')
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --version int           Retrieve a specific version number
+      --yaml                  Output response as YAML
 ```
 
 ### Options inherited from parent commands
@@ -39,5 +41,5 @@ iai glossaries get <name> [flags]
 
 ### SEE ALSO
 
-* [iai glossaries](iai_glossaries.md)	 - Manage glossary definitions
+* [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
 

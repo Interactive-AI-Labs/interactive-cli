@@ -17,10 +17,12 @@ var (
 	commentsListLimit        int
 	commentsListColumns      []string
 	commentsListJSON         bool
+	commentsListYAML         bool
 	commentsListOrg          string
 	commentsListProject      string
 
 	commentsGetJSON    bool
+	commentsGetYAML    bool
 	commentsGetOrg     string
 	commentsGetProject string
 
@@ -29,6 +31,7 @@ var (
 	commentsCreateContent      string
 	commentsCreateAuthorUserID string
 	commentsCreateJSON         bool
+	commentsCreateYAML         bool
 	commentsCreateOrg          string
 	commentsCreateProject      string
 )
@@ -55,7 +58,10 @@ var commentsListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultCommentColumns
 		}
-		if !commentsListJSON {
+		if err := validateTableOnlyColumns(cmd, commentsListJSON, commentsListYAML); err != nil {
+			return err
+		}
+		if !commentsListJSON && !commentsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllCommentColumns); err != nil {
 				return err
 			}
@@ -95,6 +101,10 @@ var commentsListCmd = &cobra.Command{
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if commentsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintCommentList(out, comments, meta, columns)
 	},
 }
@@ -127,6 +137,10 @@ var commentsGetCmd = &cobra.Command{
 
 		if commentsGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if commentsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintCommentDetail(out, comment)
@@ -173,6 +187,10 @@ This command requires API key authentication.`,
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if commentsCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintCommentCreateResult(out, comment)
 	},
 }
@@ -194,12 +212,18 @@ func init() {
 	commentsListCmd.Flags().
 		BoolVar(&commentsListJSON, "json", false, "Output raw API response as JSON")
 	commentsListCmd.Flags().
+		BoolVar(&commentsListYAML, "yaml", false, "Output raw API response as YAML")
+	commentsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	commentsListCmd.Flags().
 		StringVarP(&commentsListOrg, "organization", "o", "", "Organization name that owns the project")
 	commentsListCmd.Flags().
 		StringVarP(&commentsListProject, "project", "p", "", "Project name")
 
 	commentsGetCmd.Flags().
 		BoolVar(&commentsGetJSON, "json", false, "Output raw API response as JSON")
+	commentsGetCmd.Flags().
+		BoolVar(&commentsGetYAML, "yaml", false, "Output raw API response as YAML")
+	commentsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	commentsGetCmd.Flags().
 		StringVarP(&commentsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	commentsGetCmd.Flags().
@@ -221,6 +245,9 @@ func init() {
 		StringVar(&commentsCreateAuthorUserID, "author-user-id", "", "Author user ID")
 	commentsCreateCmd.Flags().
 		BoolVar(&commentsCreateJSON, "json", false, "Output raw API response as JSON")
+	commentsCreateCmd.Flags().
+		BoolVar(&commentsCreateYAML, "yaml", false, "Output raw API response as YAML")
+	commentsCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	commentsCreateCmd.Flags().
 		StringVarP(&commentsCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	commentsCreateCmd.Flags().

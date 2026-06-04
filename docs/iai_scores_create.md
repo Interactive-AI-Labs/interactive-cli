@@ -31,6 +31,7 @@ iai scores create [flags]
       --session-id string       Target session ID
       --trace-id string         Target trace ID
       --value string            Score value
+      --yaml                    Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

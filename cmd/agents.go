@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -44,6 +42,7 @@ var (
 var (
 	agentSchemaVersion string
 	agentSchemaJSON    bool
+	agentSchemaYAML    bool
 )
 
 var agentsCmd = &cobra.Command{
@@ -506,7 +505,7 @@ var agentSchemaCmd = &cobra.Command{
 Defaults to the latest schema version. Use --schema-version to fetch a specific
 version (run 'iai agents compatibility-matrix' to see available versions).
 
-Use --json for the raw JSON Schema output.
+Use --json or --yaml for structured schema output.
 
 Examples:
   iai agents schema
@@ -532,20 +531,20 @@ Examples:
 		}
 
 		if agentSchemaJSON {
-			fmt.Fprintf(out, "Schema version: %s\n\n", result.SchemaVersion)
-			var indented bytes.Buffer
-			if err := json.Indent(&indented, result.Schema, "", "  "); err != nil {
-				return fmt.Errorf("failed to format schema: %w", err)
-			}
-			fmt.Fprintln(out, indented.String())
-			return nil
+			return output.PrintStructuredJSON(out, result)
+		}
+		if agentSchemaYAML {
+			return output.PrintStructuredYAML(out, result)
 		}
 
 		return output.PrintSchemaPretty(out, result.Schema, result.SchemaVersion)
 	},
 }
 
-var agentCompatibilityMatrixJSON bool
+var (
+	agentCompatibilityMatrixJSON bool
+	agentCompatibilityMatrixYAML bool
+)
 
 var agentCompatibilityMatrixCmd = &cobra.Command{
 	Use:   "compatibility-matrix",
@@ -576,6 +575,10 @@ Examples:
 		)
 		if err != nil {
 			return err
+		}
+
+		if agentCompatibilityMatrixYAML {
+			return output.PrintStructuredYAML(out, matrix)
 		}
 
 		return output.PrintCompatibilityMatrix(out, matrix, agentCompatibilityMatrixJSON)
@@ -911,11 +914,17 @@ func init() {
 	agentSchemaCmd.Flags().
 		StringVar(&agentSchemaVersion, "schema-version", "", "Schema version to fetch (defaults to latest stable)")
 	agentSchemaCmd.Flags().
-		BoolVar(&agentSchemaJSON, "json", false, "Output raw JSON Schema instead of a formatted table")
+		BoolVar(&agentSchemaJSON, "json", false, "Output schema response as JSON")
+	agentSchemaCmd.Flags().
+		BoolVar(&agentSchemaYAML, "yaml", false, "Output schema response as YAML")
+	agentSchemaCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Flags for "agents compatibility-matrix"
 	agentCompatibilityMatrixCmd.Flags().
 		BoolVar(&agentCompatibilityMatrixJSON, "json", false, "Output raw JSON instead of a formatted table")
+	agentCompatibilityMatrixCmd.Flags().
+		BoolVar(&agentCompatibilityMatrixYAML, "yaml", false, "Output structured YAML")
+	agentCompatibilityMatrixCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)

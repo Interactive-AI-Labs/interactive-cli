@@ -1,10 +1,10 @@
 ## iai variables get
 
-Get details of a variable
+Describe a variable in detail
 
 ### Synopsis
 
-Get details of a specific variable definition, including its full content.
+Show detailed information about a specific variable definition, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
@@ -22,10 +22,12 @@ iai variables get <name> [flags]
 
 ```
   -h, --help                  help for get
+      --json                  Output response as JSON
       --label string          Retrieve the version with this label (default: server resolves 'production')
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --version int           Retrieve a specific version number
+      --yaml                  Output response as YAML
 ```
 
 ### Options inherited from parent commands
@@ -39,5 +41,5 @@ iai variables get <name> [flags]
 
 ### SEE ALSO
 
-* [iai variables](iai_variables.md)	 - Manage variables
+* [iai variables](iai_variables.md)	 - Contextual attributes referenced in policies and routines
 

@@ -25,10 +25,12 @@ iai prompts list [flags]
 ```
       --folder string         List items inside the given folder path
   -h, --help                  help for list
+      --json                  Output response as JSON
       --limit int             Number of items per page (default: 50)
   -o, --organization string   Organization name that owns the project
       --page int              Page number for pagination
   -p, --project string        Project name that owns the prompts
+      --yaml                  Output response as YAML
 ```
 
 ### Options inherited from parent commands

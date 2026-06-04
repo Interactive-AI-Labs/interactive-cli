@@ -66,9 +66,9 @@ By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
 Examples:
-  iai glossaries describe finance-terms
-  iai glossaries describe finance-terms --version 3
-  iai glossaries describe finance-terms --label staging`,
+  iai glossaries get finance-terms
+  iai glossaries get finance-terms --version 3
+  iai glossaries get finance-terms --label staging`,
 		UpdateLong: `Update a glossary definition by creating a new version with updated content.
 
 This creates a new version of the glossary using the content from the provided file.

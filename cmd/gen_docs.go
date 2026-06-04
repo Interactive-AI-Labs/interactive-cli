@@ -16,6 +16,9 @@ const defaultDocsOutDir = "./docs"
 //go:embed templates/install.md
 var installInstructions string
 
+//go:embed templates/structured_output.md
+var structuredOutputDocs string
+
 //go:embed templates/sync_config_example.md
 var syncConfigExample string
 
@@ -92,7 +95,7 @@ var genDocsCmd = &cobra.Command{
 			nextSectionIdx := strings.Index(docContent[synopsisIdx+1:], "### ")
 			if nextSectionIdx != -1 {
 				insertPos := synopsisIdx + 1 + nextSectionIdx
-				docContent = docContent[:insertPos] + installInstructions + "\n" + docContent[insertPos:]
+				docContent = docContent[:insertPos] + installInstructions + "\n" + structuredOutputDocs + "\n" + docContent[insertPos:]
 			}
 		}
 

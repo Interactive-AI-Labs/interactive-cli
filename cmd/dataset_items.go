@@ -17,10 +17,12 @@ var (
 	datasetItemsListLimit               int
 	datasetItemsListColumns             []string
 	datasetItemsListJSON                bool
+	datasetItemsListYAML                bool
 	datasetItemsListOrg                 string
 	datasetItemsListProject             string
 
 	datasetItemsGetJSON    bool
+	datasetItemsGetYAML    bool
 	datasetItemsGetOrg     string
 	datasetItemsGetProject string
 
@@ -33,6 +35,7 @@ var (
 	datasetItemsCreateSourceObservationID string
 	datasetItemsCreateStatus              string
 	datasetItemsCreateJSON                bool
+	datasetItemsCreateYAML                bool
 	datasetItemsCreateOrg                 string
 	datasetItemsCreateProject             string
 
@@ -62,7 +65,14 @@ var datasetItemsListCmd = &cobra.Command{
 		if len(columns) == 0 {
 			columns = inputs.DefaultDatasetItemColumns
 		}
-		if !datasetItemsListJSON {
+		if err := validateTableOnlyColumns(
+			cmd,
+			datasetItemsListJSON,
+			datasetItemsListYAML,
+		); err != nil {
+			return err
+		}
+		if !datasetItemsListJSON && !datasetItemsListYAML {
 			if err := inputs.ValidateColumns(columns, inputs.AllDatasetItemColumns); err != nil {
 				return err
 			}
@@ -102,6 +112,10 @@ var datasetItemsListCmd = &cobra.Command{
 			return output.PrintRawJSON(out, rawJSON)
 		}
 
+		if datasetItemsListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
 		return output.PrintDatasetItemList(out, items, meta, columns)
 	},
 }
@@ -138,6 +152,10 @@ var datasetItemsGetCmd = &cobra.Command{
 
 		if datasetItemsGetJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if datasetItemsGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintDatasetItemDetail(out, item)
@@ -187,6 +205,10 @@ var datasetItemsCreateCmd = &cobra.Command{
 
 		if datasetItemsCreateJSON {
 			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if datasetItemsCreateYAML {
+			return output.PrintRawYAML(out, rawJSON)
 		}
 
 		return output.PrintDatasetItemCreateResult(out, item)
@@ -246,12 +268,18 @@ func init() {
 	datasetItemsListCmd.Flags().
 		BoolVar(&datasetItemsListJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsListCmd.Flags().
+		BoolVar(&datasetItemsListYAML, "yaml", false, "Output raw API response as YAML")
+	datasetItemsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	datasetItemsListCmd.Flags().
 		StringVarP(&datasetItemsListOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetItemsListCmd.Flags().
 		StringVarP(&datasetItemsListProject, "project", "p", "", "Project name")
 
 	datasetItemsGetCmd.Flags().
 		BoolVar(&datasetItemsGetJSON, "json", false, "Output raw API response as JSON")
+	datasetItemsGetCmd.Flags().
+		BoolVar(&datasetItemsGetYAML, "yaml", false, "Output raw API response as YAML")
+	datasetItemsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	datasetItemsGetCmd.Flags().
 		StringVarP(&datasetItemsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetItemsGetCmd.Flags().
@@ -282,6 +310,9 @@ func init() {
 		StringVar(&datasetItemsCreateStatus, "status", "", "Item status (ACTIVE/ARCHIVED)")
 	datasetItemsCreateCmd.Flags().
 		BoolVar(&datasetItemsCreateJSON, "json", false, "Output raw API response as JSON")
+	datasetItemsCreateCmd.Flags().
+		BoolVar(&datasetItemsCreateYAML, "yaml", false, "Output raw API response as YAML")
+	datasetItemsCreateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	datasetItemsCreateCmd.Flags().
 		StringVarP(&datasetItemsCreateOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetItemsCreateCmd.Flags().

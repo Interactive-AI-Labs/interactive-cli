@@ -39,6 +39,7 @@ iai metrics list [flags]
       --to-timestamp string     Filter metrics to this timestamp (ISO 8601)
       --trace-name string       Filter by trace name
       --user-id string          Filter by user ID
+      --yaml                    Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

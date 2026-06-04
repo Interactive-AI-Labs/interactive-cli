@@ -29,8 +29,8 @@ format).
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai glossaries create](iai_glossaries_create.md)	 - Create a glossary
 * [iai glossaries delete](iai_glossaries_delete.md)	 - Delete a glossary
-* [iai glossaries describe](iai_glossaries_describe.md)	 - Describe a glossary in detail
 * [iai glossaries diff](iai_glossaries_diff.md)	 - Compare two versions of a glossary
+* [iai glossaries get](iai_glossaries_get.md)	 - Describe a glossary in detail
 * [iai glossaries list](iai_glossaries_list.md)	 - List glossaries in a project
 * [iai glossaries schema](iai_glossaries_schema.md)	 - Display the JSON Schema for glossaries
 * [iai glossaries update](iai_glossaries_update.md)	 - Update a glossary (creates a new version)

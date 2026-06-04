@@ -21,6 +21,7 @@ iai queue-items update <item-id> [flags]
   -p, --project string        Project name
       --queue-id string       Queue ID (required)
       --status string         New status (required)
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
