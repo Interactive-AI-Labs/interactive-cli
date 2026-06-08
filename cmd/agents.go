@@ -37,6 +37,11 @@ var (
 	agentClearStackId  bool
 
 	agentStackId string
+
+	agentListJSON     bool
+	agentListYAML     bool
+	agentDescribeJSON bool
+	agentDescribeYAML bool
 )
 
 var (
@@ -232,6 +237,13 @@ Examples:
 			return err
 		}
 
+		if agentListJSON {
+			return output.PrintStructuredJSON(out, agents)
+		}
+		if agentListYAML {
+			return output.PrintStructuredYAML(out, agents)
+		}
+
 		return output.PrintAgentList(out, agents)
 	},
 }
@@ -270,6 +282,12 @@ Examples:
 			if err != nil {
 				return err
 			}
+			if agentDescribeJSON {
+				return output.PrintStructuredJSON(out, rev)
+			}
+			if agentDescribeYAML {
+				return output.PrintStructuredYAML(out, rev)
+			}
 			return output.PrintAgentRevision(out, rev)
 		}
 
@@ -281,6 +299,13 @@ Examples:
 		)
 		if err != nil {
 			return err
+		}
+
+		if agentDescribeJSON {
+			return output.PrintStructuredJSON(out, agent)
+		}
+		if agentDescribeYAML {
+			return output.PrintStructuredYAML(out, agent)
 		}
 
 		return output.PrintAgentDescribe(out, agent)
@@ -832,6 +857,9 @@ func init() {
 		StringVarP(&agentProject, "project", "p", "", "Project name")
 	agentListCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+	agentListCmd.Flags().BoolVar(&agentListJSON, "json", false, "Output raw API response as JSON")
+	agentListCmd.Flags().BoolVar(&agentListYAML, "yaml", false, "Output raw API response as YAML")
+	agentListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Flags for "agents describe"
 	agentDescribeCmd.Flags().
@@ -840,6 +868,11 @@ func init() {
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 	agentDescribeCmd.Flags().
 		IntVar(&agentDescribeRevision, "revision", 0, "Show a specific past revision instead of the current state")
+	agentDescribeCmd.Flags().
+		BoolVar(&agentDescribeJSON, "json", false, "Output raw API response as JSON")
+	agentDescribeCmd.Flags().
+		BoolVar(&agentDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	agentDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Flags for "agents delete"
 	agentDeleteCmd.Flags().

@@ -14,8 +14,10 @@ iai secrets get <secret_name> [flags]
 
 ```
   -h, --help                  help for get
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the secrets
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

@@ -14,8 +14,10 @@ iai images list [flags]
 
 ```
   -h, --help                  help for list
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name to list images for
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

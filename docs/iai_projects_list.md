@@ -14,7 +14,9 @@ iai projects list [flags]
 
 ```
   -h, --help                  help for list
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the projects
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

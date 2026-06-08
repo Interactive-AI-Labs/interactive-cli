@@ -14,8 +14,10 @@ iai databases list [flags]
 
 ```
   -h, --help                  help for list
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

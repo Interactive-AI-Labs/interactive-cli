@@ -20,6 +20,10 @@ var (
 	secretEnvFile       string
 	secretReplaceFlag   bool
 	secretRemoveKeys    []string
+	secretsListJSON     bool
+	secretsListYAML     bool
+	secretsGetJSON      bool
+	secretsGetYAML      bool
 )
 
 var secretsCmd = &cobra.Command{
@@ -51,6 +55,13 @@ var secretsListCmd = &cobra.Command{
 		secrets, err := deployClient.ListSecrets(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
+		}
+
+		if secretsListJSON {
+			return output.PrintStructuredJSON(out, secrets)
+		}
+		if secretsListYAML {
+			return output.PrintStructuredYAML(out, secrets)
 		}
 
 		return output.PrintSecretList(out, secrets)
@@ -341,6 +352,13 @@ var secretsGetCmd = &cobra.Command{
 			return fmt.Errorf("failed to get secret %q: %w", secretName, err)
 		}
 
+		if secretsGetJSON {
+			return output.PrintStructuredJSON(out, secret)
+		}
+		if secretsGetYAML {
+			return output.PrintStructuredYAML(out, secret)
+		}
+
 		return output.PrintSecretData(out, secret.Data)
 	},
 }
@@ -403,6 +421,11 @@ func init() {
 		StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsListCmd.Flags().
 		StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsListCmd.Flags().
+		BoolVar(&secretsListJSON, "json", false, "Output raw API response as JSON")
+	secretsListCmd.Flags().
+		BoolVar(&secretsListYAML, "yaml", false, "Output raw API response as YAML")
+	secretsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// secrets create
 	secretsCreateCmd.Flags().
@@ -444,6 +467,9 @@ func init() {
 		StringVarP(&secretsProject, "project", "p", "", "Project name that owns the secrets")
 	secretsGetCmd.Flags().
 		StringVarP(&secretsOrganization, "organization", "o", "", "Organization name that owns the project")
+	secretsGetCmd.Flags().BoolVar(&secretsGetJSON, "json", false, "Output raw API response as JSON")
+	secretsGetCmd.Flags().BoolVar(&secretsGetYAML, "yaml", false, "Output raw API response as YAML")
+	secretsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Wire up the command hierarchy
 	secretsCmd.AddCommand(

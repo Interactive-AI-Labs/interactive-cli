@@ -18,6 +18,10 @@ import (
 var (
 	replicasProject      string
 	replicasOrganization string
+	replicasListJSON     bool
+	replicasListYAML     bool
+	replicasDescribeJSON bool
+	replicasDescribeYAML bool
 )
 
 var replicasCmd = &cobra.Command{
@@ -61,6 +65,13 @@ var replicasListCmd = &cobra.Command{
 			return err
 		}
 
+		if replicasListJSON {
+			return output.PrintStructuredJSON(out, replicas)
+		}
+		if replicasListYAML {
+			return output.PrintStructuredYAML(out, replicas)
+		}
+
 		return output.PrintReplicaList(out, replicas)
 	},
 }
@@ -97,6 +108,13 @@ var replicasDescribeCmd = &cobra.Command{
 		)
 		if err != nil {
 			return err
+		}
+
+		if replicasDescribeJSON {
+			return output.PrintStructuredJSON(out, status)
+		}
+		if replicasDescribeYAML {
+			return output.PrintStructuredYAML(out, status)
 		}
 
 		return output.PrintReplicaDescribe(out, status)
@@ -288,12 +306,22 @@ func init() {
 		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
 	replicasListCmd.Flags().
 		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+	replicasListCmd.Flags().
+		BoolVar(&replicasListJSON, "json", false, "Output raw API response as JSON")
+	replicasListCmd.Flags().
+		BoolVar(&replicasListYAML, "yaml", false, "Output raw API response as YAML")
+	replicasListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Flags for "replicas describe"
 	replicasDescribeCmd.Flags().
 		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
 	replicasDescribeCmd.Flags().
 		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
+	replicasDescribeCmd.Flags().
+		BoolVar(&replicasDescribeJSON, "json", false, "Output raw API response as JSON")
+	replicasDescribeCmd.Flags().
+		BoolVar(&replicasDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	replicasDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Flags for "replicas logs"
 	replicasLogsCmd.Flags().
