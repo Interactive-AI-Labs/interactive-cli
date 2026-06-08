@@ -222,7 +222,8 @@ var agentListCmd = &cobra.Command{
 
 Examples:
   iai agents list
-  iai agents list -p my-project`,
+  iai agents list -p my-project
+  iai agents list --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -260,7 +261,8 @@ Use --version to view a specific past version instead of the current state.
 
 Examples:
   iai agents describe my-agent
-  iai agents describe my-agent --version 3`,
+  iai agents describe my-agent --version 3
+  iai agents describe my-agent --yaml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

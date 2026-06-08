@@ -32,7 +32,7 @@ var organizationsListCmd = &cobra.Command{
 
 		if apiKey != "" {
 			fmt.Fprintln(
-				out,
+				cmd.ErrOrStderr(),
 				"Warning: API key authentication is ignored for organizations commands; using session cookies instead.",
 			)
 		}

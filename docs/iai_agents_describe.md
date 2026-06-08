@@ -11,6 +11,7 @@ Use --version to view a specific past version instead of the current state.
 Examples:
   iai agents describe my-agent
   iai agents describe my-agent --version 3
+  iai agents describe my-agent --yaml
 
 ```
 iai agents describe <agent_name> [flags]

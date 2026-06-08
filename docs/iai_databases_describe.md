@@ -9,6 +9,7 @@ status, and connection credentials.
 
 Examples:
   iai databases describe my-db
+  iai databases describe my-db --json
 
 ```
 iai databases describe <database_name> [flags]

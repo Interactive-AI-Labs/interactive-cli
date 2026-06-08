@@ -9,6 +9,7 @@ List agents in a specific project.
 Examples:
   iai agents list
   iai agents list -p my-project
+  iai agents list --json
 
 ```
 iai agents list [flags]

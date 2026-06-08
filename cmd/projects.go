@@ -35,7 +35,7 @@ var projectsListCmd = &cobra.Command{
 
 		if apiKey != "" {
 			fmt.Fprintln(
-				out,
+				cmd.ErrOrStderr(),
 				"Warning: API key authentication is ignored for projects commands; using session cookies instead.",
 			)
 		}

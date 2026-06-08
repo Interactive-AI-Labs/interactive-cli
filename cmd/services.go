@@ -295,7 +295,8 @@ Use --version to view a specific past version instead of the current state.
 
 Examples:
   iai services describe my-service
-  iai services describe my-service --version 3`,
+  iai services describe my-service --version 3
+  iai services describe my-service --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

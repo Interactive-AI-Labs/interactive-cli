@@ -102,7 +102,8 @@ var dbDescribeCmd = &cobra.Command{
 status, and connection credentials.
 
 Examples:
-  iai databases describe my-db`,
+  iai databases describe my-db
+  iai databases describe my-db --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
