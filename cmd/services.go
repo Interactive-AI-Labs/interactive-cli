@@ -40,6 +40,11 @@ var (
 
 	serviceHealthcheckPath         string
 	serviceHealthcheckInitialDelay int
+
+	serviceListJSON     bool
+	serviceListYAML     bool
+	serviceDescribeJSON bool
+	serviceDescribeYAML bool
 )
 
 var (
@@ -267,6 +272,13 @@ var servListCmd = &cobra.Command{
 			return err
 		}
 
+		if serviceListJSON {
+			return output.PrintStructuredJSON(out, services)
+		}
+		if serviceListYAML {
+			return output.PrintStructuredYAML(out, services)
+		}
+
 		return output.PrintServiceList(out, services)
 	},
 }
@@ -283,7 +295,8 @@ Use --version to view a specific past version instead of the current state.
 
 Examples:
   iai services describe my-service
-  iai services describe my-service --version 3`,
+  iai services describe my-service --version 3
+  iai services describe my-service --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -309,6 +322,12 @@ Examples:
 			if err != nil {
 				return err
 			}
+			if serviceDescribeJSON {
+				return output.PrintStructuredJSON(out, rev)
+			}
+			if serviceDescribeYAML {
+				return output.PrintStructuredYAML(out, rev)
+			}
 			return output.PrintServiceRevision(out, rev)
 		}
 
@@ -320,6 +339,13 @@ Examples:
 		)
 		if err != nil {
 			return err
+		}
+
+		if serviceDescribeJSON {
+			return output.PrintStructuredJSON(out, service)
+		}
+		if serviceDescribeYAML {
+			return output.PrintStructuredYAML(out, service)
 		}
 
 		return output.PrintServiceDescribe(out, service)
@@ -911,6 +937,9 @@ func init() {
 		StringVarP(&serviceProject, "project", "p", "", "Project name to list services from")
 	servListCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+	servListCmd.Flags().BoolVar(&serviceListJSON, "json", false, "Output raw API response as JSON")
+	servListCmd.Flags().BoolVar(&serviceListYAML, "yaml", false, "Output raw API response as YAML")
+	servListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Flags for "services describe"
 	servDescribeCmd.Flags().
@@ -919,6 +948,11 @@ func init() {
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
 	servDescribeCmd.Flags().
 		IntVar(&serviceDescribeRevision, "revision", 0, "Show a specific past revision instead of the current state")
+	servDescribeCmd.Flags().
+		BoolVar(&serviceDescribeJSON, "json", false, "Output raw API response as JSON")
+	servDescribeCmd.Flags().
+		BoolVar(&serviceDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	servDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// Flags for "services delete"
 	servDCmd.Flags().

@@ -9,6 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	organizationsListJSON bool
+	organizationsListYAML bool
+)
+
 var organizationsCmd = &cobra.Command{
 	Use:     "organizations",
 	Aliases: []string{"organization", "org", "o"},
@@ -27,7 +32,7 @@ var organizationsListCmd = &cobra.Command{
 
 		if apiKey != "" {
 			fmt.Fprintln(
-				out,
+				cmd.ErrOrStderr(),
 				"Warning: API key authentication is ignored for organizations commands; using session cookies instead.",
 			)
 		}
@@ -50,6 +55,13 @@ var organizationsListCmd = &cobra.Command{
 		selectedOrg, err := files.GetSelectedOrg(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		if organizationsListJSON {
+			return output.PrintStructuredJSON(out, orgs)
+		}
+		if organizationsListYAML {
+			return output.PrintStructuredYAML(out, orgs)
 		}
 
 		return output.PrintOrganizationList(out, orgs, selectedOrg)
@@ -98,6 +110,11 @@ var organizationsSelectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(organizationsCmd)
+	organizationsListCmd.Flags().
+		BoolVar(&organizationsListJSON, "json", false, "Output raw API response as JSON")
+	organizationsListCmd.Flags().
+		BoolVar(&organizationsListYAML, "yaml", false, "Output raw API response as YAML")
+	organizationsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	organizationsCmd.AddCommand(organizationsListCmd)
 	organizationsCmd.AddCommand(organizationsSelectCmd)
 }

@@ -10,7 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var projectsOrganization string
+var (
+	projectsOrganization string
+	projectsListJSON     bool
+	projectsListYAML     bool
+)
 
 var projectsCmd = &cobra.Command{
 	Use:     "projects",
@@ -31,7 +35,7 @@ var projectsListCmd = &cobra.Command{
 
 		if apiKey != "" {
 			fmt.Fprintln(
-				out,
+				cmd.ErrOrStderr(),
 				"Warning: API key authentication is ignored for projects commands; using session cookies instead.",
 			)
 		}
@@ -65,6 +69,13 @@ var projectsListCmd = &cobra.Command{
 		selectedProject, err := files.GetSelectedProject(cfgDirName)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		if projectsListJSON {
+			return output.PrintStructuredJSON(out, projects)
+		}
+		if projectsListYAML {
+			return output.PrintStructuredYAML(out, projects)
 		}
 
 		return output.PrintProjectList(out, projects, selectedProject)
@@ -127,6 +138,11 @@ func init() {
 
 	projectsListCmd.Flags().
 		StringVarP(&projectsOrganization, "organization", "o", "", "Organization name that owns the projects")
+	projectsListCmd.Flags().
+		BoolVar(&projectsListJSON, "json", false, "Output raw API response as JSON")
+	projectsListCmd.Flags().
+		BoolVar(&projectsListYAML, "yaml", false, "Output raw API response as YAML")
+	projectsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	projectsSelectCmd.Flags().
 		StringVarP(&projectsOrganization, "organization", "o", "", "Organization name that owns the project")
 

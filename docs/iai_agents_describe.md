@@ -11,6 +11,7 @@ Use --version to view a specific past version instead of the current state.
 Examples:
   iai agents describe my-agent
   iai agents describe my-agent --version 3
+  iai agents describe my-agent --yaml
 
 ```
 iai agents describe <agent_name> [flags]
@@ -20,9 +21,11 @@ iai agents describe <agent_name> [flags]
 
 ```
   -h, --help                  help for describe
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
       --revision int          Show a specific past revision instead of the current state
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

@@ -17,6 +17,10 @@ import (
 var (
 	dbProject      string
 	dbOrganization string
+	dbListJSON     bool
+	dbListYAML     bool
+	dbDescribeJSON bool
+	dbDescribeYAML bool
 
 	dbInstances       int
 	dbPostgresVersion string
@@ -79,6 +83,13 @@ var dbListCmd = &cobra.Command{
 			return err
 		}
 
+		if dbListJSON {
+			return output.PrintStructuredJSON(out, databases)
+		}
+		if dbListYAML {
+			return output.PrintStructuredYAML(out, databases)
+		}
+
 		return output.PrintDatabaseList(out, databases)
 	},
 }
@@ -91,7 +102,8 @@ var dbDescribeCmd = &cobra.Command{
 status, and connection credentials.
 
 Examples:
-  iai databases describe my-db`,
+  iai databases describe my-db
+  iai databases describe my-db --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -110,6 +122,13 @@ Examples:
 		)
 		if err != nil {
 			return err
+		}
+
+		if dbDescribeJSON {
+			return output.PrintStructuredJSON(out, db)
+		}
+		if dbDescribeYAML {
+			return output.PrintStructuredYAML(out, db)
 		}
 
 		return output.PrintDatabaseDescribe(out, db)
@@ -609,12 +628,18 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbListCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+	dbListCmd.Flags().BoolVar(&dbListJSON, "json", false, "Output raw API response as JSON")
+	dbListCmd.Flags().BoolVar(&dbListYAML, "yaml", false, "Output raw API response as YAML")
+	dbListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// databases describe
 	dbDescribeCmd.Flags().
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbDescribeCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+	dbDescribeCmd.Flags().BoolVar(&dbDescribeJSON, "json", false, "Output raw API response as JSON")
+	dbDescribeCmd.Flags().BoolVar(&dbDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	dbDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	// databases create
 	dbCreateCmd.Flags().

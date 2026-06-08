@@ -9,6 +9,7 @@ status, and connection credentials.
 
 Examples:
   iai databases describe my-db
+  iai databases describe my-db --json
 
 ```
 iai databases describe <database_name> [flags]
@@ -18,8 +19,10 @@ iai databases describe <database_name> [flags]
 
 ```
   -h, --help                  help for describe
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

@@ -26,6 +26,8 @@ var (
 	imagePushTag       string
 	imageOrganization  string
 	imageProject       string
+	imageListJSON      bool
+	imageListYAML      bool
 )
 
 var imageCmd = &cobra.Command{
@@ -53,6 +55,13 @@ var imageListCmd = &cobra.Command{
 		images, err := deployClient.ListImages(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
+		}
+
+		if imageListJSON {
+			return output.PrintStructuredJSON(out, images)
+		}
+		if imageListYAML {
+			return output.PrintStructuredYAML(out, images)
 		}
 
 		return output.PrintImageList(out, images)
@@ -300,6 +309,9 @@ func init() {
 		StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
 	imageListCmd.Flags().
 		StringVarP(&imageProject, "project", "p", "", "Project name to list images for")
+	imageListCmd.Flags().BoolVar(&imageListJSON, "json", false, "Output raw API response as JSON")
+	imageListCmd.Flags().BoolVar(&imageListYAML, "yaml", false, "Output raw API response as YAML")
+	imageListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	imagePushCmd.Flags().
 		StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
