@@ -607,7 +607,7 @@ func addDatabaseResourceFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		IntVar(&dbInstances, "instances", 0, "Number of PostgreSQL instances (minimum 1); values above 1 enable high availability")
 	cmd.Flags().
-		StringVar(&dbPostgresVersion, "postgres-version", "", "PostgreSQL major or major.minor version (e.g. 17, 16.4); supported range 15–17; defaults to latest if omitted")
+		StringVar(&dbPostgresVersion, "postgres-version", "", "PostgreSQL major or major.minor version (e.g. 18, 17.6); supported range 15–18; defaults to latest if omitted")
 	cmd.Flags().
 		StringVar(&dbCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m); max 7 vCPU (7000m)")
 	cmd.Flags().

@@ -39,7 +39,7 @@ iai databases update <database_name> [flags]
       --instances int             Number of PostgreSQL instances (minimum 1); values above 1 enable high availability
       --memory string             Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G); max 15G
   -o, --organization string       Organization name
-      --postgres-version string   PostgreSQL major or major.minor version (e.g. 17, 16.4); supported range 15–17; defaults to latest if omitted
+      --postgres-version string   PostgreSQL major or major.minor version (e.g. 18, 17.6); supported range 15–18; defaults to latest if omitted
   -p, --project string            Project name
       --stack-id string           Stack ID to assign the database to
       --storage-size string       Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased
