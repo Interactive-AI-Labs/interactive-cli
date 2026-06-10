@@ -160,7 +160,7 @@ func init() {
 	sessionsListCmd.Flags().
 		StringVar(&sessionsToTimestamp, "to-timestamp", "", "Filter sessions to this timestamp (ISO 8601)")
 	sessionsListCmd.Flags().IntVar(&sessionsPage, "page", 1, "Page number (starts at 1)")
-	sessionsListCmd.Flags().IntVar(&sessionsLimit, "limit", 0, "Items per page")
+	sessionsListCmd.Flags().IntVar(&sessionsLimit, "limit", 0, "Items per page (max 100)")
 	sessionsListCmd.Flags().
 		StringVar(&sessionsEnvironment, "environment", "", "Filter by environment")
 	sessionsListCmd.Flags().

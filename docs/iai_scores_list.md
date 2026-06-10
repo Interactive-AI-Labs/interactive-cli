@@ -26,7 +26,7 @@ iai scores list [flags]
       --from-timestamp string   Filter scores from this timestamp (ISO 8601, default: 7 days ago)
   -h, --help                    help for list
       --json                    Output raw API response as JSON
-      --limit int               Items per page
+      --limit int               Items per page (max 100)
       --max-value float         Maximum score value
       --min-value float         Minimum score value
       --name string             Filter by score name

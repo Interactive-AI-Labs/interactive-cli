@@ -40,7 +40,7 @@ iai traces list [flags]
   -h, --help                      help for list
       --json                      Output raw API response as JSON
       --level string              Filter by aggregated level: DEBUG, DEFAULT, WARNING, ERROR
-      --limit int                 Items per page
+      --limit int                 Items per page (max 100)
       --max-cost float            Maximum total cost filter
       --max-latency float         Maximum latency filter (seconds)
       --max-tokens int            Maximum total tokens filter

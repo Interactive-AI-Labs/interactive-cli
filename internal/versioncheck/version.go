@@ -15,6 +15,9 @@ import (
 const (
 	goProxyURL   = "https://proxy.golang.org/github.com/!interactive-!a!i-!labs/interactive-cli/@latest"
 	fetchTimeout = 10 * time.Second
+
+	checkInterval  = 24 * time.Hour // how often to query the module proxy
+	notifyInterval = 24 * time.Hour // how often to show the upgrade nudge
 )
 
 type proxyInfo struct {
@@ -50,21 +53,45 @@ func FetchLatestVersion(timeout time.Duration) (string, error) {
 	return strings.TrimPrefix(info.Version, "v"), nil
 }
 
-// GetLatestVersion returns the latest version, using a local cache to avoid
-// hitting the network on every invocation. cfgDirName is the dotfile directory
-// name (e.g. ".interactiveai").
-func GetLatestVersion(cfgDirName string) (string, error) {
-	if v, ok := files.ReadVersionCache(cfgDirName); ok {
-		return v, nil
+// RefreshCache fetches the latest version into the on-disk cache, skipping
+// the network while the cached value is younger than checkInterval. Errors
+// are dropped — an interrupted background fetch is retried on a later run.
+func RefreshCache(cfgDirName string) {
+	c, ok := files.ReadVersionCache(cfgDirName)
+	if ok && time.Since(time.Unix(c.CheckedAt, 0)) < checkInterval {
+		return
 	}
 
 	v, err := FetchLatestVersion(0)
 	if err != nil {
-		return "", err
+		return
 	}
 
-	files.WriteVersionCache(cfgDirName, v)
-	return v, nil
+	// Re-read after the slow fetch so a NotifiedAt stamped by a concurrent
+	// process is not clobbered by this write.
+	if fresh, ok := files.ReadVersionCache(cfgDirName); ok {
+		c = fresh
+	}
+	c.LatestVersion = v
+	c.CheckedAt = time.Now().Unix()
+	files.WriteVersionCache(cfgDirName, c)
+}
+
+// PendingNotification reports whether to tell the user a newer release
+// exists, based only on the on-disk cache (no network access). It returns
+// true at most once per notifyInterval, stamping the cache when it does.
+func PendingNotification(cfgDirName, current string) (string, bool) {
+	c, ok := files.ReadVersionCache(cfgDirName)
+	if !ok || !IsNewer(current, c.LatestVersion) {
+		return "", false
+	}
+	if time.Since(time.Unix(c.NotifiedAt, 0)) < notifyInterval {
+		return "", false
+	}
+
+	c.NotifiedAt = time.Now().Unix()
+	files.WriteVersionCache(cfgDirName, c)
+	return c.LatestVersion, true
 }
 
 // IsNewer returns true if latest is a higher semver than current.

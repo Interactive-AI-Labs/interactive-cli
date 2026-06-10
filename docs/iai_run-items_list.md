@@ -17,7 +17,7 @@ iai run-items list [flags]
       --dataset-name string   Filter by dataset name
   -h, --help                  help for list
       --json                  Output raw API response as JSON
-      --limit int             Items per page
+      --limit int             Items per page (max 100)
   -o, --organization string   Organization name that owns the project
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
