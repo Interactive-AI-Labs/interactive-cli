@@ -48,6 +48,8 @@ Use the subcommands below to manage your organizations, projects, agents, servic
 				deploymentHostname = "https://" + deploymentHostname
 			}
 
+			// RefreshCache is intentionally gated too: no point keeping the
+			// cache warm when the notice can't be shown anyway.
 			if cmd.Name() != "update" && updateNoticeAllowed() {
 				notifyUpdate()
 				go versioncheck.RefreshCache(cfgDirName)
