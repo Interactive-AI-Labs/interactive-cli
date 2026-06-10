@@ -67,6 +67,11 @@ func RefreshCache(cfgDirName string) {
 		return
 	}
 
+	// Re-read after the slow fetch so a NotifiedAt stamped by a concurrent
+	// process is not clobbered by this write.
+	if fresh, ok := files.ReadVersionCache(cfgDirName); ok {
+		c = fresh
+	}
 	c.LatestVersion = v
 	c.CheckedAt = time.Now().Unix()
 	files.WriteVersionCache(cfgDirName, c)
