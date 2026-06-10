@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"time"
 )
 
-const (
-	versionCacheFile = "latest_version"
-	versionCacheTTL  = 24 * time.Hour
-)
+const versionCacheFile = "latest_version"
 
-type versionCache struct {
+// VersionCache is the persisted state of the background update check.
+// CheckedAt is when LatestVersion was last fetched from the module proxy;
+// NotifiedAt is when the user was last shown the upgrade nudge.
+type VersionCache struct {
 	LatestVersion string `json:"latest_version"`
 	CheckedAt     int64  `json:"checked_at"`
+	NotifiedAt    int64  `json:"notified_at,omitempty"`
 }
 
 func versionCachePath(cfgDirName string) string {
@@ -25,36 +25,29 @@ func versionCachePath(cfgDirName string) string {
 	return filepath.Join(home, cfgDirName, versionCacheFile)
 }
 
-func ReadVersionCache(cfgDirName string) (string, bool) {
+func ReadVersionCache(cfgDirName string) (VersionCache, bool) {
 	path := versionCachePath(cfgDirName)
 	if path == "" {
-		return "", false
+		return VersionCache{}, false
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", false
+		return VersionCache{}, false
 	}
-	var c versionCache
+	var c VersionCache
 	if err := json.Unmarshal(data, &c); err != nil {
-		return "", false
+		return VersionCache{}, false
 	}
-	if time.Since(time.Unix(c.CheckedAt, 0)) > versionCacheTTL {
-		return "", false
-	}
-	return c.LatestVersion, true
+	return c, true
 }
 
-func WriteVersionCache(cfgDirName, version string) {
+func WriteVersionCache(cfgDirName string, c VersionCache) {
 	path := versionCachePath(cfgDirName)
 	if path == "" {
 		return
 	}
 
-	c := versionCache{
-		LatestVersion: version,
-		CheckedAt:     time.Now().Unix(),
-	}
 	data, err := json.Marshal(c)
 	if err != nil {
 		return

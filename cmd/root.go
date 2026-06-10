@@ -8,6 +8,7 @@ import (
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/versioncheck"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 const (
@@ -47,24 +48,34 @@ Use the subcommands below to manage your organizations, projects, agents, servic
 				deploymentHostname = "https://" + deploymentHostname
 			}
 
-			if cmd.Name() != "update" {
-				go checkForUpdate()
+			if cmd.Name() != "update" && updateNoticeAllowed() {
+				notifyUpdate()
+				go versioncheck.RefreshCache(cfgDirName)
 			}
 		},
 	}
 )
 
-func checkForUpdate() {
-	latest, err := versioncheck.GetLatestVersion(cfgDirName)
-	if err != nil {
+// updateNoticeAllowed reports whether the upgrade nudge may be shown: never
+// in CI, in scripts (stderr not a terminal), or when the user opted out.
+func updateNoticeAllowed() bool {
+	if os.Getenv("CI") != "" || os.Getenv("INTERACTIVE_NO_UPDATE_NOTIFIER") != "" {
+		return false
+	}
+	return term.IsTerminal(int(os.Stderr.Fd()))
+}
+
+// notifyUpdate queues the upgrade nudge from the on-disk version cache, so a
+// new release is announced one run after RefreshCache first stores it.
+func notifyUpdate() {
+	latest, ok := versioncheck.PendingNotification(cfgDirName, version)
+	if !ok {
 		return
 	}
-	if versioncheck.IsNewer(version, latest) {
-		updateMessage <- fmt.Sprintf(
-			"\nA new version of iai is available: v%s → v%s\nRun \"iai update\" to upgrade.",
-			version, latest,
-		)
-	}
+	updateMessage <- fmt.Sprintf(
+		"\nA new version of iai is available: v%s → v%s\nRun \"iai update\" to upgrade.",
+		version, latest,
+	)
 }
 
 // chainRootPersistentPreRun calls the root command's PersistentPreRun manually.

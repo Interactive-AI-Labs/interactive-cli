@@ -1,11 +1,9 @@
 package files
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
 func TestVersionCacheReadWrite(t *testing.T) {
@@ -14,29 +12,22 @@ func TestVersionCacheReadWrite(t *testing.T) {
 	t.Setenv("HOME", filepath.Dir(dir))
 
 	// No cache yet
-	v, ok := ReadVersionCache(cfgDirName)
-	if ok {
-		t.Fatalf("expected cache miss, got %q", v)
+	if c, ok := ReadVersionCache(cfgDirName); ok {
+		t.Fatalf("expected cache miss, got %+v", c)
 	}
 
 	// Write and read back
-	WriteVersionCache(cfgDirName, "0.29.0")
-	v, ok = ReadVersionCache(cfgDirName)
-	if !ok || v != "0.29.0" {
-		t.Fatalf("ReadVersionCache() = (%q, %v), want (\"0.29.0\", true)", v, ok)
+	in := VersionCache{LatestVersion: "0.29.0", CheckedAt: 1700000000, NotifiedAt: 1700000100}
+	WriteVersionCache(cfgDirName, in)
+	out, ok := ReadVersionCache(cfgDirName)
+	if !ok || out != in {
+		t.Fatalf("ReadVersionCache() = (%+v, %v), want (%+v, true)", out, ok, in)
 	}
 
-	// Expired cache
+	// Corrupt cache
 	path := filepath.Join(dir, versionCacheFile)
-	expired := versionCache{
-		LatestVersion: "0.29.0",
-		CheckedAt:     time.Now().Add(-25 * time.Hour).Unix(),
-	}
-	data, _ := json.Marshal(expired)
-	_ = os.WriteFile(path, data, 0o644)
-
-	_, ok = ReadVersionCache(cfgDirName)
-	if ok {
-		t.Fatal("expected cache miss on expired entry")
+	_ = os.WriteFile(path, []byte("{"), 0o644)
+	if _, ok := ReadVersionCache(cfgDirName); ok {
+		t.Fatal("expected cache miss on corrupt entry")
 	}
 }
