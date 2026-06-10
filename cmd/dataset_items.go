@@ -262,7 +262,8 @@ func init() {
 		)
 	datasetItemsListCmd.Flags().
 		IntVar(&datasetItemsListPage, "page", 1, "Page number (starts at 1)")
-	datasetItemsListCmd.Flags().IntVar(&datasetItemsListLimit, "limit", 0, "Items per page")
+	datasetItemsListCmd.Flags().
+		IntVar(&datasetItemsListLimit, "limit", 0, "Items per page (max 100)")
 	datasetItemsListCmd.Flags().
 		StringSliceVar(&datasetItemsListColumns, "columns", nil, "Columns to display (comma-separated)")
 	datasetItemsListCmd.Flags().

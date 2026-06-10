@@ -131,7 +131,7 @@ func init() {
 	metricsListCmd.Flags().
 		StringVar(&metricsListToTimestamp, "to-timestamp", "", "Filter metrics to this timestamp (ISO 8601)")
 	metricsListCmd.Flags().IntVar(&metricsListPage, "page", 1, "Page number (starts at 1)")
-	metricsListCmd.Flags().IntVar(&metricsListLimit, "limit", 0, "Items per page")
+	metricsListCmd.Flags().IntVar(&metricsListLimit, "limit", 0, "Items per page (max 365)")
 	metricsListCmd.Flags().
 		StringVar(&metricsListTraceName, "trace-name", "", "Filter by trace name")
 	metricsListCmd.Flags().StringVar(&metricsListUserID, "user-id", "", "Filter by user ID")

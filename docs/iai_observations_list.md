@@ -40,7 +40,7 @@ iai observations list [flags]
       --include-io                     Include input/output/metadata in response (only with --trace-id)
       --json                           Output raw API response as JSON
       --level string                   Filter by level
-      --limit int                      Items per page
+      --limit int                      Items per page (max 100)
       --model string                   Filter by model
       --name string                    Filter by observation name
   -o, --organization string            Organization name that owns the project

@@ -249,7 +249,7 @@ func init() {
 	obsListCmd.Flags().
 		StringVar(&obsListToTimestamp, "to-timestamp", "", "Filter observations to this timestamp (ISO 8601)")
 	obsListCmd.Flags().StringVar(&obsListCursor, "cursor", "", "Cursor for pagination")
-	obsListCmd.Flags().IntVar(&obsListLimit, "limit", 0, "Items per page")
+	obsListCmd.Flags().IntVar(&obsListLimit, "limit", 0, "Items per page (max 100)")
 	obsListCmd.Flags().
 		StringVar(&obsListFields, "fields", "", "Field groups to include (comma-separated)")
 	obsListCmd.Flags().StringVar(&obsListType, "type", "", "Filter by observation type")
