@@ -164,7 +164,7 @@ func init() {
 	sessionsListCmd.Flags().
 		StringVar(&sessionsEnvironment, "environment", "", "Filter by environment")
 	sessionsListCmd.Flags().
-		StringSliceVar(&sessionsColumns, "columns", nil, "Columns to display (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens)\nAvailable: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens")
+		StringSliceVar(&sessionsColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.\nAvailable: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens")
 	sessionsListCmd.Flags().
 		BoolVar(&sessionsListJSON, "json", false, "Output raw API response as JSON")
 	sessionsListCmd.Flags().

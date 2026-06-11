@@ -31,7 +31,7 @@ iai traces list [flags]
 ### Options
 
 ```
-      --columns strings           Columns to display (comma-separated, default: id,name,timestamp,latency,cost,tags)
+      --columns strings           Columns to display for table output only (comma-separated, default: id,name,timestamp,latency,cost,tags). Cannot be used with --json or --yaml.
                                   Available: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level
       --environment stringArray   Filter by environment (repeatable)
       --fields string             Field groups to include: core, io, metrics (comma-separated) (default "core,metrics")

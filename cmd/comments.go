@@ -208,7 +208,7 @@ func init() {
 	commentsListCmd.Flags().IntVar(&commentsListPage, "page", 1, "Page number (starts at 1)")
 	commentsListCmd.Flags().IntVar(&commentsListLimit, "limit", 0, "Items per page (max 100)")
 	commentsListCmd.Flags().
-		StringSliceVar(&commentsListColumns, "columns", nil, "Columns to display (comma-separated)")
+		StringSliceVar(&commentsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	commentsListCmd.Flags().
 		BoolVar(&commentsListJSON, "json", false, "Output raw API response as JSON")
 	commentsListCmd.Flags().

@@ -274,7 +274,7 @@ func init() {
 	scoresListCmd.Flags().StringVar(&scoresValue, "value", "", "Exact value filter")
 	scoresListCmd.Flags().StringVar(&scoresOperator, "operator", "", "Operator for --value")
 	scoresListCmd.Flags().
-		StringSliceVar(&scoresColumns, "columns", nil, "Columns to display (comma-separated, default: id,name,data_type,value,source,timestamp,trace_id)\nAvailable: id,name,data_type,value,source,timestamp,trace_id,observation_id,session_id,environment,config_id,user_id,comment")
+		StringSliceVar(&scoresColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,name,data_type,value,source,timestamp,trace_id). Cannot be used with --json or --yaml.\nAvailable: id,name,data_type,value,source,timestamp,trace_id,observation_id,session_id,environment,config_id,user_id,comment")
 	scoresListCmd.Flags().
 		BoolVar(&scoresListJSON, "json", false, "Output raw API response as JSON")
 	scoresListCmd.Flags().

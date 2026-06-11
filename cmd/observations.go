@@ -233,7 +233,7 @@ func init() {
 	obsListCmd.Flags().BoolVar(&obsListYAML, "yaml", false, "Output raw API response as YAML")
 	obsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	obsListCmd.Flags().
-		StringSliceVar(&obsColumns, "columns", nil, "Columns to display (comma-separated)\nWith --trace-id default: id,type,name,model,latency_ms,total_cost,total_tokens\nWithout --trace-id default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens")
+		StringSliceVar(&obsColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml\nWith --trace-id default: id,type,name,model,latency_ms,total_cost,total_tokens\nWithout --trace-id default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens")
 	obsListCmd.Flags().
 		StringVarP(&obsListOrg, "organization", "o", "", "Organization name that owns the project")
 	obsListCmd.Flags().
