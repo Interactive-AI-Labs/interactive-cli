@@ -23,7 +23,7 @@ iai metrics list [flags]
 ### Options
 
 ```
-      --columns strings         Columns to display (comma-separated, default: date,count_traces,count_observations,total_cost)
+      --columns strings         Columns to display for table output only (comma-separated, default: date,count_traces,count_observations,total_cost). Cannot be used with --json or --yaml.
                                 Available: date,count_traces,count_observations,total_cost,total_tokens
       --daily                   Aggregate metrics by day (default true)
       --environment string      Filter by environment

@@ -16,7 +16,7 @@ iai sessions list [flags]
 ### Options
 
 ```
-      --columns strings         Columns to display (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens)
+      --columns strings         Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.
                                 Available: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens
       --environment string      Filter by environment
       --from-timestamp string   Filter sessions from this timestamp (ISO 8601, default: 7 days ago)

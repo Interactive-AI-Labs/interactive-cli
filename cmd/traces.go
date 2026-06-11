@@ -342,7 +342,7 @@ func init() {
 	// StringSliceVar (not StringArrayVar) so users can pass --columns id,name,cost as a comma-separated list.
 	// --tags and --environment use StringArrayVar to avoid splitting values that may contain commas.
 	tracesListCmd.Flags().
-		StringSliceVar(&tracesColumns, "columns", nil, "Columns to display (comma-separated, default: id,name,timestamp,latency,cost,tags)\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level")
+		StringSliceVar(&tracesColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,name,timestamp,latency,cost,tags). Cannot be used with --json or --yaml.\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level")
 
 	// Org/project flags
 	tracesListCmd.Flags().

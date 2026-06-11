@@ -29,7 +29,7 @@ iai observations list [flags]
 ### Options
 
 ```
-      --columns strings                Columns to display (comma-separated)
+      --columns strings                Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
                                        With --trace-id default: id,type,name,model,latency_ms,total_cost,total_tokens
                                        Without --trace-id default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens
       --cursor string                  Cursor for pagination

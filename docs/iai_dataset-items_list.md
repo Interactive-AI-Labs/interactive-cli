@@ -13,7 +13,7 @@ iai dataset-items list [flags]
 ### Options
 
 ```
-      --columns strings                Columns to display (comma-separated)
+      --columns strings                Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
       --dataset-name string            Dataset name (required)
   -h, --help                           help for list
       --json                           Output raw API response as JSON

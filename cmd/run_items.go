@@ -163,7 +163,7 @@ func init() {
 	runItemsListCmd.Flags().IntVar(&runItemsListPage, "page", 1, "Page number (starts at 1)")
 	runItemsListCmd.Flags().IntVar(&runItemsListLimit, "limit", 0, "Items per page (max 100)")
 	runItemsListCmd.Flags().
-		StringSliceVar(&runItemsListColumns, "columns", nil, "Columns to display (comma-separated)")
+		StringSliceVar(&runItemsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	runItemsListCmd.Flags().
 		BoolVar(&runItemsListJSON, "json", false, "Output raw API response as JSON")
 	runItemsListCmd.Flags().

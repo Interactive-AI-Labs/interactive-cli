@@ -268,7 +268,7 @@ func init() {
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
 	queuesListCmd.Flags().
-		StringSliceVar(&queuesListColumns, "columns", nil, "Columns to display (comma-separated)")
+		StringSliceVar(&queuesListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	queuesListCmd.Flags().
 		BoolVar(&queuesListJSON, "json", false, "Output raw API response as JSON")
 	queuesListCmd.Flags().

@@ -265,7 +265,7 @@ func init() {
 	datasetItemsListCmd.Flags().
 		IntVar(&datasetItemsListLimit, "limit", 0, "Items per page (max 100)")
 	datasetItemsListCmd.Flags().
-		StringSliceVar(&datasetItemsListColumns, "columns", nil, "Columns to display (comma-separated)")
+		StringSliceVar(&datasetItemsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	datasetItemsListCmd.Flags().
 		BoolVar(&datasetItemsListJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsListCmd.Flags().

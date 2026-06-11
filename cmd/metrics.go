@@ -140,7 +140,7 @@ func init() {
 	metricsListCmd.Flags().
 		StringVar(&metricsListEnvironment, "environment", "", "Filter by environment")
 	metricsListCmd.Flags().
-		StringSliceVar(&metricsListColumns, "columns", nil, "Columns to display (comma-separated, default: date,count_traces,count_observations,total_cost)\nAvailable: date,count_traces,count_observations,total_cost,total_tokens")
+		StringSliceVar(&metricsListColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: date,count_traces,count_observations,total_cost). Cannot be used with --json or --yaml.\nAvailable: date,count_traces,count_observations,total_cost,total_tokens")
 	metricsListCmd.Flags().
 		BoolVar(&metricsListShowModels, "show-models", false, "Show per-model breakdown")
 	metricsListCmd.Flags().
