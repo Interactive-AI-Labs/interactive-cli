@@ -10,6 +10,13 @@ List backups for a database, sorted by most recent first.
 iai databases backups <database_name> [flags]
 ```
 
+### Examples
+
+```
+  iai databases backups my-db
+  iai databases backups my-db -p my-project
+```
+
 ### Options
 
 ```

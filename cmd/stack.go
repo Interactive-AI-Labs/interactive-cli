@@ -36,6 +36,9 @@ Agents are created, updated, or deleted to match the config file.
 Databases are created, updated, or deleted (--allow-delete=databases) to match the config file.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
+	Example: `  iai stacks sync --file stack.yaml
+  iai stacks sync --file stack.yaml --project my-project --organization my-org
+  iai stacks sync --file stack.yaml --allow-delete databases`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

@@ -165,15 +165,21 @@ func injectSchemaDoc(outDir, filename, schemaDoc string) error {
 		return fmt.Errorf("schema section marker not found in %s", filename)
 	}
 
-	// Find "### Options" which follows the schema section
-	optionsMarker := "\n### Options"
-	optionsIdx := strings.Index(text, optionsMarker)
-	if optionsIdx == -1 {
-		return fmt.Errorf("options section marker not found in %s", filename)
+	// Find the end of the schema section. Prefer to stop before the Examples
+	// section (rendered from the command's Example field) so the CLI usage
+	// examples are preserved; fall back to Options when a command has none.
+	endMarker := "\n### Examples"
+	endIdx := strings.Index(text, endMarker)
+	if endIdx == -1 {
+		endMarker = "\n### Options"
+		endIdx = strings.Index(text, endMarker)
+	}
+	if endIdx == -1 {
+		return fmt.Errorf("schema section end marker not found in %s", filename)
 	}
 
 	// Replace the plain-text section with the markdown template
-	text = text[:schemaStart] + "\n\n" + schemaDoc + optionsMarker + text[optionsIdx+len(optionsMarker):]
+	text = text[:schemaStart] + "\n\n" + schemaDoc + endMarker + text[endIdx+len(endMarker):]
 
 	return os.WriteFile(docPath, []byte(text), 0o644)
 }

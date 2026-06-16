@@ -6,11 +6,14 @@ List versions of a variable
 
 List all versions of a variable, sorted newest-first.
 
-Examples:
-  iai variables versions my-variable
-
 ```
 iai variables versions <name> [flags]
+```
+
+### Examples
+
+```
+  iai variables versions my-variable
 ```
 
 ### Options

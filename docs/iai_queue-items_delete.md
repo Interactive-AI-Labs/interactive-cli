@@ -10,6 +10,13 @@ Delete an item from an annotation queue.
 iai queue-items delete <item-id> [flags]
 ```
 
+### Examples
+
+```
+  iai queue-items delete item-456 --queue-id queue-123
+  iai queue-items delete item-456 --queue-id queue-123 -p my-project
+```
+
 ### Options
 
 ```

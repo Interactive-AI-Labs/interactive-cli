@@ -43,7 +43,11 @@ var imageListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List images for a project",
 	Long:    `List container images in the deployment registry for a specific project.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai images list
+  iai images list --organization my-org --project my-project
+  iai images list --json
+  iai images list --yaml`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -76,6 +80,9 @@ var imageBuildCmd = &cobra.Command{
 
 This is a thin wrapper around 'docker build' that requires an explicit tag,
 Dockerfile, and build context.`,
+	Example: `  iai images build my-service --tag 1.2.3
+  iai images build my-service --tag 1.2.3 --file docker/Dockerfile --context .
+  iai images build my-service --tag 1.2.3 --platform linux/amd64`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -128,7 +135,9 @@ var imagePushCmd = &cobra.Command{
 	Aliases: []string{"p"},
 	Short:   "Push an image for a project",
 	Long:    `Create a Docker image tarball and push it to the deployment images endpoint for a specific project.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai images push my-service --tag 1.2.3
+  iai images push my-service --tag 1.2.3 --organization my-org --project my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		in := cmd.InOrStdin()

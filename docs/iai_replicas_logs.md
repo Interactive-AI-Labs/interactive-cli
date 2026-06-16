@@ -18,6 +18,15 @@ nested JSON values.
 iai replicas logs <replica_name> [flags]
 ```
 
+### Examples
+
+```
+  iai replicas logs my-service-abc123
+  iai replicas logs my-service-abc123 --follow
+  iai replicas logs my-service-abc123 --since 30m --fields logger,pid
+  iai replicas logs my-service-abc123 --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z
+```
+
 ### Options
 
 ```

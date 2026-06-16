@@ -11,13 +11,16 @@ The remote port defaults to the service's configured port. Use --port to
 override. Use --local-port to choose the local listening port (defaults to
 --port when set, or an available OS-assigned port otherwise).
 
-Examples:
+```
+iai services port-forward <service_name> [flags]
+```
+
+### Examples
+
+```
   iai services port-forward my-svc
   iai services port-forward my-svc --port 8080
   iai services port-forward my-svc --port 8080 --local-port 9090
-
-```
-iai services port-forward <service_name> [flags]
 ```
 
 ### Options

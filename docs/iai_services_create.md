@@ -6,9 +6,17 @@ Create a service in a project
 
 Create a service in a specific project using the deployment service.
 
-
 ```
 iai services create <service_name> [flags]
+```
+
+### Examples
+
+```
+  iai services create my-svc --image-type external --image-repository docker.io --image-name nginx --image-tag latest --port 80 --memory 512M --cpu 0.5
+  iai services create my-svc --image-name my-app --image-tag v1 --port 8080 --memory 1G --cpu 1 --replicas 3 --endpoint
+  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --env LOG_LEVEL=debug --secret DB_PASSWORD --healthcheck-path /health
+  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --schedule-uptime "Mon-Fri 08:00-18:00" --schedule-timezone Europe/Berlin
 ```
 
 ### Options

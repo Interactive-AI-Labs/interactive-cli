@@ -10,6 +10,15 @@ List items in an annotation queue.
 iai queue-items list [flags]
 ```
 
+### Examples
+
+```
+  iai queue-items list --queue-id queue-123
+  iai queue-items list --queue-id queue-123 --status PENDING
+  iai queue-items list --queue-id queue-123 --page 2 --limit 50
+  iai queue-items list --queue-id queue-123 --json
+```
+
 ### Options
 
 ```

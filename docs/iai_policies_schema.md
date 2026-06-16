@@ -15,6 +15,14 @@ This is a public endpoint and does not require authentication.
 iai policies schema [flags]
 ```
 
+### Examples
+
+```
+  iai policies schema
+  iai policies schema --schema-version 0.0.1
+  iai policies schema --json
+```
+
 ### Options
 
 ```

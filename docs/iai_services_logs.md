@@ -18,6 +18,15 @@ nested JSON values.
 iai services logs <service_name> [flags]
 ```
 
+### Examples
+
+```
+  iai services logs my-svc
+  iai services logs my-svc --follow
+  iai services logs my-svc --since 3h
+  iai services logs my-svc --fields logger,pid
+```
+
 ### Options
 
 ```

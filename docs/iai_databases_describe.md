@@ -7,12 +7,15 @@ Describe a database in detail
 Show detailed information about a database including configuration, runtime
 status, and connection credentials.
 
-Examples:
-  iai databases describe my-db
-  iai databases describe my-db --json
-
 ```
 iai databases describe <database_name> [flags]
+```
+
+### Examples
+
+```
+  iai databases describe my-db
+  iai databases describe my-db --json
 ```
 
 ### Options

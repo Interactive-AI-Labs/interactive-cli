@@ -6,11 +6,14 @@ List versions of a glossary
 
 List all versions of a glossary, sorted newest-first.
 
-Examples:
-  iai glossaries versions my-glossary
-
 ```
 iai glossaries versions <name> [flags]
+```
+
+### Examples
+
+```
+  iai glossaries versions my-glossary
 ```
 
 ### Options

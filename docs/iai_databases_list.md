@@ -10,6 +10,14 @@ List databases in a project.
 iai databases list [flags]
 ```
 
+### Examples
+
+```
+  iai databases list
+  iai databases list -p my-project
+  iai databases list --json
+```
+
 ### Options
 
 ```

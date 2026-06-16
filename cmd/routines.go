@@ -37,10 +37,8 @@ Example (routine.yaml):
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
-
-Examples:
-  iai routines create onboarding-flow --file routine.yaml
+the "production" label with --labels production.`,
+		CreateExample: `  iai routines create onboarding-flow --file routine.yaml
   iai routines create onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines create onboarding-flow --file routine.yaml --labels production
   iai routines create onboarding-flow --file routine.yaml --tags v2,experimental`,
@@ -48,20 +46,16 @@ Examples:
 
 Returns all routines with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
-can be browsed into with --folder.
-
-Examples:
-  iai routines list
+can be browsed into with --folder.`,
+		ListExample: `  iai routines list
   iai routines list --folder my-folder
   iai routines list --folder my-folder/sub-folder
   iai routines list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific routine, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
-
-Examples:
-  iai routines get onboarding-flow
+specific version number, or --label to resolve a different label.`,
+		GetExample: `  iai routines get onboarding-flow
   iai routines get onboarding-flow --version 3
   iai routines get onboarding-flow --label staging`,
 		UpdateLong: `Update a routine by creating a new version with updated content.
@@ -87,20 +81,16 @@ Example (routine.yaml):
     - id: lookup
       source: greet
       tools: crm:get_user
-      tool_instruction: Fetch user data
-
-Examples:
-  iai routines update onboarding-flow --file routine.yaml
+      tool_instruction: Fetch user data`,
+		UpdateExample: `  iai routines update onboarding-flow --file routine.yaml
   iai routines update onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines update onboarding-flow --file routine.yaml --labels production,staging`,
 		DeleteLong: `Delete a routine and all its versions, or delete specific versions.
 
 Without flags, deletes the routine and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions with a
-specific label. Use -f to skip the confirmation prompt.
-
-Examples:
-  iai routines delete onboarding-flow
+specific label. Use -f to skip the confirmation prompt.`,
+		DeleteExample: `  iai routines delete onboarding-flow
   iai routines delete onboarding-flow -f
   iai routines delete onboarding-flow --version 3
   iai routines delete onboarding-flow --label staging`,

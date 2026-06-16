@@ -10,14 +10,17 @@ Without flags, deletes the glossary entry and all its versions (requires
 confirmation). Use --version to delete a specific version, or --label to delete
 versions with a specific label. Use -f to skip the confirmation prompt.
 
-Examples:
+```
+iai glossaries delete <name> [flags]
+```
+
+### Examples
+
+```
   iai glossaries delete finance-terms
   iai glossaries delete finance-terms -f
   iai glossaries delete finance-terms --version 3
   iai glossaries delete finance-terms --label staging
-
-```
-iai glossaries delete <name> [flags]
 ```
 
 ### Options

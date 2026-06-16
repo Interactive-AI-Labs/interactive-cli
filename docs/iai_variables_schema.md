@@ -15,6 +15,14 @@ This is a public endpoint and does not require authentication.
 iai variables schema [flags]
 ```
 
+### Examples
+
+```
+  iai variables schema
+  iai variables schema --schema-version 0.0.1
+  iai variables schema --json
+```
+
 ### Options
 
 ```

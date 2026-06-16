@@ -45,10 +45,8 @@ var metricsListCmd = &cobra.Command{
 
 Uses the platform API with dual authentication (API key or session).
 If --from-timestamp is not provided, defaults to 7 days ago.
-Use --daily to get metrics aggregated by day (default).
-
-Examples:
-  iai metrics list --daily
+Use --daily to get metrics aggregated by day (default).`,
+	Example: `  iai metrics list --daily
   iai metrics list --daily --from-timestamp 2025-01-01T00:00:00Z
   iai metrics list --daily --trace-name my-trace --show-models
   iai metrics list --daily --json | jq '.data'`,

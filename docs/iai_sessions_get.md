@@ -12,6 +12,14 @@ Uses the platform API with dual authentication (API key or session).
 iai sessions get <session-id> [flags]
 ```
 
+### Examples
+
+```
+  iai sessions get <session-id>
+  iai sessions get <session-id> --fields core,traces
+  iai sessions get <session-id> --json
+```
+
 ### Options
 
 ```

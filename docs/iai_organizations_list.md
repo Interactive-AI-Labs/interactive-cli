@@ -10,6 +10,14 @@ List all organizations you are a member of.
 iai organizations list [flags]
 ```
 
+### Examples
+
+```
+  iai organizations list
+  iai organizations list --json
+  iai organizations list --yaml
+```
+
 ### Options
 
 ```

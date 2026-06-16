@@ -10,6 +10,13 @@ Delete a service from a specific project using the deployment service.
 iai services delete <service_name> [flags]
 ```
 
+### Examples
+
+```
+  iai services delete my-svc
+  iai services delete my-svc --project my-project
+```
+
 ### Options
 
 ```

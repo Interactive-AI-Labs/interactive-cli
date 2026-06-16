@@ -6,11 +6,14 @@ List versions of a skill
 
 List all versions of a skill, sorted newest-first.
 
-Examples:
-  iai skills versions my-skill
-
 ```
 iai skills versions <name> [flags]
+```
+
+### Examples
+
+```
+  iai skills versions my-skill
 ```
 
 ### Options

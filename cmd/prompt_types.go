@@ -34,6 +34,11 @@ type PromptTypeConfig struct {
 	GetLong               string // long description for the describe subcommand
 	UpdateLong            string // long description for the update subcommand
 	DeleteLong            string // long description for the delete subcommand
+	CreateExample         string // usage examples for the create subcommand
+	ListExample           string // usage examples for the list subcommand
+	GetExample            string // usage examples for the describe subcommand
+	UpdateExample         string // usage examples for the update subcommand
+	DeleteExample         string // usage examples for the delete subcommand
 }
 
 func registerPromptType(ptCfg PromptTypeConfig) {
@@ -85,6 +90,9 @@ Use --schema-version to request a specific schema version (defaults to latest st
 Use --json or --yaml to output the schema response in a structured format.
 
 This is a public endpoint and does not require authentication.`, ptCfg.Plural),
+		Example: fmt.Sprintf(`  iai %s schema
+  iai %s schema --schema-version 0.0.1
+  iai %s schema --json`, ptCfg.Plural, ptCfg.Plural, ptCfg.Plural),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
@@ -127,10 +135,11 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "create <name>",
-		Short: fmt.Sprintf("Create a %s", ptCfg.TypeName),
-		Long:  ptCfg.CreateLong,
-		Args:  cobra.ExactArgs(1),
+		Use:     "create <name>",
+		Short:   fmt.Sprintf("Create a %s", ptCfg.TypeName),
+		Long:    ptCfg.CreateLong,
+		Example: ptCfg.CreateExample,
+		Args:    cobra.ExactArgs(1),
 	}
 
 	var configBuilder ConfigFlagBuilder
@@ -209,6 +218,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   fmt.Sprintf("List %s in a project", ptCfg.Plural),
 		Long:    ptCfg.ListLong,
+		Example: ptCfg.ListExample,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
@@ -280,6 +290,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Aliases: []string{"describe", "desc"},
 		Short:   fmt.Sprintf("Describe a %s in detail", ptCfg.TypeName),
 		Long:    ptCfg.GetLong,
+		Example: ptCfg.GetExample,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
@@ -336,10 +347,11 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "update <name>",
-		Short: fmt.Sprintf("Update a %s (creates a new version)", ptCfg.TypeName),
-		Long:  ptCfg.UpdateLong,
-		Args:  cobra.ExactArgs(1),
+		Use:     "update <name>",
+		Short:   fmt.Sprintf("Update a %s (creates a new version)", ptCfg.TypeName),
+		Long:    ptCfg.UpdateLong,
+		Example: ptCfg.UpdateExample,
+		Args:    cobra.ExactArgs(1),
 	}
 
 	var configBuilder ConfigFlagBuilder
@@ -419,6 +431,7 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Aliases: []string{"rm"},
 		Short:   fmt.Sprintf("Delete a %s", ptCfg.TypeName),
 		Long:    ptCfg.DeleteLong,
+		Example: ptCfg.DeleteExample,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
@@ -497,11 +510,9 @@ func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Use:     "versions <name>",
 		Aliases: []string{"vers"},
 		Short:   fmt.Sprintf("List versions of a %s", ptCfg.TypeName),
-		Long: fmt.Sprintf(`List all versions of a %s, sorted newest-first.
-
-Examples:
-  iai %s versions my-%s`, ptCfg.TypeName, ptCfg.Plural, ptCfg.TypeName),
-		Args: cobra.ExactArgs(1),
+		Long:    fmt.Sprintf(`List all versions of a %s, sorted newest-first.`, ptCfg.TypeName),
+		Example: fmt.Sprintf(`  iai %s versions my-%s`, ptCfg.Plural, ptCfg.TypeName),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
@@ -535,13 +546,11 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "diff <name> <version_a> <version_b>",
-		Short: fmt.Sprintf("Compare two versions of a %s", ptCfg.TypeName),
-		Long: fmt.Sprintf(`Show the differences between two versions of a %s.
-
-Examples:
-  iai %s diff my-%s 1 3`, ptCfg.TypeName, ptCfg.Plural, ptCfg.TypeName),
-		Args: cobra.ExactArgs(3),
+		Use:     "diff <name> <version_a> <version_b>",
+		Short:   fmt.Sprintf("Compare two versions of a %s", ptCfg.TypeName),
+		Long:    fmt.Sprintf(`Show the differences between two versions of a %s.`, ptCfg.TypeName),
+		Example: fmt.Sprintf(`  iai %s diff my-%s 1 3`, ptCfg.Plural, ptCfg.TypeName),
+		Args:    cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])

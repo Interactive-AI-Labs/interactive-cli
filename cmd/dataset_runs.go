@@ -44,7 +44,11 @@ var datasetRunsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List dataset runs",
 	Long:    `List runs for a given dataset.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai dataset-runs list --dataset-name my-dataset
+  iai dataset-runs list --dataset-name my-dataset -o my-org -p my-project
+  iai dataset-runs list --dataset-name my-dataset --page 2 --limit 50 --columns name,status
+  iai dataset-runs list --dataset-name my-dataset --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -112,7 +116,11 @@ var datasetRunsGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a dataset run",
 	Long:    `Get detailed information about a specific dataset run.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai dataset-runs get my-run --dataset-name my-dataset
+  iai dataset-runs get my-run --dataset-name my-dataset -o my-org -p my-project
+  iai dataset-runs get my-run --dataset-name my-dataset --json
+  iai dataset-runs get my-run --dataset-name my-dataset --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -156,7 +164,9 @@ var datasetRunsDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete a dataset run",
 	Long:    `Delete a dataset run by name.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai dataset-runs delete my-run --dataset-name my-dataset
+  iai dataset-runs delete my-run --dataset-name my-dataset -o my-org -p my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

@@ -16,12 +16,15 @@ matching version.
 
 By default, output is a formatted table. Use --json for machine-readable output.
 
-Examples:
-  iai agents compatibility-matrix
-  iai agents compatibility-matrix --json
-
 ```
 iai agents compatibility-matrix [flags]
+```
+
+### Examples
+
+```
+  iai agents compatibility-matrix
+  iai agents compatibility-matrix --json
 ```
 
 ### Options

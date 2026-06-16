@@ -10,6 +10,15 @@ List annotation queues with pagination.
 iai queues list [flags]
 ```
 
+### Examples
+
+```
+  iai queues list
+  iai queues list --page 2 --limit 50
+  iai queues list --columns id,name,description
+  iai queues list -o my-org -p my-project --json
+```
+
 ### Options
 
 ```

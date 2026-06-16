@@ -24,6 +24,14 @@ action: Transfer to human
 criticality: HIGH
 ```
 
+### Examples
+
+```
+  iai policies update safety-rules --file policy.yaml
+  iai policies update safety-rules --file policy.yaml --schema-version 2.1.0
+  iai policies update safety-rules --file policy.yaml --labels production,staging
+```
+
 ### Options
 
 ```

@@ -6,12 +6,15 @@ List connectors in a project
 
 Show each connector's type, status, tool count, and endpoint in a table.
 
-Examples:
-  iai connectors list
-  iai connectors list --json
-
 ```
 iai connectors list [flags]
+```
+
+### Examples
+
+```
+  iai connectors list
+  iai connectors list --json
 ```
 
 ### Options

@@ -73,10 +73,8 @@ The config schema depends on the agent version. Run
 
 Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
-on their create/update commands).
-
-Examples:
-  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
+on their create/update commands).`,
+	Example: `  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info`,
 	Args: cobra.ExactArgs(1),
@@ -153,10 +151,8 @@ and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezon
 alongside either to change the timezone.
 
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
-remove those configurations entirely.
-
-Examples:
-  iai agents update chat-agent --version 0.0.3
+remove those configurations entirely.`,
+	Example: `  iai agents update chat-agent --version 0.0.3
   iai agents update chat-agent --file agent-config.yaml
   iai agents update chat-agent --endpoint=false
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
@@ -218,10 +214,8 @@ var agentListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List agents in a project",
-	Long: `List agents in a specific project.
-
-Examples:
-  iai agents list
+	Long:    `List agents in a specific project.`,
+	Example: `  iai agents list
   iai agents list -p my-project
   iai agents list --json`,
 	Args: cobra.NoArgs,
@@ -257,10 +251,8 @@ var agentDescribeCmd = &cobra.Command{
 	Short:   "Describe an agent in detail",
 	Long: `Show detailed information about a specific agent including its configuration.
 
-Use --version to view a specific past version instead of the current state.
-
-Examples:
-  iai agents describe my-agent
+Use --version to view a specific past version instead of the current state.`,
+	Example: `  iai agents describe my-agent
   iai agents describe my-agent --version 3
   iai agents describe my-agent --yaml`,
 	Args: cobra.ExactArgs(1),
@@ -315,13 +307,11 @@ Examples:
 }
 
 var agentDeleteCmd = &cobra.Command{
-	Use:   "delete <agent_name>",
-	Short: "Delete an agent from a project",
-	Long: `Delete an agent from a specific project.
-
-Examples:
-  iai agents delete my-agent`,
-	Args: cobra.ExactArgs(1),
+	Use:     "delete <agent_name>",
+	Short:   "Delete an agent from a project",
+	Long:    `Delete an agent from a specific project.`,
+	Example: `  iai agents delete my-agent`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
@@ -353,13 +343,11 @@ Examples:
 }
 
 var agentRestartCmd = &cobra.Command{
-	Use:   "restart <agent_name>",
-	Short: "Restart an agent in a project",
-	Long: `Restart an agent in a specific project.
-
-Examples:
-  iai agents restart my-agent`,
-	Args: cobra.ExactArgs(1),
+	Use:     "restart <agent_name>",
+	Short:   "Restart an agent in a project",
+	Long:    `Restart an agent in a specific project.`,
+	Example: `  iai agents restart my-agent`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
@@ -412,10 +400,8 @@ Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
 --all-fields to include additional top-level fields after the message. Use
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
-nested JSON values.
-
-Examples:
-  iai agents logs my-agent
+nested JSON values.`,
+	Example: `  iai agents logs my-agent
   iai agents logs my-agent --follow
   iai agents logs my-agent --since 30m
   iai agents logs my-agent --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
@@ -482,10 +468,8 @@ var agentCatalogCmd = &cobra.Command{
 	Long: `List agent types available in the catalog.
 
 Without arguments, lists all available agent IDs.
-With an agent ID argument, lists available versions for that agent.
-
-Examples:
-  iai agents catalog
+With an agent ID argument, lists available versions for that agent.`,
+	Example: `  iai agents catalog
   iai agents catalog interactive-agent`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -532,10 +516,8 @@ var agentSchemaCmd = &cobra.Command{
 Defaults to the latest schema version. Use --schema-version to fetch a specific
 version (run 'iai agents compatibility-matrix' to see available versions).
 
-Use --json or --yaml for structured schema output.
-
-Examples:
-  iai agents schema
+Use --json or --yaml for structured schema output.`,
+	Example: `  iai agents schema
   iai agents schema --schema-version 2.1.0
   iai agents schema --json`,
 	Args: cobra.NoArgs,
@@ -586,10 +568,8 @@ Prompt types (routines, policies, etc.) also support versioned schemas — use
 --schema-version on their create/update commands to validate against the
 matching version.
 
-By default, output is a formatted table. Use --json for machine-readable output.
-
-Examples:
-  iai agents compatibility-matrix
+By default, output is a formatted table. Use --json for machine-readable output.`,
+	Example: `  iai agents compatibility-matrix
   iai agents compatibility-matrix --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -617,11 +597,9 @@ var agentRevisionsCmd = &cobra.Command{
 	Aliases: []string{"revs"},
 	Short:   "List revisions of an agent",
 	Long: `Show past revisions of an agent, sorted newest-first.
-Up to 50 revisions are retained per agent.
-
-Examples:
-  iai agents revisions my-agent`,
-	Args: cobra.ExactArgs(1),
+Up to 50 revisions are retained per agent.`,
+	Example: `  iai agents revisions my-agent`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
@@ -646,13 +624,11 @@ Examples:
 }
 
 var agentDiffCmd = &cobra.Command{
-	Use:   "diff <agent_name> <revision_a> <revision_b>",
-	Short: "Compare two revisions of an agent",
-	Long: `Show the differences between two revisions of an agent.
-
-Examples:
-  iai agents diff my-agent 1 3`,
-	Args: cobra.ExactArgs(3),
+	Use:     "diff <agent_name> <revision_a> <revision_b>",
+	Short:   "Compare two revisions of an agent",
+	Long:    `Show the differences between two revisions of an agent.`,
+	Example: `  iai agents diff my-agent 1 3`,
+	Args:    cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
@@ -710,10 +686,8 @@ to an agent running in the cluster.
 
 The remote port defaults to the agent's configured port. Use --port to
 override. Use --local-port to choose the local listening port (defaults to
---port when set, or an available OS-assigned port otherwise).
-
-Examples:
-  iai agents port-forward my-agent
+--port when set, or an available OS-assigned port otherwise).`,
+	Example: `  iai agents port-forward my-agent
   iai agents port-forward my-agent --port 8080
   iai agents port-forward my-agent --port 8080 --local-port 9090`,
 	Args: cobra.ExactArgs(1),
@@ -741,10 +715,8 @@ var agentLogFieldsCmd = &cobra.Command{
 	Short: "List available fields in structured logs",
 	Long: `Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
 
-Use the reported field names with 'iai agents logs --fields' to include them in output.
-
-Examples:
-  iai agents log-fields my-agent
+Use the reported field names with 'iai agents logs --fields' to include them in output.`,
+	Example: `  iai agents log-fields my-agent
   iai agents log-fields my-agent --since 1h`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

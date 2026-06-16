@@ -6,11 +6,14 @@ Compare two versions of a prompt
 
 Show the differences between two versions of a prompt.
 
-Examples:
-  iai prompts diff greeting 1 3
-
 ```
 iai prompts diff <name> <version_a> <version_b> [flags]
+```
+
+### Examples
+
+```
+  iai prompts diff greeting 1 3
 ```
 
 ### Options

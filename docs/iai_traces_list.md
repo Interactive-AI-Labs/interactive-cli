@@ -9,7 +9,13 @@ List traces with optional filters.
 Uses the platform API with dual authentication (API key or session).
 If --from-timestamp is not provided, defaults to 7 days ago.
 
-Examples:
+```
+iai traces list [flags]
+```
+
+### Examples
+
+```
   iai traces list
   iai traces list --limit 20 --page 2
   iai traces list --name my-trace --user-id user123
@@ -23,9 +29,6 @@ Examples:
   iai traces list --fields core,io,metrics
   iai traces list --json | jq '.data.traces[].name'
   iai traces list --columns id,name,latency,total_tokens,level
-
-```
-iai traces list [flags]
 ```
 
 ### Options

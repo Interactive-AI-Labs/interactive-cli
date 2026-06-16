@@ -10,6 +10,13 @@ Create a Docker image tarball and push it to the deployment images endpoint for 
 iai images push [image_name] [flags]
 ```
 
+### Examples
+
+```
+  iai images push my-service --tag 1.2.3
+  iai images push my-service --tag 1.2.3 --organization my-org --project my-project
+```
+
 ### Options
 
 ```

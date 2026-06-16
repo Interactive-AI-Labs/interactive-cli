@@ -32,10 +32,8 @@ Example (policy.yaml):
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
-
-Examples:
-  iai policies create safety-rules --file policy.yaml
+the "production" label with --labels production.`,
+		CreateExample: `  iai policies create safety-rules --file policy.yaml
   iai policies create safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies create safety-rules --file policy.yaml --labels production
   iai policies create safety-rules --file policy.yaml --tags compliance`,
@@ -43,20 +41,16 @@ Examples:
 
 Returns all policies with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
-can be browsed into with --folder.
-
-Examples:
-  iai policies list
+can be browsed into with --folder.`,
+		ListExample: `  iai policies list
   iai policies list --folder my-folder
   iai policies list --folder my-folder/sub-folder
   iai policies list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific policy, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
-
-Examples:
-  iai policies get safety-rules
+specific version number, or --label to resolve a different label.`,
+		GetExample: `  iai policies get safety-rules
   iai policies get safety-rules --version 3
   iai policies get safety-rules --label staging`,
 		UpdateLong: `Update a policy by creating a new version with updated content.
@@ -77,20 +71,16 @@ Example (policy.yaml):
   name: Escalation Policy
   condition: User requests human agent
   action: Transfer to human
-  criticality: HIGH
-
-Examples:
-  iai policies update safety-rules --file policy.yaml
+  criticality: HIGH`,
+		UpdateExample: `  iai policies update safety-rules --file policy.yaml
   iai policies update safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies update safety-rules --file policy.yaml --labels production,staging`,
 		DeleteLong: `Delete a policy and all its versions, or delete specific versions.
 
 Without flags, deletes the policy and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions with a
-specific label. Use -f to skip the confirmation prompt.
-
-Examples:
-  iai policies delete safety-rules
+specific label. Use -f to skip the confirmation prompt.`,
+		DeleteExample: `  iai policies delete safety-rules
   iai policies delete safety-rules -f
   iai policies delete safety-rules --version 3
   iai policies delete safety-rules --label staging`,

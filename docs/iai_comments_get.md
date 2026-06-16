@@ -10,6 +10,14 @@ Get full details of a comment.
 iai comments get <id> [flags]
 ```
 
+### Examples
+
+```
+  iai comments get comment-abc123
+  iai comments get comment-abc123 --json
+  iai comments get comment-abc123 --yaml
+```
+
 ### Options
 
 ```

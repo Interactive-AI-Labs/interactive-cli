@@ -12,6 +12,14 @@ This command requires API key authentication.
 iai queue-items create [flags]
 ```
 
+### Examples
+
+```
+  iai queue-items create --queue-id queue-123 --object-id trace-789 --object-type TRACE
+  iai queue-items create --queue-id queue-123 --object-id obs-789 --object-type OBSERVATION --status PENDING
+  iai queue-items create --queue-id queue-123 --object-id trace-789 --object-type TRACE --json
+```
+
 ### Options
 
 ```

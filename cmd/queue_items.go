@@ -61,7 +61,11 @@ var queueItemsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List queue items",
 	Long:    `List items in an annotation queue.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai queue-items list --queue-id queue-123
+  iai queue-items list --queue-id queue-123 --status PENDING
+  iai queue-items list --queue-id queue-123 --page 2 --limit 50
+  iai queue-items list --queue-id queue-123 --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -130,7 +134,10 @@ var queueItemsGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a queue item",
 	Long:    `Get detailed information about a queue item.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai queue-items get item-456 --queue-id queue-123
+  iai queue-items get item-456 --queue-id queue-123 --json
+  iai queue-items get item-456 --queue-id queue-123 --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -175,6 +182,9 @@ var queueItemsCreateCmd = &cobra.Command{
 	Long: `Add an item to an annotation queue.
 
 This command requires API key authentication.`,
+	Example: `  iai queue-items create --queue-id queue-123 --object-id trace-789 --object-type TRACE
+  iai queue-items create --queue-id queue-123 --object-id obs-789 --object-type OBSERVATION --status PENDING
+  iai queue-items create --queue-id queue-123 --object-id trace-789 --object-type TRACE --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -225,6 +235,9 @@ var queueItemsUpdateCmd = &cobra.Command{
 	Long: `Update the status of a queue item.
 
 This command requires API key authentication.`,
+	Example: `  iai queue-items update item-456 --queue-id queue-123 --status COMPLETED
+  iai queue-items update item-456 --queue-id queue-123 --status PENDING --json
+  iai queue-items update item-456 --queue-id queue-123 --status COMPLETED --yaml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -271,7 +284,9 @@ var queueItemsDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete a queue item",
 	Long:    `Delete an item from an annotation queue.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai queue-items delete item-456 --queue-id queue-123
+  iai queue-items delete item-456 --queue-id queue-123 -p my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

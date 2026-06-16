@@ -6,11 +6,14 @@ Restart an agent in a project
 
 Restart an agent in a specific project.
 
-Examples:
-  iai agents restart my-agent
-
 ```
 iai agents restart <agent_name> [flags]
+```
+
+### Examples
+
+```
+  iai agents restart my-agent
 ```
 
 ### Options

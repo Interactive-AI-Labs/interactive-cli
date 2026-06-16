@@ -10,6 +10,14 @@ Get detailed information about a specific dataset item.
 iai dataset-items get <id> [flags]
 ```
 
+### Examples
+
+```
+  iai dataset-items get item-123
+  iai dataset-items get item-123 --json
+  iai dataset-items get item-123 --yaml
+```
+
 ### Options
 
 ```

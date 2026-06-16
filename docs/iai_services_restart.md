@@ -10,6 +10,13 @@ Restart a service in a specific project using the deployment service.
 iai services restart <service_name> [flags]
 ```
 
+### Examples
+
+```
+  iai services restart my-svc
+  iai services restart my-svc --project my-project
+```
+
 ### Options
 
 ```

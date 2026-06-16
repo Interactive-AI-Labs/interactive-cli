@@ -6,11 +6,14 @@ Compare two versions of a glossary
 
 Show the differences between two versions of a glossary.
 
-Examples:
-  iai glossaries diff my-glossary 1 3
-
 ```
 iai glossaries diff <name> <version_a> <version_b> [flags]
+```
+
+### Examples
+
+```
+  iai glossaries diff my-glossary 1 3
 ```
 
 ### Options

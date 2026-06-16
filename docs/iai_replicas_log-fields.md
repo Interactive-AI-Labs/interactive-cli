@@ -8,12 +8,15 @@ Scan recent logs and list the extra top-level fields present in structured (JSON
 
 Use the reported field names with 'iai replicas logs --fields' to include them in output.
 
-Examples:
-  iai replicas log-fields my-service-abc123
-  iai replicas log-fields my-service-abc123 --since 1h
-
 ```
 iai replicas log-fields <replica_name> [flags]
+```
+
+### Examples
+
+```
+  iai replicas log-fields my-service-abc123
+  iai replicas log-fields my-service-abc123 --since 1h
 ```
 
 ### Options

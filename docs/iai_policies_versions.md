@@ -6,11 +6,14 @@ List versions of a policy
 
 List all versions of a policy, sorted newest-first.
 
-Examples:
-  iai policies versions my-policy
-
 ```
 iai policies versions <name> [flags]
+```
+
+### Examples
+
+```
+  iai policies versions my-policy
 ```
 
 ### Options

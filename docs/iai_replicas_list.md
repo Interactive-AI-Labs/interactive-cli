@@ -10,6 +10,14 @@ List pods backing a service in a specific project.
 iai replicas list [service_name] [flags]
 ```
 
+### Examples
+
+```
+  iai replicas list my-service
+  iai replicas list my-service -p my-project -o my-org
+  iai replicas list my-service --json
+```
+
 ### Options
 
 ```

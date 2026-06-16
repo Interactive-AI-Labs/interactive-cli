@@ -12,6 +12,14 @@ This command currently requires API key authentication.
 iai scores create [flags]
 ```
 
+### Examples
+
+```
+  iai scores create --name accuracy --value 0.95 --trace-id trace-abc123
+  iai scores create --name relevance --value 1 --data-type NUMERIC --observation-id obs-xyz789 --comment "looks good"
+  iai scores create --name sentiment --value positive --data-type CATEGORICAL --session-id sess-456 --json
+```
+
 ### Options
 
 ```

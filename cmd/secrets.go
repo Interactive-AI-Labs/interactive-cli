@@ -39,7 +39,10 @@ var secretsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List secrets in a project",
 	Long:    `List secrets in a specific project.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai secrets list
+  iai secrets list -p my-project -o my-org
+  iai secrets list --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -78,6 +81,10 @@ Secret data can be provided via:
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
 When both are provided, --data values take precedence.`,
+	Example: `  iai secrets create my-secret -d API_KEY=abc123
+  iai secrets create my-secret -d API_KEY=abc123 -d DB_PASS=secret
+  iai secrets create my-secret --from-env-file .env
+  iai secrets create my-secret --from-env-file .env -d API_KEY=override -p my-project`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -149,10 +156,8 @@ Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
-When both are provided, --data values take precedence.
-
-Examples:
-  # Update a single key (other keys preserved)
+When both are provided, --data values take precedence.`,
+	Example: `  # Update a single key (other keys preserved)
   iai secrets update my-secret -d API_KEY=new-value
 
   # Update multiple keys (other keys preserved)
@@ -286,7 +291,9 @@ var secretsDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete a secret in a project",
 	Long:    `Delete a secret in a specific project using the deployment service.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai secrets delete my-secret
+  iai secrets delete my-secret -p my-project -o my-org`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -329,7 +336,10 @@ var secretsGetCmd = &cobra.Command{
 	Use:   "get <secret_name>",
 	Short: "Get a secret in a project",
 	Long:  `Get a secret in a specific project using the deployment service.`,
-	Args:  cobra.ExactArgs(1),
+	Example: `  iai secrets get my-secret
+  iai secrets get my-secret -p my-project
+  iai secrets get my-secret --json`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

@@ -11,7 +11,13 @@ Without --trace-id, searches observations across all traces with optional filter
 
 Uses the platform API with dual authentication (API key or session).
 
-Examples:
+```
+iai observations list [flags]
+```
+
+### Examples
+
+```
   # List observations for a specific trace
   iai observations list --trace-id abc123
   iai observations list --trace-id abc123 --include-io
@@ -21,9 +27,6 @@ Examples:
   iai observations list --type GENERATION --model gpt-4
   iai observations list --from-timestamp 2025-01-01T00:00:00Z --name my-span
   iai observations list --json | jq '.data'
-
-```
-iai observations list [flags]
 ```
 
 ### Options

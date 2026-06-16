@@ -15,6 +15,14 @@ This is a public endpoint and does not require authentication.
 iai routines schema [flags]
 ```
 
+### Examples
+
+```
+  iai routines schema
+  iai routines schema --schema-version 0.0.1
+  iai routines schema --json
+```
+
 ### Options
 
 ```

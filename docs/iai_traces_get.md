@@ -8,13 +8,16 @@ Get detailed information about a specific trace.
 
 Uses the platform API with dual authentication (API key or session).
 
-Examples:
+```
+iai traces get <trace-id> [flags]
+```
+
+### Examples
+
+```
   iai traces get abc123
   iai traces get abc123 --fields core,io,metrics
   iai traces get abc123 --json | jq '.data.trace'
-
-```
-iai traces get <trace-id> [flags]
 ```
 
 ### Options

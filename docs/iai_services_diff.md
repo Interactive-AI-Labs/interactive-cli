@@ -6,11 +6,14 @@ Compare two revisions of a service
 
 Show the differences between two revisions of a service.
 
-Examples:
-  iai services diff my-service 1 3
-
 ```
 iai services diff <service_name> <revision_a> <revision_b> [flags]
+```
+
+### Examples
+
+```
+  iai services diff my-service 1 3
 ```
 
 ### Options

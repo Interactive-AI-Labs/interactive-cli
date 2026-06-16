@@ -10,6 +10,14 @@ Get detailed information about a score configuration.
 iai score-configs get <id> [flags]
 ```
 
+### Examples
+
+```
+  iai score-configs get sc_123
+  iai score-configs get sc_123 -o my-org -p my-project
+  iai score-configs get sc_123 --yaml
+```
+
 ### Options
 
 ```

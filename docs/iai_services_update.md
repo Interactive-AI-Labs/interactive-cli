@@ -22,7 +22,13 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 --clear-stack-id to remove those configurations entirely.
 
-Examples:
+```
+iai services update <service_name> [flags]
+```
+
+### Examples
+
+```
   iai services update my-svc --image-tag v2
   iai services update my-svc --memory 1G --cpu 0.5
   iai services update my-svc --replicas 3
@@ -31,9 +37,6 @@ Examples:
   iai services update my-svc --clear-healthcheck
   iai services update my-svc --stack-id my-stack
   iai services update my-svc --clear-stack-id
-
-```
-iai services update <service_name> [flags]
 ```
 
 ### Options

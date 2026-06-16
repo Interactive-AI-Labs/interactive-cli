@@ -15,6 +15,14 @@ This is a public endpoint and does not require authentication.
 iai glossaries schema [flags]
 ```
 
+### Examples
+
+```
+  iai glossaries schema
+  iai glossaries schema --schema-version 0.0.1
+  iai glossaries schema --json
+```
+
 ### Options
 
 ```

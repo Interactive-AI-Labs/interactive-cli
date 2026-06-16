@@ -12,6 +12,15 @@ This command requires API key authentication.
 iai score-configs update <id> [flags]
 ```
 
+### Examples
+
+```
+  iai score-configs update sc_123 --description "Updated scoring rubric"
+  iai score-configs update sc_123 --min-value 0 --max-value 10
+  iai score-configs update sc_123 --categories '["pass","fail"]'
+  iai score-configs update sc_123 --is-archived --yaml
+```
+
 ### Options
 
 ```

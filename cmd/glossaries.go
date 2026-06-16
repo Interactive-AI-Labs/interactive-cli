@@ -42,10 +42,8 @@ Example (glossary.json):
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
-
-Examples:
-  iai glossaries create finance-terms --file glossary.json
+the "production" label with --labels production.`,
+		CreateExample: `  iai glossaries create finance-terms --file glossary.json
   iai glossaries create finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries create finance-terms --file glossary.json --labels production
   iai glossaries create finance-terms --file glossary.json --tags domain`,
@@ -53,20 +51,16 @@ Examples:
 
 Returns all glossary entries with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
-can be browsed into with --folder.
-
-Examples:
-  iai glossaries list
+can be browsed into with --folder.`,
+		ListExample: `  iai glossaries list
   iai glossaries list --folder my-folder
   iai glossaries list --folder my-folder/sub-folder
   iai glossaries list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific glossary definition, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
-
-Examples:
-  iai glossaries get finance-terms
+specific version number, or --label to resolve a different label.`,
+		GetExample: `  iai glossaries get finance-terms
   iai glossaries get finance-terms --version 3
   iai glossaries get finance-terms --label staging`,
 		UpdateLong: `Update a glossary definition by creating a new version with updated content.
@@ -97,20 +91,16 @@ Example (glossary.json):
     }
   }
 
-  Add as many entries under 'terms' as you need — each key must be unique.
-
-Examples:
-  iai glossaries update finance-terms --file glossary.json
+  Add as many entries under 'terms' as you need — each key must be unique.`,
+		UpdateExample: `  iai glossaries update finance-terms --file glossary.json
   iai glossaries update finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries update finance-terms --file glossary.json --labels production,staging`,
 		DeleteLong: `Delete a glossary definition and all its versions, or delete specific versions.
 
 Without flags, deletes the glossary entry and all its versions (requires
 confirmation). Use --version to delete a specific version, or --label to delete
-versions with a specific label. Use -f to skip the confirmation prompt.
-
-Examples:
-  iai glossaries delete finance-terms
+versions with a specific label. Use -f to skip the confirmation prompt.`,
+		DeleteExample: `  iai glossaries delete finance-terms
   iai glossaries delete finance-terms -f
   iai glossaries delete finance-terms --version 3
   iai glossaries delete finance-terms --label staging`,

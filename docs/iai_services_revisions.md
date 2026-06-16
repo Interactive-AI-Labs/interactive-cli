@@ -7,11 +7,14 @@ List revisions of a service
 Show past revisions of a service, sorted newest-first.
 Up to 50 revisions are retained per service.
 
-Examples:
-  iai services revisions my-service
-
 ```
 iai services revisions <service_name> [flags]
+```
+
+### Examples
+
+```
+  iai services revisions my-service
 ```
 
 ### Options

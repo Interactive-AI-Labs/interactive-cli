@@ -6,11 +6,14 @@ Compare two versions of a routine
 
 Show the differences between two versions of a routine.
 
-Examples:
-  iai routines diff my-routine 1 3
-
 ```
 iai routines diff <name> <version_a> <version_b> [flags]
+```
+
+### Examples
+
+```
+  iai routines diff my-routine 1 3
 ```
 
 ### Options

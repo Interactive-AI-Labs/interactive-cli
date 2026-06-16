@@ -6,11 +6,14 @@ List versions of a prompt
 
 List all versions of a prompt, sorted newest-first.
 
-Examples:
-  iai prompts versions greeting
-
 ```
 iai prompts versions <name> [flags]
+```
+
+### Examples
+
+```
+  iai prompts versions greeting
 ```
 
 ### Options

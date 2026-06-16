@@ -10,6 +10,14 @@ Show detailed information about a specific replica including status, resources, 
 iai replicas describe <replica_name> [flags]
 ```
 
+### Examples
+
+```
+  iai replicas describe my-service-abc123
+  iai replicas describe my-service-abc123 -p my-project -o my-org
+  iai replicas describe my-service-abc123 --yaml
+```
+
 ### Options
 
 ```

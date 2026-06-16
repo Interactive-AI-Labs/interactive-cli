@@ -30,6 +30,15 @@ Run `iai variables schema` to see the current field definitions.
 Each key under `variables` must be unique. Add as many entries as you need —
 the set accepts any number of variables.
 
+### Examples
+
+```
+  iai variables create session-vars --file variables.json
+  iai variables create session-vars --file variables.json --schema-version 2.1.0
+  iai variables create session-vars --file variables.json --labels production
+  iai variables create session-vars --file variables.json --tags core
+```
+
 ### Options
 
 ```

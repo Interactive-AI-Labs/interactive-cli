@@ -10,12 +10,15 @@ PostgreSQL-specific details are often nested under the 'record' field, so seeing
 'record' in the results is expected. Use the reported field names with
 'iai databases logs --fields' to include them in output.
 
-Examples:
-  iai databases log-fields my-db
-  iai databases log-fields my-db --since 1h
-
 ```
 iai databases log-fields <database_name> [flags]
+```
+
+### Examples
+
+```
+  iai databases log-fields my-db
+  iai databases log-fields my-db --since 1h
 ```
 
 ### Options

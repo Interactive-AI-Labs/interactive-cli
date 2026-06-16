@@ -6,11 +6,14 @@ Compare two versions of a policy
 
 Show the differences between two versions of a policy.
 
-Examples:
-  iai policies diff my-policy 1 3
-
 ```
 iai policies diff <name> <version_a> <version_b> [flags]
+```
+
+### Examples
+
+```
+  iai policies diff my-policy 1 3
 ```
 
 ### Options

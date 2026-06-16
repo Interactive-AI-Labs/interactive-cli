@@ -10,6 +10,13 @@ Delete a dataset run by name.
 iai dataset-runs delete <run-name> [flags]
 ```
 
+### Examples
+
+```
+  iai dataset-runs delete my-run --dataset-name my-dataset
+  iai dataset-runs delete my-run --dataset-name my-dataset -o my-org -p my-project
+```
+
 ### Options
 
 ```

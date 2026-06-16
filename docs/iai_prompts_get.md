@@ -9,13 +9,16 @@ Show detailed information about a specific prompt, including its full content.
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-Examples:
+```
+iai prompts get <name> [flags]
+```
+
+### Examples
+
+```
   iai prompts get greeting
   iai prompts get greeting --version 3
   iai prompts get greeting --label staging
-
-```
-iai prompts get <name> [flags]
 ```
 
 ### Options

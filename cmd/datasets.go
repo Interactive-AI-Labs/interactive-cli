@@ -45,7 +45,11 @@ var datasetsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List datasets",
 	Long:    `List evaluation datasets with pagination.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai datasets list
+  iai datasets list -p my-project --limit 50 --page 2
+  iai datasets list --columns name,description
+  iai datasets list --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -106,7 +110,10 @@ var datasetsGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a dataset by name",
 	Long:    `Get detailed information about a specific dataset.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai datasets get my-dataset
+  iai datasets get my-dataset -o my-org -p my-project
+  iai datasets get my-dataset --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -143,7 +150,11 @@ var datasetsCreateCmd = &cobra.Command{
 	Use:   "create <name>",
 	Short: "Create a dataset",
 	Long:  `Create a new evaluation dataset.`,
-	Args:  cobra.ExactArgs(1),
+	Example: `  iai datasets create my-dataset
+  iai datasets create my-dataset --description "Golden eval set"
+  iai datasets create my-dataset --metadata-json '{"source":"prod"}' -p my-project
+  iai datasets create my-dataset --json`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

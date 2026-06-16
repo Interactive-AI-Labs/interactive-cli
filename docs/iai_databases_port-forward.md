@@ -13,12 +13,15 @@ to choose the local listening port (defaults to the remote port).
 After connecting you can use psql, pgAdmin, or any PostgreSQL client against
 localhost:<local-port>.
 
-Examples:
-  iai databases port-forward my-db
-  iai databases port-forward my-db --local-port 15432
-
 ```
 iai databases port-forward <database_name> [flags]
+```
+
+### Examples
+
+```
+  iai databases port-forward my-db
+  iai databases port-forward my-db --local-port 15432
 ```
 
 ### Options

@@ -56,10 +56,8 @@ var obsListCmd = &cobra.Command{
 When --trace-id is provided, lists observations within that trace.
 Without --trace-id, searches observations across all traces with optional filters.
 
-Uses the platform API with dual authentication (API key or session).
-
-Examples:
-  # List observations for a specific trace
+Uses the platform API with dual authentication (API key or session).`,
+	Example: `  # List observations for a specific trace
   iai observations list --trace-id abc123
   iai observations list --trace-id abc123 --include-io
   iai observations list --trace-id abc123 --columns id,type,name,model,latency_ms
@@ -188,10 +186,8 @@ var obsGetCmd = &cobra.Command{
 	Short: "Get a specific observation",
 	Long: `Get detailed information about a specific observation.
 
-Uses the platform API with dual authentication (API key or session).
-
-Examples:
-  iai observations get obs-abc123
+Uses the platform API with dual authentication (API key or session).`,
+	Example: `  iai observations get obs-abc123
   iai observations get obs-abc123 --json | jq '.data.observation'`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

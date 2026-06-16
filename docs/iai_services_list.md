@@ -10,6 +10,14 @@ List services in a specific project using the deployment service.
 iai services list [flags]
 ```
 
+### Examples
+
+```
+  iai services list
+  iai services list --project my-project
+  iai services list --json
+```
+
 ### Options
 
 ```

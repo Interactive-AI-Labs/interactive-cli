@@ -53,7 +53,11 @@ var queuesListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List annotation queues",
 	Long:    `List annotation queues with pagination.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai queues list
+  iai queues list --page 2 --limit 50
+  iai queues list --columns id,name,description
+  iai queues list -o my-org -p my-project --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -110,7 +114,10 @@ var queuesGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get an annotation queue",
 	Long:    `Get detailed information about an annotation queue.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai queues get queue-123
+  iai queues get queue-123 --json
+  iai queues get queue-123 -o my-org -p my-project --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -149,6 +156,10 @@ var queuesCreateCmd = &cobra.Command{
 	Long: `Create a new annotation queue.
 
 This command requires API key authentication.`,
+	Example: `  iai queues create my-queue
+  iai queues create my-queue --description "Review of chat outputs"
+  iai queues create my-queue --score-config-ids sc-1,sc-2
+  iai queues create my-queue --description "QA queue" --score-config-ids sc-1 --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -196,6 +207,8 @@ var queuesAssignCmd = &cobra.Command{
 	Long: `Assign a user to an annotation queue.
 
 This command requires API key authentication.`,
+	Example: `  iai queues assign queue-123 --user-id user-456
+  iai queues assign queue-123 --user-id user-456 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -233,6 +246,8 @@ var queuesUnassignCmd = &cobra.Command{
 	Long: `Remove a user from an annotation queue.
 
 This command requires API key authentication.`,
+	Example: `  iai queues unassign queue-123 --user-id user-456
+  iai queues unassign queue-123 --user-id user-456 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

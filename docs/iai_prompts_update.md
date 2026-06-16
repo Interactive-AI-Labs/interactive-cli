@@ -12,13 +12,16 @@ by version number.
 
 Exactly one of --file or --content must be specified.
 
-Examples:
+```
+iai prompts update <name> [flags]
+```
+
+### Examples
+
+```
   iai prompts update greeting --content "Hello! How may I assist you today?"
   iai prompts update greeting --file greeting.txt
   iai prompts update greeting --file greeting.txt --labels production,staging
-
-```
-iai prompts update <name> [flags]
 ```
 
 ### Options

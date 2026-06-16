@@ -12,6 +12,14 @@ This command requires API key authentication.
 iai comments create [flags]
 ```
 
+### Examples
+
+```
+  iai comments create --object-type TRACE --object-id trace-abc123 --content "Investigated this run"
+  iai comments create --object-type OBSERVATION --object-id obs-456 --content "Looks correct" --author-user-id user-42
+  iai comments create --object-type PROMPT --object-id prompt-789 --content "Needs review" --json
+```
+
 ### Options
 
 ```

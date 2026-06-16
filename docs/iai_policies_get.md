@@ -9,13 +9,16 @@ Show detailed information about a specific policy, including its full content.
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-Examples:
+```
+iai policies get <name> [flags]
+```
+
+### Examples
+
+```
   iai policies get safety-rules
   iai policies get safety-rules --version 3
   iai policies get safety-rules --label staging
-
-```
-iai policies get <name> [flags]
 ```
 
 ### Options

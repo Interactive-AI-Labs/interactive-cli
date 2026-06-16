@@ -8,13 +8,16 @@ Show detailed information about a specific service including its configuration.
 
 Use --version to view a specific past version instead of the current state.
 
-Examples:
+```
+iai services describe <service_name> [flags]
+```
+
+### Examples
+
+```
   iai services describe my-service
   iai services describe my-service --version 3
   iai services describe my-service --json
-
-```
-iai services describe <service_name> [flags]
 ```
 
 ### Options

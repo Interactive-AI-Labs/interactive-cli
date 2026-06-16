@@ -7,12 +7,15 @@ Re-verify a connector and refresh its tools
 Re-dial the MCP server for a connector (initialize + list tools) and refresh the
 cached tool list. Reports the status and, on failure, the error class and message.
 
-Examples:
-  iai connectors verify 3f9c1a2e-...
-  iai connectors verify 3f9c1a2e-... --json
-
 ```
 iai connectors verify <connector_id> [flags]
+```
+
+### Examples
+
+```
+  iai connectors verify 3f9c1a2e-...
+  iai connectors verify 3f9c1a2e-... --json
 ```
 
 ### Options

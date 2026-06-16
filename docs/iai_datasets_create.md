@@ -10,6 +10,15 @@ Create a new evaluation dataset.
 iai datasets create <name> [flags]
 ```
 
+### Examples
+
+```
+  iai datasets create my-dataset
+  iai datasets create my-dataset --description "Golden eval set"
+  iai datasets create my-dataset --metadata-json '{"source":"prod"}' -p my-project
+  iai datasets create my-dataset --json
+```
+
 ### Options
 
 ```

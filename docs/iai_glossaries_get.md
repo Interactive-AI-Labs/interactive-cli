@@ -9,13 +9,16 @@ Show detailed information about a specific glossary definition, including its fu
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-Examples:
+```
+iai glossaries get <name> [flags]
+```
+
+### Examples
+
+```
   iai glossaries get finance-terms
   iai glossaries get finance-terms --version 3
   iai glossaries get finance-terms --label staging
-
-```
-iai glossaries get <name> [flags]
 ```
 
 ### Options

@@ -29,7 +29,10 @@ var projectsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List projects in an organization",
 	Long:    `List all projects within a specific organization. The organization name will be resolved to its Id before making API calls.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai projects list
+  iai projects list --organization my-org
+  iai projects list --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -87,7 +90,9 @@ var projectsSelectCmd = &cobra.Command{
 	Aliases: []string{"set"},
 	Short:   "Select a project for subsequent commands",
 	Long:    `Select a project by name and store it in the local CLI configuration so other commands can use it without specifying the project each time.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai projects select my-project
+  iai projects select my-project --organization my-org`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		projectName := args[0]
