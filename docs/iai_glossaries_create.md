@@ -32,6 +32,15 @@ Run `iai glossaries schema` to see the current field definitions.
 Each key under `terms` must be unique. Add as many terms as you need — the
 glossary accepts any number of entries.
 
+### Examples
+
+```
+  iai glossaries create finance-terms --file glossary.json
+  iai glossaries create finance-terms --file glossary.json --schema-version 2.1.0
+  iai glossaries create finance-terms --file glossary.json --labels production
+  iai glossaries create finance-terms --file glossary.json --tags domain
+```
+
 ### Options
 
 ```

@@ -18,6 +18,13 @@ No schema validation is applied — any text content is accepted.
 **Disclaimer:** This is not financial advice. Consult a professional.
 ```
 
+### Examples
+
+```
+  iai macros update disclaimer --file disclaimer.md
+  iai macros update disclaimer --file disclaimer.md --labels production,staging
+```
+
 ### Options
 
 ```

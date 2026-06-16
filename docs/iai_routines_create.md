@@ -27,6 +27,15 @@ steps:
     tool_instruction: Fetch user data
 ```
 
+### Examples
+
+```
+  iai routines create onboarding-flow --file routine.yaml
+  iai routines create onboarding-flow --file routine.yaml --schema-version 2.1.0
+  iai routines create onboarding-flow --file routine.yaml --labels production
+  iai routines create onboarding-flow --file routine.yaml --tags v2,experimental
+```
+
 ### Options
 
 ```
