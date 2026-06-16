@@ -16,6 +16,14 @@ The organization and project are read from the config file, flags, or resolved v
 iai stacks sync [flags]
 ```
 
+### Examples
+
+```
+  iai stacks sync --file stack.yaml
+  iai stacks sync --file stack.yaml --project my-project --organization my-org
+  iai stacks sync --file stack.yaml --allow-delete databases
+```
+
 ### Example config file
 
 ```yaml

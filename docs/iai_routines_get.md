@@ -9,13 +9,16 @@ Show detailed information about a specific routine, including its full content.
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-Examples:
+```
+iai routines get <name> [flags]
+```
+
+### Examples
+
+```
   iai routines get onboarding-flow
   iai routines get onboarding-flow --version 3
   iai routines get onboarding-flow --label staging
-
-```
-iai routines get <name> [flags]
 ```
 
 ### Options

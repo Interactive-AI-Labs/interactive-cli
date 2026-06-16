@@ -69,10 +69,8 @@ var tracesListCmd = &cobra.Command{
 	Long: `List traces with optional filters.
 
 Uses the platform API with dual authentication (API key or session).
-If --from-timestamp is not provided, defaults to 7 days ago.
-
-Examples:
-  iai traces list
+If --from-timestamp is not provided, defaults to 7 days ago.`,
+	Example: `  iai traces list
   iai traces list --limit 20 --page 2
   iai traces list --name my-trace --user-id user123
   iai traces list --from-timestamp 2025-01-01T00:00:00Z
@@ -183,10 +181,8 @@ var tracesGetCmd = &cobra.Command{
 	Short: "Get a specific trace",
 	Long: `Get detailed information about a specific trace.
 
-Uses the platform API with dual authentication (API key or session).
-
-Examples:
-  iai traces get abc123
+Uses the platform API with dual authentication (API key or session).`,
+	Example: `  iai traces get abc123
   iai traces get abc123 --fields core,io,metrics
   iai traces get abc123 --json | jq '.data.trace'`,
 	Args: cobra.ExactArgs(1),
@@ -224,10 +220,8 @@ var tracesDeleteCmd = &cobra.Command{
 	Short:   "Delete one or more traces",
 	Long: `Delete a single trace or bulk delete multiple traces.
 
-This command currently requires API key authentication.
-
-Examples:
-  iai traces delete trace-123
+This command currently requires API key authentication.`,
+	Example: `  iai traces delete trace-123
   iai traces delete --ids trace-1,trace-2
   iai traces delete --ids trace-1 --ids trace-2 -f`,
 	Args: cobra.MaximumNArgs(1),

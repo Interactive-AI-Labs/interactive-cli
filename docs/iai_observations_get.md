@@ -8,12 +8,15 @@ Get detailed information about a specific observation.
 
 Uses the platform API with dual authentication (API key or session).
 
-Examples:
-  iai observations get obs-abc123
-  iai observations get obs-abc123 --json | jq '.data.observation'
-
 ```
 iai observations get <observation-id> [flags]
+```
+
+### Examples
+
+```
+  iai observations get obs-abc123
+  iai observations get obs-abc123 --json | jq '.data.observation'
 ```
 
 ### Options

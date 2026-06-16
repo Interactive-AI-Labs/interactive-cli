@@ -50,7 +50,11 @@ var commentsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List comments",
 	Long:    `List comments with optional filters.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai comments list
+  iai comments list --object-type TRACE --object-id trace-abc123
+  iai comments list --author-user-id user-42 --limit 50 --page 2
+  iai comments list --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -114,7 +118,10 @@ var commentsGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a comment",
 	Long:    `Get full details of a comment.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai comments get comment-abc123
+  iai comments get comment-abc123 --json
+  iai comments get comment-abc123 --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -153,6 +160,9 @@ var commentsCreateCmd = &cobra.Command{
 	Long: `Create a new comment on a trace, observation, session, or prompt.
 
 This command requires API key authentication.`,
+	Example: `  iai comments create --object-type TRACE --object-id trace-abc123 --content "Investigated this run"
+  iai comments create --object-type OBSERVATION --object-id obs-456 --content "Looks correct" --author-user-id user-42
+  iai comments create --object-type PROMPT --object-id prompt-789 --content "Needs review" --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

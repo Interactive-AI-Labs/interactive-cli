@@ -11,13 +11,16 @@ version (run 'iai agents compatibility-matrix' to see available versions).
 
 Use --json or --yaml for structured schema output.
 
-Examples:
+```
+iai agents schema [flags]
+```
+
+### Examples
+
+```
   iai agents schema
   iai agents schema --schema-version 2.1.0
   iai agents schema --json
-
-```
-iai agents schema [flags]
 ```
 
 ### Options

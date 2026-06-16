@@ -62,10 +62,8 @@ var connectorListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List connectors in a project",
-	Long: `Show each connector's type, status, tool count, and endpoint in a table.
-
-Examples:
-  iai connectors list
+	Long:    `Show each connector's type, status, tool count, and endpoint in a table.`,
+	Example: `  iai connectors list
   iai connectors list --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -97,10 +95,8 @@ var connectorGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Show a connector and its tools",
 	Long: `Print a connector's full configuration and status alongside the cached list of
-tools discovered from the MCP server.
-
-Examples:
-  iai connectors get 3f9c1a2e-...
+tools discovered from the MCP server.`,
+	Example: `  iai connectors get 3f9c1a2e-...
   iai connectors get 3f9c1a2e-... --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -136,10 +132,8 @@ var connectorCatalogCmd = &cobra.Command{
 	Short: "Browse the connector catalog",
 	Long: `List the curated catalog of MCP servers you can connect to with
 'iai connectors create --catalog-id', showing each entry's id, category, and
-supported auth methods.
-
-Examples:
-  iai connectors catalog
+supported auth methods.`,
+	Example: `  iai connectors catalog
   iai connectors catalog --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -175,10 +169,8 @@ nothing is stored.
 
 Pass --catalog-id to connect a catalog entry (the endpoint and transport come from
 the catalog; see 'iai connectors catalog'). Otherwise the connector is custom and
---endpoint-url is required.
-
-Examples:
-  iai connectors create github \
+--endpoint-url is required.`,
+	Example: `  iai connectors create github \
     --catalog-id github --auth-type bearer --credential "$GITHUB_TOKEN"
   iai connectors create my-server \
     --endpoint-url https://mcp.example.com/mcp --auth-type none
@@ -287,10 +279,8 @@ var connectorDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete a connector",
 	Long: `Remove a connector and its cached tools from the project. The remote MCP server
-is not affected. Use -f to skip the confirmation prompt.
-
-Examples:
-  iai connectors delete 3f9c1a2e-...
+is not affected. Use -f to skip the confirmation prompt.`,
+	Example: `  iai connectors delete 3f9c1a2e-...
   iai connectors delete 3f9c1a2e-... -f`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -336,10 +326,8 @@ var connectorVerifyCmd = &cobra.Command{
 	Use:   "verify <connector_id>",
 	Short: "Re-verify a connector and refresh its tools",
 	Long: `Re-dial the MCP server for a connector (initialize + list tools) and refresh the
-cached tool list. Reports the status and, on failure, the error class and message.
-
-Examples:
-  iai connectors verify 3f9c1a2e-...
+cached tool list. Reports the status and, on failure, the error class and message.`,
+	Example: `  iai connectors verify 3f9c1a2e-...
   iai connectors verify 3f9c1a2e-... --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -381,10 +369,8 @@ var connectorRunToolCmd = &cobra.Command{
 	Long: `Call one of a connector's enabled tools and print the result it returns.
 
 Pass arguments as a JSON object with --args or --args-file (mutually exclusive);
-omit both to send an empty object.
-
-Examples:
-  iai connectors run-tool 3f9c1a2e-... search --args '{"query":"langfuse"}'
+omit both to send an empty object.`,
+	Example: `  iai connectors run-tool 3f9c1a2e-... search --args '{"query":"langfuse"}'
   iai connectors run-tool 3f9c1a2e-... search --args-file ./args.json`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {

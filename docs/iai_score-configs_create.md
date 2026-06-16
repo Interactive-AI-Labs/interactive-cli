@@ -12,6 +12,15 @@ This command requires API key authentication.
 iai score-configs create [flags]
 ```
 
+### Examples
+
+```
+  iai score-configs create --name accuracy --data-type NUMERIC --min-value 0 --max-value 1
+  iai score-configs create --name sentiment --data-type CATEGORICAL --categories '["positive","neutral","negative"]'
+  iai score-configs create --name passed --data-type BOOLEAN --description "Did the response pass review"
+  iai score-configs create --name accuracy --data-type NUMERIC --min-value 0 --max-value 1 --json
+```
+
 ### Options
 
 ```

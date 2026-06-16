@@ -15,15 +15,18 @@ The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
 the "production" label with --labels production.
 
-Examples:
+```
+iai prompts create <name> [flags]
+```
+
+### Examples
+
+```
   iai prompts create greeting --content "Hello, how can I help you?"
   iai prompts create greeting --file greeting.txt
   iai prompts create greeting --file greeting.txt --type chat
   iai prompts create greeting --content "Hi!" --labels production
   iai prompts create greeting --file greeting.txt --tags support
-
-```
-iai prompts create <name> [flags]
 ```
 
 ### Options

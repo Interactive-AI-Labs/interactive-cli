@@ -10,6 +10,15 @@ Create or upsert an item in a dataset.
 iai dataset-items create [flags]
 ```
 
+### Examples
+
+```
+  iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}'
+  iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}' --expected-output '{"answer":"4"}'
+  iai dataset-items create --dataset-name my-dataset --id item-123 --input '{"q":"hi"}' --metadata-json '{"source":"manual"}' --status ACTIVE
+  iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --source-trace-id trace-123 --json
+```
+
 ### Options
 
 ```

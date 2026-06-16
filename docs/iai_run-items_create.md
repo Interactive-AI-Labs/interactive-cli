@@ -12,6 +12,15 @@ This command requires API key authentication.
 iai run-items create [flags]
 ```
 
+### Examples
+
+```
+  iai run-items create --run-name nightly-eval --dataset-item-id item-123
+  iai run-items create --run-name nightly-eval --dataset-item-id item-123 --trace-id trace-abc --observation-id obs-xyz
+  iai run-items create --run-name nightly-eval --dataset-item-id item-123 --run-description "Nightly regression run" --metadata-json '{"model":"v2"}'
+  iai run-items create --run-name nightly-eval --dataset-item-id item-123 --json
+```
+
 ### Options
 
 ```

@@ -10,12 +10,15 @@ source database must have backups enabled.
 Optionally specify --target-time for point-in-time recovery (RFC3339 format).
 If omitted, the latest backup is restored.
 
-Examples:
-  iai databases restore my-restored-db --source-database my-db --instances 2 --cpu 1 --memory 2G --storage-size 20G
-  iai databases restore my-restored-db --source-database my-db --target-time 2026-05-12T10:00:00Z --instances 2 --cpu 1 --memory 2G --storage-size 20G
-
 ```
 iai databases restore <database_name> [flags]
+```
+
+### Examples
+
+```
+  iai databases restore my-restored-db --source-database my-db --instances 2 --cpu 1 --memory 2G --storage-size 20G
+  iai databases restore my-restored-db --source-database my-db --target-time 2026-05-12T10:00:00Z --instances 2 --cpu 1 --memory 2G --storage-size 20G
 ```
 
 ### Options

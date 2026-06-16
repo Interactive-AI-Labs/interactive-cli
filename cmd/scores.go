@@ -75,6 +75,10 @@ var scoresListCmd = &cobra.Command{
 
 Uses the platform API with dual authentication (API key or session).
 If --from-timestamp is not provided, defaults to 7 days ago.`,
+	Example: `  iai scores list
+  iai scores list --name accuracy --data-type NUMERIC
+  iai scores list --from-timestamp 2026-01-01T00:00:00Z --to-timestamp 2026-02-01T00:00:00Z --limit 50
+  iai scores list --trace-id trace-abc123 --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -162,6 +166,9 @@ var scoresCreateCmd = &cobra.Command{
 	Long: `Create a score on exactly one target resource.
 
 This command currently requires API key authentication.`,
+	Example: `  iai scores create --name accuracy --value 0.95 --trace-id trace-abc123
+  iai scores create --name relevance --value 1 --data-type NUMERIC --observation-id obs-xyz789 --comment "looks good"
+  iai scores create --name sentiment --value positive --data-type CATEGORICAL --session-id sess-456 --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -215,6 +222,8 @@ var scoresDeleteCmd = &cobra.Command{
 	Long: `Delete a score by ID.
 
 This command currently requires API key authentication.`,
+	Example: `  iai scores delete score-abc123
+  iai scores delete score-abc123 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

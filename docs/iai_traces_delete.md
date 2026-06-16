@@ -8,13 +8,16 @@ Delete a single trace or bulk delete multiple traces.
 
 This command currently requires API key authentication.
 
-Examples:
+```
+iai traces delete [trace-id] [flags]
+```
+
+### Examples
+
+```
   iai traces delete trace-123
   iai traces delete --ids trace-1,trace-2
   iai traces delete --ids trace-1 --ids trace-2 -f
-
-```
-iai traces delete [trace-id] [flags]
 ```
 
 ### Options

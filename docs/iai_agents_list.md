@@ -6,13 +6,16 @@ List agents in a project
 
 List agents in a specific project.
 
-Examples:
+```
+iai agents list [flags]
+```
+
+### Examples
+
+```
   iai agents list
   iai agents list -p my-project
   iai agents list --json
-
-```
-iai agents list [flags]
 ```
 
 ### Options

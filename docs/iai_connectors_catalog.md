@@ -8,12 +8,15 @@ List the curated catalog of MCP servers you can connect to with
 'iai connectors create --catalog-id', showing each entry's id, category, and
 supported auth methods.
 
-Examples:
-  iai connectors catalog
-  iai connectors catalog --json
-
 ```
 iai connectors catalog [flags]
+```
+
+### Examples
+
+```
+  iai connectors catalog
+  iai connectors catalog --json
 ```
 
 ### Options

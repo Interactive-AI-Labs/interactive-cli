@@ -57,7 +57,11 @@ var datasetItemsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List dataset items",
 	Long:    `List items in a dataset with optional filters.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai dataset-items list --dataset-name my-dataset
+  iai dataset-items list --dataset-name my-dataset --source-trace-id trace-123 --limit 50
+  iai dataset-items list --dataset-name my-dataset --columns id,status,input
+  iai dataset-items list --dataset-name my-dataset --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -125,7 +129,10 @@ var datasetItemsGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a dataset item",
 	Long:    `Get detailed information about a specific dataset item.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai dataset-items get item-123
+  iai dataset-items get item-123 --json
+  iai dataset-items get item-123 --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -166,7 +173,11 @@ var datasetItemsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a dataset item",
 	Long:  `Create or upsert an item in a dataset.`,
-	Args:  cobra.NoArgs,
+	Example: `  iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}'
+  iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}' --expected-output '{"answer":"4"}'
+  iai dataset-items create --dataset-name my-dataset --id item-123 --input '{"q":"hi"}' --metadata-json '{"source":"manual"}' --status ACTIVE
+  iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --source-trace-id trace-123 --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -220,7 +231,9 @@ var datasetItemsDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete a dataset item",
 	Long:    `Delete a dataset item by ID.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai dataset-items delete item-123
+  iai dataset-items delete item-123 --organization my-org --project my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 

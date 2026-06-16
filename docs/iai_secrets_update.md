@@ -21,7 +21,13 @@ Secret data can be provided via:
 
 When both are provided, --data values take precedence.
 
-Examples:
+```
+iai secrets update <secret_name> [flags]
+```
+
+### Examples
+
+```
   # Update a single key (other keys preserved)
   iai secrets update my-secret -d API_KEY=new-value
 
@@ -36,9 +42,6 @@ Examples:
 
   # Remove multiple keys
   iai secrets update my-secret --remove KEY1 --remove KEY2
-
-```
-iai secrets update <secret_name> [flags]
 ```
 
 ### Options

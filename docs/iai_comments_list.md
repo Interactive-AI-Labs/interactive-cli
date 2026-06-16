@@ -10,6 +10,15 @@ List comments with optional filters.
 iai comments list [flags]
 ```
 
+### Examples
+
+```
+  iai comments list
+  iai comments list --object-type TRACE --object-id trace-abc123
+  iai comments list --author-user-id user-42 --limit 50 --page 2
+  iai comments list --json
+```
+
 ### Options
 
 ```

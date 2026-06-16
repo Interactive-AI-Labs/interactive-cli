@@ -10,6 +10,14 @@ Get detailed information about an annotation queue.
 iai queues get <id> [flags]
 ```
 
+### Examples
+
+```
+  iai queues get queue-123
+  iai queues get queue-123 --json
+  iai queues get queue-123 -o my-org -p my-project --yaml
+```
+
 ### Options
 
 ```

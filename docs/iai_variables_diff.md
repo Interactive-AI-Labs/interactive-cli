@@ -6,11 +6,14 @@ Compare two versions of a variable
 
 Show the differences between two versions of a variable.
 
-Examples:
-  iai variables diff my-variable 1 3
-
 ```
 iai variables diff <name> <version_a> <version_b> [flags]
+```
+
+### Examples
+
+```
+  iai variables diff my-variable 1 3
 ```
 
 ### Options

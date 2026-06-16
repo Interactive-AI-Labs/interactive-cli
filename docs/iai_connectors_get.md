@@ -7,12 +7,15 @@ Show a connector and its tools
 Print a connector's full configuration and status alongside the cached list of
 tools discovered from the MCP server.
 
-Examples:
-  iai connectors get 3f9c1a2e-...
-  iai connectors get 3f9c1a2e-... --json
-
 ```
 iai connectors get <connector_id> [flags]
+```
+
+### Examples
+
+```
+  iai connectors get 3f9c1a2e-...
+  iai connectors get 3f9c1a2e-... --json
 ```
 
 ### Options

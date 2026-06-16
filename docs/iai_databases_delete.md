@@ -10,6 +10,13 @@ Delete a database and all associated resources from a project.
 iai databases delete <database_name> [flags]
 ```
 
+### Examples
+
+```
+  iai databases delete my-db
+  iai databases delete my-db -p my-project
+```
+
 ### Options
 
 ```

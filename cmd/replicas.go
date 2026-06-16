@@ -36,7 +36,10 @@ var replicasListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List replicas for a service",
 	Long:    `List pods backing a service in a specific project.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai replicas list my-service
+  iai replicas list my-service -p my-project -o my-org
+  iai replicas list my-service --json`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -81,7 +84,10 @@ var replicasDescribeCmd = &cobra.Command{
 	Aliases: []string{"desc"},
 	Short:   "Describe a replica in detail",
 	Long:    `Show detailed information about a specific replica including status, resources, healthcheck configuration, and events.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai replicas describe my-service-abc123
+  iai replicas describe my-service-abc123 -p my-project -o my-org
+  iai replicas describe my-service-abc123 --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -144,6 +150,10 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 --all-fields to include additional top-level fields after the message. Use
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
 nested JSON values.`,
+	Example: `  iai replicas logs my-service-abc123
+  iai replicas logs my-service-abc123 --follow
+  iai replicas logs my-service-abc123 --since 30m --fields logger,pid
+  iai replicas logs my-service-abc123 --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -247,10 +257,8 @@ var replicaLogFieldsCmd = &cobra.Command{
 	Short: "List available fields in structured logs",
 	Long: `Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
 
-Use the reported field names with 'iai replicas logs --fields' to include them in output.
-
-Examples:
-  iai replicas log-fields my-service-abc123
+Use the reported field names with 'iai replicas logs --fields' to include them in output.`,
+	Example: `  iai replicas log-fields my-service-abc123
   iai replicas log-fields my-service-abc123 --since 1h`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

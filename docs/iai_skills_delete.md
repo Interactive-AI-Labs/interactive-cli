@@ -10,14 +10,17 @@ Without flags, deletes the skill and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions
 with a specific label. Use -f to skip the confirmation prompt.
 
-Examples:
+```
+iai skills delete <name> [flags]
+```
+
+### Examples
+
+```
   iai skills delete summarize-trace
   iai skills delete summarize-trace -f
   iai skills delete summarize-trace --version 3
   iai skills delete summarize-trace --label staging
-
-```
-iai skills delete <name> [flags]
 ```
 
 ### Options

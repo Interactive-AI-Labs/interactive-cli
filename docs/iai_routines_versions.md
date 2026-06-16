@@ -6,11 +6,14 @@ List versions of a routine
 
 List all versions of a routine, sorted newest-first.
 
-Examples:
-  iai routines versions my-routine
-
 ```
 iai routines versions <name> [flags]
+```
+
+### Examples
+
+```
+  iai routines versions my-routine
 ```
 
 ### Options

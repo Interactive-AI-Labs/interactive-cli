@@ -10,6 +10,15 @@ List runs for a given dataset.
 iai dataset-runs list [flags]
 ```
 
+### Examples
+
+```
+  iai dataset-runs list --dataset-name my-dataset
+  iai dataset-runs list --dataset-name my-dataset -o my-org -p my-project
+  iai dataset-runs list --dataset-name my-dataset --page 2 --limit 50 --columns name,status
+  iai dataset-runs list --dataset-name my-dataset --json
+```
+
 ### Options
 
 ```

@@ -12,6 +12,13 @@ This command currently requires API key authentication.
 iai scores delete <score-id> [flags]
 ```
 
+### Examples
+
+```
+  iai scores delete score-abc123
+  iai scores delete score-abc123 -o my-org -p my-project
+```
+
 ### Options
 
 ```

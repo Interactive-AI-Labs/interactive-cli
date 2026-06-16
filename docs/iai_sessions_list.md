@@ -13,6 +13,15 @@ If --from-timestamp is not provided, defaults to 7 days ago.
 iai sessions list [flags]
 ```
 
+### Examples
+
+```
+  iai sessions list
+  iai sessions list --from-timestamp 2026-06-01T00:00:00Z --to-timestamp 2026-06-08T00:00:00Z
+  iai sessions list --environment production --limit 50 --page 2
+  iai sessions list --columns id,created_at,total_cost --json
+```
+
 ### Options
 
 ```

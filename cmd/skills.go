@@ -38,10 +38,8 @@ Example (skill.md):
 
 The server automatically assigns the "latest" label to new versions. To make
 a version retrievable via the default 'get' (which resolves "production"),
-assign the "production" label with --labels production.
-
-Examples:
-  iai skills create summarize-trace --file ./skill.md \
+assign the "production" label with --labels production.`,
+		CreateExample: `  iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
   iai skills create summarize-trace --file ./skill.md --labels production`,
@@ -49,19 +47,15 @@ Examples:
 
 Returns all Copilot skills with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
-can be browsed into with --folder.
-
-Examples:
-  iai skills list
+can be browsed into with --folder.`,
+		ListExample: `  iai skills list
   iai skills list --folder my-folder
   iai skills list --page 2 --limit 10`,
 		GetLong: `Show a Copilot skill in detail, including its config and full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
-
-Examples:
-  iai skills get summarize-trace
+specific version number, or --label to resolve a different label.`,
+		GetExample: `  iai skills get summarize-trace
   iai skills get summarize-trace --version 3
   iai skills get summarize-trace --label staging`,
 		UpdateLong: `Update a Copilot skill by creating a new version with updated content.
@@ -73,10 +67,8 @@ omitted the new version's config.skill block will be empty, even if the
 prior version had values for them. Pass them again on every update if you
 want the new version to keep them.
 
-Pass --intents once per intent (the flag is repeatable).
-
-Examples:
-  iai skills update summarize-trace --file ./skill.md \
+Pass --intents once per intent (the flag is repeatable).`,
+		UpdateExample: `  iai skills update summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
   iai skills update summarize-trace --file ./skill.md --labels production,staging`,
@@ -84,10 +76,8 @@ Examples:
 
 Without flags, deletes the skill and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions
-with a specific label. Use -f to skip the confirmation prompt.
-
-Examples:
-  iai skills delete summarize-trace
+with a specific label. Use -f to skip the confirmation prompt.`,
+		DeleteExample: `  iai skills delete summarize-trace
   iai skills delete summarize-trace -f
   iai skills delete summarize-trace --version 3
   iai skills delete summarize-trace --label staging`,

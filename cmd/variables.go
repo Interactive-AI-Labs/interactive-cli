@@ -40,10 +40,8 @@ Example (variables.json):
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
-
-Examples:
-  iai variables create session-vars --file variables.json
+the "production" label with --labels production.`,
+		CreateExample: `  iai variables create session-vars --file variables.json
   iai variables create session-vars --file variables.json --schema-version 2.1.0
   iai variables create session-vars --file variables.json --labels production
   iai variables create session-vars --file variables.json --tags core`,
@@ -51,20 +49,16 @@ Examples:
 
 Returns all variables with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
-can be browsed into with --folder.
-
-Examples:
-  iai variables list
+can be browsed into with --folder.`,
+		ListExample: `  iai variables list
   iai variables list --folder my-folder
   iai variables list --folder my-folder/sub-folder
   iai variables list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific variable definition, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
-
-Examples:
-  iai variables get session-vars
+specific version number, or --label to resolve a different label.`,
+		GetExample: `  iai variables get session-vars
   iai variables get session-vars --version 3
   iai variables get session-vars --label staging`,
 		UpdateLong: `Update a variable definition by creating a new version with updated content.
@@ -93,20 +87,16 @@ Example (variables.json):
     }
   }
 
-  Add as many entries under 'variables' as you need — each key must be unique.
-
-Examples:
-  iai variables update session-vars --file variables.json
+  Add as many entries under 'variables' as you need — each key must be unique.`,
+		UpdateExample: `  iai variables update session-vars --file variables.json
   iai variables update session-vars --file variables.json --schema-version 2.1.0
   iai variables update session-vars --file variables.json --labels production,staging`,
 		DeleteLong: `Delete a variable definition and all its versions, or delete specific versions.
 
 Without flags, deletes the variable and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions with a
-specific label. Use -f to skip the confirmation prompt.
-
-Examples:
-  iai variables delete session-vars
+specific label. Use -f to skip the confirmation prompt.`,
+		DeleteExample: `  iai variables delete session-vars
   iai variables delete session-vars -f
   iai variables delete session-vars --version 3
   iai variables delete session-vars --label staging`,

@@ -10,13 +10,16 @@ Returns all Copilot skills with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
-Examples:
+```
+iai skills list [flags]
+```
+
+### Examples
+
+```
   iai skills list
   iai skills list --folder my-folder
   iai skills list --page 2 --limit 10
-
-```
-iai skills list [flags]
 ```
 
 ### Options

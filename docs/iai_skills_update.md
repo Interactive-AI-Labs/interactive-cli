@@ -15,14 +15,17 @@ want the new version to keep them.
 
 Pass --intents once per intent (the flag is repeatable).
 
-Examples:
+```
+iai skills update <name> [flags]
+```
+
+### Examples
+
+```
   iai skills update summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
   iai skills update summarize-trace --file ./skill.md --labels production,staging
-
-```
-iai skills update <name> [flags]
 ```
 
 ### Options

@@ -19,6 +19,15 @@ JSON strings into nested JSON values.
 iai databases logs <database_name> [flags]
 ```
 
+### Examples
+
+```
+  iai databases logs my-db
+  iai databases logs my-db --follow
+  iai databases logs my-db --since 30m
+  iai databases logs my-db --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z
+```
+
 ### Options
 
 ```

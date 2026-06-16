@@ -6,11 +6,14 @@ Compare two versions of a macro
 
 Show the differences between two versions of a macro.
 
-Examples:
-  iai macros diff my-macro 1 3
-
 ```
 iai macros diff <name> <version_a> <version_b> [flags]
+```
+
+### Examples
+
+```
+  iai macros diff my-macro 1 3
 ```
 
 ### Options

@@ -72,8 +72,11 @@ var servicesCmd = &cobra.Command{
 var servCCmd = &cobra.Command{
 	Use:   "create <service_name>",
 	Short: "Create a service in a project",
-	Long: `Create a service in a specific project using the deployment service.
-`,
+	Long:  `Create a service in a specific project using the deployment service.`,
+	Example: `  iai services create my-svc --image-type external --image-repository docker.io --image-name nginx --image-tag latest --port 80 --memory 512M --cpu 0.5
+  iai services create my-svc --image-name my-app --image-tag v1 --port 8080 --memory 1G --cpu 1 --replicas 3 --endpoint
+  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --env LOG_LEVEL=debug --secret DB_PASSWORD --healthcheck-path /health
+  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --schedule-uptime "Mon-Fri 08:00-18:00" --schedule-timezone Europe/Berlin`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -156,10 +159,8 @@ and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezon
 alongside either to change the timezone.
 
 Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
---clear-stack-id to remove those configurations entirely.
-
-Examples:
-  iai services update my-svc --image-tag v2
+--clear-stack-id to remove those configurations entirely.`,
+	Example: `  iai services update my-svc --image-tag v2
   iai services update my-svc --memory 1G --cpu 0.5
   iai services update my-svc --replicas 3
   iai services update my-svc --autoscaling-max-replicas 8
@@ -254,7 +255,10 @@ var servListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List services in a project",
 	Long:    `List services in a specific project using the deployment service.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai services list
+  iai services list --project my-project
+  iai services list --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -291,10 +295,8 @@ var servDescribeCmd = &cobra.Command{
 	Short:   "Describe a service in detail",
 	Long: `Show detailed information about a specific service including its configuration.
 
-Use --version to view a specific past version instead of the current state.
-
-Examples:
-  iai services describe my-service
+Use --version to view a specific past version instead of the current state.`,
+	Example: `  iai services describe my-service
   iai services describe my-service --version 3
   iai services describe my-service --json`,
 	Args: cobra.ExactArgs(1),
@@ -356,7 +358,9 @@ var servDCmd = &cobra.Command{
 	Use:   "delete <service_name>",
 	Short: "Delete a service from a project",
 	Long:  `Delete a service from a specific project using the deployment service.`,
-	Args:  cobra.ExactArgs(1),
+	Example: `  iai services delete my-svc
+  iai services delete my-svc --project my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
@@ -395,7 +399,9 @@ var servRestartCmd = &cobra.Command{
 	Use:   "restart <service_name>",
 	Short: "Restart a service in a project",
 	Long:  `Restart a service in a specific project using the deployment service.`,
-	Args:  cobra.ExactArgs(1),
+	Example: `  iai services restart my-svc
+  iai services restart my-svc --project my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -454,6 +460,10 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 --all-fields to include additional top-level fields after the message. Use
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
 nested JSON values.`,
+	Example: `  iai services logs my-svc
+  iai services logs my-svc --follow
+  iai services logs my-svc --since 3h
+  iai services logs my-svc --fields logger,pid`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -528,10 +538,8 @@ var servLogFieldsCmd = &cobra.Command{
 	Short: "List available fields in structured logs",
 	Long: `Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
 
-Use the reported field names with 'iai services logs --fields' to include them in output.
-
-Examples:
-  iai services log-fields my-service
+Use the reported field names with 'iai services logs --fields' to include them in output.`,
+	Example: `  iai services log-fields my-service
   iai services log-fields my-service --since 1h`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -585,11 +593,9 @@ var servRevisionsCmd = &cobra.Command{
 	Aliases: []string{"revs"},
 	Short:   "List revisions of a service",
 	Long: `Show past revisions of a service, sorted newest-first.
-Up to 50 revisions are retained per service.
-
-Examples:
-  iai services revisions my-service`,
-	Args: cobra.ExactArgs(1),
+Up to 50 revisions are retained per service.`,
+	Example: `  iai services revisions my-service`,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
@@ -618,13 +624,11 @@ Examples:
 }
 
 var servDiffCmd = &cobra.Command{
-	Use:   "diff <service_name> <revision_a> <revision_b>",
-	Short: "Compare two revisions of a service",
-	Long: `Show the differences between two revisions of a service.
-
-Examples:
-  iai services diff my-service 1 3`,
-	Args: cobra.ExactArgs(3),
+	Use:     "diff <service_name> <revision_a> <revision_b>",
+	Short:   "Compare two revisions of a service",
+	Long:    `Show the differences between two revisions of a service.`,
+	Example: `  iai services diff my-service 1 3`,
+	Args:    cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		serviceName := strings.TrimSpace(args[0])
@@ -686,10 +690,8 @@ to a service running in the cluster.
 
 The remote port defaults to the service's configured port. Use --port to
 override. Use --local-port to choose the local listening port (defaults to
---port when set, or an available OS-assigned port otherwise).
-
-Examples:
-  iai services port-forward my-svc
+--port when set, or an available OS-assigned port otherwise).`,
+	Example: `  iai services port-forward my-svc
   iai services port-forward my-svc --port 8080
   iai services port-forward my-svc --port 8080 --local-port 9090`,
 	Args: cobra.ExactArgs(1),
@@ -721,6 +723,8 @@ The sync command will:
 - Delete services that exist in the project but not in the config (for the specified stack)
 
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
+	Example: `  iai services sync --cfg-file stack.yaml
+  iai services sync --cfg-file stack.yaml --project my-project`,
 	Args:       cobra.NoArgs,
 	Deprecated: "use 'iai stack sync' instead",
 	RunE: func(cmd *cobra.Command, args []string) error {

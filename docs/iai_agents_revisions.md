@@ -7,11 +7,14 @@ List revisions of an agent
 Show past revisions of an agent, sorted newest-first.
 Up to 50 revisions are retained per agent.
 
-Examples:
-  iai agents revisions my-agent
-
 ```
 iai agents revisions <agent_name> [flags]
+```
+
+### Examples
+
+```
+  iai agents revisions my-agent
 ```
 
 ### Options

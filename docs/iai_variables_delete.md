@@ -10,14 +10,17 @@ Without flags, deletes the variable and all its versions (requires confirmation)
 Use --version to delete a specific version, or --label to delete versions with a
 specific label. Use -f to skip the confirmation prompt.
 
-Examples:
+```
+iai variables delete <name> [flags]
+```
+
+### Examples
+
+```
   iai variables delete session-vars
   iai variables delete session-vars -f
   iai variables delete session-vars --version 3
   iai variables delete session-vars --label staging
-
-```
-iai variables delete <name> [flags]
 ```
 
 ### Options

@@ -45,6 +45,10 @@ var sessionsListCmd = &cobra.Command{
 
 Uses the platform API with dual authentication (API key or session).
 If --from-timestamp is not provided, defaults to 7 days ago.`,
+	Example: `  iai sessions list
+  iai sessions list --from-timestamp 2026-06-01T00:00:00Z --to-timestamp 2026-06-08T00:00:00Z
+  iai sessions list --environment production --limit 50 --page 2
+  iai sessions list --columns id,created_at,total_cost --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -116,6 +120,9 @@ var sessionsGetCmd = &cobra.Command{
 	Long: `Get detailed information about a specific session.
 
 Uses the platform API with dual authentication (API key or session).`,
+	Example: `  iai sessions get <session-id>
+  iai sessions get <session-id> --fields core,traces
+  iai sessions get <session-id> --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

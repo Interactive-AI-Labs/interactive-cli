@@ -10,6 +10,15 @@ List container images in the deployment registry for a specific project.
 iai images list [flags]
 ```
 
+### Examples
+
+```
+  iai images list
+  iai images list --organization my-org --project my-project
+  iai images list --json
+  iai images list --yaml
+```
+
 ### Options
 
 ```

@@ -10,14 +10,17 @@ Returns all variables with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
-Examples:
+```
+iai variables list [flags]
+```
+
+### Examples
+
+```
   iai variables list
   iai variables list --folder my-folder
   iai variables list --folder my-folder/sub-folder
   iai variables list --page 2 --limit 10
-
-```
-iai variables list [flags]
 ```
 
 ### Options

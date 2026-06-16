@@ -44,7 +44,11 @@ var runItemsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List run items",
 	Long:    `List dataset run items. Requires at least one of --run-name or --dataset-name.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai run-items list --run-name nightly-eval
+  iai run-items list --dataset-name qa-set --page 2 --limit 50
+  iai run-items list --run-name nightly-eval --columns id,trace_id,created_at
+  iai run-items list --run-name nightly-eval --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -108,6 +112,10 @@ var runItemsCreateCmd = &cobra.Command{
 	Long: `Create a new dataset run item linking a trace/observation to a dataset item.
 
 This command requires API key authentication.`,
+	Example: `  iai run-items create --run-name nightly-eval --dataset-item-id item-123
+  iai run-items create --run-name nightly-eval --dataset-item-id item-123 --trace-id trace-abc --observation-id obs-xyz
+  iai run-items create --run-name nightly-eval --dataset-item-id item-123 --run-description "Nightly regression run" --metadata-json '{"model":"v2"}'
+  iai run-items create --run-name nightly-eval --dataset-item-id item-123 --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

@@ -10,6 +10,15 @@ List evaluation datasets with pagination.
 iai datasets list [flags]
 ```
 
+### Examples
+
+```
+  iai datasets list
+  iai datasets list -p my-project --limit 50 --page 2
+  iai datasets list --columns name,description
+  iai datasets list --json
+```
+
 ### Options
 
 ```

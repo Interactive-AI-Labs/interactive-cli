@@ -13,6 +13,14 @@ Dockerfile, and build context.
 iai images build [image_name] [flags]
 ```
 
+### Examples
+
+```
+  iai images build my-service --tag 1.2.3
+  iai images build my-service --tag 1.2.3 --file docker/Dockerfile --context .
+  iai images build my-service --tag 1.2.3 --platform linux/amd64
+```
+
 ### Options
 
 ```

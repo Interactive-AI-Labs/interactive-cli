@@ -6,11 +6,14 @@ Delete an agent from a project
 
 Delete an agent from a specific project.
 
-Examples:
-  iai agents delete my-agent
-
 ```
 iai agents delete <agent_name> [flags]
+```
+
+### Examples
+
+```
+  iai agents delete my-agent
 ```
 
 ### Options

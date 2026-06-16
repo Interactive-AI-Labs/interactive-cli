@@ -16,6 +16,15 @@ When both are provided, --data values take precedence.
 iai secrets create [secret_name] [flags]
 ```
 
+### Examples
+
+```
+  iai secrets create my-secret -d API_KEY=abc123
+  iai secrets create my-secret -d API_KEY=abc123 -d DB_PASS=secret
+  iai secrets create my-secret --from-env-file .env
+  iai secrets create my-secret --from-env-file .env -d API_KEY=override -p my-project
+```
+
 ### Options
 
 ```

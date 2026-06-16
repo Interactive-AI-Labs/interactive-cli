@@ -23,14 +23,17 @@ The server automatically assigns the "latest" label to new versions. To make
 a version retrievable via the default 'get' (which resolves "production"),
 assign the "production" label with --labels production.
 
-Examples:
+```
+iai skills create <name> [flags]
+```
+
+### Examples
+
+```
   iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
   iai skills create summarize-trace --file ./skill.md --labels production
-
-```
-iai skills create <name> [flags]
 ```
 
 ### Options

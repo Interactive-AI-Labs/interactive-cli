@@ -10,6 +10,15 @@ Get detailed information about a specific dataset run.
 iai dataset-runs get <run-name> [flags]
 ```
 
+### Examples
+
+```
+  iai dataset-runs get my-run --dataset-name my-dataset
+  iai dataset-runs get my-run --dataset-name my-dataset -o my-org -p my-project
+  iai dataset-runs get my-run --dataset-name my-dataset --json
+  iai dataset-runs get my-run --dataset-name my-dataset --yaml
+```
+
 ### Options
 
 ```

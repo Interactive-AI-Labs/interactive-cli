@@ -12,13 +12,16 @@ The "vector" extension is installed by default. To add other extensions, use
 Changing the PostgreSQL major version after creation causes cluster downtime
 during the upgrade.
 
-Examples:
+```
+iai databases create <database_name> [flags]
+```
+
+### Examples
+
+```
   iai databases create my-db --instances 2 --cpu 1 --memory 2G --storage-size 20G
   iai databases create my-db --instances 1 --cpu 0.5 --memory 1G --storage-size 20G --extensions vector --extensions pg_trgm
   iai databases create my-db --instances 2 --cpu 1 --memory 2G --storage-size 50G --backup-schedule "0 0 2 * * *" --backup-retention 30d
-
-```
-iai databases create <database_name> [flags]
 ```
 
 ### Options

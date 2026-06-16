@@ -69,7 +69,10 @@ var dbListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List databases in a project",
 	Long:    `List databases in a project.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai databases list
+  iai databases list -p my-project
+  iai databases list --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -99,10 +102,8 @@ var dbDescribeCmd = &cobra.Command{
 	Aliases: []string{"desc"},
 	Short:   "Describe a database in detail",
 	Long: `Show detailed information about a database including configuration, runtime
-status, and connection credentials.
-
-Examples:
-  iai databases describe my-db
+status, and connection credentials.`,
+	Example: `  iai databases describe my-db
   iai databases describe my-db --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -144,10 +145,8 @@ The "vector" extension is installed by default. To add other extensions, use
 --extensions. Values above 1 for --instances enable high availability.
 
 Changing the PostgreSQL major version after creation causes cluster downtime
-during the upgrade.
-
-Examples:
-  iai databases create my-db --instances 2 --cpu 1 --memory 2G --storage-size 20G
+during the upgrade.`,
+	Example: `  iai databases create my-db --instances 2 --cpu 1 --memory 2G --storage-size 20G
   iai databases create my-db --instances 1 --cpu 0.5 --memory 1G --storage-size 20G --extensions vector --extensions pg_trgm
   iai databases create my-db --instances 2 --cpu 1 --memory 2G --storage-size 50G --backup-schedule "0 0 2 * * *" --backup-retention 30d`,
 	Args: cobra.ExactArgs(1),
@@ -207,10 +206,8 @@ Storage can only be increased. Use --clear-backup to disable backups entirely.
 Changing the PostgreSQL major version triggers an automatic upgrade with cluster
 downtime.
 
-Use --clear-stack-id to remove the database from its stack.
-
-Examples:
-  iai databases update my-db --instances 3
+Use --clear-stack-id to remove the database from its stack.`,
+	Example: `  iai databases update my-db --instances 3
   iai databases update my-db --cpu 2 --memory 4G
   iai databases update my-db --storage-size 50G
   iai databases update my-db --backup-schedule "0 0 3 * * *" --backup-retention 60d
@@ -272,7 +269,9 @@ var dbDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete a database from a project",
 	Long:    `Delete a database and all associated resources from a project.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai databases delete my-db
+  iai databases delete my-db -p my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		databaseName := strings.TrimSpace(args[0])
@@ -316,6 +315,10 @@ severity and message are extracted from it automatically. Use --fields record
 to see the nested PostgreSQL details; --all-fields includes extra top-level
 fields only. Use --raw for exact server JSON, or --decode to decode embedded
 JSON strings into nested JSON values.`,
+	Example: `  iai databases logs my-db
+  iai databases logs my-db --follow
+  iai databases logs my-db --since 30m
+  iai databases logs my-db --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -393,10 +396,8 @@ var dbLogFieldsCmd = &cobra.Command{
 
 PostgreSQL-specific details are often nested under the 'record' field, so seeing
 'record' in the results is expected. Use the reported field names with
-'iai databases logs --fields' to include them in output.
-
-Examples:
-  iai databases log-fields my-db
+'iai databases logs --fields' to include them in output.`,
+	Example: `  iai databases log-fields my-db
   iai databases log-fields my-db --since 1h`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -442,7 +443,9 @@ var dbBackupsCmd = &cobra.Command{
 	Use:   "backups <database_name>",
 	Short: "List backups for a database",
 	Long:  `List backups for a database, sorted by most recent first.`,
-	Args:  cobra.ExactArgs(1),
+	Example: `  iai databases backups my-db
+  iai databases backups my-db -p my-project`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		databaseName := strings.TrimSpace(args[0])
@@ -471,6 +474,8 @@ var dbBackupCmd = &cobra.Command{
 	Short: "Trigger an on-demand backup",
 	Long: `Trigger an on-demand backup for a database. The database must have backups
 enabled.`,
+	Example: `  iai databases backup my-db
+  iai databases backup my-db -p my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -505,10 +510,8 @@ var dbRestoreCmd = &cobra.Command{
 source database must have backups enabled.
 
 Optionally specify --target-time for point-in-time recovery (RFC3339 format).
-If omitted, the latest backup is restored.
-
-Examples:
-  iai databases restore my-restored-db --source-database my-db --instances 2 --cpu 1 --memory 2G --storage-size 20G
+If omitted, the latest backup is restored.`,
+	Example: `  iai databases restore my-restored-db --source-database my-db --instances 2 --cpu 1 --memory 2G --storage-size 20G
   iai databases restore my-restored-db --source-database my-db --target-time 2026-05-12T10:00:00Z --instances 2 --cpu 1 --memory 2G --storage-size 20G`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -576,10 +579,8 @@ The remote port defaults to 5432. Use --port to override. Use --local-port
 to choose the local listening port (defaults to the remote port).
 
 After connecting you can use psql, pgAdmin, or any PostgreSQL client against
-localhost:<local-port>.
-
-Examples:
-  iai databases port-forward my-db
+localhost:<local-port>.`,
+	Example: `  iai databases port-forward my-db
   iai databases port-forward my-db --local-port 15432`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

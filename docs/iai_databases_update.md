@@ -13,7 +13,13 @@ downtime.
 
 Use --clear-stack-id to remove the database from its stack.
 
-Examples:
+```
+iai databases update <database_name> [flags]
+```
+
+### Examples
+
+```
   iai databases update my-db --instances 3
   iai databases update my-db --cpu 2 --memory 4G
   iai databases update my-db --storage-size 50G
@@ -21,9 +27,6 @@ Examples:
   iai databases update my-db --clear-backup
   iai databases update my-db --stack-id my-stack
   iai databases update my-db --clear-stack-id
-
-```
-iai databases update <database_name> [flags]
 ```
 
 ### Options

@@ -10,6 +10,14 @@ Get detailed information about a queue item.
 iai queue-items get <item-id> [flags]
 ```
 
+### Examples
+
+```
+  iai queue-items get item-456 --queue-id queue-123
+  iai queue-items get item-456 --queue-id queue-123 --json
+  iai queue-items get item-456 --queue-id queue-123 --yaml
+```
+
 ### Options
 
 ```

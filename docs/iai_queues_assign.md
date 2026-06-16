@@ -12,6 +12,13 @@ This command requires API key authentication.
 iai queues assign <queue-id> [flags]
 ```
 
+### Examples
+
+```
+  iai queues assign queue-123 --user-id user-456
+  iai queues assign queue-123 --user-id user-456 -o my-org -p my-project
+```
+
 ### Options
 
 ```

@@ -9,13 +9,16 @@ Show detailed information about a specific variable definition, including its fu
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-Examples:
+```
+iai variables get <name> [flags]
+```
+
+### Examples
+
+```
   iai variables get session-vars
   iai variables get session-vars --version 3
   iai variables get session-vars --label staging
-
-```
-iai variables get <name> [flags]
 ```
 
 ### Options

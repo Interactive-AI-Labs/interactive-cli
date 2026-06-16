@@ -12,6 +12,15 @@ This command requires API key authentication.
 iai queues create <name> [flags]
 ```
 
+### Examples
+
+```
+  iai queues create my-queue
+  iai queues create my-queue --description "Review of chat outputs"
+  iai queues create my-queue --score-config-ids sc-1,sc-2
+  iai queues create my-queue --description "QA queue" --score-config-ids sc-1 --json
+```
+
 ### Options
 
 ```

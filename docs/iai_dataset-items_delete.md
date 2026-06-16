@@ -10,6 +10,13 @@ Delete a dataset item by ID.
 iai dataset-items delete <id> [flags]
 ```
 
+### Examples
+
+```
+  iai dataset-items delete item-123
+  iai dataset-items delete item-123 --organization my-org --project my-project
+```
+
 ### Options
 
 ```

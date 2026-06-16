@@ -60,7 +60,11 @@ var scoreConfigsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List score configs",
 	Long:    `List scoring configurations with pagination.`,
-	Args:    cobra.NoArgs,
+	Example: `  iai score-configs list
+  iai score-configs list -o my-org -p my-project
+  iai score-configs list --page 2 --limit 50
+  iai score-configs list --json`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -125,7 +129,10 @@ var scoreConfigsGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a score config",
 	Long:    `Get detailed information about a score configuration.`,
-	Args:    cobra.ExactArgs(1),
+	Example: `  iai score-configs get sc_123
+  iai score-configs get sc_123 -o my-org -p my-project
+  iai score-configs get sc_123 --yaml`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -168,6 +175,10 @@ var scoreConfigsCreateCmd = &cobra.Command{
 	Long: `Create a new scoring configuration.
 
 This command requires API key authentication.`,
+	Example: `  iai score-configs create --name accuracy --data-type NUMERIC --min-value 0 --max-value 1
+  iai score-configs create --name sentiment --data-type CATEGORICAL --categories '["positive","neutral","negative"]'
+  iai score-configs create --name passed --data-type BOOLEAN --description "Did the response pass review"
+  iai score-configs create --name accuracy --data-type NUMERIC --min-value 0 --max-value 1 --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -227,6 +238,10 @@ var scoreConfigsUpdateCmd = &cobra.Command{
 	Long: `Update an existing scoring configuration.
 
 This command requires API key authentication.`,
+	Example: `  iai score-configs update sc_123 --description "Updated scoring rubric"
+  iai score-configs update sc_123 --min-value 0 --max-value 10
+  iai score-configs update sc_123 --categories '["pass","fail"]'
+  iai score-configs update sc_123 --is-archived --yaml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

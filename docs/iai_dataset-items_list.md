@@ -10,6 +10,15 @@ List items in a dataset with optional filters.
 iai dataset-items list [flags]
 ```
 
+### Examples
+
+```
+  iai dataset-items list --dataset-name my-dataset
+  iai dataset-items list --dataset-name my-dataset --source-trace-id trace-123 --limit 50
+  iai dataset-items list --dataset-name my-dataset --columns id,status,input
+  iai dataset-items list --dataset-name my-dataset --json
+```
+
 ### Options
 
 ```

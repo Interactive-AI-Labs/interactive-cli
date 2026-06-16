@@ -10,6 +10,14 @@ List all projects within a specific organization. The organization name will be 
 iai projects list [flags]
 ```
 
+### Examples
+
+```
+  iai projects list
+  iai projects list --organization my-org
+  iai projects list --json
+```
+
 ### Options
 
 ```

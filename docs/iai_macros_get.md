@@ -9,13 +9,16 @@ Show detailed information about a specific macro, including its full content.
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-Examples:
+```
+iai macros get <name> [flags]
+```
+
+### Examples
+
+```
   iai macros get disclaimer
   iai macros get disclaimer --version 3
   iai macros get disclaimer --label staging
-
-```
-iai macros get <name> [flags]
 ```
 
 ### Options

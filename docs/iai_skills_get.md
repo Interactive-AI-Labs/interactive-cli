@@ -9,13 +9,16 @@ Show a Copilot skill in detail, including its config and full content.
 By default returns the version labeled "production". Use --version to retrieve a
 specific version number, or --label to resolve a different label.
 
-Examples:
+```
+iai skills get <name> [flags]
+```
+
+### Examples
+
+```
   iai skills get summarize-trace
   iai skills get summarize-trace --version 3
   iai skills get summarize-trace --label staging
-
-```
-iai skills get <name> [flags]
 ```
 
 ### Options

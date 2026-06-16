@@ -6,11 +6,14 @@ Compare two revisions of an agent
 
 Show the differences between two revisions of an agent.
 
-Examples:
-  iai agents diff my-agent 1 3
-
 ```
 iai agents diff <agent_name> <revision_a> <revision_b> [flags]
+```
+
+### Examples
+
+```
+  iai agents diff my-agent 1 3
 ```
 
 ### Options

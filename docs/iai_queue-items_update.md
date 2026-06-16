@@ -12,6 +12,14 @@ This command requires API key authentication.
 iai queue-items update <item-id> [flags]
 ```
 
+### Examples
+
+```
+  iai queue-items update item-456 --queue-id queue-123 --status COMPLETED
+  iai queue-items update item-456 --queue-id queue-123 --status PENDING --json
+  iai queue-items update item-456 --queue-id queue-123 --status COMPLETED --yaml
+```
+
 ### Options
 
 ```

@@ -27,6 +27,9 @@ var organizationsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List organizations",
 	Long:    `List all organizations you are a member of.`,
+	Example: `  iai organizations list
+  iai organizations list --json
+  iai organizations list --yaml`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -73,6 +76,7 @@ var organizationsSelectCmd = &cobra.Command{
 	Aliases: []string{"set"},
 	Short:   "Select an organization for subsequent commands",
 	Long:    `Select an organization by name and store it in the local CLI configuration so other commands can use it without specifying the organization each time.`,
+	Example: `  iai organizations select my-organization`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()

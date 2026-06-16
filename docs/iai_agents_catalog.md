@@ -9,12 +9,15 @@ List agent types available in the catalog.
 Without arguments, lists all available agent IDs.
 With an agent ID argument, lists available versions for that agent.
 
-Examples:
-  iai agents catalog
-  iai agents catalog interactive-agent
-
 ```
 iai agents catalog [agent_id] [flags]
+```
+
+### Examples
+
+```
+  iai agents catalog
+  iai agents catalog interactive-agent
 ```
 
 ### Options

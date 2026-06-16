@@ -10,6 +10,13 @@ Delete a secret in a specific project using the deployment service.
 iai secrets delete <secret_name> [flags]
 ```
 
+### Examples
+
+```
+  iai secrets delete my-secret
+  iai secrets delete my-secret -p my-project -o my-org
+```
+
 ### Options
 
 ```

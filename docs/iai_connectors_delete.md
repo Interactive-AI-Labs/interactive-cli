@@ -7,12 +7,15 @@ Delete a connector
 Remove a connector and its cached tools from the project. The remote MCP server
 is not affected. Use -f to skip the confirmation prompt.
 
-Examples:
-  iai connectors delete 3f9c1a2e-...
-  iai connectors delete 3f9c1a2e-... -f
-
 ```
 iai connectors delete <connector_id> [flags]
+```
+
+### Examples
+
+```
+  iai connectors delete 3f9c1a2e-...
+  iai connectors delete 3f9c1a2e-... -f
 ```
 
 ### Options

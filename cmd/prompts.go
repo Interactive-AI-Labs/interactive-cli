@@ -64,10 +64,8 @@ The --type flag selects the prompt type: "text" (default) or "chat".
 
 The server automatically assigns the "latest" label to new versions. To make a
 version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
-
-Examples:
-  iai prompts create greeting --content "Hello, how can I help you?"
+the "production" label with --labels production.`,
+		Example: `  iai prompts create greeting --content "Hello, how can I help you?"
   iai prompts create greeting --file greeting.txt
   iai prompts create greeting --file greeting.txt --type chat
   iai prompts create greeting --content "Hi!" --labels production
@@ -154,10 +152,8 @@ func makeGenericListCmd() *cobra.Command {
 
 Returns all general-purpose prompts with their name, labels, tags, and last
 update time. Typed prompts (routines, policies, etc.) are excluded.
-Folders are shown with a trailing "/" and can be browsed into with --folder.
-
-Examples:
-  iai prompts list
+Folders are shown with a trailing "/" and can be browsed into with --folder.`,
+		Example: `  iai prompts list
   iai prompts list --folder my-folder
   iai prompts list --folder my-folder/sub-folder
   iai prompts list --page 2 --limit 10`,
@@ -237,10 +233,8 @@ func makeGenericGetCmd() *cobra.Command {
 		Long: `Show detailed information about a specific prompt, including its full content.
 
 By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
-
-Examples:
-  iai prompts get greeting
+specific version number, or --label to resolve a different label.`,
+		Example: `  iai prompts get greeting
   iai prompts get greeting --version 3
   iai prompts get greeting --label staging`,
 		Args: cobra.ExactArgs(1),
@@ -311,10 +305,8 @@ This creates a new version of the prompt using the content from the provided
 file or inline string. Previous versions are preserved and can still be accessed
 by version number.
 
-Exactly one of --file or --content must be specified.
-
-Examples:
-  iai prompts update greeting --content "Hello! How may I assist you today?"
+Exactly one of --file or --content must be specified.`,
+		Example: `  iai prompts update greeting --content "Hello! How may I assist you today?"
   iai prompts update greeting --file greeting.txt
   iai prompts update greeting --file greeting.txt --labels production,staging`,
 		Args: cobra.ExactArgs(1),
@@ -392,10 +384,8 @@ func makeGenericDeleteCmd() *cobra.Command {
 
 Without flags, deletes the prompt and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions with a
-specific label. Use -f to skip the confirmation prompt.
-
-Examples:
-  iai prompts delete greeting
+specific label. Use -f to skip the confirmation prompt.`,
+		Example: `  iai prompts delete greeting
   iai prompts delete greeting -f
   iai prompts delete greeting --version 3
   iai prompts delete greeting --label staging`,
@@ -511,11 +501,9 @@ func makeGenericVersionsCmd() *cobra.Command {
 		Use:     "versions <name>",
 		Aliases: []string{"vers"},
 		Short:   "List versions of a prompt",
-		Long: `List all versions of a prompt, sorted newest-first.
-
-Examples:
-  iai prompts versions greeting`,
-		Args: cobra.ExactArgs(1),
+		Long:    `List all versions of a prompt, sorted newest-first.`,
+		Example: `  iai prompts versions greeting`,
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
@@ -561,13 +549,11 @@ func makeGenericDiffCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "diff <name> <version_a> <version_b>",
-		Short: "Compare two versions of a prompt",
-		Long: `Show the differences between two versions of a prompt.
-
-Examples:
-  iai prompts diff greeting 1 3`,
-		Args: cobra.ExactArgs(3),
+		Use:     "diff <name> <version_a> <version_b>",
+		Short:   "Compare two versions of a prompt",
+		Long:    `Show the differences between two versions of a prompt.`,
+		Example: `  iai prompts diff greeting 1 3`,
+		Args:    cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])

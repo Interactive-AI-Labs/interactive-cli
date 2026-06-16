@@ -10,14 +10,17 @@ Returns all routines with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
-Examples:
+```
+iai routines list [flags]
+```
+
+### Examples
+
+```
   iai routines list
   iai routines list --folder my-folder
   iai routines list --folder my-folder/sub-folder
   iai routines list --page 2 --limit 10
-
-```
-iai routines list [flags]
 ```
 
 ### Options

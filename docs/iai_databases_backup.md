@@ -11,6 +11,13 @@ enabled.
 iai databases backup <database_name> [flags]
 ```
 
+### Examples
+
+```
+  iai databases backup my-db
+  iai databases backup my-db -p my-project
+```
+
 ### Options
 
 ```

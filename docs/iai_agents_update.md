@@ -29,7 +29,13 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
-Examples:
+```
+iai agents update <agent_name> [flags]
+```
+
+### Examples
+
+```
   iai agents update chat-agent --version 0.0.3
   iai agents update chat-agent --file agent-config.yaml
   iai agents update chat-agent --endpoint=false
@@ -37,9 +43,6 @@ Examples:
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
   iai agents update chat-agent --clear-stack-id
-
-```
-iai agents update <agent_name> [flags]
 ```
 
 ### Options

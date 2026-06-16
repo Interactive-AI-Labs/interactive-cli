@@ -10,6 +10,15 @@ List dataset run items. Requires at least one of --run-name or --dataset-name.
 iai run-items list [flags]
 ```
 
+### Examples
+
+```
+  iai run-items list --run-name nightly-eval
+  iai run-items list --dataset-name qa-set --page 2 --limit 50
+  iai run-items list --run-name nightly-eval --columns id,trace_id,created_at
+  iai run-items list --run-name nightly-eval --json
+```
+
 ### Options
 
 ```

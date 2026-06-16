@@ -10,14 +10,17 @@ Without flags, deletes the prompt and all its versions (requires confirmation).
 Use --version to delete a specific version, or --label to delete versions with a
 specific label. Use -f to skip the confirmation prompt.
 
-Examples:
+```
+iai prompts delete <name> [flags]
+```
+
+### Examples
+
+```
   iai prompts delete greeting
   iai prompts delete greeting -f
   iai prompts delete greeting --version 3
   iai prompts delete greeting --label staging
-
-```
-iai prompts delete <name> [flags]
 ```
 
 ### Options

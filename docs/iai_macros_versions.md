@@ -6,11 +6,14 @@ List versions of a macro
 
 List all versions of a macro, sorted newest-first.
 
-Examples:
-  iai macros versions my-macro
-
 ```
 iai macros versions <name> [flags]
+```
+
+### Examples
+
+```
+  iai macros versions my-macro
 ```
 
 ### Options

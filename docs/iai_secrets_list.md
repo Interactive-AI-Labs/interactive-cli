@@ -10,6 +10,14 @@ List secrets in a specific project.
 iai secrets list [flags]
 ```
 
+### Examples
+
+```
+  iai secrets list
+  iai secrets list -p my-project -o my-org
+  iai secrets list --json
+```
+
 ### Options
 
 ```

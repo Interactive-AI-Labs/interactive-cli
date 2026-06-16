@@ -6,11 +6,14 @@ Compare two versions of a skill
 
 Show the differences between two versions of a skill.
 
-Examples:
-  iai skills diff my-skill 1 3
-
 ```
 iai skills diff <name> <version_a> <version_b> [flags]
+```
+
+### Examples
+
+```
+  iai skills diff my-skill 1 3
 ```
 
 ### Options

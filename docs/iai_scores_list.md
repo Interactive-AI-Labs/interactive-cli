@@ -13,6 +13,15 @@ If --from-timestamp is not provided, defaults to 7 days ago.
 iai scores list [flags]
 ```
 
+### Examples
+
+```
+  iai scores list
+  iai scores list --name accuracy --data-type NUMERIC
+  iai scores list --from-timestamp 2026-01-01T00:00:00Z --to-timestamp 2026-02-01T00:00:00Z --limit 50
+  iai scores list --trace-id trace-abc123 --json
+```
+
 ### Options
 
 ```

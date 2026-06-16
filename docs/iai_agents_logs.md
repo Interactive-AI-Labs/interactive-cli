@@ -14,14 +14,17 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
 nested JSON values.
 
-Examples:
+```
+iai agents logs <agent_name> [flags]
+```
+
+### Examples
+
+```
   iai agents logs my-agent
   iai agents logs my-agent --follow
   iai agents logs my-agent --since 30m
   iai agents logs my-agent --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z
-
-```
-iai agents logs <agent_name> [flags]
 ```
 
 ### Options

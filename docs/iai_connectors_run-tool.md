@@ -9,12 +9,15 @@ Call one of a connector's enabled tools and print the result it returns.
 Pass arguments as a JSON object with --args or --args-file (mutually exclusive);
 omit both to send an empty object.
 
-Examples:
-  iai connectors run-tool 3f9c1a2e-... search --args '{"query":"langfuse"}'
-  iai connectors run-tool 3f9c1a2e-... search --args-file ./args.json
-
 ```
 iai connectors run-tool <connector_id> <tool_name> [flags]
+```
+
+### Examples
+
+```
+  iai connectors run-tool 3f9c1a2e-... search --args '{"query":"langfuse"}'
+  iai connectors run-tool 3f9c1a2e-... search --args-file ./args.json
 ```
 
 ### Options

@@ -12,7 +12,13 @@ Pass --catalog-id to connect a catalog entry (the endpoint and transport come fr
 the catalog; see 'iai connectors catalog'). Otherwise the connector is custom and
 --endpoint-url is required.
 
-Examples:
+```
+iai connectors create <connector_name> [flags]
+```
+
+### Examples
+
+```
   iai connectors create github \
     --catalog-id github --auth-type bearer --credential "$GITHUB_TOKEN"
   iai connectors create my-server \
@@ -23,9 +29,6 @@ Examples:
   iai connectors create internal \
     --endpoint-url https://mcp.internal/sse --transport sse \
     --auth-type api_key --credential "$KEY" --header "X-Team=platform"
-
-```
-iai connectors create <connector_name> [flags]
 ```
 
 ### Options

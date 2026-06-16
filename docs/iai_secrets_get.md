@@ -10,6 +10,14 @@ Get a secret in a specific project using the deployment service.
 iai secrets get <secret_name> [flags]
 ```
 
+### Examples
+
+```
+  iai secrets get my-secret
+  iai secrets get my-secret -p my-project
+  iai secrets get my-secret --json
+```
+
 ### Options
 
 ```

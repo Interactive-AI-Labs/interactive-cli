@@ -18,13 +18,16 @@ Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
 on their create/update commands).
 
-Examples:
+```
+iai agents create <agent_name> [flags]
+```
+
+### Examples
+
+```
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
-
-```
-iai agents create <agent_name> [flags]
 ```
 
 ### Options

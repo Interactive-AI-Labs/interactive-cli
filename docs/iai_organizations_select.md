@@ -10,6 +10,12 @@ Select an organization by name and store it in the local CLI configuration so ot
 iai organizations select [organization_name] [flags]
 ```
 
+### Examples
+
+```
+  iai organizations select my-organization
+```
+
 ### Options
 
 ```

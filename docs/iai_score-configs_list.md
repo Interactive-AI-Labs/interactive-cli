@@ -10,6 +10,15 @@ List scoring configurations with pagination.
 iai score-configs list [flags]
 ```
 
+### Examples
+
+```
+  iai score-configs list
+  iai score-configs list -o my-org -p my-project
+  iai score-configs list --page 2 --limit 50
+  iai score-configs list --json
+```
+
 ### Options
 
 ```

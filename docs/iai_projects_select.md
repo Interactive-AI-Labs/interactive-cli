@@ -10,6 +10,13 @@ Select a project by name and store it in the local CLI configuration so other co
 iai projects select [project_name] [flags]
 ```
 
+### Examples
+
+```
+  iai projects select my-project
+  iai projects select my-project --organization my-org
+```
+
 ### Options
 
 ```

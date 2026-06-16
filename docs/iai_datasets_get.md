@@ -10,6 +10,14 @@ Get detailed information about a specific dataset.
 iai datasets get <name> [flags]
 ```
 
+### Examples
+
+```
+  iai datasets get my-dataset
+  iai datasets get my-dataset -o my-org -p my-project
+  iai datasets get my-dataset --yaml
+```
+
 ### Options
 
 ```
