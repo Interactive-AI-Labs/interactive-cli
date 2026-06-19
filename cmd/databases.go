@@ -39,14 +39,15 @@ var (
 	dbSourceDatabase string
 	dbTargetTime     string
 
-	dbLogsFollow    bool
-	dbLogsSince     string
-	dbLogsStartTime string
-	dbLogsEndTime   string
-	dbLogsRaw       bool
-	dbLogsDecode    bool
-	dbLogsFields    []string
-	dbLogsAllFields bool
+	dbLogsFollow     bool
+	dbLogsSince      string
+	dbLogsStartTime  string
+	dbLogsEndTime    string
+	dbLogsRaw        bool
+	dbLogsDecode     bool
+	dbLogsFields     []string
+	dbLogsAllFields  bool
+	dbLogsTimestamps bool
 )
 
 var databasesCmd = &cobra.Command{
@@ -318,6 +319,7 @@ JSON strings into nested JSON values.`,
 	Example: `  iai databases logs my-db
   iai databases logs my-db --follow
   iai databases logs my-db --since 30m
+  iai databases logs my-db --timestamps
   iai databases logs my-db --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -378,6 +380,7 @@ JSON strings into nested JSON values.`,
 			Fields:     dbLogsFields,
 			AllFields:  dbLogsAllFields,
 			CNPGFormat: true,
+			Timestamps: dbLogsTimestamps,
 		}
 		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
 		if dbLogsFollow && ctx.Err() != nil {
@@ -695,6 +698,8 @@ func init() {
 		StringSliceVar(&dbLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields record); ignored for plain-text logs; use --raw for exact server JSON")
 	dbLogsCmd.Flags().
 		BoolVar(&dbLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
+	dbLogsCmd.Flags().
+		BoolVar(&dbLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

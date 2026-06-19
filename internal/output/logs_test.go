@@ -41,10 +41,10 @@ func TestPrintLogStream(t *testing.T) {
 			want:  "hello\n",
 		},
 		{
-			name:        "JSON entry with replica and showReplica true prints prefix without color",
+			name:        "JSON entry with replica and showReplica true keeps suffix",
 			input:       `{"replica":"pod-1","line":"hello"}` + "\n",
 			showReplica: true,
-			want:        "[pod-1] hello\n",
+			want:        "[1] hello\n",
 		},
 		{
 			name:        "JSON entry with empty replica and showReplica true prints line only",
@@ -58,9 +58,9 @@ func TestPrintLogStream(t *testing.T) {
 				`{"replica":"pod-2","line":"second"}` + "\n" +
 				`{"replica":"pod-1","line":"third"}` + "\n",
 			showReplica: true,
-			want: "[pod-1] first\n" +
-				"[pod-2] second\n" +
-				"[pod-1] third\n",
+			want: "[1] first\n" +
+				"[2] second\n" +
+				"[1] third\n",
 		},
 		{
 			name: "mixed JSON and non-JSON lines",
@@ -94,6 +94,8 @@ func TestPrintLogStream(t *testing.T) {
 }
 
 func TestPrintLogStreamStructuredJSON(t *testing.T) {
+	t.Setenv("TZ", "Europe/Madrid")
+
 	tests := []struct {
 		name        string
 		input       string
@@ -103,8 +105,19 @@ func TestPrintLogStreamStructuredJSON(t *testing.T) {
 	}{
 		{
 			name:  "structured JSON log extracts level and msg",
-			input: `{"line":"{\"level\":\"info\",\"msg\":\"Starting up\",\"ts\":\"2026-01-01T00:00:00Z\"}"}` + "\n",
+			input: `{"line":"{\"level\":\"info\",\"msg\":\"Starting up\",\"ts\":\"ignored\"}"}` + "\n",
 			want:  "INFO  Starting up\n",
+		},
+		{
+			name:  "outer timestamp is hidden by default",
+			input: `{"timestamp":"1749983400000000000","line":"{\"level\":\"info\",\"msg\":\"hello\"}"}` + "\n",
+			want:  "INFO  hello\n",
+		},
+		{
+			name:  "timestamps flag prefixes formatted log",
+			input: `{"timestamp":"1749983400000000000","line":"{\"level\":\"info\",\"msg\":\"hello\"}"}` + "\n",
+			opts:  LogFormatOptions{Timestamps: true},
+			want:  "2025-06-15 12:30:00 CEST INFO  hello\n",
 		},
 		{
 			name:  "structured JSON with message field instead of msg",
@@ -135,6 +148,12 @@ func TestPrintLogStreamStructuredJSON(t *testing.T) {
 			want:  "plain text log\n",
 		},
 		{
+			name:  "timestamps flag prefixes plain text log",
+			input: `{"timestamp":"1749983400000000000","line":"plain text log"}` + "\n",
+			opts:  LogFormatOptions{Timestamps: true},
+			want:  "2025-06-15 12:30:00 CEST plain text log\n",
+		},
+		{
 			name:  "raw with decode preserves plain-text line field",
 			input: `{"line":"plain text","replica":"pod-1"}` + "\n",
 			opts:  LogFormatOptions{Raw: true, Decode: true},
@@ -144,7 +163,7 @@ func TestPrintLogStreamStructuredJSON(t *testing.T) {
 			name:        "structured JSON with replica prefix",
 			input:       `{"replica":"db-1","line":"{\"level\":\"warning\",\"msg\":\"low memory\"}"}` + "\n",
 			showReplica: true,
-			want:        "[db-1] WARNING low memory\n",
+			want:        "[1] WARNING low memory\n",
 		},
 		{
 			name:  "all-fields flag shows all extra fields sorted",

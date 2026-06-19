@@ -438,14 +438,15 @@ var servRestartCmd = &cobra.Command{
 }
 
 var (
-	servLogsFollow    bool
-	servLogsSince     string
-	servLogsStartTime string
-	servLogsEndTime   string
-	servLogsRaw       bool
-	servLogsDecode    bool
-	servLogsFields    []string
-	servLogsAllFields bool
+	servLogsFollow     bool
+	servLogsSince      string
+	servLogsStartTime  string
+	servLogsEndTime    string
+	servLogsRaw        bool
+	servLogsDecode     bool
+	servLogsFields     []string
+	servLogsAllFields  bool
+	servLogsTimestamps bool
 )
 
 var servLogsCmd = &cobra.Command{
@@ -463,6 +464,7 @@ nested JSON values.`,
 	Example: `  iai services logs my-svc
   iai services logs my-svc --follow
   iai services logs my-svc --since 3h
+  iai services logs my-svc --timestamps
   iai services logs my-svc --fields logger,pid`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -518,10 +520,11 @@ nested JSON values.`,
 			Empty:     logsResp.Empty,
 		}
 		fmtOpts := output.LogFormatOptions{
-			Raw:       servLogsRaw || servLogsDecode,
-			Decode:    servLogsDecode,
-			Fields:    servLogsFields,
-			AllFields: servLogsAllFields,
+			Raw:        servLogsRaw || servLogsDecode,
+			Decode:     servLogsDecode,
+			Fields:     servLogsFields,
+			AllFields:  servLogsAllFields,
+			Timestamps: servLogsTimestamps,
 		}
 		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
 		if servLogsFollow && ctx.Err() != nil {
@@ -991,6 +994,8 @@ func init() {
 		StringSliceVar(&servLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON")
 	servLogsCmd.Flags().
 		BoolVar(&servLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
+	servLogsCmd.Flags().
+		BoolVar(&servLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
