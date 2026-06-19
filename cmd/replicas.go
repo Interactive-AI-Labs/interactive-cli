@@ -128,14 +128,15 @@ var replicasDescribeCmd = &cobra.Command{
 }
 
 var (
-	replicaLogsFollow    bool
-	replicaLogsSince     string
-	replicaLogsStartTime string
-	replicaLogsEndTime   string
-	replicaLogsRaw       bool
-	replicaLogsDecode    bool
-	replicaLogsFields    []string
-	replicaLogsAllFields bool
+	replicaLogsFollow     bool
+	replicaLogsSince      string
+	replicaLogsStartTime  string
+	replicaLogsEndTime    string
+	replicaLogsRaw        bool
+	replicaLogsDecode     bool
+	replicaLogsFields     []string
+	replicaLogsAllFields  bool
+	replicaLogsTimestamps bool
 )
 
 var replicasLogsCmd = &cobra.Command{
@@ -153,6 +154,7 @@ nested JSON values.`,
 	Example: `  iai replicas logs my-service-abc123
   iai replicas logs my-service-abc123 --follow
   iai replicas logs my-service-abc123 --since 30m --fields logger,pid
+  iai replicas logs my-service-abc123 --timestamps
   iai replicas logs my-service-abc123 --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -237,10 +239,11 @@ nested JSON values.`,
 			Empty:     logsResp.Empty,
 		}
 		fmtOpts := output.LogFormatOptions{
-			Raw:       replicaLogsRaw || replicaLogsDecode,
-			Decode:    replicaLogsDecode,
-			Fields:    replicaLogsFields,
-			AllFields: replicaLogsAllFields,
+			Raw:        replicaLogsRaw || replicaLogsDecode,
+			Decode:     replicaLogsDecode,
+			Fields:     replicaLogsFields,
+			AllFields:  replicaLogsAllFields,
+			Timestamps: replicaLogsTimestamps,
 		}
 		err = output.PrintLogStream(out, logsResp.Body, false, meta, fmtOpts)
 		if replicaLogsFollow && ctx.Err() != nil {
@@ -352,6 +355,8 @@ func init() {
 		StringSliceVar(&replicaLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON")
 	replicasLogsCmd.Flags().
 		BoolVar(&replicaLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
+	replicasLogsCmd.Flags().
+		BoolVar(&replicaLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

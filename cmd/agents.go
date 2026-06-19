@@ -379,14 +379,15 @@ var agentRestartCmd = &cobra.Command{
 }
 
 var (
-	agentLogsFollow    bool
-	agentLogsSince     string
-	agentLogsStartTime string
-	agentLogsEndTime   string
-	agentLogsRaw       bool
-	agentLogsDecode    bool
-	agentLogsFields    []string
-	agentLogsAllFields bool
+	agentLogsFollow     bool
+	agentLogsSince      string
+	agentLogsStartTime  string
+	agentLogsEndTime    string
+	agentLogsRaw        bool
+	agentLogsDecode     bool
+	agentLogsFields     []string
+	agentLogsAllFields  bool
+	agentLogsTimestamps bool
 )
 
 var agentLogsCmd = &cobra.Command{
@@ -404,6 +405,7 @@ nested JSON values.`,
 	Example: `  iai agents logs my-agent
   iai agents logs my-agent --follow
   iai agents logs my-agent --since 30m
+  iai agents logs my-agent --timestamps
   iai agents logs my-agent --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -449,10 +451,11 @@ nested JSON values.`,
 			Empty:     logsResp.Empty,
 		}
 		fmtOpts := output.LogFormatOptions{
-			Raw:       agentLogsRaw || agentLogsDecode,
-			Decode:    agentLogsDecode,
-			Fields:    agentLogsFields,
-			AllFields: agentLogsAllFields,
+			Raw:        agentLogsRaw || agentLogsDecode,
+			Decode:     agentLogsDecode,
+			Fields:     agentLogsFields,
+			AllFields:  agentLogsAllFields,
+			Timestamps: agentLogsTimestamps,
 		}
 		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
 		if agentLogsFollow && ctx.Err() != nil {
@@ -881,6 +884,8 @@ func init() {
 		StringSliceVar(&agentLogsFields, "fields", nil, "Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON")
 	agentLogsCmd.Flags().
 		BoolVar(&agentLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
+	agentLogsCmd.Flags().
+		BoolVar(&agentLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

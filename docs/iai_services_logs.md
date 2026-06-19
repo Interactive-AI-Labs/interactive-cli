@@ -24,6 +24,7 @@ iai services logs <service_name> [flags]
   iai services logs my-svc
   iai services logs my-svc --follow
   iai services logs my-svc --since 3h
+  iai services logs my-svc --timestamps
   iai services logs my-svc --fields logger,pid
 ```
 
@@ -41,6 +42,7 @@ iai services logs <service_name> [flags]
       --raw                   Output exact server JSON lines without formatting
       --since string          Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time
       --start-time string     Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window
+      --timestamps            Include platform log timestamps
 ```
 
 ### Options inherited from parent commands

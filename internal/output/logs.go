@@ -5,16 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/term"
 )
 
 type logEntry struct {
-	Replica string `json:"replica,omitempty"`
-	Line    string `json:"line"`
+	Replica   string `json:"replica,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
+	Line      string `json:"line"`
 }
 
 var replicaColors = []string{
@@ -65,6 +69,7 @@ type LogFormatOptions struct {
 	Fields     []string
 	AllFields  bool
 	CNPGFormat bool
+	Timestamps bool
 }
 
 // Informational messages are written to stderr so they don't pollute
@@ -112,9 +117,13 @@ func PrintLogStream(
 			continue
 		}
 
-		prefix := replicaPrefix(showReplica, entry.Replica, useColor, colorMap, &nextColor)
-
-		mainLine, extras, _ := formatLogLine(entry.Line, useColor, opts)
+		mainLine, extras := formatLogLine(entry.Line, useColor, opts)
+		timestampPart := ""
+		if opts.Timestamps && entry.Timestamp != "" {
+			timestampPart = formatLogTimestamp(entry.Timestamp) + " "
+		}
+		replicaPart := replicaPrefix(showReplica, entry.Replica, useColor, colorMap, &nextColor)
+		prefix := timestampPart + replicaPart
 		if extras != "" {
 			fmt.Fprintf(out, "%s%s  %s\n", prefix, mainLine, extras)
 		} else {
@@ -147,10 +156,10 @@ func formatLogLine(
 	line string,
 	useColor bool,
 	opts LogFormatOptions,
-) (string, string, []string) {
+) (string, string) {
 	var fields map[string]any
 	if err := json.Unmarshal([]byte(line), &fields); err != nil {
-		return line, "", nil
+		return line, ""
 	}
 
 	level := extractString(fields, "level")
@@ -173,7 +182,7 @@ func formatLogLine(
 	}
 
 	if level == "" && msg == "" {
-		return line, "", nil
+		return line, ""
 	}
 
 	var extraKeys []string
@@ -196,7 +205,7 @@ func formatLogLine(
 	}
 	extras := formatExtras(fields, showFields, useColor)
 
-	return b.String(), extras, extraKeys
+	return b.String(), extras
 }
 
 func replicaPrefix(
@@ -209,8 +218,9 @@ func replicaPrefix(
 	if !show || replica == "" {
 		return ""
 	}
+	displayReplica := trimReplicaSuffix(replica)
 	if !useColor {
-		return fmt.Sprintf("[%s] ", replica)
+		return fmt.Sprintf("[%s] ", displayReplica)
 	}
 	c, ok := colorMap[replica]
 	if !ok {
@@ -218,7 +228,14 @@ func replicaPrefix(
 		colorMap[replica] = c
 		*nextColor++
 	}
-	return fmt.Sprintf("%s[%s]%s ", c, replica, colorReset)
+	return fmt.Sprintf("%s[%s]%s ", c, displayReplica, colorReset)
+}
+
+func trimReplicaSuffix(replica string) string {
+	if i := strings.LastIndex(replica, "-"); i >= 0 && i+1 < len(replica) {
+		return replica[i+1:]
+	}
+	return replica
 }
 
 func formatLevel(level string, useColor bool) string {
@@ -275,6 +292,29 @@ func decodeLineField(line []byte) []byte {
 		return line
 	}
 	return encoded
+}
+
+func formatLogTimestamp(timestamp string) string {
+	if t, ok := parseLogUnixTimestamp(timestamp); ok {
+		return t.Local().Format("2006-01-02 15:04:05 MST")
+	}
+	return LocalTime(timestamp)
+}
+
+func parseLogUnixTimestamp(timestamp string) (time.Time, bool) {
+	if i, err := strconv.ParseInt(timestamp, 10, 64); err == nil {
+		if i >= 1e15 || i <= -1e15 {
+			return time.Unix(0, i), true
+		}
+		return time.Unix(i, 0), true
+	}
+
+	f, err := strconv.ParseFloat(timestamp, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	sec, frac := math.Modf(f)
+	return time.Unix(int64(sec), int64(frac*1e9)), true
 }
 
 func extractString(m map[string]any, key string) string {
