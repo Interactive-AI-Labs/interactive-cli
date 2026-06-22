@@ -30,6 +30,18 @@ var (
 	sessionsGetSummary    bool
 )
 
+const (
+	// sessionSummaryEpoch is the all-time lower bound for the session-summary
+	// trace fetch. The traces endpoint requires from_timestamp, but the
+	// session_id filter is the real scope, so we reach back to the Unix epoch
+	// to capture every turn regardless of age.
+	sessionSummaryEpoch = "1970-01-01T00:00:00Z"
+	// sessionSummaryMaxPages caps the trace pagination for one session so a
+	// mis-reported TotalPages can never drive an unbounded request loop
+	// (100 traces/page => 5000 turns, far beyond any real conversation).
+	sessionSummaryMaxPages = 50
+)
+
 var sessionsCmd = &cobra.Command{
 	Use:              "sessions",
 	Aliases:          []string{"session"},
@@ -144,11 +156,8 @@ Uses the platform API with dual authentication (API key or session).`,
 				traces, meta, _, err := apiClient.ListTraces(
 					cmd.Context(), pCtx.orgId, pCtx.projectId,
 					clients.TraceListOptions{
-						SessionID: sessionID,
-						// The traces endpoint requires from_timestamp; the
-						// session_id filter is the real scope, so use an
-						// all-time lower bound to capture every turn.
-						FromTimestamp: "1970-01-01T00:00:00Z",
+						SessionID:     sessionID,
+						FromTimestamp: sessionSummaryEpoch,
 						Fields:        "core,io",
 						Order:         "asc",
 						OrderBy:       "timestamp",
@@ -160,7 +169,7 @@ Uses the platform API with dual authentication (API key or session).`,
 					return err
 				}
 				all = append(all, traces...)
-				if meta.TotalPages <= page || len(traces) == 0 {
+				if meta.TotalPages <= page || len(traces) == 0 || page >= sessionSummaryMaxPages {
 					break
 				}
 				page++

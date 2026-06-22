@@ -379,12 +379,9 @@ type TraceInfo struct {
 
 type TraceDetail struct {
 	TraceInfo
-	// Input and Output shadow the same-named fields promoted from the embedded
-	// TraceInfo. encoding/json and selector access both resolve to these
-	// outer fields; the TraceInfo IO fields are only populated by ListTraces
-	// with fields=...,io and are otherwise zero.
-	Input    json.RawMessage `json:"input"`
-	Output   json.RawMessage `json:"output"`
+	// Input/Output are inherited from the embedded TraceInfo (json tags
+	// "input"/"output"); the trace GET endpoint populates them there. Only
+	// Metadata is unique to the detail view.
 	Metadata json.RawMessage `json:"metadata"`
 }
 

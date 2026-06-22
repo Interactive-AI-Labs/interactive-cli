@@ -3,6 +3,7 @@ package summary
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 )
@@ -135,7 +136,8 @@ func formatValue(v any) string {
 		return fmt.Sprintf("%q", t)
 	case float64:
 		// JSON numbers decode to float64; print integers without trailing zeros.
-		if t == float64(int64(t)) {
+		// Guard the int64 conversion: out-of-range floats overflow undefined.
+		if t == math.Trunc(t) && t >= math.MinInt64 && t <= math.MaxInt64 {
 			return fmt.Sprintf("%d", int64(t))
 		}
 		return fmt.Sprintf("%g", t)

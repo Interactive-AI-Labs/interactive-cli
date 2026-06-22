@@ -3,6 +3,7 @@ package summary
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -24,10 +25,11 @@ func obs(id, parent, typ, name, level, status string, in, out string) clients.Ob
 func TestTraceSummary_TwoIterations(t *testing.T) {
 	trace := &clients.TraceDetail{
 		TraceInfo: clients.TraceInfo{
-			Name: "driveaway-agent", Level: "DEFAULT",
+			Name:   "driveaway-agent",
+			Level:  "DEFAULT",
+			Input:  json.RawMessage(`"I want to rent a car for next weekend"`),
+			Output: json.RawMessage(`"[\"Great! We have 3 cars available...\"]"`),
 		},
-		Input:  json.RawMessage(`"I want to rent a car for next weekend"`),
-		Output: json.RawMessage(`"[\"Great! We have 3 cars available...\"]"`),
 	}
 	observations := []clients.ObservationInfo{
 		obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
@@ -76,9 +78,12 @@ func TestTraceSummary_TwoIterations(t *testing.T) {
 
 func TestTraceSummary_KnowledgeBase(t *testing.T) {
 	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{Name: "agent-chat", Level: "DEFAULT"},
-		Input:     json.RawMessage(`"hi"`),
-		Output:    json.RawMessage(`"[\"hello\"]"`),
+		TraceInfo: clients.TraceInfo{
+			Name:   "agent-chat",
+			Level:  "DEFAULT",
+			Input:  json.RawMessage(`"hi"`),
+			Output: json.RawMessage(`"[\"hello\"]"`),
+		},
 	}
 	observations := []clients.ObservationInfo{
 		// Titled retriever lives at the root, emitted once for the turn.
@@ -114,8 +119,11 @@ func TestTraceSummary_KnowledgeBase(t *testing.T) {
 
 func TestTraceSummary_KnowledgeBaseUntitled(t *testing.T) {
 	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{Name: "agent", Level: "DEFAULT"},
-		Input:     json.RawMessage(`"hi"`),
+		TraceInfo: clients.TraceInfo{
+			Name:  "agent",
+			Level: "DEFAULT",
+			Input: json.RawMessage(`"hi"`),
+		},
 	}
 	observations := []clients.ObservationInfo{
 		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
@@ -130,8 +138,11 @@ func TestTraceSummary_KnowledgeBaseUntitled(t *testing.T) {
 
 func TestTraceSummary_ConditionNormalizedAndToolEnvelope(t *testing.T) {
 	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{Name: "agent-kyc", Level: "DEFAULT"},
-		Input:     json.RawMessage(`"{\"step\":\"classify\"}"`),
+		TraceInfo: clients.TraceInfo{
+			Name:  "agent-kyc",
+			Level: "DEFAULT",
+			Input: json.RawMessage(`"{\"step\":\"classify\"}"`),
+		},
 	}
 	observations := []clients.ObservationInfo{
 		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
@@ -163,11 +174,45 @@ func TestTraceSummary_ConditionNormalizedAndToolEnvelope(t *testing.T) {
 	}
 }
 
+func TestTraceSummary_CyclicGraph(t *testing.T) {
+	trace := &clients.TraceDetail{
+		TraceInfo: clients.TraceInfo{
+			Name:  "agent",
+			Level: "DEFAULT",
+			Input: json.RawMessage(`"hi"`),
+		},
+	}
+	// Malformed tree: an iteration whose subtree contains a parent cycle
+	// (a -> b -> a) plus a self-reference (c -> c). Must not loop forever.
+	observations := []clients.ObservationInfo{
+		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
+		obs("a", "it1", "span", "node_a", "", "", "", ""),
+		obs("b", "a", "span", "node_b", "", "", "", ""),
+		obs("a", "b", "span", "node_a_cycle", "", "", "", ""), // b -> a back-edge
+		obs("c", "it1", "span", "node_c", "", "", "", ""),
+		obs("c", "c", "span", "node_c_self", "", "", "", ""), // c -> c self-loop
+	}
+
+	done := make(chan *TraceSummaryModel, 1)
+	go func() { done <- TraceSummary(trace, observations) }()
+	select {
+	case m := <-done:
+		if m == nil || len(m.Iterations) != 1 {
+			t.Fatalf("cyclic summary = %+v", m)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("TraceSummary did not terminate on a cyclic observation graph")
+	}
+}
+
 func TestTraceSummary_ToolErrorAndNoObservations(t *testing.T) {
 	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{Name: "agent", Level: "ERROR"},
-		Input:     json.RawMessage(`"hi"`),
-		Output:    json.RawMessage(`"[\"sorry\"]"`),
+		TraceInfo: clients.TraceInfo{
+			Name:   "agent",
+			Level:  "ERROR",
+			Input:  json.RawMessage(`"hi"`),
+			Output: json.RawMessage(`"[\"sorry\"]"`),
+		},
 	}
 	// tool error
 	observations := []clients.ObservationInfo{

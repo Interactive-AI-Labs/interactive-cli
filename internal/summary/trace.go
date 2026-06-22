@@ -222,6 +222,11 @@ func kbDocsFromOutput(raw json.RawMessage) (titles []string, count int) {
 }
 
 // descendants returns all transitive children of id (excluding id itself).
+// Immediate children are returned in API order; deeper subtrees are visited
+// DFS/LIFO, so grandchildren ordering across sibling subtrees is not stable.
+// Callers that need per-node ordering (e.g. tool calls) read a node's direct
+// children instead of relying on this order. The seen map guards against cycles
+// in malformed trees.
 func descendants(
 	children map[string][]clients.ObservationInfo,
 	id string,

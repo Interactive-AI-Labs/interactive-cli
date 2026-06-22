@@ -163,9 +163,9 @@ func TestPrintTraceDetail(t *testing.T) {
 					TotalCost:   &cost,
 					Tags:        []string{"tag1", "tag2"},
 					HtmlPath:    "/project/traces/abc123",
+					Input:       []byte(`{"role":"user"}`),
+					Output:      []byte(`"hello"`),
 				},
-				Input:    []byte(`{"role":"user"}`),
-				Output:   []byte(`"hello"`),
 				Metadata: []byte(`{"key":"val"}`),
 			},
 			want: "ID:            abc123\n" +
@@ -220,11 +220,11 @@ func TestPrintTraceDetail(t *testing.T) {
 			name: "null json fields are hidden",
 			trace: &clients.TraceDetail{
 				TraceInfo: clients.TraceInfo{
-					ID:   "ghi789",
-					Name: "null-json",
+					ID:     "ghi789",
+					Name:   "null-json",
+					Input:  []byte(`null`),
+					Output: []byte(`null`),
 				},
-				Input:    []byte(`null`),
-				Output:   []byte(`null`),
 				Metadata: []byte(`null`),
 			},
 			want: "ID:            ghi789\n" +
