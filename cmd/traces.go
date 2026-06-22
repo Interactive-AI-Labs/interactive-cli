@@ -9,6 +9,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 	"github.com/spf13/cobra"
 )
 
@@ -43,6 +44,7 @@ var (
 	tracesGetFields     string
 	tracesGetJSON       bool
 	tracesGetYAML       bool
+	tracesGetSummary    bool
 	tracesListOrg       string
 	tracesListProject   string
 	tracesGetOrg        string
@@ -184,7 +186,8 @@ var tracesGetCmd = &cobra.Command{
 Uses the platform API with dual authentication (API key or session).`,
 	Example: `  iai traces get abc123
   iai traces get abc123 --fields core,io,metrics
-  iai traces get abc123 --json | jq '.data.trace'`,
+  iai traces get abc123 --json | jq '.data.trace'
+  iai traces get abc123 --summary`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -193,6 +196,22 @@ Uses the platform API with dual authentication (API key or session).`,
 		pCtx, apiClient, _, err := resolveProject(cmd.Context(), tracesGetOrg, tracesGetProject)
 		if err != nil {
 			return err
+		}
+
+		if tracesGetSummary {
+			trace, _, err := apiClient.GetTrace(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, "core,io,metrics",
+			)
+			if err != nil {
+				return err
+			}
+			obs, _, err := apiClient.ListObservations(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, true,
+			)
+			if err != nil {
+				return err
+			}
+			return output.PrintTraceSummary(out, summary.TraceSummary(trace, obs))
 		}
 
 		trace, rawJSON, err := apiClient.GetTrace(
@@ -349,7 +368,9 @@ func init() {
 		StringVar(&tracesGetFields, "fields", "core,io,metrics", "Field groups to include: core, io, metrics (comma-separated)")
 	tracesGetCmd.Flags().BoolVar(&tracesGetJSON, "json", false, "Output raw API response as JSON")
 	tracesGetCmd.Flags().BoolVar(&tracesGetYAML, "yaml", false, "Output raw API response as YAML")
-	tracesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	tracesGetCmd.Flags().BoolVar(&tracesGetSummary, "summary", false,
+		"Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)")
+	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml")
 	tracesGetCmd.Flags().
 		StringVarP(&tracesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	tracesGetCmd.Flags().
