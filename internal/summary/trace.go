@@ -32,10 +32,8 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		Reply:     Truncate(AsString(trace.Output), MaxValueLen),
 	}
 
-	byID := make(map[string]clients.ObservationInfo, len(obs))
 	children := make(map[string][]clients.ObservationInfo, len(obs))
 	for _, o := range obs {
-		byID[o.ID] = o
 		children[o.ParentObservationID] = append(children[o.ParentObservationID], o)
 		if strings.EqualFold(o.Level, "ERROR") {
 			msg := o.StatusMessage
@@ -129,10 +127,15 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 // descendants returns all transitive children of id (excluding id itself).
 func descendants(children map[string][]clients.ObservationInfo, id string) []clients.ObservationInfo {
 	var out []clients.ObservationInfo
+	seen := map[string]bool{}
 	stack := []string{id}
 	for len(stack) > 0 {
 		cur := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
+		if seen[cur] {
+			continue
+		}
+		seen[cur] = true
 		for _, c := range children[cur] {
 			out = append(out, c)
 			stack = append(stack, c.ID)
