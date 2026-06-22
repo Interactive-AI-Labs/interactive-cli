@@ -66,7 +66,9 @@ func TestUnwrapToolResult(t *testing.T) {
 	}
 	// A plain object with an unexpected sibling is left untouched.
 	plain := `{"data":{"x":1},"other":true}`
-	if got := CompactJSON(UnwrapToolResult(json.RawMessage(plain))); got != `{"data":{"x":1},"other":true}` {
+	if got := CompactJSON(
+		UnwrapToolResult(json.RawMessage(plain)),
+	); got != `{"data":{"x":1},"other":true}` {
 		t.Fatalf("non-envelope should pass through, got %q", got)
 	}
 	// A value with no data key passes through.
