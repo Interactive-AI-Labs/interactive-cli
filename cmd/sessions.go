@@ -145,11 +145,15 @@ Uses the platform API with dual authentication (API key or session).`,
 					cmd.Context(), pCtx.orgId, pCtx.projectId,
 					clients.TraceListOptions{
 						SessionID: sessionID,
-						Fields:    "core,io",
-						Order:     "asc",
-						OrderBy:   "timestamp",
-						Limit:     100,
-						Page:      page,
+						// The traces endpoint requires from_timestamp; the
+						// session_id filter is the real scope, so use an
+						// all-time lower bound to capture every turn.
+						FromTimestamp: "1970-01-01T00:00:00Z",
+						Fields:        "core,io",
+						Order:         "asc",
+						OrderBy:       "timestamp",
+						Limit:         100,
+						Page:          page,
 					},
 				)
 				if err != nil {
