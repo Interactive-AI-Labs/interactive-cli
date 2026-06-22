@@ -33,8 +33,6 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 
 	if len(m.Turns) == 0 {
 		b.WriteString("No turns found.\n")
-		_, err := io.WriteString(out, b.String())
-		return err
 	}
 
 	for _, turn := range m.Turns {

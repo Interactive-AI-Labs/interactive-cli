@@ -12,10 +12,8 @@ import (
 func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 	var b strings.Builder
 
-	var ts, latency, cost, errTag string
-	if t := LocalTime(m.Timestamp); t != "" && m.Timestamp != "" {
-		ts = t
-	}
+	var latency, cost, errTag string
+	ts := LocalTime(m.Timestamp) // "" for an empty/unparseable timestamp
 	if m.LatencyMs != nil {
 		latency = formatLatencyMs(m.LatencyMs)
 	}
@@ -57,11 +55,7 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 			for _, tc := range it.Tools {
 				line := fmt.Sprintf("    → %s(%s)", tc.Name, tc.Args)
 				if tc.Errored {
-					msg := tc.ErrMsg
-					if msg == "" {
-						msg = "error"
-					}
-					line += " → ERROR: " + msg
+					line += " → ERROR: " + tc.ErrMsg
 				} else if tc.Result != "" {
 					line += " → " + tc.Result
 				}

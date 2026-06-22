@@ -10,15 +10,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
-var iterationNameRe = regexp.MustCompile(`^preparation_iteration_(\d+)$`)
-
-type matchOutput struct {
-	Matches []struct {
-		Condition string `json:"condition"`
-		Score     int    `json:"score"`
-	} `json:"matches"`
-}
-
 // Observation span names the engine emits, matched when walking a turn's tree.
 const (
 	spanMatchGuidelines  = "match_guidelines"
@@ -26,6 +17,49 @@ const (
 	spanKBRetriever      = "retriever:knowledge_base"
 	spanFindSimilarDocs  = "find_similar_documents"
 )
+
+// iterationNameRe matches the engine's per-iteration span names — part of the
+// same engine contract as the span-name constants above.
+var iterationNameRe = regexp.MustCompile(`^preparation_iteration_(\d+)$`)
+
+// parlantEnvelopeKeys are the sibling keys the engine wraps every tool result in,
+// alongside the meaningful "data" payload.
+var parlantEnvelopeKeys = map[string]bool{
+	"metadata":               true,
+	"control":                true,
+	"canned_responses":       true,
+	"canned_response_fields": true,
+	"guidelines":             true,
+}
+
+// UnwrapToolResult collapses the engine's tool-result envelope
+// ({"data":…,"metadata":{},"control":{},"canned_responses":[],…}) down to its
+// "data" payload. Any value that is not exactly that envelope shape passes
+// through unchanged (after one layer of JSON-string unwrapping).
+func UnwrapToolResult(raw json.RawMessage) json.RawMessage {
+	inner := UnwrapJSON(raw)
+	var obj map[string]json.RawMessage
+	if json.Unmarshal(inner, &obj) != nil {
+		return inner
+	}
+	data, ok := obj["data"]
+	if !ok {
+		return inner
+	}
+	for k := range obj {
+		if k != "data" && !parlantEnvelopeKeys[k] {
+			return inner // an unexpected sibling: not the known envelope, leave it
+		}
+	}
+	return data
+}
+
+type matchOutput struct {
+	Matches []struct {
+		Condition string `json:"condition"`
+		Score     int    `json:"score"`
+	} `json:"matches"`
+}
 
 // TraceSummary reconstructs the observation tree for one turn and extracts the
 // per-iteration conditions and tools, the turn's knowledge-base retrieval, the
@@ -41,6 +75,13 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		Reply:     Truncate(AsString(trace.Output), MaxValueLen),
 	}
 
+	// Single pass over obs: build the parent->children index, collect
+	// error spans, and gather iteration nodes (sorted afterward by suffix).
+	type iterNode struct {
+		num int
+		id  string
+	}
+	var iters []iterNode
 	children := make(map[string][]clients.ObservationInfo, len(obs))
 	for _, o := range obs {
 		children[o.ParentObservationID] = append(children[o.ParentObservationID], o)
@@ -51,15 +92,6 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 			}
 			m.Errors = append(m.Errors, o.Name+": "+msg)
 		}
-	}
-
-	// Collect iteration observations, sorted by their numeric suffix.
-	type iterNode struct {
-		num int
-		id  string
-	}
-	var iters []iterNode
-	for _, o := range obs {
 		if sm := iterationNameRe.FindStringSubmatch(o.Name); sm != nil {
 			n, _ := strconv.Atoi(sm[1])
 			iters = append(iters, iterNode{num: n, id: o.ID})
@@ -112,6 +144,9 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 					if strings.EqualFold(tool.Level, "ERROR") {
 						tc.Errored = true
 						tc.ErrMsg = tool.StatusMessage
+						if tc.ErrMsg == "" {
+							tc.ErrMsg = "error"
+						}
 					}
 					iteration.Tools = append(iteration.Tools, tc)
 				}
@@ -172,10 +207,7 @@ func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 	// untitled find_similar plumbing only sets a count when nothing curated ran.
 	kb := &KBRetrieval{Docs: titles}
 	if len(titles) > 0 {
-		kb.Count = curatedCount
-		if kb.Count < len(titles) {
-			kb.Count = len(titles)
-		}
+		kb.Count = max(curatedCount, len(titles))
 	} else {
 		kb.Count = rawMax
 	}
