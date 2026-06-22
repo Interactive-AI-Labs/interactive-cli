@@ -87,14 +87,17 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 					continue
 				}
 				for _, mm := range mo.Matches {
-					if mm.Condition == "" {
+					// Guideline text can carry raw newlines and run very long;
+					// normalize whitespace so it dedupes and reads on one line.
+					cond := CollapseWS(mm.Condition)
+					if cond == "" {
 						continue
 					}
-					if prev, ok := condScore[mm.Condition]; !ok || mm.Score > prev {
+					if prev, ok := condScore[cond]; !ok || mm.Score > prev {
 						if !ok {
-							condOrder = append(condOrder, mm.Condition)
+							condOrder = append(condOrder, cond)
 						}
-						condScore[mm.Condition] = mm.Score
+						condScore[cond] = mm.Score
 					}
 				}
 			case spanExecuteToolCalls:
@@ -103,7 +106,7 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 					tc := ToolCall{
 						Name:   tool.Name,
 						Args:   Truncate(CompactArgs(tool.Input), MaxValueLen),
-						Result: Truncate(CompactJSON(UnwrapJSON(tool.Output)), MaxValueLen),
+						Result: Truncate(CompactJSON(UnwrapToolResult(tool.Output)), MaxValueLen),
 					}
 					if strings.EqualFold(tool.Level, "ERROR") {
 						tc.Errored = true
@@ -111,21 +114,107 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 					}
 					iteration.Tools = append(iteration.Tools, tc)
 				}
-			case spanKBRetriever, spanFindSimilarDocs:
-				if q := strings.TrimSpace(AsString(d.Input)); q != "" {
-					iteration.KBQueries = append(iteration.KBQueries, Truncate(CollapseWS(q), MaxValueLen))
-				}
 			}
 		}
 
 		for _, c := range condOrder {
-			iteration.Conditions = append(iteration.Conditions, Condition{Text: c, Score: condScore[c]})
+			iteration.Conditions = append(iteration.Conditions, Condition{Text: Truncate(c, MaxValueLen), Score: condScore[c]})
 		}
 
 		m.Iterations = append(m.Iterations, iteration)
 	}
 
+	m.KB = knowledgeBase(obs)
 	return m
+}
+
+// knowledgeBase summarizes the turn's knowledge-base retrievals across the whole
+// observation tree (not just inside iterations): the engine emits the titled
+// retriever:knowledge_base span at the root, while per-iteration
+// find_similar_documents spans carry only untitled content.
+func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
+	var titles []string
+	seen := map[string]bool{}
+	curatedCount := 0 // docs in the curated retriever result
+	rawMax := 0       // largest untitled (find_similar) retrieval
+	used := false
+	for _, o := range obs {
+		if o.Name != spanKBRetriever && o.Name != spanFindSimilarDocs {
+			continue
+		}
+		used = true
+		ts, count := kbDocsFromOutput(o.Output)
+		if len(ts) == 0 {
+			if count > rawMax {
+				rawMax = count
+			}
+			continue
+		}
+		for _, t := range ts {
+			t = Truncate(CollapseWS(t), MaxKBTitleLen)
+			if t != "" && !seen[t] {
+				seen[t] = true
+				titles = append(titles, t)
+			}
+		}
+		if count > curatedCount {
+			curatedCount = count
+		}
+	}
+	if !used {
+		return nil
+	}
+	// The curated retriever result is the high-signal "which docs came back";
+	// untitled find_similar plumbing only sets a count when nothing curated ran.
+	kb := &KBRetrieval{Docs: titles}
+	if len(titles) > 0 {
+		kb.Count = curatedCount
+		if kb.Count < len(titles) {
+			kb.Count = len(titles)
+		}
+	} else {
+		kb.Count = rawMax
+	}
+	return kb
+}
+
+// kbDocsFromOutput extracts retrieved-document titles and a document count from a
+// KB span's output, handling both the retriever:knowledge_base object shape
+// ({"articles":[{"name":…}],"article_count":N}) and the find_similar_documents
+// array shape ([{…}], usually untitled).
+func kbDocsFromOutput(raw json.RawMessage) (titles []string, count int) {
+	if len(raw) == 0 {
+		return nil, 0
+	}
+	out := UnwrapJSON(raw)
+
+	var obj struct {
+		Articles []struct {
+			Name string `json:"name"`
+		} `json:"articles"`
+		ArticleCount int `json:"article_count"`
+	}
+	if json.Unmarshal(out, &obj) == nil && (len(obj.Articles) > 0 || obj.ArticleCount > 0) {
+		for _, a := range obj.Articles {
+			if a.Name != "" {
+				titles = append(titles, a.Name)
+			}
+		}
+		count = obj.ArticleCount
+		if count < len(obj.Articles) {
+			count = len(obj.Articles)
+		}
+		return titles, count
+	}
+
+	// find_similar_documents shape: a raw array of vector-search hits. These are
+	// plumbing (technical doc ids/synonyms), not the curated result — count only.
+	var arr []json.RawMessage
+	if json.Unmarshal(out, &arr) == nil {
+		return nil, len(arr)
+	}
+
+	return nil, 0
 }
 
 // descendants returns all transitive children of id (excluding id itself).

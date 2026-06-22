@@ -50,6 +50,33 @@ func TestTruncateRuneSafe(t *testing.T) {
 	}
 }
 
+func TestUnwrapToolResult(t *testing.T) {
+	// The engine envelope collapses to just its data payload.
+	env := `{"data":{"ok":true,"value":3},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`
+	got := CompactJSON(UnwrapToolResult(json.RawMessage(env)))
+	if got != `{"ok":true,"value":3}` {
+		t.Fatalf("envelope unwrap = %q", got)
+	}
+	// String-wrapped envelope also unwraps.
+	got = CompactJSON(UnwrapToolResult(json.RawMessage(`"{\"data\":{\"x\":1},\"metadata\":{},\"control\":{}}"`)))
+	if got != `{"x":1}` {
+		t.Fatalf("string-wrapped envelope unwrap = %q", got)
+	}
+	// A plain object with an unexpected sibling is left untouched.
+	plain := `{"data":{"x":1},"other":true}`
+	if got := CompactJSON(UnwrapToolResult(json.RawMessage(plain))); got != `{"data":{"x":1},"other":true}` {
+		t.Fatalf("non-envelope should pass through, got %q", got)
+	}
+	// A value with no data key passes through.
+	if got := CompactJSON(UnwrapToolResult(json.RawMessage(`{"count":3}`))); got != `{"count":3}` {
+		t.Fatalf("no-data passthrough = %q", got)
+	}
+	// A non-object passes through.
+	if got := CompactJSON(UnwrapToolResult(json.RawMessage(`[1,2]`))); got != `[1,2]` {
+		t.Fatalf("array passthrough = %q", got)
+	}
+}
+
 func TestCompactArgs(t *testing.T) {
 	got := CompactArgs(json.RawMessage(`"{\"dates\":\"next weekend\",\"qty\":2}"`))
 	// keys sorted, k=v form

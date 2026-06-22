@@ -54,6 +54,44 @@ func TestPrintTraceSummary(t *testing.T) {
 	}
 }
 
+func TestPrintTraceSummary_KnowledgeBase(t *testing.T) {
+	m := &summary.TraceSummaryModel{
+		Name:       "agent-chat",
+		Input:      "hi",
+		KB:         &summary.KBRetrieval{Docs: []string{"Closing my account", "Why suspended"}, Count: 2},
+		Iterations: []summary.Iteration{{Number: 1}},
+		Reply:      "hello",
+	}
+	var buf bytes.Buffer
+	if err := PrintTraceSummary(&buf, m); err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	for _, want := range []string{
+		`Knowledge base: 2 docs retrieved — "Closing my account", "Why suspended"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("output missing %q\n---\n%s", want, got)
+		}
+	}
+}
+
+func TestPrintTraceSummary_KnowledgeBaseUntitled(t *testing.T) {
+	m := &summary.TraceSummaryModel{
+		Name:       "agent",
+		Input:      "hi",
+		KB:         &summary.KBRetrieval{Count: 3},
+		Iterations: []summary.Iteration{{Number: 1}},
+	}
+	var buf bytes.Buffer
+	if err := PrintTraceSummary(&buf, m); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "Knowledge base: 3 docs retrieved\n") {
+		t.Fatalf("untitled KB line wrong:\n%s", buf.String())
+	}
+}
+
 func TestPrintTraceSummary_ErrorAndToolError(t *testing.T) {
 	m := &summary.TraceSummaryModel{
 		Name:  "agent",

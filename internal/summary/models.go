@@ -22,7 +22,15 @@ type Iteration struct {
 	Number     int
 	Conditions []Condition
 	Tools      []ToolCall
-	KBQueries  []string
+}
+
+// KBRetrieval summarizes a turn's knowledge-base lookups. The titled results
+// come from the engine's root-level retriever:knowledge_base span; per-iteration
+// find_similar_documents spans carry only untitled content and so contribute to
+// Count alone.
+type KBRetrieval struct {
+	Docs  []string // retrieved document titles, deduped (empty when results are untitled)
+	Count int      // number of documents retrieved
 }
 
 // TraceSummaryModel is the compact view of a single turn (one trace).
@@ -33,6 +41,7 @@ type TraceSummaryModel struct {
 	Cost       *float64
 	Level      string
 	Input      string
+	KB         *KBRetrieval
 	Iterations []Iteration
 	Reply      string
 	Errors     []string

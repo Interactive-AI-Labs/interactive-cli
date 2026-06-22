@@ -46,6 +46,19 @@ func TestSessionSummary(t *testing.T) {
 	}
 }
 
+func TestSessionSummary_MultipleAgents(t *testing.T) {
+	// A shadow/dev deployment logging alongside production: both agents surface.
+	traces := []clients.TraceInfo{
+		{ID: "t1", Timestamp: "2026-06-22T14:30:00Z", Tags: []string{"agent:agent-chat"}},
+		{ID: "t2", Timestamp: "2026-06-22T14:31:00Z", Tags: []string{"agent:agent-chat-dev"}},
+		{ID: "t3", Timestamp: "2026-06-22T14:32:00Z", Tags: []string{"agent:agent-chat"}},
+	}
+	m := SessionSummary("s_multi", traces)
+	if m.Agent != "agent-chat, agent-chat-dev" {
+		t.Fatalf("Agent = %q, want both agents deduped in order", m.Agent)
+	}
+}
+
 func TestSessionSummary_Empty(t *testing.T) {
 	m := SessionSummary("s_x", nil)
 	if m.ID != "s_x" || m.TurnCount != 0 || len(m.Turns) != 0 {

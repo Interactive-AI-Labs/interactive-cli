@@ -63,6 +63,80 @@ func TestTraceSummary_TwoIterations(t *testing.T) {
 	}
 }
 
+func TestTraceSummary_KnowledgeBase(t *testing.T) {
+	trace := &clients.TraceDetail{
+		TraceInfo: clients.TraceInfo{Name: "agent-chat", Level: "DEFAULT"},
+		Input:     json.RawMessage(`"hi"`),
+		Output:    json.RawMessage(`"[\"hello\"]"`),
+	}
+	observations := []clients.ObservationInfo{
+		// Titled retriever lives at the root, emitted once for the turn.
+		obs("kb", "process", "span", "retriever:knowledge_base", "", "",
+			`{"customer_messages":["hi"],"customer_id":"1"}`,
+			`{"has_results":true,"article_count":2,"articles":[{"name":"Closing my account"},{"name":"Why was my account suspended"}]}`),
+		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
+		// Per-iteration untitled vector searches: their context-blob query must NOT leak.
+		obs("fs1", "it1", "span", "find_similar_documents", "", "",
+			`{"query":"{\"email\":\"a@b.c\",\"ticket_id\":\"99\"}"}`,
+			`[{"content":"doc body one"},{"content":"doc body two"}]`),
+	}
+
+	m := TraceSummary(trace, observations)
+	if m.KB == nil {
+		t.Fatalf("expected KB summary")
+	}
+	if len(m.KB.Docs) != 2 || m.KB.Docs[0] != "Closing my account" || m.KB.Docs[1] != "Why was my account suspended" {
+		t.Fatalf("KB docs = %+v", m.KB.Docs)
+	}
+	if m.KB.Count != 2 {
+		t.Fatalf("KB count = %d, want 2", m.KB.Count)
+	}
+}
+
+func TestTraceSummary_KnowledgeBaseUntitled(t *testing.T) {
+	trace := &clients.TraceDetail{
+		TraceInfo: clients.TraceInfo{Name: "agent", Level: "DEFAULT"},
+		Input:     json.RawMessage(`"hi"`),
+	}
+	observations := []clients.ObservationInfo{
+		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
+		obs("fs1", "it1", "span", "find_similar_documents", "", "",
+			`{"query":"blob"}`, `[{"content":"a"},{"content":"b"},{"content":"c"}]`),
+	}
+	m := TraceSummary(trace, observations)
+	if m.KB == nil || len(m.KB.Docs) != 0 || m.KB.Count != 3 {
+		t.Fatalf("untitled KB = %+v", m.KB)
+	}
+}
+
+func TestTraceSummary_ConditionNormalizedAndToolEnvelope(t *testing.T) {
+	trace := &clients.TraceDetail{
+		TraceInfo: clients.TraceInfo{Name: "agent-kyc", Level: "DEFAULT"},
+		Input:     json.RawMessage(`"{\"step\":\"classify\"}"`),
+	}
+	observations := []clients.ObservationInfo{
+		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
+		obs("mg1", "it1", "chain", "match_guidelines", "", "",
+			"", `{"matches":[{"condition":"Applicant data looks  PROBLEMATIC\n","score":10}]}`),
+		obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
+		obs("t1", "ex1", "tool", "execute_thinking", "", "",
+			`{"step_id":"classify"}`,
+			`{"data":{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`),
+	}
+	m := TraceSummary(trace, observations)
+	if len(m.Iterations) != 1 {
+		t.Fatalf("iterations = %+v", m.Iterations)
+	}
+	cond := m.Iterations[0].Conditions
+	if len(cond) != 1 || cond[0].Text != "Applicant data looks PROBLEMATIC" {
+		t.Fatalf("condition not whitespace-normalized: %+v", cond)
+	}
+	tool := m.Iterations[0].Tools
+	if len(tool) != 1 || tool[0].Result != `{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}}` {
+		t.Fatalf("tool result envelope not unwrapped: %+v", tool)
+	}
+}
+
 func TestTraceSummary_ToolErrorAndNoObservations(t *testing.T) {
 	trace := &clients.TraceDetail{
 		TraceInfo: clients.TraceInfo{Name: "agent", Level: "ERROR"},

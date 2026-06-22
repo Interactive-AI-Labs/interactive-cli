@@ -40,6 +40,10 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 		b.WriteString("Customer: " + m.Input + "\n\n")
 	}
 
+	if m.KB != nil {
+		b.WriteString("Knowledge base: " + formatKB(m.KB) + "\n\n")
+	}
+
 	for _, it := range m.Iterations {
 		b.WriteString(fmt.Sprintf("Iteration %d\n", it.Number))
 		if len(it.Conditions) > 0 {
@@ -47,9 +51,6 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 			for _, c := range it.Conditions {
 				b.WriteString(fmt.Sprintf("    ✓ %s (%d)\n", c.Text, c.Score))
 			}
-		}
-		for _, q := range it.KBQueries {
-			b.WriteString("  Knowledge base: " + q + "\n")
 		}
 		if len(it.Tools) > 0 {
 			b.WriteString("  Tools called:\n")
@@ -84,4 +85,21 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 
 	_, err := io.WriteString(out, b.String())
 	return err
+}
+
+// formatKB renders a turn's knowledge-base retrieval: the document count, plus
+// the retrieved titles when the backend supplied them.
+func formatKB(kb *summary.KBRetrieval) string {
+	noun := "docs"
+	if kb.Count == 1 {
+		noun = "doc"
+	}
+	if len(kb.Docs) > 0 {
+		quoted := make([]string, len(kb.Docs))
+		for i, d := range kb.Docs {
+			quoted[i] = fmt.Sprintf("%q", d)
+		}
+		return fmt.Sprintf("%d %s retrieved — %s", kb.Count, noun, TruncateList(quoted, 6))
+	}
+	return fmt.Sprintf("%d %s retrieved", kb.Count, noun)
 }

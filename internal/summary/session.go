@@ -21,6 +21,8 @@ func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummar
 
 	var costSum float64
 	var haveCost bool
+	var agents []string
+	agentSeen := map[string]bool{}
 	for i, tr := range sorted {
 		if tr.TotalCost != nil {
 			costSum += *tr.TotalCost
@@ -37,13 +39,19 @@ func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummar
 				turn.Tools = append(turn.Tools, strings.TrimPrefix(tag, "tool:"))
 			case strings.HasPrefix(tag, "routine:"):
 				turn.Journeys = append(turn.Journeys, strings.TrimPrefix(tag, "routine:"))
-			case strings.HasPrefix(tag, "agent:") && m.Agent == "":
-				m.Agent = strings.TrimPrefix(tag, "agent:")
+			case strings.HasPrefix(tag, "agent:"):
+				// A session can carry more than one agent (e.g. a shadow/dev
+				// deployment logging alongside production); surface them all.
+				if a := strings.TrimPrefix(tag, "agent:"); a != "" && !agentSeen[a] {
+					agentSeen[a] = true
+					agents = append(agents, a)
+				}
 			}
 		}
 		m.Turns = append(m.Turns, turn)
 	}
 
+	m.Agent = strings.Join(agents, ", ")
 	if haveCost {
 		m.Cost = &costSum
 	}

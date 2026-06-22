@@ -12,7 +12,41 @@ const (
 	MaxValueLen = 500
 	// MaxSessionMsgLen caps per-turn messages in the session (overview) view.
 	MaxSessionMsgLen = 160
+	// MaxKBTitleLen caps an individual retrieved knowledge-base document title.
+	MaxKBTitleLen = 80
 )
+
+// parlantEnvelopeKeys are the sibling keys the engine wraps every tool result in,
+// alongside the meaningful "data" payload.
+var parlantEnvelopeKeys = map[string]bool{
+	"metadata":               true,
+	"control":                true,
+	"canned_responses":       true,
+	"canned_response_fields": true,
+	"guidelines":             true,
+}
+
+// UnwrapToolResult collapses the engine's tool-result envelope
+// ({"data":…,"metadata":{},"control":{},"canned_responses":[],…}) down to its
+// "data" payload. Any value that is not exactly that envelope shape passes
+// through unchanged (after one layer of JSON-string unwrapping).
+func UnwrapToolResult(raw json.RawMessage) json.RawMessage {
+	inner := UnwrapJSON(raw)
+	var obj map[string]json.RawMessage
+	if json.Unmarshal(inner, &obj) != nil {
+		return inner
+	}
+	data, ok := obj["data"]
+	if !ok {
+		return inner
+	}
+	for k := range obj {
+		if k != "data" && !parlantEnvelopeKeys[k] {
+			return inner // an unexpected sibling: not the known envelope, leave it
+		}
+	}
+	return data
+}
 
 // UnwrapJSON removes one layer of JSON-string wrapping if the raw value is a
 // JSON string whose contents are themselves valid JSON. Langfuse stores some
