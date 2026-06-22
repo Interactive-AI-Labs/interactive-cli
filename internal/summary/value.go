@@ -88,12 +88,14 @@ func CompactArgs(raw json.RawMessage) string {
 	sort.Strings(keys)
 	parts := make([]string, 0, len(keys))
 	for _, k := range keys {
-		parts = append(parts, fmt.Sprintf("%s=%s", k, scalar(m[k])))
+		parts = append(parts, fmt.Sprintf("%s=%s", k, formatValue(m[k])))
 	}
 	return strings.Join(parts, ", ")
 }
 
-func scalar(v any) string {
+// formatValue renders a decoded JSON value compactly: quoted strings, integers
+// without trailing zeros, and compact JSON for arrays/objects.
+func formatValue(v any) string {
 	switch t := v.(type) {
 	case string:
 		return fmt.Sprintf("%q", t)
@@ -114,6 +116,11 @@ func scalar(v any) string {
 // Truncate trims whitespace and caps s to max runes, appending a marker.
 func Truncate(s string, max int) string {
 	s = strings.TrimSpace(s)
+	// Byte length is an upper bound on rune count, so a short string needs no
+	// rune conversion (the common case for ASCII content).
+	if len(s) <= max {
+		return s
+	}
 	r := []rune(s)
 	if len(r) <= max {
 		return s

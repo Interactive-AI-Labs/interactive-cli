@@ -1,7 +1,6 @@
 package summary
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -66,10 +65,6 @@ func sessionDuration(sorted []clients.TraceInfo) string {
 }
 
 func parseTS(s string) (time.Time, error) {
-	for _, layout := range []string{time.RFC3339Nano, time.RFC3339} {
-		if t, err := time.Parse(layout, s); err == nil {
-			return t, nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("unparseable timestamp %q", s)
+	// RFC3339Nano also parses plain RFC3339 — the fractional seconds are optional.
+	return time.Parse(time.RFC3339Nano, s)
 }

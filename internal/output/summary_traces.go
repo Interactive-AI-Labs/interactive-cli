@@ -12,24 +12,28 @@ import (
 func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 	var b strings.Builder
 
-	header := fmt.Sprintf("Turn — %s", m.Name)
-	if ts := LocalTime(m.Timestamp); ts != "" && m.Timestamp != "" {
-		header += " · " + ts
+	var ts, latency, cost, errTag string
+	if t := LocalTime(m.Timestamp); t != "" && m.Timestamp != "" {
+		ts = t
 	}
 	if m.LatencyMs != nil {
-		header += " · " + formatLatencyMs(m.LatencyMs)
+		latency = formatLatencyMs(m.LatencyMs)
 	}
 	if m.Cost != nil {
-		header += " · " + formatCost(m.Cost)
+		cost = formatCost(m.Cost)
 	}
 	if strings.EqualFold(m.Level, "ERROR") {
-		header += " · ERROR"
+		errTag = "ERROR"
 	}
 	iterNoun := "iterations"
 	if len(m.Iterations) == 1 {
 		iterNoun = "iteration"
 	}
-	header += fmt.Sprintf(" · %d %s", len(m.Iterations), iterNoun)
+	header := joinHeader(
+		"Turn — "+m.Name,
+		ts, latency, cost, errTag,
+		fmt.Sprintf("%d %s", len(m.Iterations), iterNoun),
+	)
 	b.WriteString(header + "\n\n")
 
 	if m.Input != "" {

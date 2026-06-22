@@ -19,6 +19,14 @@ type matchOutput struct {
 	} `json:"matches"`
 }
 
+// Observation span names the engine emits, matched when walking a turn's tree.
+const (
+	spanMatchGuidelines  = "match_guidelines"
+	spanExecuteToolCalls = "execute_tool_calls"
+	spanKBRetriever      = "retriever:knowledge_base"
+	spanFindSimilarDocs  = "find_similar_documents"
+)
+
 // TraceSummary reconstructs the observation tree for one turn and extracts the
 // per-iteration conditions, tools, KB queries, the agent reply, and any errors.
 func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *TraceSummaryModel {
@@ -60,62 +68,58 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 
 	for _, it := range iters {
 		iteration := Iteration{Number: it.num}
-		sub := descendants(children, it.id)
 
-		// Conditions: aggregate across all match_guidelines spans in subtree,
-		// dedup by condition text (keep highest score).
+		// Conditions are aggregated across all match_guidelines spans in the
+		// subtree and deduped by text (highest score wins, first-seen order).
 		condScore := map[string]int{}
 		var condOrder []string
-		for _, d := range sub {
-			if d.Name != "match_guidelines" || len(d.Output) == 0 {
-				continue
-			}
-			var mo matchOutput
-			if json.Unmarshal(UnwrapJSON(d.Output), &mo) != nil {
-				continue
-			}
-			for _, mm := range mo.Matches {
-				if mm.Condition == "" {
+
+		// One pass over the iteration subtree, dispatching by span name —
+		// conditions, tool calls, and KB queries are mutually exclusive.
+		for _, d := range descendants(children, it.id) {
+			switch d.Name {
+			case spanMatchGuidelines:
+				if len(d.Output) == 0 {
 					continue
 				}
-				if prev, ok := condScore[mm.Condition]; !ok || mm.Score > prev {
-					if !ok {
-						condOrder = append(condOrder, mm.Condition)
+				var mo matchOutput
+				if json.Unmarshal(UnwrapJSON(d.Output), &mo) != nil {
+					continue
+				}
+				for _, mm := range mo.Matches {
+					if mm.Condition == "" {
+						continue
 					}
-					condScore[mm.Condition] = mm.Score
+					if prev, ok := condScore[mm.Condition]; !ok || mm.Score > prev {
+						if !ok {
+							condOrder = append(condOrder, mm.Condition)
+						}
+						condScore[mm.Condition] = mm.Score
+					}
 				}
-			}
-		}
-		for _, c := range condOrder {
-			iteration.Conditions = append(iteration.Conditions, Condition{Text: c, Score: condScore[c]})
-		}
-
-		// Tools: direct children of any execute_tool_calls span in subtree.
-		for _, d := range sub {
-			if d.Name != "execute_tool_calls" {
-				continue
-			}
-			for _, tool := range children[d.ID] {
-				tc := ToolCall{
-					Name:   tool.Name,
-					Args:   Truncate(CompactArgs(tool.Input), MaxValueLen),
-					Result: Truncate(CompactJSON(UnwrapJSON(tool.Output)), MaxValueLen),
+			case spanExecuteToolCalls:
+				// Tools are the direct children of execute_tool_calls.
+				for _, tool := range children[d.ID] {
+					tc := ToolCall{
+						Name:   tool.Name,
+						Args:   Truncate(CompactArgs(tool.Input), MaxValueLen),
+						Result: Truncate(CompactJSON(UnwrapJSON(tool.Output)), MaxValueLen),
+					}
+					if strings.EqualFold(tool.Level, "ERROR") {
+						tc.Errored = true
+						tc.ErrMsg = tool.StatusMessage
+					}
+					iteration.Tools = append(iteration.Tools, tc)
 				}
-				if strings.EqualFold(tool.Level, "ERROR") {
-					tc.Errored = true
-					tc.ErrMsg = tool.StatusMessage
-				}
-				iteration.Tools = append(iteration.Tools, tc)
-			}
-		}
-
-		// KB queries.
-		for _, d := range sub {
-			if d.Name == "retriever:knowledge_base" || d.Name == "find_similar_documents" {
+			case spanKBRetriever, spanFindSimilarDocs:
 				if q := strings.TrimSpace(AsString(d.Input)); q != "" {
 					iteration.KBQueries = append(iteration.KBQueries, Truncate(CollapseWS(q), MaxValueLen))
 				}
 			}
+		}
+
+		for _, c := range condOrder {
+			iteration.Conditions = append(iteration.Conditions, Condition{Text: c, Score: condScore[c]})
 		}
 
 		m.Iterations = append(m.Iterations, iteration)

@@ -14,21 +14,21 @@ const sessionIndent = "        " // 8 spaces, aligns under "Turn N  "
 func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 	var b strings.Builder
 
-	header := "Session " + m.ID
-	if m.Agent != "" {
-		header += " · " + m.Agent
-	}
 	turnNoun := "turns"
 	if m.TurnCount == 1 {
 		turnNoun = "turn"
 	}
-	header += fmt.Sprintf(" · %d %s", m.TurnCount, turnNoun)
-	if m.Duration != "" {
-		header += " · " + m.Duration
-	}
+	cost := ""
 	if m.Cost != nil {
-		header += " · " + formatCost(m.Cost)
+		cost = formatCost(m.Cost)
 	}
+	header := joinHeader(
+		"Session "+m.ID,
+		m.Agent,
+		fmt.Sprintf("%d %s", m.TurnCount, turnNoun),
+		m.Duration,
+		cost,
+	)
 	b.WriteString(header + "\n\n")
 
 	if len(m.Turns) == 0 {
