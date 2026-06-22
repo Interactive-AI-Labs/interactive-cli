@@ -372,7 +372,9 @@ type TraceInfo struct {
 	InputTokens      *int     `json:"input_tokens"`
 	OutputTokens     *int     `json:"output_tokens"`
 	TotalTokens      *int     `json:"total_tokens"`
-	Level            string   `json:"level"`
+	Level            string          `json:"level"`
+	Input            json.RawMessage `json:"input,omitempty"`
+	Output           json.RawMessage `json:"output,omitempty"`
 }
 
 type TraceDetail struct {
