@@ -31,8 +31,16 @@ func TestTraceSummary_TwoIterations(t *testing.T) {
 	}
 	observations := []clients.ObservationInfo{
 		obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
-		obs("mg1", "it1", "chain", "match_guidelines", "", "",
-			"", `{"matches":[{"condition":"Customer asks to rent a vehicle","score":9},{"condition":"No booking in progress","score":7}]}`),
+		obs(
+			"mg1",
+			"it1",
+			"chain",
+			"match_guidelines",
+			"",
+			"",
+			"",
+			`{"matches":[{"condition":"Customer asks to rent a vehicle","score":9},{"condition":"No booking in progress","score":7}]}`,
+		),
 		obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
 		obs("t1", "ex1", "tool", "check_availability", "", "",
 			`"{\"dates\":\"next weekend\"}"`, `{"count":3}`),
@@ -52,10 +60,13 @@ func TestTraceSummary_TwoIterations(t *testing.T) {
 	if len(m.Iterations) != 2 {
 		t.Fatalf("want 2 iterations, got %d", len(m.Iterations))
 	}
-	if got := m.Iterations[0].Conditions; len(got) != 2 || got[0].Text != "Customer asks to rent a vehicle" || got[0].Score != 9 {
+	if got := m.Iterations[0].Conditions; len(got) != 2 ||
+		got[0].Text != "Customer asks to rent a vehicle" ||
+		got[0].Score != 9 {
 		t.Fatalf("iter1 conditions = %+v", got)
 	}
-	if got := m.Iterations[0].Tools; len(got) != 1 || got[0].Name != "check_availability" || got[0].Args != `dates="next weekend"` {
+	if got := m.Iterations[0].Tools; len(got) != 1 || got[0].Name != "check_availability" ||
+		got[0].Args != `dates="next weekend"` {
 		t.Fatalf("iter1 tools = %+v", got)
 	}
 	if len(m.Iterations[1].Tools) != 0 {
@@ -71,9 +82,16 @@ func TestTraceSummary_KnowledgeBase(t *testing.T) {
 	}
 	observations := []clients.ObservationInfo{
 		// Titled retriever lives at the root, emitted once for the turn.
-		obs("kb", "process", "span", "retriever:knowledge_base", "", "",
+		obs(
+			"kb",
+			"process",
+			"span",
+			"retriever:knowledge_base",
+			"",
+			"",
 			`{"customer_messages":["hi"],"customer_id":"1"}`,
-			`{"has_results":true,"article_count":2,"articles":[{"name":"Closing my account"},{"name":"Why was my account suspended"}]}`),
+			`{"has_results":true,"article_count":2,"articles":[{"name":"Closing my account"},{"name":"Why was my account suspended"}]}`,
+		),
 		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
 		// Per-iteration untitled vector searches: their context-blob query must NOT leak.
 		obs("fs1", "it1", "span", "find_similar_documents", "", "",
@@ -85,7 +103,8 @@ func TestTraceSummary_KnowledgeBase(t *testing.T) {
 	if m.KB == nil {
 		t.Fatalf("expected KB summary")
 	}
-	if len(m.KB.Docs) != 2 || m.KB.Docs[0] != "Closing my account" || m.KB.Docs[1] != "Why was my account suspended" {
+	if len(m.KB.Docs) != 2 || m.KB.Docs[0] != "Closing my account" ||
+		m.KB.Docs[1] != "Why was my account suspended" {
 		t.Fatalf("KB docs = %+v", m.KB.Docs)
 	}
 	if m.KB.Count != 2 {
@@ -119,9 +138,16 @@ func TestTraceSummary_ConditionNormalizedAndToolEnvelope(t *testing.T) {
 		obs("mg1", "it1", "chain", "match_guidelines", "", "",
 			"", `{"matches":[{"condition":"Applicant data looks  PROBLEMATIC\n","score":10}]}`),
 		obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
-		obs("t1", "ex1", "tool", "execute_thinking", "", "",
+		obs(
+			"t1",
+			"ex1",
+			"tool",
+			"execute_thinking",
+			"",
+			"",
 			`{"step_id":"classify"}`,
-			`{"data":{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`),
+			`{"data":{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`,
+		),
 	}
 	m := TraceSummary(trace, observations)
 	if len(m.Iterations) != 1 {

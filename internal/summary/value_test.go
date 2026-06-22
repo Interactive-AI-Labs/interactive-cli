@@ -58,7 +58,9 @@ func TestUnwrapToolResult(t *testing.T) {
 		t.Fatalf("envelope unwrap = %q", got)
 	}
 	// String-wrapped envelope also unwraps.
-	got = CompactJSON(UnwrapToolResult(json.RawMessage(`"{\"data\":{\"x\":1},\"metadata\":{},\"control\":{}}"`)))
+	got = CompactJSON(
+		UnwrapToolResult(json.RawMessage(`"{\"data\":{\"x\":1},\"metadata\":{},\"control\":{}}"`)),
+	)
 	if got != `{"x":1}` {
 		t.Fatalf("string-wrapped envelope unwrap = %q", got)
 	}

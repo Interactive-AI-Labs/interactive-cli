@@ -28,7 +28,8 @@ const (
 )
 
 // TraceSummary reconstructs the observation tree for one turn and extracts the
-// per-iteration conditions, tools, KB queries, the agent reply, and any errors.
+// per-iteration conditions and tools, the turn's knowledge-base retrieval, the
+// agent reply, and any errors.
 func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *TraceSummaryModel {
 	m := &TraceSummaryModel{
 		Name:      trace.Name,
@@ -74,8 +75,8 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		condScore := map[string]int{}
 		var condOrder []string
 
-		// One pass over the iteration subtree, dispatching by span name —
-		// conditions, tool calls, and KB queries are mutually exclusive.
+		// One pass over the iteration subtree, dispatching by span name.
+		// Knowledge-base retrieval is summarized at the turn level (see below).
 		for _, d := range descendants(children, it.id) {
 			switch d.Name {
 			case spanMatchGuidelines:
@@ -118,7 +119,10 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		}
 
 		for _, c := range condOrder {
-			iteration.Conditions = append(iteration.Conditions, Condition{Text: Truncate(c, MaxValueLen), Score: condScore[c]})
+			iteration.Conditions = append(
+				iteration.Conditions,
+				Condition{Text: Truncate(c, MaxValueLen), Score: condScore[c]},
+			)
 		}
 
 		m.Iterations = append(m.Iterations, iteration)
@@ -218,7 +222,10 @@ func kbDocsFromOutput(raw json.RawMessage) (titles []string, count int) {
 }
 
 // descendants returns all transitive children of id (excluding id itself).
-func descendants(children map[string][]clients.ObservationInfo, id string) []clients.ObservationInfo {
+func descendants(
+	children map[string][]clients.ObservationInfo,
+	id string,
+) []clients.ObservationInfo {
 	var out []clients.ObservationInfo
 	seen := map[string]bool{}
 	stack := []string{id}

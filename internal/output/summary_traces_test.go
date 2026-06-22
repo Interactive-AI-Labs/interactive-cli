@@ -20,13 +20,23 @@ func TestPrintTraceSummary(t *testing.T) {
 		Input:     "I want to rent a car for next weekend",
 		Iterations: []summary.Iteration{
 			{
-				Number:     1,
-				Conditions: []summary.Condition{{Text: "Customer asks to rent a vehicle", Score: 9}},
-				Tools:      []summary.ToolCall{{Name: "check_availability", Args: `dates="next weekend"`, Result: `{"count":3}`}},
+				Number: 1,
+				Conditions: []summary.Condition{
+					{Text: "Customer asks to rent a vehicle", Score: 9},
+				},
+				Tools: []summary.ToolCall{
+					{
+						Name:   "check_availability",
+						Args:   `dates="next weekend"`,
+						Result: `{"count":3}`,
+					},
+				},
 			},
 			{
-				Number:     2,
-				Conditions: []summary.Condition{{Text: "Pickup location not yet provided", Score: 8}},
+				Number: 2,
+				Conditions: []summary.Condition{
+					{Text: "Pickup location not yet provided", Score: 8},
+				},
 			},
 		},
 		Reply: "Great! We have 3 cars available...",
@@ -56,9 +66,12 @@ func TestPrintTraceSummary(t *testing.T) {
 
 func TestPrintTraceSummary_KnowledgeBase(t *testing.T) {
 	m := &summary.TraceSummaryModel{
-		Name:       "agent-chat",
-		Input:      "hi",
-		KB:         &summary.KBRetrieval{Docs: []string{"Closing my account", "Why suspended"}, Count: 2},
+		Name:  "agent-chat",
+		Input: "hi",
+		KB: &summary.KBRetrieval{
+			Docs:  []string{"Closing my account", "Why suspended"},
+			Count: 2,
+		},
 		Iterations: []summary.Iteration{{Number: 1}},
 		Reply:      "hello",
 	}
@@ -98,7 +111,12 @@ func TestPrintTraceSummary_ErrorAndToolError(t *testing.T) {
 		Level: "ERROR",
 		Input: "hi",
 		Iterations: []summary.Iteration{
-			{Number: 1, Tools: []summary.ToolCall{{Name: "create_booking", Args: "", Errored: true, ErrMsg: "upstream 500"}}},
+			{
+				Number: 1,
+				Tools: []summary.ToolCall{
+					{Name: "create_booking", Args: "", Errored: true, ErrMsg: "upstream 500"},
+				},
+			},
 		},
 		Reply:  "sorry",
 		Errors: []string{"create_booking: upstream 500"},

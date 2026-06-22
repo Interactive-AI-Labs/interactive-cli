@@ -78,7 +78,10 @@ func TestSessionSummary_Cost(t *testing.T) {
 		t.Fatalf("Cost = %v, want ~0.08", m.Cost)
 	}
 	// no costs anywhere -> nil
-	m2 := SessionSummary("s_nocost", []clients.TraceInfo{{ID: "t1", Timestamp: "2026-06-22T14:30:00Z"}})
+	m2 := SessionSummary(
+		"s_nocost",
+		[]clients.TraceInfo{{ID: "t1", Timestamp: "2026-06-22T14:30:00Z"}},
+	)
 	if m2.Cost != nil {
 		t.Fatalf("Cost = %v, want nil", m2.Cost)
 	}

@@ -13,10 +13,14 @@ func TestPrintSessionSummary(t *testing.T) {
 		ID: "s_abc", Agent: "driveaway-agent", TurnCount: 2,
 		Duration: "2m0s", Cost: f64(0.08),
 		Turns: []summary.Turn{
-			{Number: 1, Customer: "I want to rent a car next weekend",
-				Agent: "Great! We have 3 cars available...", Tools: []string{"check_availability"}},
-			{Number: 2, Customer: "Downtown", Agent: "Booked! Confirmation #1234",
-				Tools: []string{"create_booking"}, Journeys: []string{"rental"}},
+			{
+				Number: 1, Customer: "I want to rent a car next weekend",
+				Agent: "Great! We have 3 cars available...", Tools: []string{"check_availability"},
+			},
+			{
+				Number: 2, Customer: "Downtown", Agent: "Booked! Confirmation #1234",
+				Tools: []string{"create_booking"}, Journeys: []string{"rental"},
+			},
 		},
 	}
 	var buf bytes.Buffer
