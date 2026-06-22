@@ -7,6 +7,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,7 @@ var (
 	sessionsListProject   string
 	sessionsGetOrg        string
 	sessionsGetProject    string
+	sessionsGetSummary    bool
 )
 
 var sessionsCmd = &cobra.Command{
@@ -122,7 +124,8 @@ var sessionsGetCmd = &cobra.Command{
 Uses the platform API with dual authentication (API key or session).`,
 	Example: `  iai sessions get <session-id>
   iai sessions get <session-id> --fields core,traces
-  iai sessions get <session-id> --json`,
+  iai sessions get <session-id> --json
+  iai sessions get <session-id> --summary`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -132,6 +135,33 @@ Uses the platform API with dual authentication (API key or session).`,
 		pCtx, apiClient, _, err := resolveProject(cmd.Context(), sessionsGetOrg, sessionsGetProject)
 		if err != nil {
 			return err
+		}
+
+		if sessionsGetSummary {
+			var all []clients.TraceInfo
+			page := 1
+			for {
+				traces, meta, _, err := apiClient.ListTraces(
+					cmd.Context(), pCtx.orgId, pCtx.projectId,
+					clients.TraceListOptions{
+						SessionID: sessionID,
+						Fields:    "core,io",
+						Order:     "asc",
+						OrderBy:   "timestamp",
+						Limit:     100,
+						Page:      page,
+					},
+				)
+				if err != nil {
+					return err
+				}
+				all = append(all, traces...)
+				if meta.TotalPages <= page || len(traces) == 0 {
+					break
+				}
+				page++
+			}
+			return output.PrintSessionSummary(out, summary.SessionSummary(sessionID, all))
 		}
 
 		session, rawJSON, err := apiClient.GetSession(
@@ -188,7 +218,9 @@ func init() {
 		BoolVar(&sessionsGetJSON, "json", false, "Output raw API response as JSON")
 	sessionsGetCmd.Flags().
 		BoolVar(&sessionsGetYAML, "yaml", false, "Output raw API response as YAML")
-	sessionsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	sessionsGetCmd.Flags().BoolVar(&sessionsGetSummary, "summary", false,
+		"Render a compact, LLM-readable overview of the conversation (transcript + event tags)")
+	sessionsGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml")
 	sessionsGetCmd.Flags().
 		StringVarP(&sessionsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	sessionsGetCmd.Flags().
