@@ -52,3 +52,21 @@ func TestSessionSummary_Empty(t *testing.T) {
 		t.Fatalf("empty session = %+v", m)
 	}
 }
+
+func TestSessionSummary_Cost(t *testing.T) {
+	c := func(v float64) *float64 { return &v }
+	traces := []clients.TraceInfo{
+		{ID: "t1", Timestamp: "2026-06-22T14:30:00Z", TotalCost: c(0.05)},
+		{ID: "t2", Timestamp: "2026-06-22T14:31:00Z"}, // nil cost
+		{ID: "t3", Timestamp: "2026-06-22T14:32:00Z", TotalCost: c(0.03)},
+	}
+	m := SessionSummary("s_cost", traces)
+	if m.Cost == nil || *m.Cost < 0.079 || *m.Cost > 0.081 {
+		t.Fatalf("Cost = %v, want ~0.08", m.Cost)
+	}
+	// no costs anywhere -> nil
+	m2 := SessionSummary("s_nocost", []clients.TraceInfo{{ID: "t1", Timestamp: "2026-06-22T14:30:00Z"}})
+	if m2.Cost != nil {
+		t.Fatalf("Cost = %v, want nil", m2.Cost)
+	}
+}

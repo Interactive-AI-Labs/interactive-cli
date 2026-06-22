@@ -18,7 +18,11 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 	if m.Agent != "" {
 		header += " · " + m.Agent
 	}
-	header += fmt.Sprintf(" · %d turns", m.TurnCount)
+	turnNoun := "turns"
+	if m.TurnCount == 1 {
+		turnNoun = "turn"
+	}
+	header += fmt.Sprintf(" · %d %s", m.TurnCount, turnNoun)
 	if m.Duration != "" {
 		header += " · " + m.Duration
 	}

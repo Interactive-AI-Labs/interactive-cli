@@ -220,7 +220,7 @@ func init() {
 		BoolVar(&sessionsGetYAML, "yaml", false, "Output raw API response as YAML")
 	sessionsGetCmd.Flags().BoolVar(&sessionsGetSummary, "summary", false,
 		"Render a compact, LLM-readable overview of the conversation (transcript + event tags)")
-	sessionsGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml")
+	sessionsGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml", "fields")
 	sessionsGetCmd.Flags().
 		StringVarP(&sessionsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	sessionsGetCmd.Flags().

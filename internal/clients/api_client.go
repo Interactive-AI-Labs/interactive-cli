@@ -355,23 +355,23 @@ func (c *APIClient) GetProjectByName(
 }
 
 type TraceInfo struct {
-	ID               string   `json:"id"`
-	Timestamp        string   `json:"timestamp"`
-	Name             string   `json:"name"`
-	SessionID        string   `json:"session_id"`
-	UserID           string   `json:"user_id"`
-	Release          string   `json:"release"`
-	Version          string   `json:"version"`
-	Public           bool     `json:"public"`
-	Environment      string   `json:"environment"`
-	Tags             []string `json:"tags"`
-	HtmlPath         string   `json:"html_path"`
-	LatencyMs        *float64 `json:"latency_ms"`
-	TotalCost        *float64 `json:"total_cost"`
-	ObservationCount *int     `json:"observation_count"`
-	InputTokens      *int     `json:"input_tokens"`
-	OutputTokens     *int     `json:"output_tokens"`
-	TotalTokens      *int     `json:"total_tokens"`
+	ID               string          `json:"id"`
+	Timestamp        string          `json:"timestamp"`
+	Name             string          `json:"name"`
+	SessionID        string          `json:"session_id"`
+	UserID           string          `json:"user_id"`
+	Release          string          `json:"release"`
+	Version          string          `json:"version"`
+	Public           bool            `json:"public"`
+	Environment      string          `json:"environment"`
+	Tags             []string        `json:"tags"`
+	HtmlPath         string          `json:"html_path"`
+	LatencyMs        *float64        `json:"latency_ms"`
+	TotalCost        *float64        `json:"total_cost"`
+	ObservationCount *int            `json:"observation_count"`
+	InputTokens      *int            `json:"input_tokens"`
+	OutputTokens     *int            `json:"output_tokens"`
+	TotalTokens      *int            `json:"total_tokens"`
 	Level            string          `json:"level"`
 	Input            json.RawMessage `json:"input,omitempty"`
 	Output           json.RawMessage `json:"output,omitempty"`
@@ -379,6 +379,10 @@ type TraceInfo struct {
 
 type TraceDetail struct {
 	TraceInfo
+	// Input and Output shadow the same-named fields promoted from the embedded
+	// TraceInfo. encoding/json and selector access both resolve to these
+	// outer fields; the TraceInfo IO fields are only populated by ListTraces
+	// with fields=...,io and are otherwise zero.
 	Input    json.RawMessage `json:"input"`
 	Output   json.RawMessage `json:"output"`
 	Metadata json.RawMessage `json:"metadata"`

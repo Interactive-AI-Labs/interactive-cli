@@ -370,7 +370,7 @@ func init() {
 	tracesGetCmd.Flags().BoolVar(&tracesGetYAML, "yaml", false, "Output raw API response as YAML")
 	tracesGetCmd.Flags().BoolVar(&tracesGetSummary, "summary", false,
 		"Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)")
-	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml")
+	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml", "fields")
 	tracesGetCmd.Flags().
 		StringVarP(&tracesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	tracesGetCmd.Flags().

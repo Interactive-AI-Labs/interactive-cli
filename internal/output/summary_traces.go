@@ -25,7 +25,11 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 	if strings.EqualFold(m.Level, "ERROR") {
 		header += " · ERROR"
 	}
-	header += fmt.Sprintf(" · %d iterations", len(m.Iterations))
+	iterNoun := "iterations"
+	if len(m.Iterations) == 1 {
+		iterNoun = "iteration"
+	}
+	header += fmt.Sprintf(" · %d %s", len(m.Iterations), iterNoun)
 	b.WriteString(header + "\n\n")
 
 	if m.Input != "" {
