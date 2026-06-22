@@ -18,6 +18,7 @@ iai sessions get <session-id> [flags]
   iai sessions get <session-id>
   iai sessions get <session-id> --fields core,traces
   iai sessions get <session-id> --json
+  iai sessions get <session-id> --summary
 ```
 
 ### Options
@@ -28,6 +29,7 @@ iai sessions get <session-id> [flags]
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
+      --summary               Render a compact, LLM-readable overview of the conversation (transcript + event tags)
       --yaml                  Output raw API response as YAML
 ```
 

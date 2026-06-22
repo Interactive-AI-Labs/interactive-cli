@@ -18,6 +18,7 @@ iai traces get <trace-id> [flags]
   iai traces get abc123
   iai traces get abc123 --fields core,io,metrics
   iai traces get abc123 --json | jq '.data.trace'
+  iai traces get abc123 --summary
 ```
 
 ### Options
@@ -28,6 +29,7 @@ iai traces get <trace-id> [flags]
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
+      --summary               Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)
       --yaml                  Output raw API response as YAML
 ```
 
