@@ -31,14 +31,11 @@ var (
 )
 
 const (
-	// sessionSummaryEpoch is the all-time lower bound for the session-summary
-	// trace fetch. The traces endpoint requires from_timestamp, but the
-	// session_id filter is the real scope, so we reach back to the Unix epoch
-	// to capture every turn regardless of age.
+	// The traces endpoint requires from_timestamp even when filtering by session_id.
+	// Use the Unix epoch so session summaries include every turn in the session.
 	sessionSummaryEpoch = "1970-01-01T00:00:00Z"
-	// sessionSummaryMaxPages caps the trace pagination for one session so a
-	// mis-reported TotalPages can never drive an unbounded request loop
-	// (100 traces/page => 5000 turns, far beyond any real conversation).
+	// Session summaries page through traces and trust TotalPages from the API.
+	// Cap pages so a bad response cannot trigger an unbounded fetch loop.
 	sessionSummaryMaxPages = 50
 )
 
@@ -150,31 +147,29 @@ Uses the platform API with dual authentication (API key or session).`,
 		}
 
 		if sessionsGetSummary {
-			var all []clients.TraceInfo
-			page := 1
-			for {
-				traces, meta, _, err := apiClient.ListTraces(
-					cmd.Context(), pCtx.orgId, pCtx.projectId,
-					clients.TraceListOptions{
-						SessionID:     sessionID,
-						FromTimestamp: sessionSummaryEpoch,
-						Fields:        "core,io",
-						Order:         "asc",
-						OrderBy:       "timestamp",
-						Limit:         100,
-						Page:          page,
-					},
-				)
-				if err != nil {
-					return err
-				}
-				all = append(all, traces...)
-				if meta.TotalPages <= page || len(traces) == 0 || page >= sessionSummaryMaxPages {
-					break
-				}
-				page++
+			all, err := apiClient.ListAllTraces(
+				cmd.Context(), pCtx.orgId, pCtx.projectId,
+				clients.TraceListOptions{
+					SessionID:     sessionID,
+					FromTimestamp: sessionSummaryEpoch,
+					Fields:        "core,io",
+					Order:         "asc",
+					OrderBy:       "timestamp",
+					Limit:         100,
+				},
+				sessionSummaryMaxPages,
+			)
+			if err != nil {
+				return err
 			}
-			return output.PrintSessionSummary(out, summary.SessionSummary(sessionID, all))
+			model := summary.SessionSummary(sessionID, all)
+			if sessionsGetJSON {
+				return output.PrintStructuredJSON(out, model)
+			}
+			if sessionsGetYAML {
+				return output.PrintStructuredYAML(out, model)
+			}
+			return output.PrintSessionSummary(out, model)
 		}
 
 		session, rawJSON, err := apiClient.GetSession(
@@ -233,7 +228,10 @@ func init() {
 		BoolVar(&sessionsGetYAML, "yaml", false, "Output raw API response as YAML")
 	sessionsGetCmd.Flags().BoolVar(&sessionsGetSummary, "summary", false,
 		"Render a compact, LLM-readable overview of the conversation (transcript + event tags)")
-	sessionsGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml", "fields")
+	// --summary picks the view; --json/--yaml pick the format; they compose.
+	// --fields stays incompatible with --summary, which needs fixed IO fields.
+	sessionsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	sessionsGetCmd.MarkFlagsMutuallyExclusive("summary", "fields")
 	sessionsGetCmd.Flags().
 		StringVarP(&sessionsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	sessionsGetCmd.Flags().

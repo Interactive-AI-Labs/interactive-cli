@@ -211,7 +211,14 @@ Uses the platform API with dual authentication (API key or session).`,
 			if err != nil {
 				return err
 			}
-			return output.PrintTraceSummary(out, summary.TraceSummary(trace, obs))
+			model := summary.TraceSummary(trace, obs)
+			if tracesGetJSON {
+				return output.PrintStructuredJSON(out, model)
+			}
+			if tracesGetYAML {
+				return output.PrintStructuredYAML(out, model)
+			}
+			return output.PrintTraceSummary(out, model)
 		}
 
 		trace, rawJSON, err := apiClient.GetTrace(
@@ -370,7 +377,10 @@ func init() {
 	tracesGetCmd.Flags().BoolVar(&tracesGetYAML, "yaml", false, "Output raw API response as YAML")
 	tracesGetCmd.Flags().BoolVar(&tracesGetSummary, "summary", false,
 		"Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)")
-	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "json", "yaml", "fields")
+	// --summary picks the view; --json/--yaml pick the format; they compose.
+	// --fields stays incompatible with --summary, which needs fixed IO fields.
+	tracesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "fields")
 	tracesGetCmd.Flags().
 		StringVarP(&tracesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	tracesGetCmd.Flags().

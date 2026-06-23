@@ -2,6 +2,7 @@ package summary
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
@@ -22,199 +23,238 @@ func obs(id, parent, typ, name, level, status string, in, out string) clients.Ob
 	return o
 }
 
-func TestTraceSummary_TwoIterations(t *testing.T) {
-	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{
-			Name:   "driveaway-agent",
-			Level:  "DEFAULT",
-			Input:  json.RawMessage(`"I want to rent a car for next weekend"`),
-			Output: json.RawMessage(`"[\"Great! We have 3 cars available...\"]"`),
-		},
+// assertJSON marshals got and compares it to wantJSON structurally (ignoring key
+// order and whitespace), so each case can state its expected summary model as the
+// JSON `--summary --json` would emit.
+func assertJSON(t *testing.T, got any, wantJSON string) {
+	t.Helper()
+	gotBytes, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("marshal got: %v", err)
 	}
-	observations := []clients.ObservationInfo{
-		obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
-		obs(
-			"mg1",
-			"it1",
-			"chain",
-			"match_guidelines",
-			"",
-			"",
-			"",
-			`{"matches":[{"condition":"Customer asks to rent a vehicle","score":9},{"condition":"No booking in progress","score":7}]}`,
-		),
-		obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
-		obs("t1", "ex1", "tool", "check_availability", "", "",
-			`"{\"dates\":\"next weekend\"}"`, `{"count":3}`),
-		obs("it2", "root", "chain", "preparation_iteration_2", "", "", "", ""),
-		obs("mg2", "it2", "chain", "match_guidelines", "", "",
-			"", `{"matches":[{"condition":"Pickup location not yet provided","score":8}]}`),
+	var gotV, wantV any
+	if err := json.Unmarshal(gotBytes, &gotV); err != nil {
+		t.Fatalf("unmarshal got: %v", err)
 	}
-
-	m := TraceSummary(trace, observations)
-
-	if m.Input != "I want to rent a car for next weekend" {
-		t.Fatalf("Input = %q", m.Input)
+	if err := json.Unmarshal([]byte(wantJSON), &wantV); err != nil {
+		t.Fatalf("bad wantJSON %q: %v", wantJSON, err)
 	}
-	if m.Reply != "Great! We have 3 cars available..." {
-		t.Fatalf("Reply = %q", m.Reply)
-	}
-	if len(m.Iterations) != 2 {
-		t.Fatalf("want 2 iterations, got %d", len(m.Iterations))
-	}
-	if got := m.Iterations[0].Conditions; len(got) != 2 ||
-		got[0].Text != "Customer asks to rent a vehicle" ||
-		got[0].Score != 9 {
-		t.Fatalf("iter1 conditions = %+v", got)
-	}
-	if got := m.Iterations[0].Tools; len(got) != 1 || got[0].Name != "check_availability" ||
-		got[0].Args != `dates="next weekend"` {
-		t.Fatalf("iter1 tools = %+v", got)
-	}
-	if len(m.Iterations[1].Tools) != 0 {
-		t.Fatalf("iter2 should have no tools, got %+v", m.Iterations[1].Tools)
+	if !reflect.DeepEqual(gotV, wantV) {
+		t.Fatalf("model mismatch\n got: %s\nwant: %s", gotBytes, wantJSON)
 	}
 }
 
-func TestTraceSummary_KnowledgeBase(t *testing.T) {
-	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{
-			Name:   "agent-chat",
-			Level:  "DEFAULT",
-			Input:  json.RawMessage(`"hi"`),
-			Output: json.RawMessage(`"[\"hello\"]"`),
+func TestTraceSummary(t *testing.T) {
+	cases := []struct {
+		name  string
+		trace *clients.TraceDetail
+		obs   []clients.ObservationInfo
+		want  string
+	}{
+		{
+			name: "two iterations with conditions and a tool",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name:   "driveaway-agent",
+				Level:  "DEFAULT",
+				Input:  json.RawMessage(`"I want to rent a car for next weekend"`),
+				Output: json.RawMessage(`"[\"Great! We have 3 cars available...\"]"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
+				obs(
+					"mg1",
+					"it1",
+					"chain",
+					"match_guidelines",
+					"",
+					"",
+					"",
+					`{"matches":[{"condition":"Customer asks to rent a vehicle","score":9},{"condition":"No booking in progress","score":7}]}`,
+				),
+				obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
+				obs("t1", "ex1", "tool", "check_availability", "", "",
+					`"{\"dates\":\"next weekend\"}"`, `{"count":3}`),
+				obs("it2", "root", "chain", "preparation_iteration_2", "", "", "", ""),
+				obs("mg2", "it2", "chain", "match_guidelines", "", "",
+					"", `{"matches":[{"condition":"Pickup location not yet provided","score":8}]}`),
+			},
+			want: `{
+				"name":"driveaway-agent","level":"DEFAULT",
+				"input":"I want to rent a car for next weekend",
+				"iterations":[
+					{"number":1,
+					 "conditions":[{"text":"Customer asks to rent a vehicle","score":9},{"text":"No booking in progress","score":7}],
+					 "tools":[{"name":"check_availability","args":{"dates":"next weekend"},"result":{"count":3}}]},
+					{"number":2,"conditions":[{"text":"Pickup location not yet provided","score":8}]}
+				],
+				"reply":"Great! We have 3 cars available..."
+			}`,
+		},
+		{
+			name: "titled knowledge-base retrieval at the root",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name:   "agent-chat",
+				Level:  "DEFAULT",
+				Input:  json.RawMessage(`"hi"`),
+				Output: json.RawMessage(`"[\"hello\"]"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs(
+					"kb",
+					"process",
+					"span",
+					"retriever:knowledge_base",
+					"",
+					"",
+					`{"customer_messages":["hi"],"customer_id":"1"}`,
+					`{"has_results":true,"article_count":2,"articles":[{"name":"Closing my account"},{"name":"Why was my account suspended"}]}`,
+				),
+				obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
+				// Per-iteration untitled vector search: its context-blob query must not leak.
+				obs("fs1", "it1", "span", "find_similar_documents", "", "",
+					`{"query":"{\"email\":\"a@b.c\",\"ticket_id\":\"99\"}"}`,
+					`[{"content":"doc body one"},{"content":"doc body two"}]`),
+			},
+			want: `{
+				"name":"agent-chat","level":"DEFAULT","input":"hi",
+				"knowledge_base":{"docs":["Closing my account","Why was my account suspended"],"count":2},
+				"iterations":[{"number":1}],
+				"reply":"hello"
+			}`,
+		},
+		{
+			name: "untitled knowledge-base retrieval reports count only",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name: "agent", Level: "DEFAULT", Input: json.RawMessage(`"hi"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
+				obs("fs1", "it1", "span", "find_similar_documents", "", "",
+					`{"query":"blob"}`, `[{"content":"a"},{"content":"b"},{"content":"c"}]`),
+			},
+			want: `{
+				"name":"agent","level":"DEFAULT","input":"hi",
+				"knowledge_base":{"count":3},
+				"iterations":[{"number":1}]
+			}`,
+		},
+		{
+			name: "condition whitespace normalized and tool envelope unwrapped",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name:  "agent-kyc",
+				Level: "DEFAULT",
+				Input: json.RawMessage(`"{\"step\":\"classify\"}"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
+				obs(
+					"mg1",
+					"it1",
+					"chain",
+					"match_guidelines",
+					"",
+					"",
+					"",
+					`{"matches":[{"condition":"Applicant data looks  PROBLEMATIC\n","score":10}]}`,
+				),
+				obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
+				obs(
+					"t1",
+					"ex1",
+					"tool",
+					"execute_thinking",
+					"",
+					"",
+					`{"step_id":"classify"}`,
+					`{"data":{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`,
+				),
+			},
+			want: `{
+				"name":"agent-kyc","level":"DEFAULT","input":"{\"step\":\"classify\"}",
+				"iterations":[{"number":1,
+					"conditions":[{"text":"Applicant data looks PROBLEMATIC","score":10}],
+					"tools":[{"name":"execute_thinking","args":{"step_id":"classify"},"result":{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}}}]}]
+			}`,
+		},
+		{
+			name: "tool error is captured at tool and trace level",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name: "agent", Level: "ERROR",
+				Input:  json.RawMessage(`"hi"`),
+				Output: json.RawMessage(`"[\"sorry\"]"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
+				obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
+				obs("t1", "ex1", "tool", "create_booking", "ERROR", "upstream 500",
+					`"{}"`, `{"ok":false}`),
+			},
+			want: `{
+				"name":"agent","level":"ERROR","input":"hi","reply":"sorry",
+				"iterations":[{"number":1,
+					"tools":[{"name":"create_booking","args":{},"result":{"ok":false},"errored":true,"error":"upstream 500"}]}],
+				"errors":["create_booking: upstream 500"]
+			}`,
+		},
+		{
+			name: "no observations still renders input and reply",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name: "agent", Level: "ERROR",
+				Input:  json.RawMessage(`"hi"`),
+				Output: json.RawMessage(`"[\"sorry\"]"`),
+			}},
+			obs:  nil,
+			want: `{"name":"agent","level":"ERROR","input":"hi","reply":"sorry"}`,
 		},
 	}
-	observations := []clients.ObservationInfo{
-		// Titled retriever lives at the root, emitted once for the turn.
-		obs(
-			"kb",
-			"process",
-			"span",
-			"retriever:knowledge_base",
-			"",
-			"",
-			`{"customer_messages":["hi"],"customer_id":"1"}`,
-			`{"has_results":true,"article_count":2,"articles":[{"name":"Closing my account"},{"name":"Why was my account suspended"}]}`,
-		),
-		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
-		// Per-iteration untitled vector searches: their context-blob query must NOT leak.
-		obs("fs1", "it1", "span", "find_similar_documents", "", "",
-			`{"query":"{\"email\":\"a@b.c\",\"ticket_id\":\"99\"}"}`,
-			`[{"content":"doc body one"},{"content":"doc body two"}]`),
-	}
 
-	m := TraceSummary(trace, observations)
-	if m.KB == nil {
-		t.Fatalf("expected KB summary")
-	}
-	if len(m.KB.Docs) != 2 || m.KB.Docs[0] != "Closing my account" ||
-		m.KB.Docs[1] != "Why was my account suspended" {
-		t.Fatalf("KB docs = %+v", m.KB.Docs)
-	}
-	if m.KB.Count != 2 {
-		t.Fatalf("KB count = %d, want 2", m.KB.Count)
-	}
-}
-
-func TestTraceSummary_KnowledgeBaseUntitled(t *testing.T) {
-	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{
-			Name:  "agent",
-			Level: "DEFAULT",
-			Input: json.RawMessage(`"hi"`),
-		},
-	}
-	observations := []clients.ObservationInfo{
-		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
-		obs("fs1", "it1", "span", "find_similar_documents", "", "",
-			`{"query":"blob"}`, `[{"content":"a"},{"content":"b"},{"content":"c"}]`),
-	}
-	m := TraceSummary(trace, observations)
-	if m.KB == nil || len(m.KB.Docs) != 0 || m.KB.Count != 3 {
-		t.Fatalf("untitled KB = %+v", m.KB)
-	}
-}
-
-func TestTraceSummary_ConditionNormalizedAndToolEnvelope(t *testing.T) {
-	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{
-			Name:  "agent-kyc",
-			Level: "DEFAULT",
-			Input: json.RawMessage(`"{\"step\":\"classify\"}"`),
-		},
-	}
-	observations := []clients.ObservationInfo{
-		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
-		obs("mg1", "it1", "chain", "match_guidelines", "", "",
-			"", `{"matches":[{"condition":"Applicant data looks  PROBLEMATIC\n","score":10}]}`),
-		obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
-		obs(
-			"t1",
-			"ex1",
-			"tool",
-			"execute_thinking",
-			"",
-			"",
-			`{"step_id":"classify"}`,
-			`{"data":{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`,
-		),
-	}
-	m := TraceSummary(trace, observations)
-	if len(m.Iterations) != 1 {
-		t.Fatalf("iterations = %+v", m.Iterations)
-	}
-	cond := m.Iterations[0].Conditions
-	if len(cond) != 1 || cond[0].Text != "Applicant data looks PROBLEMATIC" {
-		t.Fatalf("condition not whitespace-normalized: %+v", cond)
-	}
-	tool := m.Iterations[0].Tools
-	if len(tool) != 1 || tool[0].Result != `{"ok":true,"output":{"doc_type":"RENT_RECEIPT"}}` {
-		t.Fatalf("tool result envelope not unwrapped: %+v", tool)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertJSON(t, TraceSummary(tc.trace, tc.obs), tc.want)
+		})
 	}
 }
 
 func TestUnwrapToolResult(t *testing.T) {
-	// The engine envelope collapses to just its data payload.
-	env := `{"data":{"ok":true,"value":3},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`
-	got := CompactJSON(UnwrapToolResult(json.RawMessage(env)))
-	if got != `{"ok":true,"value":3}` {
-		t.Fatalf("envelope unwrap = %q", got)
+	cases := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{
+			"envelope collapses to data",
+			`{"data":{"ok":true,"value":3},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`,
+			`{"ok":true,"value":3}`,
+		},
+		{
+			"string-wrapped envelope",
+			`"{\"data\":{\"x\":1},\"metadata\":{},\"control\":{}}"`,
+			`{"x":1}`,
+		},
+		{
+			"unexpected sibling passes through",
+			`{"data":{"x":1},"other":true}`,
+			`{"data":{"x":1},"other":true}`,
+		},
+		{"no data key passes through", `{"count":3}`, `{"count":3}`},
+		{"non-object passes through", `[1,2]`, `[1,2]`},
 	}
-	// String-wrapped envelope also unwraps.
-	got = CompactJSON(
-		UnwrapToolResult(json.RawMessage(`"{\"data\":{\"x\":1},\"metadata\":{},\"control\":{}}"`)),
-	)
-	if got != `{"x":1}` {
-		t.Fatalf("string-wrapped envelope unwrap = %q", got)
-	}
-	// A plain object with an unexpected sibling is left untouched.
-	plain := `{"data":{"x":1},"other":true}`
-	if got := CompactJSON(
-		UnwrapToolResult(json.RawMessage(plain)),
-	); got != `{"data":{"x":1},"other":true}` {
-		t.Fatalf("non-envelope should pass through, got %q", got)
-	}
-	// A value with no data key passes through.
-	if got := CompactJSON(UnwrapToolResult(json.RawMessage(`{"count":3}`))); got != `{"count":3}` {
-		t.Fatalf("no-data passthrough = %q", got)
-	}
-	// A non-object passes through.
-	if got := CompactJSON(UnwrapToolResult(json.RawMessage(`[1,2]`))); got != `[1,2]` {
-		t.Fatalf("array passthrough = %q", got)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := CompactJSON(UnwrapToolResult(json.RawMessage(tc.raw)))
+			if got != tc.want {
+				t.Fatalf("UnwrapToolResult(%s) = %q, want %q", tc.raw, got, tc.want)
+			}
+		})
 	}
 }
 
 func TestTraceSummary_CyclicGraph(t *testing.T) {
-	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{
-			Name:  "agent",
-			Level: "DEFAULT",
-			Input: json.RawMessage(`"hi"`),
-		},
-	}
-	// Malformed tree: an iteration whose subtree contains a parent cycle
-	// (a -> b -> a) plus a self-reference (c -> c). Must not loop forever.
+	trace := &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+		Name: "agent", Level: "DEFAULT", Input: json.RawMessage(`"hi"`),
+	}}
+	// Malformed tree: a subtree with a parent cycle (a -> b -> a) and a
+	// self-reference (c -> c). The summary must terminate without panic.
 	observations := []clients.ObservationInfo{
 		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
 		obs("a", "it1", "span", "node_a", "", "", "", ""),
@@ -233,40 +273,5 @@ func TestTraceSummary_CyclicGraph(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("TraceSummary did not terminate on a cyclic observation graph")
-	}
-}
-
-func TestTraceSummary_ToolErrorAndNoObservations(t *testing.T) {
-	trace := &clients.TraceDetail{
-		TraceInfo: clients.TraceInfo{
-			Name:   "agent",
-			Level:  "ERROR",
-			Input:  json.RawMessage(`"hi"`),
-			Output: json.RawMessage(`"[\"sorry\"]"`),
-		},
-	}
-	// tool error
-	observations := []clients.ObservationInfo{
-		obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
-		obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
-		obs("t1", "ex1", "tool", "create_booking", "ERROR", "upstream 500",
-			`"{}"`, `{"ok":false}`),
-	}
-	m := TraceSummary(trace, observations)
-	if len(m.Iterations) != 1 || len(m.Iterations[0].Tools) != 1 {
-		t.Fatalf("iterations = %+v", m.Iterations)
-	}
-	tc := m.Iterations[0].Tools[0]
-	if !tc.Errored || tc.ErrMsg != "upstream 500" {
-		t.Fatalf("tool err = %+v", tc)
-	}
-	if len(m.Errors) == 0 {
-		t.Fatalf("expected trace-level Errors collected")
-	}
-
-	// no observations: still renders input + reply, zero iterations
-	m2 := TraceSummary(trace, nil)
-	if m2.Input != "hi" || m2.Reply != "sorry" || len(m2.Iterations) != 0 {
-		t.Fatalf("empty-obs summary = %+v", m2)
 	}
 }

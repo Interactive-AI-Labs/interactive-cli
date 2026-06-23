@@ -379,9 +379,8 @@ type TraceInfo struct {
 
 type TraceDetail struct {
 	TraceInfo
-	// Input/Output are inherited from the embedded TraceInfo (json tags
-	// "input"/"output"); the trace GET endpoint populates them there. Only
-	// Metadata is unique to the detail view.
+	// TraceDetail embeds TraceInfo, which already carries input/output fields.
+	// Keep only fields unique to the detail endpoint here.
 	Metadata json.RawMessage `json:"metadata"`
 }
 
@@ -688,6 +687,31 @@ func (c *APIClient) ListTraces(
 		return nil, TraceMeta{}, nil, err
 	}
 	return data.Traces, data.Meta, raw, nil
+}
+
+// ListAllTraces fetches every page of traces matching opts, concatenating the
+// results. It stops at the API's reported last page, an empty page, or maxPages
+// (a guard so a mis-reported TotalPages cannot drive an unbounded request loop).
+// The caller owns the query (session_id, fields, order, limit); this only pages.
+func (c *APIClient) ListAllTraces(
+	ctx context.Context,
+	orgID, projectID string,
+	opts TraceListOptions,
+	maxPages int,
+) ([]TraceInfo, error) {
+	var all []TraceInfo
+	for page := 1; page <= maxPages; page++ {
+		opts.Page = page
+		traces, meta, _, err := c.ListTraces(ctx, orgID, projectID, opts)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, traces...)
+		if meta.TotalPages <= page || len(traces) == 0 {
+			break
+		}
+	}
+	return all, nil
 }
 
 // GetTrace retrieves a single trace from the platform API.

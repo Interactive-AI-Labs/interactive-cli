@@ -2,19 +2,7 @@ package summary
 
 import (
 	"encoding/json"
-	"fmt"
-	"math"
-	"sort"
 	"strings"
-)
-
-const (
-	// MaxValueLen caps tool args/results and trace input/reply.
-	MaxValueLen = 500
-	// MaxSessionMsgLen caps per-turn messages in the session (overview) view.
-	MaxSessionMsgLen = 160
-	// MaxKBTitleLen caps an individual retrieved knowledge-base document title.
-	MaxKBTitleLen = 80
 )
 
 // UnwrapJSON removes one layer of JSON-string wrapping if the raw value is a
@@ -74,62 +62,6 @@ func CompactJSON(raw json.RawMessage) string {
 		return string(raw)
 	}
 	return string(b)
-}
-
-// CompactArgs renders tool arguments as `k=v, k=v` (keys sorted) for a flat
-// object, falling back to compact JSON for anything else.
-func CompactArgs(raw json.RawMessage) string {
-	obj := UnwrapJSON(raw)
-	var m map[string]any
-	if err := json.Unmarshal(obj, &m); err != nil {
-		return CompactJSON(obj)
-	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	parts := make([]string, 0, len(keys))
-	for _, k := range keys {
-		parts = append(parts, fmt.Sprintf("%s=%s", k, formatValue(m[k])))
-	}
-	return strings.Join(parts, ", ")
-}
-
-// formatValue renders a decoded JSON value compactly: quoted strings, integers
-// without trailing zeros, and compact JSON for arrays/objects.
-func formatValue(v any) string {
-	switch t := v.(type) {
-	case string:
-		return fmt.Sprintf("%q", t)
-	case float64:
-		// JSON numbers decode to float64; print integers without trailing zeros.
-		// Guard the int64 conversion: out-of-range floats overflow undefined.
-		if t == math.Trunc(t) && t >= math.MinInt64 && t <= math.MaxInt64 {
-			return fmt.Sprintf("%d", int64(t))
-		}
-		return fmt.Sprintf("%g", t)
-	case nil:
-		return "null"
-	default:
-		b, _ := json.Marshal(t)
-		return string(b)
-	}
-}
-
-// Truncate trims whitespace and caps s to max runes, appending a marker.
-func Truncate(s string, max int) string {
-	s = strings.TrimSpace(s)
-	// Byte length is an upper bound on rune count, so a short string needs no
-	// rune conversion (the common case for ASCII content).
-	if len(s) <= max {
-		return s
-	}
-	r := []rune(s)
-	if len(r) <= max {
-		return s
-	}
-	return string(r[:max]) + "… (truncated)"
 }
 
 // CollapseWS collapses all runs of whitespace (incl. newlines) to single spaces.

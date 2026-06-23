@@ -8,6 +8,25 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
+// Turn is one back-and-forth within a session.
+type Turn struct {
+	Number   int      `json:"number"`
+	Customer string   `json:"customer,omitempty"`
+	Agent    string   `json:"agent,omitempty"`
+	Tools    []string `json:"tools,omitempty"`
+	Journeys []string `json:"journeys,omitempty"`
+}
+
+// SessionSummaryModel is the overall view of a conversation (one session).
+type SessionSummaryModel struct {
+	ID        string   `json:"id"`
+	Agent     string   `json:"agent,omitempty"`
+	TurnCount int      `json:"turn_count"`
+	Duration  string   `json:"duration,omitempty"`
+	Cost      *float64 `json:"cost,omitempty"`
+	Turns     []Turn   `json:"turns,omitempty"`
+}
+
 // SessionSummary builds the conversation overview from a session's traces
 // (one trace per turn). Traces are ordered by timestamp ascending.
 func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummaryModel {
@@ -30,8 +49,8 @@ func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummar
 		}
 		turn := Turn{
 			Number:   i + 1,
-			Customer: Truncate(CollapseWS(AsString(tr.Input)), MaxSessionMsgLen),
-			Agent:    Truncate(CollapseWS(AsString(tr.Output)), MaxSessionMsgLen),
+			Customer: CollapseWS(AsString(tr.Input)),
+			Agent:    CollapseWS(AsString(tr.Output)),
 		}
 		for _, tag := range tr.Tags {
 			switch {
@@ -40,8 +59,9 @@ func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummar
 			case strings.HasPrefix(tag, "routine:"):
 				turn.Journeys = append(turn.Journeys, strings.TrimPrefix(tag, "routine:"))
 			case strings.HasPrefix(tag, "agent:"):
-				// A session can carry more than one agent (e.g. a shadow/dev
-				// deployment logging alongside production); surface them all.
+				// Session traces can include multiple agent tags, such as prod
+				// and shadow/dev. Surface all distinct agents instead of picking
+				// one arbitrarily.
 				if a := strings.TrimPrefix(tag, "agent:"); a != "" && !agentSeen[a] {
 					agentSeen[a] = true
 					agents = append(agents, a)
@@ -73,6 +93,5 @@ func sessionDuration(sorted []clients.TraceInfo) string {
 }
 
 func parseTS(s string) (time.Time, error) {
-	// RFC3339Nano also parses plain RFC3339 — the fractional seconds are optional.
 	return time.Parse(time.RFC3339Nano, s)
 }

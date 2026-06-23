@@ -36,7 +36,13 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 	}
 
 	for _, turn := range m.Turns {
-		b.WriteString(fmt.Sprintf("Turn %-3d Customer: %s\n", turn.Number, turn.Customer))
+		b.WriteString(
+			fmt.Sprintf(
+				"Turn %-3d Customer: %s\n",
+				turn.Number,
+				truncateValue(turn.Customer, maxSessionMsgLen),
+			),
+		)
 
 		var tags []string
 		if len(turn.Tools) > 0 {
@@ -49,8 +55,8 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 			b.WriteString(sessionIndent + strings.Join(tags, " ") + "\n")
 		}
 
-		if turn.Agent != "" {
-			b.WriteString(sessionIndent + "Agent: " + turn.Agent + "\n")
+		if agent := truncateValue(turn.Agent, maxSessionMsgLen); agent != "" {
+			b.WriteString(sessionIndent + "Agent: " + agent + "\n")
 		}
 	}
 

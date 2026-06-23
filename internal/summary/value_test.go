@@ -19,8 +19,7 @@ func TestAsString(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := AsString(json.RawMessage(tc.raw))
-			if got != tc.want {
+			if got := AsString(json.RawMessage(tc.raw)); got != tc.want {
 				t.Fatalf("AsString(%s) = %q, want %q", tc.raw, got, tc.want)
 			}
 		})
@@ -28,32 +27,38 @@ func TestAsString(t *testing.T) {
 }
 
 func TestUnwrapJSON(t *testing.T) {
-	// A JSON string whose content is a JSON object must unwrap to the object.
-	got := UnwrapJSON(json.RawMessage(`"{\"a\":1}"`))
-	var m map[string]int
-	if err := json.Unmarshal(got, &m); err != nil || m["a"] != 1 {
-		t.Fatalf("UnwrapJSON did not unwrap string-wrapped object: %s (err %v)", got, err)
+	cases := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{"string-wrapped object unwraps", `"{\"a\":1}"`, `{"a":1}`},
+		{"native object passes through", `{"b":2}`, `{"b":2}`},
+		{"plain string re-encodes as json string", `"hello"`, `"hello"`},
+		{"non-string value passes through", `5`, `5`},
 	}
-	// A native object passes through.
-	got = UnwrapJSON(json.RawMessage(`{"b":2}`))
-	if err := json.Unmarshal(got, &m); err != nil || m["b"] != 2 {
-		t.Fatalf("UnwrapJSON mangled native object: %s", got)
-	}
-}
-
-func TestTruncateRuneSafe(t *testing.T) {
-	if got := Truncate("  abcdef  ", 3); got != "abc… (truncated)" {
-		t.Fatalf("Truncate = %q", got)
-	}
-	if got := Truncate("héllo", 10); got != "héllo" {
-		t.Fatalf("Truncate short = %q", got)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := string(UnwrapJSON(json.RawMessage(tc.raw))); got != tc.want {
+				t.Fatalf("UnwrapJSON(%s) = %s, want %s", tc.raw, got, tc.want)
+			}
+		})
 	}
 }
 
-func TestCompactArgs(t *testing.T) {
-	got := CompactArgs(json.RawMessage(`"{\"dates\":\"next weekend\",\"qty\":2}"`))
-	// keys sorted, k=v form
-	if got != `dates="next weekend", qty=2` {
-		t.Fatalf("CompactArgs = %q", got)
+func TestCollapseWS(t *testing.T) {
+	cases := []struct {
+		name, in, want string
+	}{
+		{"newlines and runs collapse", "a  b\n\tc", "a b c"},
+		{"trimmed", "  x  ", "x"},
+		{"empty", "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := CollapseWS(tc.in); got != tc.want {
+				t.Fatalf("CollapseWS(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
 	}
 }

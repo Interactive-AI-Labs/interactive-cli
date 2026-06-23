@@ -1,3 +1,6 @@
+// Package summary turns raw trace/observation data into compact, LLM-readable
+// summary models. It performs no I/O and no rendering: the models carry full
+// untruncated data, and the output layer decides how to format and truncate it.
 package summary
 
 import (
@@ -10,6 +13,48 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
+// Condition is a guideline whose condition matched ("marked true") in a turn.
+type Condition struct {
+	Text  string `json:"text"`
+	Score int    `json:"score"`
+}
+
+// ToolCall is a single tool invocation within an iteration.
+type ToolCall struct {
+	Name    string          `json:"name"`
+	Args    json.RawMessage `json:"args,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
+	Errored bool            `json:"errored,omitempty"`
+	ErrMsg  string          `json:"error,omitempty"`
+}
+
+// Iteration is one engine preparation iteration within a turn.
+type Iteration struct {
+	Number     int         `json:"number"`
+	Conditions []Condition `json:"conditions,omitempty"`
+	Tools      []ToolCall  `json:"tools,omitempty"`
+}
+
+// KBRetrieval summarizes knowledge-base documents retrieved during a turn.
+type KBRetrieval struct {
+	Docs  []string `json:"docs,omitempty"`
+	Count int      `json:"count"`
+}
+
+// TraceSummaryModel is the compact view of a single turn (one trace).
+type TraceSummaryModel struct {
+	Name       string       `json:"name"`
+	Timestamp  string       `json:"timestamp,omitempty"`
+	LatencyMs  *float64     `json:"latency_ms,omitempty"`
+	Cost       *float64     `json:"cost,omitempty"`
+	Level      string       `json:"level,omitempty"`
+	Input      string       `json:"input,omitempty"`
+	KB         *KBRetrieval `json:"knowledge_base,omitempty"`
+	Iterations []Iteration  `json:"iterations,omitempty"`
+	Reply      string       `json:"reply,omitempty"`
+	Errors     []string     `json:"errors,omitempty"`
+}
+
 // Observation span names the engine emits, matched when walking a turn's tree.
 const (
 	spanMatchGuidelines  = "match_guidelines"
@@ -18,12 +63,10 @@ const (
 	spanFindSimilarDocs  = "find_similar_documents"
 )
 
-// iterationNameRe matches the engine's per-iteration span names — part of the
-// same engine contract as the span-name constants above.
 var iterationNameRe = regexp.MustCompile(`^preparation_iteration_(\d+)$`)
 
-// parlantEnvelopeKeys are the sibling keys the engine wraps every tool result in,
-// alongside the meaningful "data" payload.
+// Tool results are wrapped with engine metadata siblings around data.
+// Treat only known siblings as an envelope so real payload fields are preserved.
 var parlantEnvelopeKeys = map[string]bool{
 	"metadata":               true,
 	"control":                true,
@@ -32,10 +75,8 @@ var parlantEnvelopeKeys = map[string]bool{
 	"guidelines":             true,
 }
 
-// UnwrapToolResult collapses the engine's tool-result envelope
-// ({"data":…,"metadata":{},"control":{},"canned_responses":[],…}) down to its
-// "data" payload. Any value that is not exactly that envelope shape passes
-// through unchanged (after one layer of JSON-string unwrapping).
+// UnwrapToolResult returns the engine envelope's "data" payload when the wrapper
+// shape is known, and passes any other value through unchanged.
 func UnwrapToolResult(raw json.RawMessage) json.RawMessage {
 	inner := UnwrapJSON(raw)
 	var obj map[string]json.RawMessage
@@ -61,9 +102,7 @@ type matchOutput struct {
 	} `json:"matches"`
 }
 
-// TraceSummary reconstructs the observation tree for one turn and extracts the
-// per-iteration conditions and tools, the turn's knowledge-base retrieval, the
-// agent reply, and any errors.
+// TraceSummary builds a compact turn summary from trace observations.
 func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *TraceSummaryModel {
 	m := &TraceSummaryModel{
 		Name:      trace.Name,
@@ -71,12 +110,10 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		LatencyMs: trace.LatencyMs,
 		Cost:      trace.TotalCost,
 		Level:     trace.Level,
-		Input:     Truncate(AsString(trace.Input), MaxValueLen),
-		Reply:     Truncate(AsString(trace.Output), MaxValueLen),
+		Input:     AsString(trace.Input),
+		Reply:     AsString(trace.Output),
 	}
 
-	// Single pass over obs: build the parent->children index, collect
-	// error spans, and gather iteration nodes (sorted afterward by suffix).
 	type iterNode struct {
 		num int
 		id  string
@@ -102,13 +139,10 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 	for _, it := range iters {
 		iteration := Iteration{Number: it.num}
 
-		// Conditions are aggregated across all match_guidelines spans in the
-		// subtree and deduped by text (highest score wins, first-seen order).
+		// Keep first-seen condition order and the highest score per condition.
 		condScore := map[string]int{}
 		var condOrder []string
 
-		// One pass over the iteration subtree, dispatching by span name.
-		// Knowledge-base retrieval is summarized at the turn level (see below).
 		for _, d := range descendants(children, it.id) {
 			switch d.Name {
 			case spanMatchGuidelines:
@@ -120,8 +154,8 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 					continue
 				}
 				for _, mm := range mo.Matches {
-					// Guideline text can carry raw newlines and run very long;
-					// normalize whitespace so it dedupes and reads on one line.
+					// Guideline text can carry raw newlines; normalize whitespace
+					// so it dedupes cleanly.
 					cond := CollapseWS(mm.Condition)
 					if cond == "" {
 						continue
@@ -134,12 +168,11 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 					}
 				}
 			case spanExecuteToolCalls:
-				// Tools are the direct children of execute_tool_calls.
 				for _, tool := range children[d.ID] {
 					tc := ToolCall{
 						Name:   tool.Name,
-						Args:   Truncate(CompactArgs(tool.Input), MaxValueLen),
-						Result: Truncate(CompactJSON(UnwrapToolResult(tool.Output)), MaxValueLen),
+						Args:   rawOrNil(UnwrapJSON(tool.Input)),
+						Result: rawOrNil(UnwrapToolResult(tool.Output)),
 					}
 					if strings.EqualFold(tool.Level, "ERROR") {
 						tc.Errored = true
@@ -156,7 +189,7 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		for _, c := range condOrder {
 			iteration.Conditions = append(
 				iteration.Conditions,
-				Condition{Text: Truncate(c, MaxValueLen), Score: condScore[c]},
+				Condition{Text: c, Score: condScore[c]},
 			)
 		}
 
@@ -167,10 +200,8 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 	return m
 }
 
-// knowledgeBase summarizes the turn's knowledge-base retrievals across the whole
-// observation tree (not just inside iterations): the engine emits the titled
-// retriever:knowledge_base span at the root, while per-iteration
-// find_similar_documents spans carry only untitled content.
+// KB retrievals can appear as titled curated results or untitled vector hits.
+// Preserve titles when present; otherwise report only the retrieved count.
 func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 	var titles []string
 	seen := map[string]bool{}
@@ -190,7 +221,7 @@ func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 			continue
 		}
 		for _, t := range ts {
-			t = Truncate(CollapseWS(t), MaxKBTitleLen)
+			t = CollapseWS(t)
 			if t != "" && !seen[t] {
 				seen[t] = true
 				titles = append(titles, t)
@@ -203,8 +234,8 @@ func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 	if !used {
 		return nil
 	}
-	// The curated retriever result is the high-signal "which docs came back";
-	// untitled find_similar plumbing only sets a count when nothing curated ran.
+	// Curated retriever results identify the documents shown to the agent.
+	// Use raw vector-search counts only when no titled result exists.
 	kb := &KBRetrieval{Docs: titles}
 	if len(titles) > 0 {
 		kb.Count = max(curatedCount, len(titles))
@@ -214,10 +245,8 @@ func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 	return kb
 }
 
-// kbDocsFromOutput extracts retrieved-document titles and a document count from a
-// KB span's output, handling both the retriever:knowledge_base object shape
-// ({"articles":[{"name":…}],"article_count":N}) and the find_similar_documents
-// array shape ([{…}], usually untitled).
+// KB spans use different JSON shapes depending on the retrieval path.
+// Extract titles from curated results and counts from raw vector hits.
 func kbDocsFromOutput(raw json.RawMessage) (titles []string, count int) {
 	if len(raw) == 0 {
 		return nil, 0
@@ -243,8 +272,8 @@ func kbDocsFromOutput(raw json.RawMessage) (titles []string, count int) {
 		return titles, count
 	}
 
-	// find_similar_documents shape: a raw array of vector-search hits. These are
-	// plumbing (technical doc ids/synonyms), not the curated result — count only.
+	// Raw vector-search hits do not include useful display titles.
+	// Count them, but do not expose technical document payloads.
 	var arr []json.RawMessage
 	if json.Unmarshal(out, &arr) == nil {
 		return nil, len(arr)
@@ -253,12 +282,8 @@ func kbDocsFromOutput(raw json.RawMessage) (titles []string, count int) {
 	return nil, 0
 }
 
-// descendants returns all transitive children of id (excluding id itself).
-// Immediate children are returned in API order; deeper subtrees are visited
-// DFS/LIFO, so grandchildren ordering across sibling subtrees is not stable.
-// Callers that need per-node ordering (e.g. tool calls) read a node's direct
-// children instead of relying on this order. The seen map guards against cycles
-// in malformed trees.
+// Observation parent links can be malformed or cyclic.
+// Track seen nodes so summary generation always terminates.
 func descendants(
 	children map[string][]clients.ObservationInfo,
 	id string,
@@ -279,4 +304,12 @@ func descendants(
 		}
 	}
 	return out
+}
+
+// rawOrNil normalizes an empty raw message to nil so it omits from JSON output.
+func rawOrNil(r json.RawMessage) json.RawMessage {
+	if len(r) == 0 {
+		return nil
+	}
+	return r
 }
