@@ -34,7 +34,7 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 	)
 	b.WriteString(header + "\n\n")
 
-	if input := truncateValue(m.Input, maxValueLen); input != "" {
+	if input := strings.TrimSpace(m.Input); input != "" {
 		b.WriteString("Customer: " + input + "\n\n")
 	}
 
@@ -48,18 +48,17 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 			b.WriteString("  Conditions met:\n")
 			for _, c := range it.Conditions {
 				b.WriteString(
-					fmt.Sprintf("    ✓ %s (%d)\n", truncateValue(c.Text, maxValueLen), c.Score),
+					fmt.Sprintf("    ✓ %s (%d)\n", c.Text, c.Score),
 				)
 			}
 		}
 		if len(it.Tools) > 0 {
 			b.WriteString("  Tools called:\n")
 			for _, tc := range it.Tools {
-				args := truncateValue(compactArgs(tc.Args), maxValueLen)
-				line := fmt.Sprintf("    → %s(%s)", tc.Name, args)
+				line := fmt.Sprintf("    → %s(%s)", tc.Name, compactArgs(tc.Args))
 				if tc.Errored {
 					line += " → ERROR: " + tc.ErrMsg
-				} else if result := truncateValue(summary.CompactJSON(tc.Result), maxValueLen); result != "" {
+				} else if result := summary.CompactJSON(tc.Result); result != "" {
 					line += " → " + result
 				}
 				b.WriteString(line + "\n")
@@ -69,7 +68,7 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 		}
 	}
 
-	if reply := truncateValue(m.Reply, maxValueLen); reply != "" {
+	if reply := strings.TrimSpace(m.Reply); reply != "" {
 		b.WriteString("\nAgent: " + reply + "\n")
 	}
 
@@ -94,9 +93,9 @@ func formatKB(kb *summary.KBRetrieval) string {
 	if len(kb.Docs) > 0 {
 		quoted := make([]string, len(kb.Docs))
 		for i, d := range kb.Docs {
-			quoted[i] = fmt.Sprintf("%q", truncateValue(d, maxKBTitleLen))
+			quoted[i] = fmt.Sprintf("%q", d)
 		}
-		return fmt.Sprintf("%d %s retrieved — %s", kb.Count, noun, TruncateList(quoted, 6))
+		return fmt.Sprintf("%d %s retrieved — %s", kb.Count, noun, strings.Join(quoted, ", "))
 	}
 	return fmt.Sprintf("%d %s retrieved", kb.Count, noun)
 }

@@ -40,7 +40,7 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 			fmt.Sprintf(
 				"Turn %-3d Customer: %s\n",
 				turn.Number,
-				truncateValue(turn.Customer, maxSessionMsgLen),
+				strings.TrimSpace(turn.Customer),
 			),
 		)
 
@@ -55,7 +55,7 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 			b.WriteString(sessionIndent + strings.Join(tags, " ") + "\n")
 		}
 
-		if agent := truncateValue(turn.Agent, maxSessionMsgLen); agent != "" {
+		if agent := strings.TrimSpace(turn.Agent); agent != "" {
 			b.WriteString(sessionIndent + "Agent: " + agent + "\n")
 		}
 	}

@@ -5,26 +5,6 @@ import (
 	"testing"
 )
 
-func TestTruncateValue(t *testing.T) {
-	cases := []struct {
-		name string
-		in   string
-		max  int
-		want string
-	}{
-		{"trims and truncates with marker", "  abcdef  ", 3, "abc… (truncated)"},
-		{"short multibyte string untouched", "héllo", 10, "héllo"},
-		{"exact length untouched", "abc", 3, "abc"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := truncateValue(tc.in, tc.max); got != tc.want {
-				t.Fatalf("truncateValue(%q, %d) = %q, want %q", tc.in, tc.max, got, tc.want)
-			}
-		})
-	}
-}
-
 func TestCompactArgs(t *testing.T) {
 	cases := []struct {
 		name string
