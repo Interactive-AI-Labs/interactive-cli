@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -53,6 +54,10 @@ var (
 	tracesDeleteForce   bool
 	tracesDeleteOrg     string
 	tracesDeleteProject string
+	tracesDiffJSON      bool
+	tracesDiffYAML      bool
+	tracesDiffOrg       string
+	tracesDiffProject   string
 )
 
 var tracesCmd = &cobra.Command{
@@ -240,6 +245,65 @@ Uses the platform API with dual authentication (API key or session).`,
 	},
 }
 
+var tracesDiffCmd = &cobra.Command{
+	Use:   "diff <trace-id-a> <trace-id-b>",
+	Short: "Compare two turns and show where their decision paths diverge",
+	Long: `Compare two traces side by side: routine activations, tools called, and the
+per-iteration journey decision path. Highlights the iteration where the agents
+selected different routine follow-ups — i.e. where their behavior diverged.
+
+Uses the platform API with dual authentication (API key or session).`,
+	Example: `  iai traces diff abc123 def456
+  iai traces diff abc123 def456 --json | jq '.journey'`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		idA := strings.TrimSpace(args[0])
+		idB := strings.TrimSpace(args[1])
+
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), tracesDiffOrg, tracesDiffProject)
+		if err != nil {
+			return err
+		}
+
+		a, err := traceSummaryFor(cmd.Context(), apiClient, pCtx.orgId, pCtx.projectId, idA)
+		if err != nil {
+			return err
+		}
+		b, err := traceSummaryFor(cmd.Context(), apiClient, pCtx.orgId, pCtx.projectId, idB)
+		if err != nil {
+			return err
+		}
+
+		model := summary.TraceDiff(idA, a, idB, b)
+		if tracesDiffJSON {
+			return output.PrintStructuredJSON(out, model)
+		}
+		if tracesDiffYAML {
+			return output.PrintStructuredYAML(out, model)
+		}
+		return output.PrintTraceDiff(out, model)
+	},
+}
+
+// traceSummaryFor fetches a trace plus its observations and builds the summary
+// model the diff compares.
+func traceSummaryFor(
+	ctx context.Context,
+	apiClient *clients.APIClient,
+	orgID, projectID, traceID string,
+) (*summary.TraceSummaryModel, error) {
+	trace, _, err := apiClient.GetTrace(ctx, orgID, projectID, traceID, "core,io,metrics")
+	if err != nil {
+		return nil, err
+	}
+	obs, _, err := apiClient.ListObservations(ctx, orgID, projectID, traceID, true)
+	if err != nil {
+		return nil, err
+	}
+	return summary.TraceSummary(trace, obs), nil
+}
+
 var tracesDeleteCmd = &cobra.Command{
 	Use:     "delete [trace-id]",
 	Aliases: []string{"rm"},
@@ -395,6 +459,14 @@ func init() {
 	tracesDeleteCmd.Flags().
 		StringVarP(&tracesDeleteProject, "project", "p", "", "Project name")
 
-	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd, tracesDeleteCmd)
+	tracesDiffCmd.Flags().BoolVar(&tracesDiffJSON, "json", false, "Output the diff as JSON")
+	tracesDiffCmd.Flags().BoolVar(&tracesDiffYAML, "yaml", false, "Output the diff as YAML")
+	tracesDiffCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	tracesDiffCmd.Flags().
+		StringVarP(&tracesDiffOrg, "organization", "o", "", "Organization name that owns the project")
+	tracesDiffCmd.Flags().
+		StringVarP(&tracesDiffProject, "project", "p", "", "Project name")
+
+	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd, tracesDiffCmd, tracesDeleteCmd)
 	rootCmd.AddCommand(tracesCmd)
 }
