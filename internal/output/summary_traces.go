@@ -48,7 +48,7 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 			b.WriteString("  Conditions met:\n")
 			for _, c := range it.Conditions {
 				b.WriteString(
-					fmt.Sprintf("    ✓ %s (%d)\n", c.Text, c.Score),
+					fmt.Sprintf("    ✓ %s (%d)\n", strings.TrimSpace(c.Text), c.Score),
 				)
 			}
 		}
