@@ -17,7 +17,7 @@ func TestPrintSessionSummary(t *testing.T) {
 		{
 			name: "transcript with tags",
 			model: &summary.SessionSummaryModel{
-				ID: "s_abc", Agent: "driveaway-agent", TurnCount: 2,
+				ID: "s_abc", Agents: []string{"driveaway-agent"}, TurnCount: 2,
 				Duration: "2m0s", Cost: f64(0.08),
 				Turns: []summary.Turn{
 					{

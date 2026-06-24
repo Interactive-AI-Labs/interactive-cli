@@ -38,7 +38,7 @@ func TestSessionSummary(t *testing.T) {
 				},
 			},
 			want: `{
-				"id":"s_abc","agent":"driveaway-agent","turn_count":2,"duration":"2m0s",
+				"id":"s_abc","agents":["driveaway-agent"],"turn_count":2,"duration":"2m0s",
 				"turns":[
 					{"number":1,"customer":"I want to rent a car next weekend","agent":"Great! We have 3 cars available...","tools":["check_availability"]},
 					{"number":2,"customer":"Downtown","agent":"Booked! Confirmation #1234","tools":["create_booking"],"journeys":["rental"]}
@@ -58,8 +58,19 @@ func TestSessionSummary(t *testing.T) {
 				{ID: "t3", Timestamp: "2026-06-22T14:32:00Z", Tags: []string{"agent:agent-chat"}},
 			},
 			want: `{
-				"id":"s_multi","agent":"agent-chat, agent-chat-dev","turn_count":3,"duration":"2m0s",
+				"id":"s_multi","agents":["agent-chat","agent-chat-dev"],"turn_count":3,"duration":"2m0s",
 				"turns":[{"number":1},{"number":2},{"number":3}]
+			}`,
+		},
+		{
+			name:      "single turn omits duration",
+			sessionID: "s_one",
+			traces: []clients.TraceInfo{
+				{ID: "t1", Timestamp: "2026-06-22T14:30:00Z", Tags: []string{"agent:agent-chat"}},
+			},
+			want: `{
+				"id":"s_one","agents":["agent-chat"],"turn_count":1,
+				"turns":[{"number":1}]
 			}`,
 		},
 		{

@@ -20,7 +20,7 @@ type Turn struct {
 // SessionSummaryModel is the overall view of a conversation (one session).
 type SessionSummaryModel struct {
 	ID        string   `json:"id"`
-	Agent     string   `json:"agent,omitempty"`
+	Agents    []string `json:"agents,omitempty"`
 	TurnCount int      `json:"turn_count"`
 	Duration  string   `json:"duration,omitempty"`
 	Cost      *float64 `json:"cost,omitempty"`
@@ -71,7 +71,7 @@ func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummar
 		m.Turns = append(m.Turns, turn)
 	}
 
-	m.Agent = strings.Join(agents, ", ")
+	m.Agents = agents
 	if haveCost {
 		m.Cost = &costSum
 	}
@@ -83,15 +83,11 @@ func sessionDuration(sorted []clients.TraceInfo) string {
 	if len(sorted) < 2 {
 		return ""
 	}
-	first, err1 := parseTS(sorted[0].Timestamp)
-	last, err2 := parseTS(sorted[len(sorted)-1].Timestamp)
+	first, err1 := time.Parse(time.RFC3339Nano, sorted[0].Timestamp)
+	last, err2 := time.Parse(time.RFC3339Nano, sorted[len(sorted)-1].Timestamp)
 	if err1 != nil || err2 != nil || last.Before(first) {
 		return ""
 	}
 	d := last.Sub(first).Round(time.Second)
 	return d.String()
-}
-
-func parseTS(s string) (time.Time, error) {
-	return time.Parse(time.RFC3339Nano, s)
 }

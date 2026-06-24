@@ -10,6 +10,19 @@ import (
 
 const sessionIndent = "        " // 8 spaces, aligns under "Turn N  "
 
+// PrintSessionSummaryTruncationWarning warns that the session summary is built
+// from a capped number of turns, so trailing turns may be missing.
+func PrintSessionSummaryTruncationWarning(errOut io.Writer, maxTraces int) {
+	printWarning(
+		errOut,
+		fmt.Sprintf(
+			"Warning: session summary is truncated at %d turns; later turns are omitted.",
+			maxTraces,
+		),
+		false,
+	)
+}
+
 // PrintSessionSummary renders a conversation overview: transcript + event tags.
 func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 	var b strings.Builder
@@ -24,7 +37,7 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 	}
 	header := joinHeader(
 		"Session "+m.ID,
-		m.Agent,
+		strings.Join(m.Agents, ", "),
 		fmt.Sprintf("%d %s", m.TurnCount, turnNoun),
 		m.Duration,
 		cost,

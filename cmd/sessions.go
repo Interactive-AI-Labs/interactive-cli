@@ -36,7 +36,8 @@ const (
 	sessionSummaryEpoch = "1970-01-01T00:00:00Z"
 	// Session summaries page through traces and trust TotalPages from the API.
 	// Cap pages so a bad response cannot trigger an unbounded fetch loop.
-	sessionSummaryMaxPages = 50
+	sessionSummaryMaxPages  = 50
+	sessionSummaryPageLimit = 100
 )
 
 var sessionsCmd = &cobra.Command{
@@ -147,7 +148,7 @@ Uses the platform API with dual authentication (API key or session).`,
 		}
 
 		if sessionsGetSummary {
-			all, err := apiClient.ListAllTraces(
+			all, truncated, err := apiClient.ListAllTraces(
 				cmd.Context(), pCtx.orgId, pCtx.projectId,
 				clients.TraceListOptions{
 					SessionID:     sessionID,
@@ -155,12 +156,18 @@ Uses the platform API with dual authentication (API key or session).`,
 					Fields:        "core,io",
 					Order:         "asc",
 					OrderBy:       "timestamp",
-					Limit:         100,
+					Limit:         sessionSummaryPageLimit,
 				},
 				sessionSummaryMaxPages,
 			)
 			if err != nil {
 				return err
+			}
+			if truncated {
+				output.PrintSessionSummaryTruncationWarning(
+					cmd.ErrOrStderr(),
+					sessionSummaryMaxPages*sessionSummaryPageLimit,
+				)
 			}
 			model := summary.SessionSummary(sessionID, all)
 			if sessionsGetJSON {

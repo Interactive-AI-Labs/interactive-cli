@@ -165,11 +165,11 @@ func toSet(xs []string) map[string]bool {
 }
 
 func equalStringSets(a, b []string) bool {
-	if len(a) != len(b) {
+	aset, bset := toSet(a), toSet(b)
+	if len(aset) != len(bset) {
 		return false
 	}
-	bset := toSet(b)
-	for _, x := range a {
+	for x := range aset {
 		if !bset[x] {
 			return false
 		}
