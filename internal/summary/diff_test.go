@@ -49,9 +49,11 @@ func TestTraceDiff(t *testing.T) {
 						},
 					},
 					{
-						Number:  3,
-						Journey: []JourneyStep{{Routine: "bonus-chat", Step: "elig_inquiry_not_eligible"}},
-						Tools:   []ToolCall{{Name: "initiate_human_handoff"}},
+						Number: 3,
+						Journey: []JourneyStep{
+							{Routine: "bonus-chat", Step: "elig_inquiry_not_eligible"},
+						},
+						Tools: []ToolCall{{Name: "initiate_human_handoff"}},
 					},
 				},
 				Reply: "transfer to human",
