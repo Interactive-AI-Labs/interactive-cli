@@ -204,19 +204,12 @@ Uses the platform API with dual authentication (API key or session).`,
 		}
 
 		if tracesGetSummary {
-			trace, _, err := apiClient.GetTrace(
-				cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, "core,io,metrics",
+			model, err := traceSummaryFor(
+				cmd.Context(), apiClient, pCtx.orgId, pCtx.projectId, traceID,
 			)
 			if err != nil {
 				return err
 			}
-			obs, _, err := apiClient.ListObservations(
-				cmd.Context(), pCtx.orgId, pCtx.projectId, traceID, true,
-			)
-			if err != nil {
-				return err
-			}
-			model := summary.TraceSummary(trace, obs)
 			if tracesGetJSON {
 				return output.PrintStructuredJSON(out, model)
 			}

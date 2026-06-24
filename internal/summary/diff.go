@@ -1,6 +1,9 @@
 package summary
 
-import "sort"
+import (
+	"maps"
+	"slices"
+)
 
 // SetDiff partitions two label sets into shared and side-exclusive members.
 type SetDiff struct {
@@ -61,29 +64,32 @@ func diffSide(id string, m *TraceSummaryModel) DiffSide {
 
 // traceRoutines is the ordered, deduped union of routine activations in a turn.
 func traceRoutines(m *TraceSummaryModel) []string {
-	var out []string
-	seen := map[string]bool{}
+	var all []string
 	for _, it := range m.Iterations {
-		for _, r := range it.Routines {
-			if r != "" && !seen[r] {
-				seen[r] = true
-				out = append(out, r)
-			}
-		}
+		all = append(all, it.Routines...)
 	}
-	return out
+	return dedup(all)
 }
 
 // traceTools is the ordered, deduped union of tool names called in a turn.
 func traceTools(m *TraceSummaryModel) []string {
-	var out []string
-	seen := map[string]bool{}
+	var all []string
 	for _, it := range m.Iterations {
 		for _, t := range it.Tools {
-			if t.Name != "" && !seen[t.Name] {
-				seen[t.Name] = true
-				out = append(out, t.Name)
-			}
+			all = append(all, t.Name)
+		}
+	}
+	return dedup(all)
+}
+
+// dedup returns xs with empty strings and later duplicates removed, order kept.
+func dedup(xs []string) []string {
+	var out []string
+	seen := make(map[string]bool, len(xs))
+	for _, x := range xs {
+		if x != "" && !seen[x] {
+			seen[x] = true
+			out = append(out, x)
 		}
 	}
 	return out
@@ -104,9 +110,9 @@ func setDiff(a, b []string) SetDiff {
 			d.BOnly = append(d.BOnly, x)
 		}
 	}
-	sort.Strings(d.Both)
-	sort.Strings(d.AOnly)
-	sort.Strings(d.BOnly)
+	slices.Sort(d.Both)
+	slices.Sort(d.AOnly)
+	slices.Sort(d.BOnly)
 	return d
 }
 
@@ -119,11 +125,7 @@ func journeyDiff(a, b *TraceSummaryModel) []JourneyDiff {
 	for n := range bByNum {
 		nums[n] = true
 	}
-	ordered := make([]int, 0, len(nums))
-	for n := range nums {
-		ordered = append(ordered, n)
-	}
-	sort.Ints(ordered)
+	ordered := slices.Sorted(maps.Keys(nums))
 
 	out := make([]JourneyDiff, 0, len(ordered))
 	for _, n := range ordered {
