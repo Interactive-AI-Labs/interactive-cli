@@ -91,6 +91,51 @@ func TestTraceSummary(t *testing.T) {
 			}`,
 		},
 		{
+			name: "journey path, routine activation, policy, and decision rationale",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name:   "agent-chat",
+				Level:  "DEFAULT",
+				Input:  json.RawMessage(`"first bet refund?"`),
+				Output: json.RawMessage(`"[\"transfer\"]"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
+				obs("mg1", "it1", "chain", "match_guidelines", "", "", "", `{"matches":[
+					{"type":"routine","routine_id":"bonus-chat","condition":"big routine cond","score":10},
+					{"type":"routine","routine_id":"bonus-chat","condition":"big routine cond","score":10},
+					{"type":"routine_node","routine_id":"bonus-chat","step_id":"first_tool","condition":"","score":10},
+					{"type":"routine_node","routine_id":"bonus-chat","step_id":"elig_inquiry_not_eligible","condition":"MainMoneyBet  OR decommission","score":10},
+					{"type":"routine_node","routine_id":"bonus-chat","step_id":"elig_inquiry_not_eligible","condition":"MainMoneyBet OR decommission","score":10},
+					{"type":"policy","id":"handoff","condition":"Always applies.","score":10}
+				]}`),
+				// Winning next-step decision plus a dropped incomplete (applied_condition_id "0") one.
+				obs("ns0", "mg1", "generation", "next-step", "", "", "",
+					`{"applied_condition_id":"0","next_step_rationale":"step incomplete"}`),
+				obs(
+					"ns1",
+					"mg1",
+					"generation",
+					"next-step",
+					"",
+					"",
+					"",
+					`{"applied_condition_id":"4","next_step_rationale":"TAGS show decommission, condition 4 fits"}`,
+				),
+			},
+			want: `{
+				"name":"agent-chat","level":"DEFAULT","input":"first bet refund?","reply":"transfer",
+				"iterations":[{"number":1,
+					"routines":["bonus-chat"],
+					"journey":[
+						{"routine":"bonus-chat","step":"first_tool"},
+						{"routine":"bonus-chat","step":"elig_inquiry_not_eligible","condition":"MainMoneyBet OR decommission"}
+					],
+					"conditions":[{"text":"Always applies.","score":10}],
+					"decisions":["TAGS show decommission, condition 4 fits"]
+				}]
+			}`,
+		},
+		{
 			name: "titled knowledge-base retrieval at the root",
 			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
 				Name:   "agent-chat",

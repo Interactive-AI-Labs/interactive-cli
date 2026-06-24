@@ -28,11 +28,23 @@ type ToolCall struct {
 	ErrMsg  string          `json:"error,omitempty"`
 }
 
+// JourneyStep is a routine node the matcher selected this iteration — the
+// reachable follow-up that won at a routine fork. The sequence of journey steps
+// across iterations is the turn's decision path.
+type JourneyStep struct {
+	Routine   string `json:"routine"`
+	Step      string `json:"step"`
+	Condition string `json:"condition,omitempty"`
+}
+
 // Iteration is one engine preparation iteration within a turn.
 type Iteration struct {
-	Number     int         `json:"number"`
-	Conditions []Condition `json:"conditions,omitempty"`
-	Tools      []ToolCall  `json:"tools,omitempty"`
+	Number     int           `json:"number"`
+	Routines   []string      `json:"routines,omitempty"`
+	Journey    []JourneyStep `json:"journey,omitempty"`
+	Conditions []Condition   `json:"conditions,omitempty"`
+	Decisions  []string      `json:"decisions,omitempty"`
+	Tools      []ToolCall    `json:"tools,omitempty"`
 }
 
 // KBRetrieval summarizes knowledge-base documents retrieved during a turn.
@@ -61,6 +73,13 @@ const (
 	spanExecuteToolCalls = "execute_tool_calls"
 	spanKBRetriever      = "retriever:knowledge_base"
 	spanFindSimilarDocs  = "find_similar_documents"
+	spanNextStep         = "next-step"
+)
+
+// Guideline match types the engine emits in match_guidelines output.
+const (
+	matchTypeRoutine     = "routine"      // a routine activation
+	matchTypeRoutineNode = "routine_node" // a selected journey follow-up
 )
 
 var iterationNameRe = regexp.MustCompile(`^preparation_iteration_(\d+)$`)
@@ -97,9 +116,18 @@ func UnwrapToolResult(raw json.RawMessage) json.RawMessage {
 
 type matchOutput struct {
 	Matches []struct {
+		Type      string `json:"type"`
+		RoutineID string `json:"routine_id"`
+		StepID    string `json:"step_id"`
 		Condition string `json:"condition"`
 		Score     int    `json:"score"`
 	} `json:"matches"`
+}
+
+type nextStepOutput struct {
+	AppliedConditionID   string `json:"applied_condition_id"`
+	NextStepRationale    string `json:"next_step_rationale"`
+	CurrentStepRationale string `json:"current_step_completed_rationale"`
 }
 
 // TraceSummary builds a compact turn summary from trace observations.
@@ -142,6 +170,10 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		// Keep first-seen condition order and the highest score per condition.
 		condScore := map[string]int{}
 		var condOrder []string
+		// Ordered, deduped sets for the journey decision path.
+		routineSeen := map[string]bool{}
+		stepSeen := map[string]bool{}
+		decisionSeen := map[string]bool{}
 
 		for _, d := range descendants(children, it.id) {
 			switch d.Name {
@@ -154,6 +186,26 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 					continue
 				}
 				for _, mm := range mo.Matches {
+					switch mm.Type {
+					case matchTypeRoutine:
+						if mm.RoutineID != "" && !routineSeen[mm.RoutineID] {
+							routineSeen[mm.RoutineID] = true
+							iteration.Routines = append(iteration.Routines, mm.RoutineID)
+						}
+						continue
+					case matchTypeRoutineNode:
+						key := mm.RoutineID + "\x00" + mm.StepID
+						if mm.StepID != "" && !stepSeen[key] {
+							stepSeen[key] = true
+							iteration.Journey = append(iteration.Journey, JourneyStep{
+								Routine:   mm.RoutineID,
+								Step:      mm.StepID,
+								Condition: CollapseWS(mm.Condition),
+							})
+						}
+						continue
+					}
+					// Policies and untyped matches: condition text + highest score.
 					// Guideline text can carry raw newlines; normalize whitespace
 					// so it dedupes cleanly.
 					cond := CollapseWS(mm.Condition)
@@ -166,6 +218,11 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 						}
 						condScore[cond] = mm.Score
 					}
+				}
+			case spanNextStep:
+				if r := decisionRationale(d.Output); r != "" && !decisionSeen[r] {
+					decisionSeen[r] = true
+					iteration.Decisions = append(iteration.Decisions, r)
 				}
 			case spanExecuteToolCalls:
 				for _, tool := range children[d.ID] {
@@ -304,6 +361,27 @@ func descendants(
 		}
 	}
 	return out
+}
+
+// decisionRationale returns a next-step generation's rationale when it selected
+// a real journey transition. applied_condition_id "0"/"None"/"" mean the step is
+// incomplete or no transition fired, so those carry no decision.
+func decisionRationale(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var ns nextStepOutput
+	if json.Unmarshal(UnwrapJSON(raw), &ns) != nil {
+		return ""
+	}
+	switch ns.AppliedConditionID {
+	case "", "0", "None":
+		return ""
+	}
+	if r := CollapseWS(ns.NextStepRationale); r != "" {
+		return r
+	}
+	return CollapseWS(ns.CurrentStepRationale)
 }
 
 // rawOrNil normalizes an empty raw message to nil so it omits from JSON output.
