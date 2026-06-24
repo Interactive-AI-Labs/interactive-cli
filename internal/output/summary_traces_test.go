@@ -60,6 +60,31 @@ func TestPrintTraceSummary(t *testing.T) {
 			},
 		},
 		{
+			name: "journey decision path with routines and rationale",
+			model: &summary.TraceSummaryModel{
+				Name:  "agent-chat",
+				Input: "first bet refund?",
+				Iterations: []summary.Iteration{{
+					Number:   1,
+					Routines: []string{"bonus-chat", "player-login-issue-chat"},
+					Journey: []summary.JourneyStep{{
+						Routine:   "bonus-chat",
+						Step:      "elig_inquiry_not_eligible",
+						Condition: "MainMoneyBet OR decommission tag → escalate",
+					}},
+					Decisions: []string{"TAGS show decommission, condition 4 fits"},
+				}},
+				Reply: "transfer",
+			},
+			want: []string{
+				"Routines: bonus-chat, player-login-issue-chat",
+				"Journey:",
+				"bonus-chat ▸ elig_inquiry_not_eligible",
+				"MainMoneyBet OR decommission tag → escalate",
+				"Why: TAGS show decommission, condition 4 fits",
+			},
+		},
+		{
 			name: "titled knowledge base",
 			model: &summary.TraceSummaryModel{
 				Name:  "agent-chat",

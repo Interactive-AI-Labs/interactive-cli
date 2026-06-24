@@ -44,6 +44,21 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 
 	for _, it := range m.Iterations {
 		b.WriteString(fmt.Sprintf("Iteration %d\n", it.Number))
+		if len(it.Routines) > 0 {
+			b.WriteString("  Routines: " + strings.Join(it.Routines, ", ") + "\n")
+		}
+		if len(it.Journey) > 0 {
+			b.WriteString("  Journey:\n")
+			for _, j := range it.Journey {
+				b.WriteString(fmt.Sprintf("    ▸ %s ▸ %s\n", j.Routine, j.Step))
+				if cond := truncateValue(j.Condition, maxValueLen); cond != "" {
+					b.WriteString("        (" + cond + ")\n")
+				}
+			}
+		}
+		for _, d := range it.Decisions {
+			b.WriteString("  Why: " + truncateValue(d, maxValueLen) + "\n")
+		}
 		if len(it.Conditions) > 0 {
 			b.WriteString("  Conditions met:\n")
 			for _, c := range it.Conditions {
