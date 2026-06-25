@@ -7,6 +7,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,17 @@ var (
 	sessionsListProject   string
 	sessionsGetOrg        string
 	sessionsGetProject    string
+	sessionsGetSummary    bool
+)
+
+const (
+	// The traces endpoint requires from_timestamp even when filtering by session_id.
+	// Use the Unix epoch so session summaries include every turn in the session.
+	sessionSummaryEpoch = "1970-01-01T00:00:00Z"
+	// Session summaries page through traces and trust TotalPages from the API.
+	// Cap pages so a bad response cannot trigger an unbounded fetch loop.
+	sessionSummaryMaxPages = 50
+	sessionSummaryPageSize = 100
 )
 
 var sessionsCmd = &cobra.Command{
@@ -122,7 +134,8 @@ var sessionsGetCmd = &cobra.Command{
 Uses the platform API with dual authentication (API key or session).`,
 	Example: `  iai sessions get <session-id>
   iai sessions get <session-id> --fields core,traces
-  iai sessions get <session-id> --json`,
+  iai sessions get <session-id> --json
+  iai sessions get <session-id> --summary`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -132,6 +145,38 @@ Uses the platform API with dual authentication (API key or session).`,
 		pCtx, apiClient, _, err := resolveProject(cmd.Context(), sessionsGetOrg, sessionsGetProject)
 		if err != nil {
 			return err
+		}
+
+		if sessionsGetSummary {
+			all, truncated, err := apiClient.ListAllTraces(
+				cmd.Context(), pCtx.orgId, pCtx.projectId,
+				clients.TraceListOptions{
+					SessionID:     sessionID,
+					FromTimestamp: sessionSummaryEpoch,
+					Fields:        "core,io",
+					Order:         "asc",
+					OrderBy:       "timestamp",
+					Limit:         sessionSummaryPageSize,
+				},
+				sessionSummaryMaxPages,
+			)
+			if err != nil {
+				return err
+			}
+			if truncated {
+				output.PrintSessionSummaryTruncationWarning(
+					cmd.ErrOrStderr(),
+					sessionSummaryMaxPages*sessionSummaryPageSize,
+				)
+			}
+			model := summary.SessionSummary(sessionID, all)
+			if sessionsGetJSON {
+				return output.PrintStructuredJSON(out, model)
+			}
+			if sessionsGetYAML {
+				return output.PrintStructuredYAML(out, model)
+			}
+			return output.PrintSessionSummary(out, model)
 		}
 
 		session, rawJSON, err := apiClient.GetSession(
@@ -188,7 +233,11 @@ func init() {
 		BoolVar(&sessionsGetJSON, "json", false, "Output raw API response as JSON")
 	sessionsGetCmd.Flags().
 		BoolVar(&sessionsGetYAML, "yaml", false, "Output raw API response as YAML")
+	sessionsGetCmd.Flags().BoolVar(&sessionsGetSummary, "summary", false,
+		"Render a compact, LLM-readable overview of the conversation (transcript + event tags)")
+	// --summary is a view, not a format, so it composes with --json/--yaml; --fields can't.
 	sessionsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	sessionsGetCmd.MarkFlagsMutuallyExclusive("summary", "fields")
 	sessionsGetCmd.Flags().
 		StringVarP(&sessionsGetOrg, "organization", "o", "", "Organization name that owns the project")
 	sessionsGetCmd.Flags().

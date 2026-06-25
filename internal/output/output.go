@@ -45,6 +45,17 @@ func TruncateList(items []string, maxVisible int) string {
 	return fmt.Sprintf("%s (+%d more)", visible, len(items)-maxVisible)
 }
 
+// joinHeader joins the non-empty segments with " · " for a summary header line.
+func joinHeader(parts ...string) string {
+	nonEmpty := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			nonEmpty = append(nonEmpty, p)
+		}
+	}
+	return strings.Join(nonEmpty, " · ")
+}
+
 // LocalTime converts a timestamp to the user's local timezone.
 func LocalTime(s string) string {
 	for _, layout := range []string{

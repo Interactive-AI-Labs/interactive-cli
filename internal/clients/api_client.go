@@ -355,30 +355,31 @@ func (c *APIClient) GetProjectByName(
 }
 
 type TraceInfo struct {
-	ID               string   `json:"id"`
-	Timestamp        string   `json:"timestamp"`
-	Name             string   `json:"name"`
-	SessionID        string   `json:"session_id"`
-	UserID           string   `json:"user_id"`
-	Release          string   `json:"release"`
-	Version          string   `json:"version"`
-	Public           bool     `json:"public"`
-	Environment      string   `json:"environment"`
-	Tags             []string `json:"tags"`
-	HtmlPath         string   `json:"html_path"`
-	LatencyMs        *float64 `json:"latency_ms"`
-	TotalCost        *float64 `json:"total_cost"`
-	ObservationCount *int     `json:"observation_count"`
-	InputTokens      *int     `json:"input_tokens"`
-	OutputTokens     *int     `json:"output_tokens"`
-	TotalTokens      *int     `json:"total_tokens"`
-	Level            string   `json:"level"`
+	ID               string          `json:"id"`
+	Timestamp        string          `json:"timestamp"`
+	Name             string          `json:"name"`
+	SessionID        string          `json:"session_id"`
+	UserID           string          `json:"user_id"`
+	Release          string          `json:"release"`
+	Version          string          `json:"version"`
+	Public           bool            `json:"public"`
+	Environment      string          `json:"environment"`
+	Tags             []string        `json:"tags"`
+	HtmlPath         string          `json:"html_path"`
+	LatencyMs        *float64        `json:"latency_ms"`
+	TotalCost        *float64        `json:"total_cost"`
+	ObservationCount *int            `json:"observation_count"`
+	InputTokens      *int            `json:"input_tokens"`
+	OutputTokens     *int            `json:"output_tokens"`
+	TotalTokens      *int            `json:"total_tokens"`
+	Level            string          `json:"level"`
+	Input            json.RawMessage `json:"input,omitempty"`
+	Output           json.RawMessage `json:"output,omitempty"`
 }
 
 type TraceDetail struct {
 	TraceInfo
-	Input    json.RawMessage `json:"input"`
-	Output   json.RawMessage `json:"output"`
+	// Only fields unique to the detail endpoint; IO lives on the embedded TraceInfo.
 	Metadata json.RawMessage `json:"metadata"`
 }
 
@@ -685,6 +686,29 @@ func (c *APIClient) ListTraces(
 		return nil, TraceMeta{}, nil, err
 	}
 	return data.Traces, data.Meta, raw, nil
+}
+
+// ListAllTraces pages through every trace matching opts. maxPages guards against a
+// mis-reported TotalPages driving an unbounded loop; truncated is true when it's hit.
+func (c *APIClient) ListAllTraces(
+	ctx context.Context,
+	orgID, projectID string,
+	opts TraceListOptions,
+	maxPages int,
+) (traces []TraceInfo, truncated bool, err error) {
+	all := make([]TraceInfo, 0, opts.Limit)
+	for page := 1; page <= maxPages; page++ {
+		opts.Page = page
+		batch, meta, _, err := c.ListTraces(ctx, orgID, projectID, opts)
+		if err != nil {
+			return nil, false, err
+		}
+		all = append(all, batch...)
+		if meta.TotalPages <= page || len(batch) == 0 {
+			return all, false, nil
+		}
+	}
+	return all, true, nil
 }
 
 // GetTrace retrieves a single trace from the platform API.

@@ -1,36 +1,34 @@
-## iai traces get
+## iai traces diff
 
-Get a specific trace
+Compare two turns and show where their decision paths diverge
 
 ### Synopsis
 
-Get detailed information about a specific trace.
+Compare two traces side by side: routine activations, tools called, and the
+per-iteration journey decision path. Highlights the iteration where the agents
+selected different routine follow-ups — i.e. where their behavior diverged.
 
 Uses the platform API with dual authentication (API key or session).
 
 ```
-iai traces get <trace-id> [flags]
+iai traces diff <trace-id-a> <trace-id-b> [flags]
 ```
 
 ### Examples
 
 ```
-  iai traces get abc123
-  iai traces get abc123 --fields core,io,metrics
-  iai traces get abc123 --json | jq '.data.trace'
-  iai traces get abc123 --summary
+  iai traces diff abc123 def456
+  iai traces diff abc123 def456 --json | jq '.journey'
 ```
 
 ### Options
 
 ```
-      --fields string         Field groups to include: core, io, metrics (comma-separated) (default "core,io,metrics")
-  -h, --help                  help for get
-      --json                  Output raw API response as JSON
+  -h, --help                  help for diff
+      --json                  Output the diff as JSON
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
-      --summary               Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)
-      --yaml                  Output raw API response as YAML
+      --yaml                  Output the diff as YAML
 ```
 
 ### Options inherited from parent commands
