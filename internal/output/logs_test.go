@@ -236,21 +236,32 @@ func TestPrintLogStreamFieldsMissing(t *testing.T) {
 
 func TestPrintNoLogsFound(t *testing.T) {
 	tests := []struct {
-		name string
-		want string
+		name     string
+		since    string
+		wantHas  string
+		wantFull string
 	}{
 		{
-			name: "prints plain no-logs message for non-terminal writer",
-			want: "No logs found\n",
+			name:     "prints plain no-logs message for non-terminal writer",
+			wantFull: "No logs found in the given timerange\n",
+		},
+		{
+			name:    "includes effective since when provided",
+			since:   "2026-01-01T00:00:00Z",
+			wantHas: "No logs found in the given timerange (since 2026-01-01 ",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			PrintNoLogsFound(&buf)
-			if got := buf.String(); got != tt.want {
-				t.Errorf("message mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			PrintNoLogsFound(&buf, tt.since)
+			got := buf.String()
+			if tt.wantFull != "" && got != tt.wantFull {
+				t.Errorf("message mismatch\ngot:\n%q\nwant:\n%q", got, tt.wantFull)
+			}
+			if tt.wantHas != "" && !strings.HasPrefix(got, tt.wantHas) {
+				t.Errorf("message mismatch\ngot:\n%q\nwant prefix:\n%q", got, tt.wantHas)
 			}
 		})
 	}
