@@ -424,7 +424,7 @@ PostgreSQL-specific details are often nested under the 'record' field, so seeing
 		defer logsResp.Body.Close()
 
 		if logsResp.Empty {
-			output.PrintNoLogsFound(cmd.ErrOrStderr())
+			output.PrintNoLogsFound(cmd.ErrOrStderr(), logsResp.Since)
 			return nil
 		}
 

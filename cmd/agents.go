@@ -747,7 +747,7 @@ Use the reported field names with 'iai agents logs --fields' to include them in 
 		defer logsResp.Body.Close()
 
 		if logsResp.Empty {
-			output.PrintNoLogsFound(cmd.ErrOrStderr())
+			output.PrintNoLogsFound(cmd.ErrOrStderr(), logsResp.Since)
 			return nil
 		}
 

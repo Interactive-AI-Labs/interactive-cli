@@ -82,7 +82,7 @@ func PrintLogStream(
 	opts LogFormatOptions,
 ) error {
 	if meta.Empty {
-		PrintNoLogsFound(os.Stderr)
+		PrintNoLogsFound(os.Stderr, meta.Since)
 		return nil
 	}
 
@@ -395,9 +395,12 @@ func PrintLogFields(out io.Writer, fields []LogField) error {
 	return PrintTable(out, headers, rows)
 }
 
-// PrintNoLogsFound reports that no log entries were returned.
-func PrintNoLogsFound(errOut io.Writer) {
-	fmt.Fprintln(errOut, "No logs found")
+func PrintNoLogsFound(errOut io.Writer, since string) {
+	if since == "" {
+		fmt.Fprintln(errOut, "No logs found in the given timerange")
+		return
+	}
+	fmt.Fprintf(errOut, "No logs found in the given timerange (since %s)\n", LocalTime(since))
 }
 
 // printLogTruncationWarning warns that the server truncated the log stream.

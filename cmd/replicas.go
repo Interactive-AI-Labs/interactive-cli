@@ -293,7 +293,7 @@ Use the reported field names with 'iai replicas logs --fields' to include them i
 		defer logsResp.Body.Close()
 
 		if logsResp.Empty {
-			output.PrintNoLogsFound(cmd.ErrOrStderr())
+			output.PrintNoLogsFound(cmd.ErrOrStderr(), logsResp.Since)
 			return nil
 		}
 
