@@ -234,7 +234,6 @@ nested JSON values.`,
 		defer logsResp.Body.Close()
 
 		meta := output.LogsMeta{
-			Since:     logsResp.Since,
 			Start:     logsResp.Start,
 			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
