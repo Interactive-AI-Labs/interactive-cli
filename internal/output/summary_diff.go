@@ -36,8 +36,8 @@ func PrintTraceDiff(out io.Writer, m *summary.TraceDiffModel) error {
 
 	if m.A.Reply != "" || m.B.Reply != "" {
 		b.WriteString("\nReply\n")
-		b.WriteString("  A: " + truncateValue(m.A.Reply, maxValueLen) + "\n")
-		b.WriteString("  B: " + truncateValue(m.B.Reply, maxValueLen) + "\n")
+		writeBlock(&b, "A", m.A.Reply, "  ")
+		writeBlock(&b, "B", m.B.Reply, "  ")
 	}
 
 	_, err := io.WriteString(out, b.String())

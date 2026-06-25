@@ -59,8 +59,8 @@ func TestPrintTraceDiff(t *testing.T) {
 				"iter 3",
 				"bonus-chat/elig_inquiry_not_eligible",
 				"◀ diverges",
-				"Vous êtes éligible",
-				"transfer to human",
+				"Reply\n  A:\n    Vous êtes éligible",
+				"  B:\n    transfer to human",
 			},
 		},
 		{
