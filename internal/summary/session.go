@@ -41,7 +41,6 @@ func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummar
 	var costSum float64
 	var haveCost bool
 	var agents []string
-	agentSeen := map[string]bool{}
 	for i, tr := range sorted {
 		if tr.TotalCost != nil {
 			costSum += *tr.TotalCost
@@ -59,19 +58,14 @@ func SessionSummary(sessionID string, traces []clients.TraceInfo) *SessionSummar
 			case strings.HasPrefix(tag, "routine:"):
 				turn.Journeys = append(turn.Journeys, strings.TrimPrefix(tag, "routine:"))
 			case strings.HasPrefix(tag, "agent:"):
-				// Session traces can include multiple agent tags, such as prod
-				// and shadow/dev. Surface all distinct agents instead of picking
-				// one arbitrarily.
-				if a := strings.TrimPrefix(tag, "agent:"); a != "" && !agentSeen[a] {
-					agentSeen[a] = true
-					agents = append(agents, a)
-				}
+				// Traces can carry several agent tags (e.g. prod and shadow/dev); keep them all.
+				agents = append(agents, strings.TrimPrefix(tag, "agent:"))
 			}
 		}
 		m.Turns = append(m.Turns, turn)
 	}
 
-	m.Agents = agents
+	m.Agents = dedup(agents)
 	if haveCost {
 		m.Cost = &costSum
 	}

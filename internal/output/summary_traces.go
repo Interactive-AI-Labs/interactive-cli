@@ -34,16 +34,14 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 	)
 	b.WriteString(header + "\n\n")
 
-	if input := truncateValue(m.Input, maxValueLen); input != "" {
-		b.WriteString("Customer: " + input + "\n\n")
-	}
+	writeBlock(&b, "Customer", m.Input, "")
 
 	if m.KB != nil {
-		b.WriteString("Knowledge base: " + formatKB(m.KB) + "\n\n")
+		b.WriteString("\nKnowledge base: " + formatKB(m.KB) + "\n")
 	}
 
 	for _, it := range m.Iterations {
-		b.WriteString(fmt.Sprintf("Iteration %d\n", it.Number))
+		b.WriteString(fmt.Sprintf("\nIteration %d\n", it.Number))
 		if len(it.Routines) > 0 {
 			b.WriteString("  Routines: " + strings.Join(it.Routines, ", ") + "\n")
 		}
@@ -71,21 +69,21 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 			b.WriteString("  Tools called:\n")
 			for _, tc := range it.Tools {
 				args := truncateValue(compactArgs(tc.Args), maxValueLen)
-				line := fmt.Sprintf("    → %s(%s)", tc.Name, args)
+				b.WriteString(fmt.Sprintf("    → %s(%s)\n", tc.Name, args))
 				if tc.Errored {
-					line += " → ERROR: " + tc.ErrMsg
-				} else if result := truncateValue(summary.CompactJSON(tc.Result), maxValueLen); result != "" {
-					line += " → " + result
+					writeBlock(&b, "ERROR", tc.ErrMsg, "      ")
+				} else {
+					writeBlock(&b, "Result", summary.CompactJSON(tc.Result), "      ")
 				}
-				b.WriteString(line + "\n")
 			}
 		} else {
 			b.WriteString("  (no tools called)\n")
 		}
 	}
 
-	if reply := truncateValue(m.Reply, maxValueLen); reply != "" {
-		b.WriteString("\nAgent: " + reply + "\n")
+	if strings.TrimSpace(m.Reply) != "" {
+		b.WriteString("\n")
+		writeBlock(&b, "Agent", m.Reply, "")
 	}
 
 	if len(m.Errors) > 0 {
@@ -99,8 +97,7 @@ func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
 	return err
 }
 
-// formatKB renders a turn's knowledge-base retrieval: the document count, plus
-// the retrieved titles when the backend supplied them.
+// formatKB renders KB retrieval as a count, plus titles when the backend supplied them.
 func formatKB(kb *summary.KBRetrieval) string {
 	noun := "docs"
 	if kb.Count == 1 {

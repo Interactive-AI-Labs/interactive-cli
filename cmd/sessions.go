@@ -235,8 +235,7 @@ func init() {
 		BoolVar(&sessionsGetYAML, "yaml", false, "Output raw API response as YAML")
 	sessionsGetCmd.Flags().BoolVar(&sessionsGetSummary, "summary", false,
 		"Render a compact, LLM-readable overview of the conversation (transcript + event tags)")
-	// --summary picks the view; --json/--yaml pick the format; they compose.
-	// --fields stays incompatible with --summary, which needs fixed IO fields.
+	// --summary is a view, not a format, so it composes with --json/--yaml; --fields can't.
 	sessionsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	sessionsGetCmd.MarkFlagsMutuallyExclusive("summary", "fields")
 	sessionsGetCmd.Flags().

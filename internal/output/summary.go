@@ -32,8 +32,17 @@ func truncateValue(s string, max int) string {
 	return string(r[:max]) + "… (truncated)"
 }
 
-// compactArgs renders tool arguments as `k=v, k=v` (keys sorted) for a flat
-// object, falling back to compact JSON for anything else.
+// writeBlock writes a "Label:" block with value indented, so multiline values keep structure.
+func writeBlock(b *strings.Builder, label, value, indent string) {
+	value = truncateValue(value, maxValueLen)
+	if value == "" {
+		return
+	}
+	b.WriteString(indent + label + ":\n")
+	b.WriteString(indentLines(value, indent+"  ") + "\n")
+}
+
+// compactArgs renders a flat object as sorted `k=v` pairs, else compact JSON.
 func compactArgs(raw json.RawMessage) string {
 	var m map[string]any
 	if err := json.Unmarshal(raw, &m); err != nil {

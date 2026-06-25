@@ -45,11 +45,11 @@ func PrintTraceDiff(out io.Writer, m *summary.TraceDiffModel) error {
 }
 
 func diffSideHeader(side string, s summary.DiffSide) string {
-	tail := joinHeader(s.Name, fmt.Sprintf("%d iters", s.Iterations))
+	parts := []string{s.Name, fmt.Sprintf("%d iters", s.Iterations)}
 	if s.Cost != nil {
-		tail = joinHeader(tail, formatCost(s.Cost))
+		parts = append(parts, formatCost(s.Cost))
 	}
-	return side + " " + s.ID + "  " + tail
+	return side + " " + s.ID + "  " + joinHeader(parts...)
 }
 
 func writeSetDiff(b *strings.Builder, title string, d summary.SetDiff) {

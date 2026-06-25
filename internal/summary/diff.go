@@ -62,7 +62,6 @@ func diffSide(id string, m *TraceSummaryModel) DiffSide {
 	}
 }
 
-// traceRoutines is the ordered, deduped union of routine activations in a turn.
 func traceRoutines(m *TraceSummaryModel) []string {
 	var all []string
 	for _, it := range m.Iterations {
@@ -71,7 +70,6 @@ func traceRoutines(m *TraceSummaryModel) []string {
 	return dedup(all)
 }
 
-// traceTools is the ordered, deduped union of tool names called in a turn.
 func traceTools(m *TraceSummaryModel) []string {
 	var all []string
 	for _, it := range m.Iterations {
@@ -82,7 +80,7 @@ func traceTools(m *TraceSummaryModel) []string {
 	return dedup(all)
 }
 
-// dedup returns xs with empty strings and later duplicates removed, order kept.
+// dedup drops empty strings and later duplicates, preserving order.
 func dedup(xs []string) []string {
 	var out []string
 	seen := make(map[string]bool, len(xs))
@@ -140,8 +138,7 @@ func journeyDiff(a, b *TraceSummaryModel) []JourneyDiff {
 	return out
 }
 
-// journeyLabelsByIter maps each iteration number to its "routine/step" labels,
-// skipping iterations with no journey steps.
+// journeyLabelsByIter maps iteration number to "routine/step" labels, skipping iterations with none.
 func journeyLabelsByIter(m *TraceSummaryModel) map[int][]string {
 	out := map[int][]string{}
 	for _, it := range m.Iterations {

@@ -130,8 +130,14 @@ type nextStepOutput struct {
 	CurrentStepRationale string `json:"current_step_completed_rationale"`
 }
 
+type iterNode struct {
+	num int
+	id  string
+}
+
 // TraceSummary builds a compact turn summary from trace observations.
 func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *TraceSummaryModel {
+	children, iters, errs := indexTraceObservations(obs)
 	m := &TraceSummaryModel{
 		Name:      trace.Name,
 		Timestamp: trace.Timestamp,
@@ -140,14 +146,21 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		Level:     trace.Level,
 		Input:     AsString(trace.Input),
 		Reply:     AsString(trace.Output),
+		Errors:    errs,
 	}
+	for _, it := range iters {
+		m.Iterations = append(m.Iterations, summarizeIteration(children, it))
+	}
+	m.KB = knowledgeBase(obs)
+	return m
+}
 
-	type iterNode struct {
-		num int
-		id  string
-	}
-	var iters []iterNode
-	children := make(map[string][]clients.ObservationInfo, len(obs))
+// indexTraceObservations groups observations by parent, collects error lines, and
+// returns the preparation-iteration nodes in ascending order.
+func indexTraceObservations(
+	obs []clients.ObservationInfo,
+) (children map[string][]clients.ObservationInfo, iters []iterNode, errs []string) {
+	children = make(map[string][]clients.ObservationInfo, len(obs))
 	for _, o := range obs {
 		children[o.ParentObservationID] = append(children[o.ParentObservationID], o)
 		if strings.EqualFold(o.Level, "ERROR") {
@@ -155,7 +168,7 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 			if msg == "" {
 				msg = "error"
 			}
-			m.Errors = append(m.Errors, o.Name+": "+msg)
+			errs = append(errs, o.Name+": "+msg)
 		}
 		if sm := iterationNameRe.FindStringSubmatch(o.Name); sm != nil {
 			n, _ := strconv.Atoi(sm[1])
@@ -163,105 +176,94 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 		}
 	}
 	sort.Slice(iters, func(i, j int) bool { return iters[i].num < iters[j].num })
+	return children, iters, errs
+}
 
-	for _, it := range iters {
-		iteration := Iteration{Number: it.num}
+// summarizeIteration builds one iteration from the observation subtree rooted at it.
+func summarizeIteration(children map[string][]clients.ObservationInfo, it iterNode) Iteration {
+	iteration := Iteration{Number: it.num}
 
-		// Keep first-seen condition order and the highest score per condition.
-		condScore := map[string]int{}
-		var condOrder []string
-		// Ordered, deduped sets for the journey decision path.
-		routineSeen := map[string]bool{}
-		stepSeen := map[string]bool{}
-		decisionSeen := map[string]bool{}
+	// Keep first-seen condition order and the highest score per condition.
+	condScore := map[string]int{}
+	var condOrder []string
+	stepSeen := map[string]bool{} // journey steps keyed by (routine, step)
+	var routines, decisions []string
 
-		for _, d := range descendants(children, it.id) {
-			switch d.Name {
-			case spanMatchGuidelines:
-				if len(d.Output) == 0 {
+	for _, d := range descendants(children, it.id) {
+		switch d.Name {
+		case spanMatchGuidelines:
+			if len(d.Output) == 0 {
+				continue
+			}
+			var mo matchOutput
+			if json.Unmarshal(UnwrapJSON(d.Output), &mo) != nil {
+				continue
+			}
+			for _, mm := range mo.Matches {
+				switch mm.Type {
+				case matchTypeRoutine:
+					routines = append(routines, mm.RoutineID)
+					continue
+				case matchTypeRoutineNode:
+					key := mm.RoutineID + "\x00" + mm.StepID
+					if mm.StepID != "" && !stepSeen[key] {
+						stepSeen[key] = true
+						iteration.Journey = append(iteration.Journey, JourneyStep{
+							Routine:   mm.RoutineID,
+							Step:      mm.StepID,
+							Condition: CollapseWS(mm.Condition),
+						})
+					}
 					continue
 				}
-				var mo matchOutput
-				if json.Unmarshal(UnwrapJSON(d.Output), &mo) != nil {
+				// Guideline text can carry raw newlines; normalize so it dedupes cleanly.
+				cond := CollapseWS(mm.Condition)
+				if cond == "" {
 					continue
 				}
-				for _, mm := range mo.Matches {
-					switch mm.Type {
-					case matchTypeRoutine:
-						if mm.RoutineID != "" && !routineSeen[mm.RoutineID] {
-							routineSeen[mm.RoutineID] = true
-							iteration.Routines = append(iteration.Routines, mm.RoutineID)
-						}
-						continue
-					case matchTypeRoutineNode:
-						key := mm.RoutineID + "\x00" + mm.StepID
-						if mm.StepID != "" && !stepSeen[key] {
-							stepSeen[key] = true
-							iteration.Journey = append(iteration.Journey, JourneyStep{
-								Routine:   mm.RoutineID,
-								Step:      mm.StepID,
-								Condition: CollapseWS(mm.Condition),
-							})
-						}
-						continue
+				if prev, ok := condScore[cond]; !ok || mm.Score > prev {
+					if !ok {
+						condOrder = append(condOrder, cond)
 					}
-					// Policies and untyped matches: condition text + highest score.
-					// Guideline text can carry raw newlines; normalize whitespace
-					// so it dedupes cleanly.
-					cond := CollapseWS(mm.Condition)
-					if cond == "" {
-						continue
-					}
-					if prev, ok := condScore[cond]; !ok || mm.Score > prev {
-						if !ok {
-							condOrder = append(condOrder, cond)
-						}
-						condScore[cond] = mm.Score
-					}
-				}
-			case spanNextStep:
-				if r := decisionRationale(d.Output); r != "" && !decisionSeen[r] {
-					decisionSeen[r] = true
-					iteration.Decisions = append(iteration.Decisions, r)
-				}
-			case spanExecuteToolCalls:
-				for _, tool := range children[d.ID] {
-					tc := ToolCall{
-						Name:   tool.Name,
-						Args:   rawOrNil(UnwrapJSON(tool.Input)),
-						Result: rawOrNil(UnwrapToolResult(tool.Output)),
-					}
-					if strings.EqualFold(tool.Level, "ERROR") {
-						tc.Errored = true
-						tc.ErrMsg = tool.StatusMessage
-						if tc.ErrMsg == "" {
-							tc.ErrMsg = "error"
-						}
-					}
-					iteration.Tools = append(iteration.Tools, tc)
+					condScore[cond] = mm.Score
 				}
 			}
+		case spanNextStep:
+			decisions = append(decisions, decisionRationale(d.Output))
+		case spanExecuteToolCalls:
+			for _, tool := range children[d.ID] {
+				tc := ToolCall{
+					Name:   tool.Name,
+					Args:   rawOrNil(UnwrapJSON(tool.Input)),
+					Result: rawOrNil(UnwrapToolResult(tool.Output)),
+				}
+				if strings.EqualFold(tool.Level, "ERROR") {
+					tc.Errored = true
+					tc.ErrMsg = tool.StatusMessage
+					if tc.ErrMsg == "" {
+						tc.ErrMsg = "error"
+					}
+				}
+				iteration.Tools = append(iteration.Tools, tc)
+			}
 		}
-
-		for _, c := range condOrder {
-			iteration.Conditions = append(
-				iteration.Conditions,
-				Condition{Text: c, Score: condScore[c]},
-			)
-		}
-
-		m.Iterations = append(m.Iterations, iteration)
 	}
 
-	m.KB = knowledgeBase(obs)
-	return m
+	iteration.Routines = dedup(routines)
+	iteration.Decisions = dedup(decisions)
+	for _, c := range condOrder {
+		iteration.Conditions = append(
+			iteration.Conditions,
+			Condition{Text: c, Score: condScore[c]},
+		)
+	}
+	return iteration
 }
 
 // KB retrievals can appear as titled curated results or untitled vector hits.
 // Preserve titles when present; otherwise report only the retrieved count.
 func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 	var titles []string
-	seen := map[string]bool{}
 	curatedCount := 0 // docs in the curated retriever result
 	rawMax := 0       // largest untitled (find_similar) retrieval
 	used := false
@@ -278,11 +280,7 @@ func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 			continue
 		}
 		for _, t := range ts {
-			t = CollapseWS(t)
-			if t != "" && !seen[t] {
-				seen[t] = true
-				titles = append(titles, t)
-			}
+			titles = append(titles, CollapseWS(t))
 		}
 		if count > curatedCount {
 			curatedCount = count
@@ -291,6 +289,7 @@ func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 	if !used {
 		return nil
 	}
+	titles = dedup(titles)
 	// Curated retriever results identify the documents shown to the agent.
 	// Use raw vector-search counts only when no titled result exists.
 	kb := &KBRetrieval{Docs: titles}
@@ -363,9 +362,8 @@ func descendants(
 	return out
 }
 
-// decisionRationale returns a next-step generation's rationale when it selected
-// a real journey transition. applied_condition_id "0"/"None"/"" mean the step is
-// incomplete or no transition fired, so those carry no decision.
+// decisionRationale returns the rationale when a real journey transition fired.
+// applied_condition_id "", "0", or "None" mean none did, so there's no decision.
 func decisionRationale(raw json.RawMessage) string {
 	if len(raw) == 0 {
 		return ""

@@ -23,9 +23,7 @@ func obs(id, parent, typ, name, level, status string, in, out string) clients.Ob
 	return o
 }
 
-// assertJSON marshals got and compares it to wantJSON structurally (ignoring key
-// order and whitespace), so each case can state its expected summary model as the
-// JSON `--summary --json` would emit.
+// assertJSON compares got to wantJSON structurally, ignoring key order and whitespace.
 func assertJSON(t *testing.T, got any, wantJSON string) {
 	t.Helper()
 	gotBytes, err := json.Marshal(got)

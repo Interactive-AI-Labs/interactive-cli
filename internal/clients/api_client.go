@@ -688,18 +688,15 @@ func (c *APIClient) ListTraces(
 	return data.Traces, data.Meta, raw, nil
 }
 
-// ListAllTraces fetches every page of traces matching opts, concatenating the
-// results. It stops at the API's reported last page, an empty page, or maxPages
-// (a guard so a mis-reported TotalPages cannot drive an unbounded request loop).
-// truncated is true when maxPages was hit with more pages still reported.
-// The caller owns the query (session_id, fields, order, limit); this only pages.
+// ListAllTraces pages through every trace matching opts. maxPages guards against a
+// mis-reported TotalPages driving an unbounded loop; truncated is true when it's hit.
 func (c *APIClient) ListAllTraces(
 	ctx context.Context,
 	orgID, projectID string,
 	opts TraceListOptions,
 	maxPages int,
 ) (traces []TraceInfo, truncated bool, err error) {
-	var all []TraceInfo
+	all := make([]TraceInfo, 0, opts.Limit)
 	for page := 1; page <= maxPages; page++ {
 		opts.Page = page
 		batch, meta, _, err := c.ListTraces(ctx, orgID, projectID, opts)

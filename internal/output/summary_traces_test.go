@@ -50,13 +50,13 @@ func TestPrintTraceSummary(t *testing.T) {
 			want: []string{
 				"driveaway-agent",
 				"2 iterations",
-				"Customer: I want to rent a car for next weekend",
+				"Customer:\n  I want to rent a car for next weekend",
 				"Iteration 1",
 				"Customer asks to rent a vehicle (9)",
-				"check_availability(dates=\"next weekend\") → {\"count\":3}",
+				"    → check_availability(dates=\"next weekend\")\n      Result:\n        {\"count\":3}",
 				"Iteration 2",
 				"(no tools called)",
-				"Agent: Great! We have 3 cars available...",
+				"Agent:\n  Great! We have 3 cars available...",
 			},
 		},
 		{
@@ -127,7 +127,22 @@ func TestPrintTraceSummary(t *testing.T) {
 				Reply:  "sorry",
 				Errors: []string{"create_booking: upstream 500"},
 			},
-			want: []string{"ERROR", "create_booking(", "ERROR: upstream 500", "Errors:"},
+			want: []string{
+				"ERROR",
+				"    → create_booking()",
+				"      ERROR:\n        upstream 500",
+				"Errors:",
+			},
+		},
+		{
+			name: "multiline reply keeps its structure as an indented block",
+			model: &summary.TraceSummaryModel{
+				Name:       "agent",
+				Input:      "hi",
+				Iterations: []summary.Iteration{{Number: 1}},
+				Reply:      "Bonjour,\n\nMerci de nous avoir contactés.",
+			},
+			want: []string{"Agent:\n  Bonjour,", "\n  Merci de nous avoir contactés."},
 		},
 	}
 

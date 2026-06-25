@@ -8,8 +8,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 )
 
-const sessionIndent = "        " // 8 spaces, aligns under "Turn N  "
-
 // PrintSessionSummaryTruncationWarning warns that the session summary is built
 // from a capped number of turns, so trailing turns may be missing.
 func PrintSessionSummaryTruncationWarning(errOut io.Writer, maxTraces int) {
@@ -49,13 +47,8 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 	}
 
 	for _, turn := range m.Turns {
-		b.WriteString(
-			fmt.Sprintf(
-				"Turn %-3d Customer: %s\n",
-				turn.Number,
-				truncateValue(turn.Customer, maxSessionMsgLen),
-			),
-		)
+		fmt.Fprintf(&b, "Turn %d\n", turn.Number)
+		b.WriteString("  Customer: " + truncateValue(turn.Customer, maxSessionMsgLen) + "\n")
 
 		var tags []string
 		if len(turn.Tools) > 0 {
@@ -65,11 +58,11 @@ func PrintSessionSummary(out io.Writer, m *summary.SessionSummaryModel) error {
 			tags = append(tags, "[journey: "+strings.Join(turn.Journeys, ", ")+"]")
 		}
 		if len(tags) > 0 {
-			b.WriteString(sessionIndent + strings.Join(tags, " ") + "\n")
+			b.WriteString("  " + strings.Join(tags, " ") + "\n")
 		}
 
 		if agent := truncateValue(turn.Agent, maxSessionMsgLen); agent != "" {
-			b.WriteString(sessionIndent + "Agent: " + agent + "\n")
+			b.WriteString("  Agent: " + agent + "\n")
 		}
 	}
 

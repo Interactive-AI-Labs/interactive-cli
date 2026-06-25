@@ -434,8 +434,7 @@ func init() {
 	tracesGetCmd.Flags().BoolVar(&tracesGetYAML, "yaml", false, "Output raw API response as YAML")
 	tracesGetCmd.Flags().BoolVar(&tracesGetSummary, "summary", false,
 		"Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)")
-	// --summary picks the view; --json/--yaml pick the format; they compose.
-	// --fields stays incompatible with --summary, which needs fixed IO fields.
+	// --summary is a view, not a format, so it composes with --json/--yaml; --fields can't.
 	tracesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "fields")
 	tracesGetCmd.Flags().
