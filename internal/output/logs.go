@@ -88,8 +88,8 @@ func PrintLogStream(
 		return nil
 	}
 
-	if meta.Since != "" {
-		fmt.Fprintf(os.Stderr, "Showing logs since %s\n\n", LocalTime(meta.Since))
+	if meta.Start != "" {
+		fmt.Fprintf(os.Stderr, "Showing logs since %s\n\n", LocalTime(meta.Start))
 	}
 
 	useColor := isTerminal(out)
