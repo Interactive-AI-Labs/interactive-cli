@@ -516,6 +516,8 @@ nested JSON values.`,
 
 		meta := output.LogsMeta{
 			Since:     logsResp.Since,
+			Start:     logsResp.Start,
+			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
 		}
@@ -568,7 +570,7 @@ Use the reported field names with 'iai services logs --fields' to include them i
 		defer logsResp.Body.Close()
 
 		if logsResp.Empty {
-			output.PrintNoLogsFound(cmd.ErrOrStderr(), logsResp.Since)
+			output.PrintNoLogsFound(cmd.ErrOrStderr(), logsResp.Start, logsResp.End)
 			return nil
 		}
 

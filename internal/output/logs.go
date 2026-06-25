@@ -59,6 +59,8 @@ var levelColors = map[string]string{
 
 type LogsMeta struct {
 	Since     string
+	Start     string
+	End       string
 	Truncated bool
 	Empty     bool
 }
@@ -82,7 +84,7 @@ func PrintLogStream(
 	opts LogFormatOptions,
 ) error {
 	if meta.Empty {
-		PrintNoLogsFound(os.Stderr, meta.Since)
+		PrintNoLogsFound(os.Stderr, meta.Start, meta.End)
 		return nil
 	}
 
@@ -395,12 +397,15 @@ func PrintLogFields(out io.Writer, fields []LogField) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintNoLogsFound(errOut io.Writer, since string) {
-	if since == "" {
+func PrintNoLogsFound(errOut io.Writer, start, end string) {
+	switch {
+	case start != "" && end != "":
+		fmt.Fprintf(errOut, "No logs found from %s to %s\n", LocalTime(start), LocalTime(end))
+	case start != "":
+		fmt.Fprintf(errOut, "No logs found since %s\n", LocalTime(start))
+	default:
 		fmt.Fprintln(errOut, "No logs found in the given timerange")
-		return
 	}
-	fmt.Fprintf(errOut, "No logs found in the given timerange (since %s)\n", LocalTime(since))
 }
 
 // printLogTruncationWarning warns that the server truncated the log stream.
