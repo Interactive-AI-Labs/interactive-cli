@@ -1007,7 +1007,6 @@ type LogsOptions struct {
 // LogsResponse wraps the log body stream together with metadata returned by the server.
 type LogsResponse struct {
 	Body      io.ReadCloser
-	Since     string // effective start timestamp (from X-Log-Since header, services only)
 	Start     string // effective start timestamp (from X-Log-Start header)
 	End       string // effective end timestamp (from X-Log-End header)
 	Truncated bool   // true when the server hit the entry limit (X-Log-Truncated header)
@@ -1091,7 +1090,6 @@ func (c *DeploymentClient) fetchLogs(
 
 	return &LogsResponse{
 		Body:      resp.Body,
-		Since:     resp.Header.Get("X-Log-Since"),
 		Start:     resp.Header.Get("X-Log-Start"),
 		End:       resp.Header.Get("X-Log-End"),
 		Truncated: resp.Header.Get("X-Log-Truncated") == "true",

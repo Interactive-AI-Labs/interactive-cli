@@ -58,7 +58,6 @@ var levelColors = map[string]string{
 }
 
 type LogsMeta struct {
-	Since     string
 	Start     string
 	End       string
 	Truncated bool
