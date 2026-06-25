@@ -371,6 +371,8 @@ JSON strings into nested JSON values.`,
 
 		meta := output.LogsMeta{
 			Since:     logsResp.Since,
+			Start:     logsResp.Start,
+			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
 		}
@@ -424,7 +426,7 @@ PostgreSQL-specific details are often nested under the 'record' field, so seeing
 		defer logsResp.Body.Close()
 
 		if logsResp.Empty {
-			output.PrintNoLogsFound(cmd.ErrOrStderr(), logsResp.Since)
+			output.PrintNoLogsFound(cmd.ErrOrStderr(), logsResp.Start, logsResp.End)
 			return nil
 		}
 

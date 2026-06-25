@@ -237,7 +237,8 @@ func TestPrintLogStreamFieldsMissing(t *testing.T) {
 func TestPrintNoLogsFound(t *testing.T) {
 	tests := []struct {
 		name     string
-		since    string
+		start    string
+		end      string
 		wantHas  string
 		wantFull string
 	}{
@@ -246,16 +247,22 @@ func TestPrintNoLogsFound(t *testing.T) {
 			wantFull: "No logs found in the given timerange\n",
 		},
 		{
-			name:    "includes effective since when provided",
-			since:   "2026-01-01T00:00:00Z",
-			wantHas: "No logs found in the given timerange (since 2026-01-01 ",
+			name:    "includes start only when no end",
+			start:   "2026-01-01T00:00:00Z",
+			wantHas: "No logs found since 2026-01-01 ",
+		},
+		{
+			name:    "includes start and end when both present",
+			start:   "2026-01-01T00:00:00Z",
+			end:     "2026-01-01T01:00:00Z",
+			wantHas: "No logs found from 2026-01-01 ",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			PrintNoLogsFound(&buf, tt.since)
+			PrintNoLogsFound(&buf, tt.start, tt.end)
 			got := buf.String()
 			if tt.wantFull != "" && got != tt.wantFull {
 				t.Errorf("message mismatch\ngot:\n%q\nwant:\n%q", got, tt.wantFull)
