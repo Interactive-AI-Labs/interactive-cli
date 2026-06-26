@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -54,15 +53,4 @@ func PrintSecretData(out io.Writer, data map[string]string) error {
 	}
 
 	return PrintTable(out, headers, rows)
-}
-
-func formatSecretKeys(keys []string, maxVisible int) string {
-	if len(keys) == 0 {
-		return ""
-	}
-	if len(keys) <= maxVisible {
-		return strings.Join(keys, ", ")
-	}
-	visible := strings.Join(keys[:maxVisible], ", ")
-	return fmt.Sprintf("%s (+%d more)", visible, len(keys)-maxVisible)
 }

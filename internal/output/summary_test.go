@@ -63,8 +63,8 @@ func TestFormatValue(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := formatValue(tc.in); got != tc.want {
-				t.Fatalf("formatValue(%v) = %q, want %q", tc.in, got, tc.want)
+			if got := formatSummaryValue(tc.in); got != tc.want {
+				t.Fatalf("formatSummaryValue(%v) = %q, want %q", tc.in, got, tc.want)
 			}
 		})
 	}

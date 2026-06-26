@@ -83,6 +83,13 @@ func TestExtractServerMessage(t *testing.T) {
 			),
 			want: "Invalid request data",
 		},
+		{
+			name: "trpc json error",
+			body: []byte(
+				`{"error":{"json":{"message":"Unsupported POST-request to query procedure","code":-32005}}}`,
+			),
+			want: "Unsupported POST-request to query procedure",
+		},
 	}
 
 	for _, tt := range tests {

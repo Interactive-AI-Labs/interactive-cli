@@ -41,13 +41,6 @@ var scoreConfigColumnMap = map[string]struct {
 	},
 }
 
-func formatOptionalFloat(v *float64) string {
-	if v == nil {
-		return "-"
-	}
-	return strconv.FormatFloat(*v, 'f', -1, 64)
-}
-
 func PrintScoreConfigList(
 	out io.Writer,
 	configs []clients.ScoreConfigInfo,
