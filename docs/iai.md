@@ -86,6 +86,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 ### SEE ALSO
 
 * [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
+* [iai api-keys](iai_api-keys.md)	 - Project API keys
 * [iai comments](iai_comments.md)	 - Annotate traces, observations, and sessions
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
 * [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
@@ -107,6 +108,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai queue-items](iai_queue-items.md)	 - Manage items in annotation queues
 * [iai queues](iai_queues.md)	 - Annotation queues for human review workflows
 * [iai replicas](iai_replicas.md)	 - Inspect service replicas
+* [iai router-keys](iai_router-keys.md)	 - Router API keys
 * [iai routines](iai_routines.md)	 - Multi-step behavioral processes for agents
 * [iai run-items](iai_run-items.md)	 - Inspect results of evaluation runs
 * [iai score-configs](iai_score-configs.md)	 - Define scoring schemas for evaluation

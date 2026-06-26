@@ -48,7 +48,7 @@ repos:
 
       - id: run-unit-tests
         name: Run unit tests
-        entry: go test ./...
+        entry: env TZ=Europe/Berlin go test ./...
         language: system
         pass_filenames: false
         always_run: false

@@ -40,6 +40,15 @@ type simpleError struct {
 	Detail string `json:"detail"`
 }
 
+type trpcError struct {
+	Error struct {
+		JSON struct {
+			Message string `json:"message"`
+		} `json:"json"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
 // ExtractServerMessage extracts a human-readable error message from an API
 // response body. It handles four formats:
 //
@@ -93,6 +102,16 @@ func ExtractServerMessage(body []byte) string {
 	var sp simpleError
 	if err := json.Unmarshal(body, &sp); err == nil {
 		if msg := strings.TrimSpace(sp.Detail); msg != "" {
+			return msg
+		}
+	}
+
+	var te trpcError
+	if err := json.Unmarshal(body, &te); err == nil {
+		if msg := strings.TrimSpace(te.Error.JSON.Message); msg != "" {
+			return msg
+		}
+		if msg := strings.TrimSpace(te.Error.Message); msg != "" {
 			return msg
 		}
 	}

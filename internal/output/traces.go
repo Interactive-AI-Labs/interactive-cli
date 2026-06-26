@@ -180,39 +180,6 @@ func colorHeader(useColor bool, label string, color string) string {
 	return color + label + colorReset
 }
 
-func formatFloat(v *float64, suffix string) string {
-	if v == nil {
-		return "-"
-	}
-	return fmt.Sprintf("%.2f%s", *v, suffix)
-}
-
-func formatCost(v *float64) string {
-	if v == nil {
-		return "-"
-	}
-	return fmt.Sprintf("$%.6f", *v)
-}
-
-// formatLatencyMs formats a latency value given in milliseconds.
-// If <= 1000ms, shows as "Xms"; otherwise converts to seconds "X.XXs".
-func formatLatencyMs(v *float64) string {
-	if v == nil {
-		return "-"
-	}
-	if *v <= 1000 {
-		return fmt.Sprintf("%.0fms", *v)
-	}
-	return fmt.Sprintf("%.2fs", *v/1000)
-}
-
-func formatInt(v *int) string {
-	if v == nil {
-		return "-"
-	}
-	return fmt.Sprintf("%d", *v)
-}
-
 // jsonUnescaper performs a single-pass unescape of JSON escape sequences for
 // human-readable terminal output. NewReplacer matches left-to-right without
 // re-processing replaced text, so \\n correctly becomes literal \n (not a newline).
