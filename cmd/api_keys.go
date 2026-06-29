@@ -32,9 +32,12 @@ var (
 	routerKeyExpiresAt     string
 )
 
-func requireCLISession() error {
-	if token != "" || apiKey != "" {
+func requireKeyManagementAuth() error {
+	if apiKey != "" {
 		return auth.KeyManagementLoginRequiredError()
+	}
+	if token != "" {
+		return nil
 	}
 
 	cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -53,7 +56,7 @@ var apiKeysCmd = &cobra.Command{
 	Aliases: []string{"api-key"},
 	Short:   "Project API keys",
 	GroupID: groupAuth,
-	Long: `Manage project API keys. Requires iai login. API key authentication is not supported.
+	Long: `Manage project API keys. Requires iai login or JWT authentication. API key authentication is not supported.
 
 Project API keys authenticate platform/API access for reading and writing project context, such as prompts, routines, policies, variables, glossaries, macros, traces, scores, datasets, and for creating infrastructure resources such as agents, services, and databases.`,
 }
@@ -64,7 +67,7 @@ var apiKeysListCmd = &cobra.Command{
 	Short:   "List project API keys",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireCLISession(); err != nil {
+		if err := requireKeyManagementAuth(); err != nil {
 			return err
 		}
 
@@ -88,7 +91,7 @@ var apiKeysListCmd = &cobra.Command{
 			return err
 		}
 
-		keys, err := apiClient.ListProjectAPIKeys(cmd.Context(), pCtx.projectId)
+		keys, err := apiClient.ListProjectAPIKeys(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
 		}
@@ -111,7 +114,7 @@ var apiKeysCreateCmd = &cobra.Command{
 Project API keys authenticate platform/API access for reading and writing project context, such as prompts, routines, policies, variables, glossaries, macros, traces, scores, datasets, and for creating infrastructure resources such as agents, services, and databases.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireCLISession(); err != nil {
+		if err := requireKeyManagementAuth(); err != nil {
 			return err
 		}
 
@@ -127,7 +130,9 @@ Project API keys authenticate platform/API access for reading and writing projec
 
 		key, err := apiClient.CreateProjectAPIKey(
 			cmd.Context(),
-			clients.CreateProjectAPIKeyBody{ProjectID: pCtx.projectId, Note: apiKeyNote},
+			pCtx.orgId,
+			pCtx.projectId,
+			clients.CreateProjectAPIKeyBody{Note: apiKeyNote},
 		)
 		if err != nil {
 			return err
@@ -152,7 +157,7 @@ var apiKeysDeleteCmd = &cobra.Command{
 	Short: "Delete a project API key",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireCLISession(); err != nil {
+		if err := requireKeyManagementAuth(); err != nil {
 			return err
 		}
 
@@ -166,7 +171,12 @@ var apiKeysDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		res, err := apiClient.DeleteProjectAPIKey(cmd.Context(), pCtx.projectId, args[0])
+		res, err := apiClient.DeleteProjectAPIKey(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			args[0],
+		)
 		if err != nil {
 			return err
 		}
@@ -195,7 +205,7 @@ var routerKeysCmd = &cobra.Command{
 	Aliases: []string{"router-key"},
 	Short:   "Router API keys",
 	GroupID: groupAuth,
-	Long: `Manage InteractiveAI Router API keys. Requires iai login. API key authentication is not supported.
+	Long: `Manage InteractiveAI Router API keys. Requires iai login or JWT authentication. API key authentication is not supported.
 
 Router keys authenticate inference requests to the InteractiveAI Router, for example chat completions and model calls. They are used as bearer tokens for runtime inference, not for managing project context or infrastructure.`,
 }
@@ -206,7 +216,7 @@ var routerKeysListCmd = &cobra.Command{
 	Short:   "List router API keys",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireCLISession(); err != nil {
+		if err := requireKeyManagementAuth(); err != nil {
 			return err
 		}
 
@@ -253,7 +263,7 @@ var routerKeysCreateCmd = &cobra.Command{
 Router keys authenticate inference requests to the InteractiveAI Router, for example chat completions and model calls. They are used as bearer tokens for runtime inference, not for managing project context or infrastructure.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireCLISession(); err != nil {
+		if err := requireKeyManagementAuth(); err != nil {
 			return err
 		}
 
@@ -323,7 +333,7 @@ var routerKeysDeleteCmd = &cobra.Command{
 	Short: "Delete a router API key",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireCLISession(); err != nil {
+		if err := requireKeyManagementAuth(); err != nil {
 			return err
 		}
 

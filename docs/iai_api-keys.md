@@ -4,7 +4,7 @@ Project API keys
 
 ### Synopsis
 
-Manage project API keys. Requires iai login. API key authentication is not supported.
+Manage project API keys. Requires iai login or JWT authentication. API key authentication is not supported.
 
 Project API keys authenticate platform/API access for reading and writing project context, such as prompts, routines, policies, variables, glossaries, macros, traces, scores, datasets, and for creating infrastructure resources such as agents, services, and databases.
 

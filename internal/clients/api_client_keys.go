@@ -22,8 +22,7 @@ type ProjectAPIKey struct {
 }
 
 type CreateProjectAPIKeyBody struct {
-	ProjectID string `json:"projectId"`
-	Note      string `json:"note,omitempty"`
+	Note string `json:"note,omitempty"`
 }
 
 type RouterAPIKey struct {
@@ -70,138 +69,106 @@ type DeleteAPIKeyResponse struct {
 	Message string `json:"message"`
 }
 
-func (c *APIClient) requireCookieMode() error {
-	if c.token != "" || c.apiKey != "" || len(c.cookies) == 0 {
+func (c *APIClient) requireKeyManagementAuth() error {
+	if c.apiKey != "" || (c.token == "" && len(c.cookies) == 0) {
 		return auth.KeyManagementLoginRequiredError()
 	}
 
 	return nil
 }
 
-func (c *APIClient) trpcMutation(ctx context.Context, path string, input any, out any) error {
-	if err := c.requireCookieMode(); err != nil {
-		return err
-	}
-
-	req, err := c.newJSONRequest(
-		ctx,
-		http.MethodPost,
-		"/api/trpc/"+path,
-		map[string]any{"json": input},
+func projectAPIKeysPath(orgID, projectID string) string {
+	return fmt.Sprintf(
+		"/api/platform/v1/organizations/%s/projects/%s/api-keys",
+		url.PathEscape(orgID),
+		url.PathEscape(projectID),
 	)
-	if err != nil {
-		return err
-	}
-
-	body, err := c.doAndRead(req, path)
-	if err != nil {
-		return err
-	}
-
-	return decodeTRPCData(body, out)
 }
 
-func (c *APIClient) trpcQuery(ctx context.Context, path string, input any, out any) error {
-	if err := c.requireCookieMode(); err != nil {
-		return err
-	}
-
-	encoded, err := json.Marshal(map[string]any{"json": input})
-	if err != nil {
-		return fmt.Errorf("failed to encode tRPC input: %w", err)
-	}
-	u, err := url.Parse(c.hostname)
-	if err != nil {
-		return fmt.Errorf("failed to parse API hostname: %w", err)
-	}
-	u.Path = "/api/trpc/" + path
-	u.RawQuery = "input=" + url.QueryEscape(string(encoded))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return err
-	}
-
-	body, err := c.doAndRead(req, path)
-	if err != nil {
-		return err
-	}
-
-	return decodeTRPCData(body, out)
-}
-
-func decodeTRPCData(body []byte, out any) error {
-	var envelope struct {
-		Result struct {
-			Data json.RawMessage `json:"data"`
-		} `json:"result"`
-		Error any `json:"error"`
-	}
-	if err := json.Unmarshal(body, &envelope); err != nil {
-		return fmt.Errorf("failed to decode tRPC response: %w", err)
-	}
-	if envelope.Error != nil {
-		if msg := ExtractServerMessage(body); msg != "" {
-			return fmt.Errorf("tRPC error: %s", msg)
-		}
-		return fmt.Errorf("tRPC error")
-	}
-	if len(envelope.Result.Data) == 0 {
-		return nil
-	}
-
-	var wrapped struct {
-		JSON json.RawMessage `json:"json"`
-	}
-	if err := json.Unmarshal(envelope.Result.Data, &wrapped); err == nil && len(wrapped.JSON) > 0 {
-		return json.Unmarshal(wrapped.JSON, out)
-	}
-	return json.Unmarshal(envelope.Result.Data, out)
+func projectAPIKeyPath(orgID, projectID, keyID string) string {
+	return fmt.Sprintf(
+		"/api/platform/v1/organizations/%s/projects/%s/api-keys/%s",
+		url.PathEscape(orgID),
+		url.PathEscape(projectID),
+		url.PathEscape(keyID),
+	)
 }
 
 func (c *APIClient) ListProjectAPIKeys(
 	ctx context.Context,
-	projectID string,
+	orgID, projectID string,
 ) ([]ProjectAPIKey, error) {
-	var keys []ProjectAPIKey
-	err := c.trpcQuery(
-		ctx,
-		"projectApiKeys.byProjectId",
-		map[string]string{"projectId": projectID},
-		&keys,
-	)
-	return keys, err
+	if err := c.requireKeyManagementAuth(); err != nil {
+		return nil, err
+	}
+
+	req, err := c.newRequest(ctx, http.MethodGet, projectAPIKeysPath(orgID, projectID))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doAndRead(req, "list project API keys")
+	if err != nil {
+		return nil, err
+	}
+	return decodeSuccess[[]ProjectAPIKey](body, "list project API keys")
 }
 
 func (c *APIClient) CreateProjectAPIKey(
 	ctx context.Context,
+	orgID, projectID string,
 	body CreateProjectAPIKeyBody,
 ) (ProjectAPIKey, error) {
-	var key ProjectAPIKey
-	err := c.trpcMutation(ctx, "projectApiKeys.create", body, &key)
-	return key, err
+	if err := c.requireKeyManagementAuth(); err != nil {
+		return ProjectAPIKey{}, err
+	}
+
+	payload := map[string]string{}
+	if body.Note != "" {
+		payload["note"] = body.Note
+	}
+	req, err := c.newJSONRequest(
+		ctx,
+		http.MethodPost,
+		projectAPIKeysPath(orgID, projectID),
+		payload,
+	)
+	if err != nil {
+		return ProjectAPIKey{}, err
+	}
+
+	respBody, err := c.doAndRead(req, "create project API key")
+	if err != nil {
+		return ProjectAPIKey{}, err
+	}
+	return decodeSuccess[ProjectAPIKey](respBody, "create project API key")
 }
 
 func (c *APIClient) DeleteProjectAPIKey(
 	ctx context.Context,
-	projectID, keyID string,
+	orgID, projectID, keyID string,
 ) (DeleteAPIKeyResponse, error) {
-	var ok bool
-	if err := c.trpcMutation(
-		ctx,
-		"projectApiKeys.delete",
-		map[string]string{"projectId": projectID, "id": keyID},
-		&ok,
-	); err != nil {
+	if err := c.requireKeyManagementAuth(); err != nil {
 		return DeleteAPIKeyResponse{}, err
 	}
-	return DeleteAPIKeyResponse{Success: ok}, nil
+
+	req, err := c.newRequest(ctx, http.MethodDelete, projectAPIKeyPath(orgID, projectID, keyID))
+	if err != nil {
+		return DeleteAPIKeyResponse{}, err
+	}
+
+	body, err := c.doAndRead(req, "delete project API key")
+	if err != nil {
+		return DeleteAPIKeyResponse{}, err
+	}
+	return decodeSuccess[DeleteAPIKeyResponse](body, "delete project API key")
 }
 
 func (c *APIClient) ListRouterAPIKeys(
 	ctx context.Context,
 	projectID string,
 ) (RouterAPIKeyListResponse, error) {
-	if err := c.requireCookieMode(); err != nil {
+	if err := c.requireKeyManagementAuth(); err != nil {
 		return RouterAPIKeyListResponse{}, err
 	}
 
@@ -226,7 +193,7 @@ func (c *APIClient) CreateRouterAPIKey(
 	projectID string,
 	body CreateRouterAPIKeyBody,
 ) (CreateRouterAPIKeyResponse, error) {
-	if err := c.requireCookieMode(); err != nil {
+	if err := c.requireKeyManagementAuth(); err != nil {
 		return CreateRouterAPIKeyResponse{}, err
 	}
 
@@ -250,7 +217,7 @@ func (c *APIClient) DeleteRouterAPIKey(
 	ctx context.Context,
 	projectID, keyID string,
 ) (DeleteAPIKeyResponse, error) {
-	if err := c.requireCookieMode(); err != nil {
+	if err := c.requireKeyManagementAuth(); err != nil {
 		return DeleteAPIKeyResponse{}, err
 	}
 

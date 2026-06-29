@@ -4,7 +4,7 @@ Router API keys
 
 ### Synopsis
 
-Manage InteractiveAI Router API keys. Requires iai login. API key authentication is not supported.
+Manage InteractiveAI Router API keys. Requires iai login or JWT authentication. API key authentication is not supported.
 
 Router keys authenticate inference requests to the InteractiveAI Router, for example chat completions and model calls. They are used as bearer tokens for runtime inference, not for managing project context or infrastructure.
 
