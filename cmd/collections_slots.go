@@ -235,7 +235,8 @@ func init() {
 	}
 
 	slotsAddCmd.Flags().StringVar(&slotType, "type", "float32", "Vector slot type")
-	slotsAddCmd.Flags().IntVar(&slotDimension, "dimension", 0, "Vector dimension (with flag form)")
+	slotsAddCmd.Flags().
+		IntVar(&slotDimension, "dimension", 0, "Vector dimension (required unless --file is provided)")
 	slotsAddCmd.Flags().
 		StringVar(&slotDistance, "distance", "", "Distance metric (default: cosine)")
 	slotsAddCmd.Flags().StringVar(&slotFile, "file", "", "Path to a YAML/JSON slot config")
