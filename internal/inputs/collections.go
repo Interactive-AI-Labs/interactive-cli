@@ -33,3 +33,51 @@ func ReadCollectionBodyFile(path string) ([]byte, error) {
 	}
 	return body, nil
 }
+
+// BuildChunkCountBody builds the count request body from an optional metadata
+// filter (a JSON object string) and an optional id prefix.
+func BuildChunkCountBody(filterJSON, prefix string) ([]byte, error) {
+	body := map[string]any{}
+	if filterJSON != "" {
+		var filter map[string]any
+		if err := json.Unmarshal([]byte(filterJSON), &filter); err != nil {
+			return nil, fmt.Errorf("--filter must be a JSON object: %w", err)
+		}
+		body["filter"] = filter
+	}
+	if prefix != "" {
+		body["prefix"] = prefix
+	}
+	return json.Marshal(body)
+}
+
+// BuildBulkDeleteBody builds the bulk-delete body from exactly one selector:
+// ids, a metadata filter (JSON object string), or all.
+func BuildBulkDeleteBody(ids []string, filterJSON string, all bool) ([]byte, error) {
+	set := 0
+	if len(ids) > 0 {
+		set++
+	}
+	if filterJSON != "" {
+		set++
+	}
+	if all {
+		set++
+	}
+	if set != 1 {
+		return nil, fmt.Errorf("provide exactly one of --ids, --filter, or --all")
+	}
+
+	switch {
+	case len(ids) > 0:
+		return json.Marshal(map[string]any{"ids": ids})
+	case filterJSON != "":
+		var filter map[string]any
+		if err := json.Unmarshal([]byte(filterJSON), &filter); err != nil {
+			return nil, fmt.Errorf("--filter must be a JSON object: %w", err)
+		}
+		return json.Marshal(map[string]any{"filter": filter})
+	default:
+		return json.Marshal(map[string]any{"all": true})
+	}
+}
