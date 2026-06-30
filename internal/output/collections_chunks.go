@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -15,8 +16,13 @@ func PrintChunkUpsertResult(out io.Writer, r *clients.ChunkUpsertResult) error {
 	for _, res := range r.Results {
 		byStatus[res.Status]++
 	}
-	for status, n := range byStatus {
-		fmt.Fprintf(out, "%d %s\n", n, status)
+	statuses := make([]string, 0, len(byStatus))
+	for status := range byStatus {
+		statuses = append(statuses, status)
+	}
+	sort.Strings(statuses)
+	for _, status := range statuses {
+		fmt.Fprintf(out, "%d %s\n", byStatus[status], status)
 	}
 	if len(r.Errors) > 0 {
 		fmt.Fprintf(out, "\n%d error(s):\n", len(r.Errors))

@@ -210,6 +210,18 @@ func TestPrintChunkUpsertResult(t *testing.T) {
 			in:   &clients.ChunkUpsertResult{},
 			want: "",
 		},
+		{
+			name: "multi-status-sorted",
+			in: &clients.ChunkUpsertResult{
+				Results: []clients.ChunkResult{
+					{ID: "a", Status: "upserted"},
+					{ID: "b", Status: "failed"},
+					{ID: "c", Status: "upserted"},
+					{ID: "d", Status: "created"},
+				},
+			},
+			want: "1 created\n1 failed\n2 upserted\n",
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
