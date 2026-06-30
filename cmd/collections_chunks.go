@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -285,7 +287,10 @@ var chunksBulkDeleteCmd = &cobra.Command{
 
 		if chunkAll && !chunkYes {
 			fmt.Fprintf(out, "Delete ALL chunks in %q? This cannot be undone. [y/N]: ", collection)
-			line, _ := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
+			line, err := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
+			if err != nil && !errors.Is(err, io.EOF) {
+				return fmt.Errorf("failed to read confirmation: %w", err)
+			}
 			if ans := strings.ToLower(strings.TrimSpace(line)); ans != "y" && ans != "yes" {
 				fmt.Fprintln(out, "Aborted.")
 				return nil
