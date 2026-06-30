@@ -18,6 +18,7 @@ type jsonSchema struct {
 	Ref         string                `json:"$ref"`
 	Items       *jsonSchema           `json:"items"`
 	AnyOf       []jsonSchema          `json:"anyOf"`
+	OneOf       []jsonSchema          `json:"oneOf"`
 	Enum        []any                 `json:"enum"`
 	Default     any                   `json:"default"`
 	Const       any                   `json:"const"`
@@ -113,9 +114,10 @@ func resolveTypeName(s jsonSchema, defs map[string]jsonSchema) string {
 		return refName(s.Ref)
 	}
 
-	if len(s.AnyOf) > 0 {
-		parts := make([]string, 0, len(s.AnyOf))
-		for _, alt := range s.AnyOf {
+	// Discriminated unions nest a oneOf inside an anyOf; union both alike.
+	if alts := append(append([]jsonSchema{}, s.AnyOf...), s.OneOf...); len(alts) > 0 {
+		parts := make([]string, 0, len(alts))
+		for _, alt := range alts {
 			parts = append(parts, resolveTypeName(alt, defs))
 		}
 		return strings.Join(parts, " | ")
