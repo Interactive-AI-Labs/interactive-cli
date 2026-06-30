@@ -81,3 +81,15 @@ func BuildBulkDeleteBody(ids []string, filterJSON string, all bool) ([]byte, err
 		return json.Marshal(map[string]any{"all": true})
 	}
 }
+
+// BuildAddSlotBody builds an add-slot body from flags (a raw vector slot).
+func BuildAddSlotBody(slotType string, dimension int, distance string) ([]byte, error) {
+	if dimension <= 0 {
+		return nil, fmt.Errorf("--dimension must be a positive integer (or use --file)")
+	}
+	body := map[string]any{"type": slotType, "dimension": dimension}
+	if distance != "" {
+		body["distance"] = distance
+	}
+	return json.Marshal(body)
+}
