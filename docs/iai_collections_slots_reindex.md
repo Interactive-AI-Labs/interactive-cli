@@ -24,8 +24,10 @@ iai collections slots reindex <collection> <slot> [flags]
   -d, --database string       Database that holds the collection (required)
       --file string           Path to a YAML/JSON reindex config
   -h, --help                  help for reindex
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

@@ -30,7 +30,7 @@ iai collections slots add <collection> <slot> [flags]
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
-      --type string           Vector slot type (default "float32")
+      --type string           Vector slot type (float32, float16, binary, or sparse; default: float32) (default "float32")
       --yaml                  Output raw API response as YAML
 ```
 

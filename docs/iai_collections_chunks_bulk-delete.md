@@ -28,8 +28,10 @@ iai collections chunks bulk-delete <collection> [flags]
       --filter string         Metadata filter as a JSON object
   -h, --help                  help for bulk-delete
       --ids strings           Comma-separated chunk ids to delete
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
       --yes                   Skip the --all confirmation prompt
 ```
 

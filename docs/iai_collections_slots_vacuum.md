@@ -17,8 +17,10 @@ iai collections slots vacuum <collection> <slot> [flags]
 ```
   -d, --database string       Database that holds the collection (required)
   -h, --help                  help for vacuum
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

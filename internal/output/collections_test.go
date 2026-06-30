@@ -65,8 +65,16 @@ func TestPrintCollectionList(t *testing.T) {
 		{
 			name: "two rows",
 			collections: []clients.CollectionSummary{
-				{Name: "alpha", CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-02T00:00:00Z"},
-				{Name: "beta", CreatedAt: "2026-02-01T00:00:00Z", UpdatedAt: "2026-02-02T00:00:00Z"},
+				{
+					Name:      "alpha",
+					CreatedAt: "2026-01-01T00:00:00Z",
+					UpdatedAt: "2026-01-02T00:00:00Z",
+				},
+				{
+					Name:      "beta",
+					CreatedAt: "2026-02-01T00:00:00Z",
+					UpdatedAt: "2026-02-02T00:00:00Z",
+				},
 			},
 			// Header plus one line per row, in declaration order. LocalTime
 			// formatting is timezone-dependent so we only check structure.
@@ -107,7 +115,14 @@ func TestPrintCollectionStats(t *testing.T) {
 				SizeBytes:  5 * 1024 * 1024,
 				IndexValid: map[string]bool{"default": true, "extra": false},
 			},
-			wantSubs: []string{"Chunks:  42", "Size:    5.0 MiB", "default", "true", "extra", "false"},
+			wantSubs: []string{
+				"Chunks:  42",
+				"Size:    5.0 MiB",
+				"default",
+				"true",
+				"extra",
+				"false",
+			},
 		},
 	}
 	for _, c := range cases {
@@ -514,7 +529,10 @@ func TestPrintSlotResults(t *testing.T) {
 
 	t.Run("op-with-status", func(t *testing.T) {
 		var buf bytes.Buffer
-		if err := PrintSlotOpResult(&buf, &clients.SlotOpResult{Slot: "s", Status: "ok"}); err != nil {
+		if err := PrintSlotOpResult(
+			&buf,
+			&clients.SlotOpResult{Slot: "s", Status: "ok"},
+		); err != nil {
 			t.Fatal(err)
 		}
 		if got := strings.TrimSpace(buf.String()); got != `Slot "s": ok` {
@@ -524,7 +542,10 @@ func TestPrintSlotResults(t *testing.T) {
 
 	t.Run("op-with-index-status", func(t *testing.T) {
 		var buf bytes.Buffer
-		if err := PrintSlotOpResult(&buf, &clients.SlotOpResult{Slot: "s", IndexStatus: "ready"}); err != nil {
+		if err := PrintSlotOpResult(
+			&buf,
+			&clients.SlotOpResult{Slot: "s", IndexStatus: "ready"},
+		); err != nil {
 			t.Fatal(err)
 		}
 		if got := strings.TrimSpace(buf.String()); got != `Slot "s": ready` {
