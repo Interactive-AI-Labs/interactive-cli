@@ -29,4 +29,5 @@ Router keys authenticate inference requests to the InteractiveAI Router, for exa
 * [iai router-keys create](iai_router-keys_create.md)	 - Create a router API key
 * [iai router-keys delete](iai_router-keys_delete.md)	 - Delete a router API key
 * [iai router-keys list](iai_router-keys_list.md)	 - List router API keys
+* [iai router-keys update](iai_router-keys_update.md)	 - Update a router API key
 
