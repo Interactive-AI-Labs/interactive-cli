@@ -64,8 +64,14 @@ func BuildBulkDeleteBody(ids []string, filterJSON string, all bool) ([]byte, err
 	if all {
 		set++
 	}
-	if set != 1 {
+	if set == 0 {
 		return nil, fmt.Errorf("provide exactly one of --ids, --filter, or --all")
+	}
+	if set > 1 {
+		return nil, fmt.Errorf(
+			"provide exactly one of --ids, --filter, or --all (got %d selectors)",
+			set,
+		)
 	}
 
 	switch {
