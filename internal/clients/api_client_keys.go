@@ -25,6 +25,10 @@ type CreateProjectAPIKeyBody struct {
 	Note string `json:"note,omitempty"`
 }
 
+type UpdateProjectAPIKeyBody struct {
+	Note string `json:"note"`
+}
+
 type RouterAPIKey struct {
 	ID             string  `json:"id"`
 	Name           string  `json:"name"`
@@ -64,7 +68,9 @@ type CreateRouterAPIKeyResponse struct {
 	Warning string `json:"warning,omitempty"`
 }
 
-type DeleteAPIKeyResponse struct {
+type UpdateRouterAPIKeyBody map[string]any
+
+type APIKeySuccessResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 }
@@ -144,24 +150,50 @@ func (c *APIClient) CreateProjectAPIKey(
 	return decodeSuccess[ProjectAPIKey](respBody, "create project API key")
 }
 
+func (c *APIClient) UpdateProjectAPIKey(
+	ctx context.Context,
+	orgID, projectID, keyID string,
+	body UpdateProjectAPIKeyBody,
+) (APIKeySuccessResponse, error) {
+	if err := c.requireKeyManagementAuth(); err != nil {
+		return APIKeySuccessResponse{}, err
+	}
+
+	req, err := c.newJSONRequest(
+		ctx,
+		http.MethodPatch,
+		projectAPIKeyPath(orgID, projectID, keyID),
+		body,
+	)
+	if err != nil {
+		return APIKeySuccessResponse{}, err
+	}
+
+	respBody, err := c.doAndRead(req, "update project API key")
+	if err != nil {
+		return APIKeySuccessResponse{}, err
+	}
+	return decodeSuccess[APIKeySuccessResponse](respBody, "update project API key")
+}
+
 func (c *APIClient) DeleteProjectAPIKey(
 	ctx context.Context,
 	orgID, projectID, keyID string,
-) (DeleteAPIKeyResponse, error) {
+) (APIKeySuccessResponse, error) {
 	if err := c.requireKeyManagementAuth(); err != nil {
-		return DeleteAPIKeyResponse{}, err
+		return APIKeySuccessResponse{}, err
 	}
 
 	req, err := c.newRequest(ctx, http.MethodDelete, projectAPIKeyPath(orgID, projectID, keyID))
 	if err != nil {
-		return DeleteAPIKeyResponse{}, err
+		return APIKeySuccessResponse{}, err
 	}
 
 	body, err := c.doAndRead(req, "delete project API key")
 	if err != nil {
-		return DeleteAPIKeyResponse{}, err
+		return APIKeySuccessResponse{}, err
 	}
-	return decodeSuccess[DeleteAPIKeyResponse](body, "delete project API key")
+	return decodeSuccess[APIKeySuccessResponse](body, "delete project API key")
 }
 
 func (c *APIClient) ListRouterAPIKeys(
@@ -213,30 +245,57 @@ func (c *APIClient) CreateRouterAPIKey(
 	return res, nil
 }
 
-func (c *APIClient) DeleteRouterAPIKey(
-	ctx context.Context,
-	projectID, keyID string,
-) (DeleteAPIKeyResponse, error) {
-	if err := c.requireKeyManagementAuth(); err != nil {
-		return DeleteAPIKeyResponse{}, err
-	}
-
-	path := fmt.Sprintf(
+func routerAPIKeyPath(projectID, keyID string) string {
+	return fmt.Sprintf(
 		"/api/v1/projects/%s/openrouter-keys/%s",
 		url.PathEscape(projectID),
 		url.PathEscape(keyID),
 	)
-	req, err := c.newRequest(ctx, http.MethodDelete, path)
+}
+
+func (c *APIClient) UpdateRouterAPIKey(
+	ctx context.Context,
+	projectID, keyID string,
+	body UpdateRouterAPIKeyBody,
+) (RouterAPIKey, error) {
+	if err := c.requireKeyManagementAuth(); err != nil {
+		return RouterAPIKey{}, err
+	}
+
+	req, err := c.newJSONRequest(ctx, http.MethodPatch, routerAPIKeyPath(projectID, keyID), body)
 	if err != nil {
-		return DeleteAPIKeyResponse{}, err
+		return RouterAPIKey{}, err
+	}
+	respBody, err := c.doAndRead(req, "update router key")
+	if err != nil {
+		return RouterAPIKey{}, err
+	}
+	var res RouterAPIKey
+	if err := json.Unmarshal(respBody, &res); err != nil {
+		return RouterAPIKey{}, fmt.Errorf("failed to decode router key: %w", err)
+	}
+	return res, nil
+}
+
+func (c *APIClient) DeleteRouterAPIKey(
+	ctx context.Context,
+	projectID, keyID string,
+) (APIKeySuccessResponse, error) {
+	if err := c.requireKeyManagementAuth(); err != nil {
+		return APIKeySuccessResponse{}, err
+	}
+
+	req, err := c.newRequest(ctx, http.MethodDelete, routerAPIKeyPath(projectID, keyID))
+	if err != nil {
+		return APIKeySuccessResponse{}, err
 	}
 	body, err := c.doAndRead(req, "delete router key")
 	if err != nil {
-		return DeleteAPIKeyResponse{}, err
+		return APIKeySuccessResponse{}, err
 	}
-	var res DeleteAPIKeyResponse
+	var res APIKeySuccessResponse
 	if err := json.Unmarshal(body, &res); err != nil {
-		return DeleteAPIKeyResponse{}, fmt.Errorf("failed to decode delete response: %w", err)
+		return APIKeySuccessResponse{}, fmt.Errorf("failed to decode delete response: %w", err)
 	}
 	return res, nil
 }

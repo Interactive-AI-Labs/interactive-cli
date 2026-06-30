@@ -29,4 +29,5 @@ Project API keys authenticate platform/API access for reading and writing projec
 * [iai api-keys create](iai_api-keys_create.md)	 - Create a project API key
 * [iai api-keys delete](iai_api-keys_delete.md)	 - Delete a project API key
 * [iai api-keys list](iai_api-keys_list.md)	 - List project API keys
+* [iai api-keys update](iai_api-keys_update.md)	 - Update a project API key
 
