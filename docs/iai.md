@@ -87,6 +87,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 
 * [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
 * [iai api-keys](iai_api-keys.md)	 - Project API keys
+* [iai collections](iai_collections.md)	 - Vector collections (knowledge bases) inside a pgvector database
 * [iai comments](iai_comments.md)	 - Annotate traces, observations, and sessions
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
 * [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
