@@ -73,9 +73,16 @@ func PrintChunk(out io.Writer, c *clients.Chunk) error {
 	return nil
 }
 
-// PrintBulkDeleteResult renders a bulk-delete response.
+// PrintBulkDeleteResult renders a bulk-delete response. The deleted id list is
+// only useful for --filter/--all deletes (the caller already knows the ids for
+// --ids), so it's printed one per line when present.
 func PrintBulkDeleteResult(out io.Writer, r *clients.BulkDeleteResult) error {
 	fmt.Fprintf(out, "Deleted %d chunk(s)\n", r.DeletedCount)
+	if len(r.DeletedIds) > 0 {
+		for _, id := range r.DeletedIds {
+			fmt.Fprintf(out, "  %s\n", id)
+		}
+	}
 	return nil
 }
 

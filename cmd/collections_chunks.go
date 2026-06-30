@@ -309,6 +309,13 @@ var chunksBulkDeleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if collJSON {
+			return output.PrintStructuredJSON(out, result)
+		}
+		if collYAML {
+			return output.PrintStructuredYAML(out, result)
+		}
 		return output.PrintBulkDeleteResult(out, result)
 	},
 }
@@ -326,7 +333,7 @@ func init() {
 		_ = c.MarkFlagRequired("database")
 	}
 
-	for _, c := range []*cobra.Command{chunksUpsertCmd, chunksListCmd, chunksGetCmd, chunksPatchCmd} {
+	for _, c := range []*cobra.Command{chunksUpsertCmd, chunksListCmd, chunksGetCmd, chunksPatchCmd, chunksBulkDeleteCmd} {
 		c.Flags().BoolVar(&collJSON, "json", false, "Output raw API response as JSON")
 		c.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")
 	}
