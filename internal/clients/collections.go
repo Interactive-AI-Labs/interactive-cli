@@ -73,11 +73,19 @@ func collectionsPath(orgId, projectId, database string) string {
 }
 
 // collectionErr turns a non-2xx collections response into an error, preferring
-// the server's message.
+// the server's message. If the body could not be read, the read error is folded
+// into the fallback message so transient network blips don't produce empty
+// errors.
 func collectionErr(resp *http.Response, action string) error {
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, readErr := io.ReadAll(resp.Body)
 	if msg := ExtractServerMessage(respBody); msg != "" {
 		return errors.New(msg)
+	}
+	if readErr != nil {
+		return fmt.Errorf(
+			"failed to %s: server returned %s (reading response body: %w)",
+			action, resp.Status, readErr,
+		)
 	}
 	return fmt.Errorf("failed to %s: server returned %s", action, resp.Status)
 }
