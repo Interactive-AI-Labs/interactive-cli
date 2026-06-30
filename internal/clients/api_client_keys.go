@@ -25,6 +25,10 @@ type CreateProjectAPIKeyBody struct {
 	Note string `json:"note,omitempty"`
 }
 
+type UpdateProjectAPIKeyBody struct {
+	Note string `json:"note"`
+}
+
 type RouterAPIKey struct {
 	ID             string  `json:"id"`
 	Name           string  `json:"name"`
@@ -63,6 +67,8 @@ type CreateRouterAPIKeyResponse struct {
 	Key     string `json:"key"`
 	Warning string `json:"warning,omitempty"`
 }
+
+type UpdateRouterAPIKeyBody map[string]any
 
 type DeleteAPIKeyResponse struct {
 	Success bool   `json:"success"`
@@ -144,6 +150,32 @@ func (c *APIClient) CreateProjectAPIKey(
 	return decodeSuccess[ProjectAPIKey](respBody, "create project API key")
 }
 
+func (c *APIClient) UpdateProjectAPIKey(
+	ctx context.Context,
+	orgID, projectID, keyID string,
+	body UpdateProjectAPIKeyBody,
+) (DeleteAPIKeyResponse, error) {
+	if err := c.requireKeyManagementAuth(); err != nil {
+		return DeleteAPIKeyResponse{}, err
+	}
+
+	req, err := c.newJSONRequest(
+		ctx,
+		http.MethodPatch,
+		projectAPIKeyPath(orgID, projectID, keyID),
+		body,
+	)
+	if err != nil {
+		return DeleteAPIKeyResponse{}, err
+	}
+
+	respBody, err := c.doAndRead(req, "update project API key")
+	if err != nil {
+		return DeleteAPIKeyResponse{}, err
+	}
+	return decodeSuccess[DeleteAPIKeyResponse](respBody, "update project API key")
+}
+
 func (c *APIClient) DeleteProjectAPIKey(
 	ctx context.Context,
 	orgID, projectID, keyID string,
@@ -213,6 +245,38 @@ func (c *APIClient) CreateRouterAPIKey(
 	return res, nil
 }
 
+func routerAPIKeyPath(projectID, keyID string) string {
+	return fmt.Sprintf(
+		"/api/v1/projects/%s/openrouter-keys/%s",
+		url.PathEscape(projectID),
+		url.PathEscape(keyID),
+	)
+}
+
+func (c *APIClient) UpdateRouterAPIKey(
+	ctx context.Context,
+	projectID, keyID string,
+	body UpdateRouterAPIKeyBody,
+) (RouterAPIKey, error) {
+	if err := c.requireKeyManagementAuth(); err != nil {
+		return RouterAPIKey{}, err
+	}
+
+	req, err := c.newJSONRequest(ctx, http.MethodPatch, routerAPIKeyPath(projectID, keyID), body)
+	if err != nil {
+		return RouterAPIKey{}, err
+	}
+	respBody, err := c.doAndRead(req, "update router key")
+	if err != nil {
+		return RouterAPIKey{}, err
+	}
+	var res RouterAPIKey
+	if err := json.Unmarshal(respBody, &res); err != nil {
+		return RouterAPIKey{}, fmt.Errorf("failed to decode router key: %w", err)
+	}
+	return res, nil
+}
+
 func (c *APIClient) DeleteRouterAPIKey(
 	ctx context.Context,
 	projectID, keyID string,
@@ -221,12 +285,7 @@ func (c *APIClient) DeleteRouterAPIKey(
 		return DeleteAPIKeyResponse{}, err
 	}
 
-	path := fmt.Sprintf(
-		"/api/v1/projects/%s/openrouter-keys/%s",
-		url.PathEscape(projectID),
-		url.PathEscape(keyID),
-	)
-	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	req, err := c.newRequest(ctx, http.MethodDelete, routerAPIKeyPath(projectID, keyID))
 	if err != nil {
 		return DeleteAPIKeyResponse{}, err
 	}
