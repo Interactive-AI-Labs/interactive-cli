@@ -93,7 +93,14 @@ func (c *DeploymentClient) ReindexSlot(
 ) (*SlotOpResult, error) {
 	var result SlotOpResult
 	path := slotPath(orgId, projectId, database, collection, slot) + "/reindex"
-	if err := c.sendSlotBody(ctx, http.MethodPost, path, body, "reindex slot", &result); err != nil {
+	if err := c.sendSlotBody(
+		ctx,
+		http.MethodPost,
+		path,
+		body,
+		"reindex slot",
+		&result,
+	); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -119,7 +126,14 @@ func (c *DeploymentClient) SlotIndexProgressStatus(
 ) (*SlotIndexProgress, error) {
 	var result SlotIndexProgress
 	path := slotPath(orgId, projectId, database, collection, slot) + "/index-progress"
-	if err := c.sendSlotBody(ctx, http.MethodGet, path, nil, "index progress", &result); err != nil {
+	if err := c.sendSlotBody(
+		ctx,
+		http.MethodGet,
+		path,
+		nil,
+		"index progress",
+		&result,
+	); err != nil {
 		return nil, err
 	}
 	return &result, nil

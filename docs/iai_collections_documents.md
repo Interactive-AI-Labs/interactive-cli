@@ -4,7 +4,7 @@ Inspect documents (chunks grouped by documentId)
 
 ### Synopsis
 
-A document is the set of chunks sharing a documentId. These are read/delete views over chunks.
+A document groups chunks by documentId; these commands read or delete them.
 
 ### Options
 

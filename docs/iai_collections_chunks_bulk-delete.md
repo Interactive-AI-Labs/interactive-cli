@@ -30,6 +30,7 @@ iai collections chunks bulk-delete <collection> [flags]
       --ids strings           Comma-separated chunk ids to delete
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --yes                   Skip the --all confirmation prompt
 ```
 
 ### Options inherited from parent commands

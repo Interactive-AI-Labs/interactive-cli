@@ -23,7 +23,7 @@ iai collections slots add <collection> <slot> [flags]
 
 ```
   -d, --database string       Database that holds the collection (required)
-      --dimension int         Vector dimension (with flag form)
+      --dimension int         Vector dimension (required unless --file is provided)
       --distance string       Distance metric (default: cosine)
       --file string           Path to a YAML/JSON slot config
   -h, --help                  help for add
