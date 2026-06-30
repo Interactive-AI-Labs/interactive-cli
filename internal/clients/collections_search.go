@@ -91,7 +91,10 @@ func (c *DeploymentClient) Search(
 	return c.postSearch(ctx, path, body, "search")
 }
 
-// HybridSearch runs a multi-lane (RRF-fused) search via the /search endpoint.
+// HybridSearch runs a multi-lane (RRF-fused) search. Note it POSTs to the same
+// /search endpoint as Search — the server dispatches to single-lane vs hybrid
+// based on the request body (a top-level "queries" array selects hybrid), so the
+// `search` and `search hybrid` sub-commands hit the same URL with different bodies.
 func (c *DeploymentClient) HybridSearch(
 	ctx context.Context,
 	orgId, projectId, database, collection string,
