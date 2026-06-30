@@ -17,7 +17,7 @@ var documentsCmd = &cobra.Command{
 	Use:     "documents",
 	Aliases: []string{"document", "docs"},
 	Short:   "Inspect documents (chunks grouped by documentId)",
-	Long:    `A document is the set of chunks sharing a documentId. These are read/delete views over chunks.`,
+	Long:    `A document groups chunks by documentId; these commands read or delete them.`,
 }
 
 var documentsListCmd = &cobra.Command{
