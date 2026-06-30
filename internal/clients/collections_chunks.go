@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -253,7 +254,7 @@ func (c *DeploymentClient) DeleteChunk(
 	msg := ExtractServerMessage(respBody)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg != "" {
-			return "", fmt.Errorf("%s", msg)
+			return "", errors.New(msg)
 		}
 		return "", fmt.Errorf("failed to delete chunk: server returned %s", resp.Status)
 	}

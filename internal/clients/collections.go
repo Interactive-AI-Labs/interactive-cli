@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,7 +77,7 @@ func collectionsPath(orgId, projectId, database string) string {
 func collectionErr(resp *http.Response, action string) error {
 	respBody, _ := io.ReadAll(resp.Body)
 	if msg := ExtractServerMessage(respBody); msg != "" {
-		return fmt.Errorf("%s", msg)
+		return errors.New(msg)
 	}
 	return fmt.Errorf("failed to %s: server returned %s", action, resp.Status)
 }
@@ -205,7 +206,7 @@ func (c *DeploymentClient) DeleteCollection(
 	msg := ExtractServerMessage(respBody)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg != "" {
-			return "", fmt.Errorf("%s", msg)
+			return "", errors.New(msg)
 		}
 		return "", fmt.Errorf("failed to delete collection: server returned %s", resp.Status)
 	}
@@ -236,7 +237,7 @@ func (c *DeploymentClient) sendCollectionBody(
 	msg := ExtractServerMessage(respBody)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg != "" {
-			return "", fmt.Errorf("%s", msg)
+			return "", errors.New(msg)
 		}
 		return "", fmt.Errorf("failed to %s: server returned %s", action, resp.Status)
 	}
