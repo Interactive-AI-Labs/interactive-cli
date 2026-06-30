@@ -28,6 +28,26 @@ func TestPrintSchemaPretty(t *testing.T) {
 			"mcps": {
 				"items": {"$ref": "#/$defs/McpConfig"},
 				"type": "array"
+			},
+			"search": {
+				"anyOf": [
+					{
+						"oneOf": [
+							{"$ref": "#/$defs/KnowledgeBase"},
+							{"$ref": "#/$defs/ExternalSearch"}
+						],
+						"discriminator": {
+							"propertyName": "type",
+							"mapping": {
+								"knowledge_base": "#/$defs/KnowledgeBase",
+								"external_search": "#/$defs/ExternalSearch"
+							}
+						}
+					},
+					{"type": "null"}
+				],
+				"default": null,
+				"description": "Retrieval-grounding source."
 			}
 		},
 		"$defs": {
@@ -110,6 +130,7 @@ func TestPrintSchemaPretty(t *testing.T) {
 		"no",
 		"list[McpConfig]",
 		"string | null",
+		"KnowledgeBase | ExternalSearch | null",
 		"McpConfig",
 		"PromptRef",
 		"FIELD",
