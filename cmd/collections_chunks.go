@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"strings"
 
@@ -19,6 +20,7 @@ var (
 	chunkIDs           []string
 	chunkFilter        string
 	chunkAll           bool
+	chunkYes           bool
 )
 
 var chunksCmd = &cobra.Command{
@@ -281,6 +283,15 @@ var chunksBulkDeleteCmd = &cobra.Command{
 			return err
 		}
 
+		if chunkAll && !chunkYes {
+			fmt.Fprintf(out, "Delete ALL chunks in %q? This cannot be undone. [y/N]: ", collection)
+			line, _ := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
+			if ans := strings.ToLower(strings.TrimSpace(line)); ans != "y" && ans != "yes" {
+				fmt.Fprintln(out, "Aborted.")
+				return nil
+			}
+		}
+
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), collOrganization, collProject)
 		if err != nil {
 			return err
@@ -345,6 +356,8 @@ func init() {
 		StringVar(&chunkFilter, "filter", "", "Metadata filter as a JSON object")
 	chunksBulkDeleteCmd.Flags().
 		BoolVar(&chunkAll, "all", false, "Delete every chunk (requires confirm)")
+	chunksBulkDeleteCmd.Flags().
+		BoolVar(&chunkYes, "yes", false, "Skip the --all confirmation prompt")
 
 	chunksCmd.AddCommand(chunkSubcommands...)
 	collectionsCmd.AddCommand(chunksCmd)
