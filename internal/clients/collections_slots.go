@@ -39,7 +39,9 @@ func slotPath(orgId, projectId, database, collection, slot string) string {
 	return base + "/" + url.PathEscape(collection) + "/vectors/" + url.PathEscape(slot)
 }
 
-// sendSlotBody issues a method+body request to a slot path and decodes dst.
+// sendSlotBody issues a POST/PUT request to a slot path with an optional JSON
+// body and decodes the response into dst. Use an inlined GET for read-only
+// slot endpoints to keep the body-bearing path explicit.
 func (c *DeploymentClient) sendSlotBody(
 	ctx context.Context,
 	method, path string,
@@ -106,7 +108,8 @@ func (c *DeploymentClient) ReindexSlot(
 	return &result, nil
 }
 
-// VacuumSlot reclaims space and refreshes stats for a slot.
+// VacuumSlot reclaims space and refreshes stats for a slot. The server
+// accepts a bodyless POST to /vacuum; no body is sent.
 func (c *DeploymentClient) VacuumSlot(
 	ctx context.Context,
 	orgId, projectId, database, collection, slot string,
@@ -124,17 +127,25 @@ func (c *DeploymentClient) SlotIndexProgressStatus(
 	ctx context.Context,
 	orgId, projectId, database, collection, slot string,
 ) (*SlotIndexProgress, error) {
-	var result SlotIndexProgress
 	path := slotPath(orgId, projectId, database, collection, slot) + "/index-progress"
-	if err := c.sendSlotBody(
-		ctx,
-		http.MethodGet,
-		path,
-		nil,
-		"index progress",
-		&result,
-	); err != nil {
-		return nil, err
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("index progress request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, collectionErr(resp, "index progress")
+	}
+
+	var result SlotIndexProgress
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode index progress response: %w", err)
 	}
 	return &result, nil
 }
