@@ -37,8 +37,11 @@ func BuildSearchBody(
 	limit int,
 	filterJSON string,
 ) ([]byte, error) {
-	if (query == "") == (len(vector) == 0) {
+	if query == "" && len(vector) == 0 {
 		return nil, fmt.Errorf("provide exactly one of --query or --vector")
+	}
+	if query != "" && len(vector) > 0 {
+		return nil, fmt.Errorf("--query and --vector are mutually exclusive")
 	}
 
 	body := map[string]any{}
