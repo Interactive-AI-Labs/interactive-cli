@@ -109,6 +109,13 @@ var slotsReindexCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if collJSON {
+			return output.PrintStructuredJSON(out, res)
+		}
+		if collYAML {
+			return output.PrintStructuredYAML(out, res)
+		}
 		return output.PrintSlotOpResult(out, res)
 	},
 }
@@ -138,6 +145,13 @@ var slotsVacuumCmd = &cobra.Command{
 		)
 		if err != nil {
 			return err
+		}
+
+		if collJSON {
+			return output.PrintStructuredJSON(out, res)
+		}
+		if collYAML {
+			return output.PrintStructuredYAML(out, res)
 		}
 		return output.PrintSlotOpResult(out, res)
 	},
@@ -244,6 +258,11 @@ func init() {
 	slotsAddCmd.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")
 
 	slotsReindexCmd.Flags().StringVar(&slotFile, "file", "", "Path to a YAML/JSON reindex config")
+	slotsReindexCmd.Flags().BoolVar(&collJSON, "json", false, "Output raw API response as JSON")
+	slotsReindexCmd.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")
+
+	slotsVacuumCmd.Flags().BoolVar(&collJSON, "json", false, "Output raw API response as JSON")
+	slotsVacuumCmd.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")
 
 	slotsProgressCmd.Flags().BoolVar(&collJSON, "json", false, "Output raw API response as JSON")
 	slotsProgressCmd.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")
