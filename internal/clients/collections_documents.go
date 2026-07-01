@@ -47,6 +47,7 @@ func (c *DeploymentClient) ListDocuments(
 	orgId, projectId, database, collection string,
 	limit int,
 	cursor string,
+	filter string,
 ) (*DocumentList, error) {
 	req, err := c.newRequest(
 		ctx,
@@ -63,6 +64,9 @@ func (c *DeploymentClient) ListDocuments(
 	}
 	if cursor != "" {
 		q.Set("cursor", cursor)
+	}
+	if filter != "" {
+		q.Set("filter", filter)
 	}
 	req.URL.RawQuery = q.Encode()
 

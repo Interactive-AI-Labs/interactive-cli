@@ -10,6 +10,7 @@ import (
 var (
 	docLimit         int
 	docCursor        string
+	docFilter        string
 	docIncludeVector bool
 )
 
@@ -43,6 +44,7 @@ var documentsListCmd = &cobra.Command{
 			collection,
 			docLimit,
 			docCursor,
+			docFilter,
 		)
 		if err != nil {
 			return err
@@ -144,6 +146,8 @@ func init() {
 		c.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")
 		c.Flags().IntVar(&docLimit, "limit", 0, "Page size (1-1000, default 100)")
 		c.Flags().StringVar(&docCursor, "cursor", "", "Opaque cursor from a previous page")
+		c.Flags().
+			StringVar(&docFilter, "filter", "", "Metadata filter as a JSON object (list only)")
 	}
 
 	documentsGetCmd.Flags().
