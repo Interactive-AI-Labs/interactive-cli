@@ -178,9 +178,14 @@ func (c *DeploymentClient) CreateCollection(
 	ctx context.Context,
 	orgId, projectId, database, name string,
 	body []byte,
+	dryRun bool,
 ) (string, error) {
 	path := collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
-	return c.sendCollectionBody(ctx, http.MethodPost, path, body, "create collection")
+	rawQuery := ""
+	if dryRun {
+		rawQuery = "dry_run=true"
+	}
+	return c.sendCollectionBody(ctx, http.MethodPost, path, body, "create collection", rawQuery)
 }
 
 // PatchCollection updates a collection's mutable config from a raw JSON body.
@@ -190,7 +195,7 @@ func (c *DeploymentClient) PatchCollection(
 	body []byte,
 ) (string, error) {
 	path := collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
-	return c.sendCollectionBody(ctx, http.MethodPatch, path, body, "update collection")
+	return c.sendCollectionBody(ctx, http.MethodPatch, path, body, "update collection", "")
 }
 
 // DeleteCollection deletes a collection and its data.
@@ -227,11 +232,13 @@ func (c *DeploymentClient) sendCollectionBody(
 	method, path string,
 	body []byte,
 	action string,
+	rawQuery string,
 ) (string, error) {
 	req, err := c.newRequest(ctx, method, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
+	req.URL.RawQuery = rawQuery
 	req.Header.Set("Content-Type", "application/json")
 	req.Body = io.NopCloser(bytes.NewReader(body))
 

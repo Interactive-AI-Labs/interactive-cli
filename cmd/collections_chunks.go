@@ -61,6 +61,7 @@ defer_embedding=true with client-supplied vectors to skip embedding).`,
 			collDatabase,
 			collection,
 			body,
+			collDryRun,
 		)
 		if err != nil {
 			return err
@@ -349,6 +350,8 @@ func init() {
 	}
 
 	chunksUpsertCmd.Flags().StringVar(&chunkFile, "file", "", "Path to a YAML/JSON chunks file")
+	chunksUpsertCmd.Flags().
+		BoolVar(&collDryRun, "dry-run", false, "Validate the batch without embedding or storing")
 	_ = chunksUpsertCmd.MarkFlagRequired("file")
 
 	chunksListCmd.Flags().IntVar(&chunkLimit, "limit", 0, "Page size (1-1000, default 100)")

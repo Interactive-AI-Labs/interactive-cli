@@ -16,6 +16,7 @@ var (
 	collFile         string
 	collJSON         bool
 	collYAML         bool
+	collDryRun       bool
 )
 
 var collectionsCmd = &cobra.Command{
@@ -169,6 +170,7 @@ distance}) — and optional full-text search.`,
 			collDatabase,
 			name,
 			body,
+			collDryRun,
 		)
 		if err != nil {
 			return err
@@ -270,6 +272,8 @@ func init() {
 	}
 
 	collCreateCmd.Flags().StringVar(&collFile, "file", "", "Path to a YAML/JSON collection config")
+	collCreateCmd.Flags().
+		BoolVar(&collDryRun, "dry-run", false, "Validate the config without creating the collection")
 	_ = collCreateCmd.MarkFlagRequired("file")
 	collPatchCmd.Flags().StringVar(&collFile, "file", "", "Path to a YAML/JSON patch config")
 	_ = collPatchCmd.MarkFlagRequired("file")

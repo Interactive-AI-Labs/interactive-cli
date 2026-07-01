@@ -23,6 +23,7 @@ iai collections chunks upsert <collection> [flags]
 
 ```
   -d, --database string       Database that holds the collection (required)
+      --dry-run               Validate the batch without embedding or storing
       --file string           Path to a YAML/JSON chunks file
   -h, --help                  help for upsert
       --json                  Output raw API response as JSON

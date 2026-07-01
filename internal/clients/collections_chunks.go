@@ -66,11 +66,15 @@ func (c *DeploymentClient) UpsertChunks(
 	ctx context.Context,
 	orgId, projectId, database, collection string,
 	body []byte,
+	dryRun bool,
 ) (*ChunkUpsertResult, error) {
 	path := chunksPath(orgId, projectId, database, collection)
 	req, err := c.newRequest(ctx, http.MethodPut, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	if dryRun {
+		req.URL.RawQuery = "dry_run=true"
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Body = io.NopCloser(bytes.NewReader(body))

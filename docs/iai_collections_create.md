@@ -24,6 +24,7 @@ iai collections create <collection> [flags]
 
 ```
   -d, --database string       Database that holds the collection (required)
+      --dry-run               Validate the config without creating the collection
       --file string           Path to a YAML/JSON collection config
   -h, --help                  help for create
   -o, --organization string   Organization name
