@@ -91,17 +91,33 @@ func (c *DeploymentClient) Search(
 	return c.postSearch(ctx, path, body, "search")
 }
 
-// HybridSearch runs a multi-lane (RRF-fused) search. Note it POSTs to the same
-// /search endpoint as Search — the server dispatches to single-lane vs hybrid
-// based on the request body (a top-level "queries" array selects hybrid), so the
-// `search` and `search hybrid` sub-commands hit the same URL with different bodies.
+// HybridSearch runs a multi-lane (RRF-fused) search. It POSTs to the same
+// /search endpoint as Search; the server picks the hybrid path off the
+// "mode":"hybrid" discriminator, which this method sets so the caller's file
+// never has to include it.
 func (c *DeploymentClient) HybridSearch(
 	ctx context.Context,
 	orgId, projectId, database, collection string,
 	body []byte,
 ) (*SearchResponse, error) {
+	body, err := withHybridMode(body)
+	if err != nil {
+		return nil, err
+	}
 	path := searchBase(orgId, projectId, database, collection) + "/search"
 	return c.postSearch(ctx, path, body, "hybrid search")
+}
+
+// withHybridMode forces "mode":"hybrid" onto a search body. The server keys the
+// hybrid path off this discriminator, not the body shape, so a file that omits
+// it would otherwise be parsed as a single search and rejected.
+func withHybridMode(body []byte) ([]byte, error) {
+	var m map[string]any
+	if err := json.Unmarshal(body, &m); err != nil {
+		return nil, fmt.Errorf("hybrid search body must be a JSON object: %w", err)
+	}
+	m["mode"] = "hybrid"
+	return json.Marshal(m)
 }
 
 // QueryByID finds neighbors of an existing chunk by its stored vector.

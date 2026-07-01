@@ -157,8 +157,25 @@ var searchByIDCmd = &cobra.Command{
 var searchHybridCmd = &cobra.Command{
 	Use:   "hybrid <collection>",
 	Short: "Run a multi-lane hybrid search (RRF) from a file",
-	Long: `Run a hybrid search from a YAML/JSON file whose body holds a "queries" array
-(dense and/or full_text lanes) and an optional "fusion" config.`,
+	Long: `Run a hybrid search from a YAML/JSON file. The command dispatches to the
+hybrid path automatically (it sets "mode":"hybrid" for you).
+
+The body holds a "queries" array and an optional "fusion" config. Each lane
+supplies exactly one of: query (dense, embedded server-side), vector
+(pre-computed dense), sparse_vector, or full_text (keyword search; requires
+full-text enabled on the collection). Note: "using" selects the vector slot —
+it does NOT select the full-text lane; set "full_text" for that. Lanes are
+fused with RRF.
+
+Schema:
+  {
+    "queries": [
+      {"query": "text", "using": "default", "candidate_limit": 50},
+      {"full_text": "keyword query", "candidate_limit": 30}
+    ],
+    "fusion": {"method": "rrf", "k": 60},
+    "limit": 10
+  }`,
 	Example: `  iai collections search hybrid docs -d my-db --file hybrid.json`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
