@@ -53,6 +53,7 @@ type ListChunksOpts struct {
 	Limit  int
 	Cursor string
 	Prefix string
+	Filter string
 }
 
 func chunksPath(orgId, projectId, database, collection string) string {
@@ -115,6 +116,9 @@ func (c *DeploymentClient) ListChunks(
 	}
 	if opts.Prefix != "" {
 		q.Set("prefix", opts.Prefix)
+	}
+	if opts.Filter != "" {
+		q.Set("filter", opts.Filter)
 	}
 	req.URL.RawQuery = q.Encode()
 

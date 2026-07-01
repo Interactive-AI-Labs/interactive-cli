@@ -98,7 +98,12 @@ var chunksListCmd = &cobra.Command{
 			pCtx.projectId,
 			collDatabase,
 			collection,
-			clients.ListChunksOpts{Limit: chunkLimit, Cursor: chunkCursor, Prefix: chunkPrefix},
+			clients.ListChunksOpts{
+				Limit:  chunkLimit,
+				Cursor: chunkCursor,
+				Prefix: chunkPrefix,
+				Filter: chunkFilter,
+			},
 		)
 		if err != nil {
 			return err
@@ -351,6 +356,8 @@ func init() {
 		StringVar(&chunkCursor, "cursor", "", "Opaque cursor from a previous page")
 	chunksListCmd.Flags().
 		StringVar(&chunkPrefix, "prefix", "", "Only chunks whose id has this prefix")
+	chunksListCmd.Flags().
+		StringVar(&chunkFilter, "filter", "", "Metadata filter as a JSON object")
 
 	chunksGetCmd.Flags().
 		BoolVar(&chunkIncludeVector, "include-vector", false, "Include the stored vector(s)")
