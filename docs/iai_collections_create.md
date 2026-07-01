@@ -10,6 +10,11 @@ The config declares the vector slot(s) — either an embedding-backed slot
 ("embedding": {model, dimension}) or a raw vector slot ({type, dimension,
 distance}) — and optional full-text search.
 
+Slot type, dimension, distance, and the embedding model are IMMUTABLE after
+creation; fixing a wrong value means deleting and recreating the collection.
+
+Run 'iai collections schema' for the config file format.
+
 ```
 iai collections create <collection> [flags]
 ```

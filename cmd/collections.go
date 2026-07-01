@@ -28,7 +28,9 @@ var collectionsCmd = &cobra.Command{
 
 A collection is a vector store (knowledge base) that lives inside an existing
 pgvector database, so every command requires --database. Use 'iai databases
-create' first to provision the database.`,
+create' first to provision the database.
+
+Run 'iai collections schema' to see the body format for every --file command.`,
 }
 
 var collListCmd = &cobra.Command{
@@ -146,7 +148,12 @@ var collCreateCmd = &cobra.Command{
 
 The config declares the vector slot(s) — either an embedding-backed slot
 ("embedding": {model, dimension}) or a raw vector slot ({type, dimension,
-distance}) — and optional full-text search.`,
+distance}) — and optional full-text search.
+
+Slot type, dimension, distance, and the embedding model are IMMUTABLE after
+creation; fixing a wrong value means deleting and recreating the collection.
+
+Run 'iai collections schema' for the config file format.`,
 	Example: `  iai collections create docs -d my-db --file collection.yaml`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

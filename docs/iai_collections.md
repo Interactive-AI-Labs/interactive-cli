@@ -10,6 +10,8 @@ A collection is a vector store (knowledge base) that lives inside an existing
 pgvector database, so every command requires --database. Use 'iai databases
 create' first to provision the database.
 
+Run 'iai collections schema' to see the body format for every --file command.
+
 ### Options
 
 ```
