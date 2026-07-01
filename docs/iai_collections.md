@@ -35,6 +35,7 @@ create' first to provision the database.
 * [iai collections documents](iai_collections_documents.md)	 - Inspect documents (chunks grouped by documentId)
 * [iai collections list](iai_collections_list.md)	 - List collections in a database
 * [iai collections patch](iai_collections_patch.md)	 - Update a collection's mutable config from a file
+* [iai collections schema](iai_collections_schema.md)	 - Show the file schemas for the --file-based collection commands
 * [iai collections search](iai_collections_search.md)	 - Search a collection (single-lane vector search)
 * [iai collections slots](iai_collections_slots.md)	 - Manage a collection's vector slots and their indexes
 * [iai collections stats](iai_collections_stats.md)	 - Show a collection's chunk count, size, and index status

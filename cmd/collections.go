@@ -280,6 +280,123 @@ func init() {
 
 	collectionsCmd.AddCommand(
 		collListCmd, collDescribeCmd, collStatsCmd, collCreateCmd, collPatchCmd, collDeleteCmd,
+		collSchemaCmd,
 	)
+	collSchemaCmd.Flags().BoolVar(&collJSON, "json", false, "Output the schemas as JSON")
+	collSchemaCmd.Flags().BoolVar(&collYAML, "yaml", false, "Output the schemas as YAML")
 	rootCmd.AddCommand(collectionsCmd)
+}
+
+var collSchemaCmd = &cobra.Command{
+	Use:   "schema",
+	Short: "Show the file schemas for the --file-based collection commands",
+	Long: `Print the expected shape of every --file body: collection create/patch,
+chunks upsert/patch, slots add/reindex, and search batch/hybrid. Use --json or
+--yaml for structured output.`,
+	Example: `  iai collections schema
+  iai collections schema --json`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		if collJSON {
+			return output.PrintStructuredJSON(out, collectionSchemas())
+		}
+		if collYAML {
+			return output.PrintStructuredYAML(out, collectionSchemas())
+		}
+		fmt.Fprint(out, collectionSchemaText)
+		return nil
+	},
+}
+
+const collectionSchemaText = `Collection file schemas (bodies for --file). All fields camelCase.
+
+create (--file):
+  {
+    "vectors": {
+      "<slot>": { "type": "float32", "dimension": 768, "distance": "cosine" },
+      "<slot>": { "embedding": { "model": "<model-id>" }, "dimension": 768 }
+    },
+    "full_text": { "enabled": true, "language": "english" }
+  }
+  NOTE: slot type, dimension, distance, and embedding model are IMMUTABLE.
+  Provide either a raw slot (type+dimension) or an embedding slot (embedding+dimension).
+
+patch (--file):
+  { "full_text": { "enabled": false },
+    "vectors": { "<slot>": { "index": { "ef_search_default": 200 } } } }
+
+chunks upsert (--file):
+  { "chunks": [
+      { "id": "c1", "documentId": "doc1", "text": "content", "metadata": {"k":"v"} }
+  ] }
+  Fields: id, documentId, text, metadata, vector/vectors. Use documentId (NOT document_id).
+
+chunks patch (--file):
+  { "text": "new content", "metadata": {"k":"v"} }
+
+slots add / reindex (--file):
+  { "type": "float32", "dimension": 768, "distance": "cosine",
+    "index": { "type": "hnsw", "m": 16, "ef_construct": 200 } }
+
+search batch (--file):
+  { "searches": [ {"query":"text","using":"default","limit":10} ] }
+
+search hybrid (--file):
+  { "queries": [
+      {"query":"text","using":"default","candidate_limit":50},
+      {"full_text":"keywords","candidate_limit":30}
+    ],
+    "fusion": {"method":"rrf","k":60}, "limit": 10 }
+  NOTE: "using" selects a vector slot; use "full_text" for the keyword lane.
+`
+
+// collectionSchemas mirrors collectionSchemaText as a structured map for --json/--yaml.
+func collectionSchemas() map[string]any {
+	return map[string]any{
+		"create": map[string]any{
+			"vectors": map[string]any{
+				"<slot>": map[string]any{
+					"type": "float32", "dimension": 768, "distance": "cosine",
+					"embedding": map[string]string{"model": "<model-id>"},
+				},
+			},
+			"full_text": map[string]any{"enabled": true, "language": "english"},
+			"immutable": []string{"type", "dimension", "distance", "embedding.model"},
+		},
+		"patch": map[string]any{
+			"full_text": map[string]any{"enabled": false},
+			"vectors": map[string]any{
+				"<slot>": map[string]any{"index": map[string]int{"ef_search_default": 200}},
+			},
+		},
+		"chunks_upsert": map[string]any{
+			"chunks": []map[string]any{
+				{
+					"id":         "c1",
+					"documentId": "doc1",
+					"text":       "content",
+					"metadata":   map[string]string{"k": "v"},
+				},
+			},
+		},
+		"chunks_patch": map[string]any{
+			"text":     "new content",
+			"metadata": map[string]string{"k": "v"},
+		},
+		"slots_add": map[string]any{
+			"type": "float32", "dimension": 768, "distance": "cosine",
+			"index": map[string]any{"type": "hnsw", "m": 16, "ef_construct": 200},
+		},
+		"search_batch": map[string]any{
+			"searches": []map[string]any{{"query": "text", "using": "default", "limit": 10}},
+		},
+		"search_hybrid": map[string]any{
+			"queries": []map[string]any{
+				{"query": "text", "using": "default", "candidate_limit": 50},
+				{"full_text": "keywords", "candidate_limit": 30},
+			},
+			"fusion": map[string]any{"method": "rrf", "k": 60}, "limit": 10,
+		},
+	}
 }
