@@ -9,9 +9,7 @@ import (
 )
 
 // ReadCollectionBodyFile reads a YAML or JSON file and returns it as JSON bytes
-// suitable for a collection create/patch request body. YAML is a superset of
-// JSON, so both parse; yaml.v3 decodes mappings into string-keyed maps, so the
-// result re-marshals cleanly to JSON.
+// suitable for a collection create/patch request body.
 func ReadCollectionBodyFile(path string) ([]byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -22,12 +20,41 @@ func ReadCollectionBodyFile(path string) ([]byte, error) {
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("failed to parse %q as YAML/JSON: %w", path, err)
 	}
+	if doc == nil {
+		return nil, fmt.Errorf(
+			"%q has no content; see 'iai collections schema' for the expected shape", path,
+		)
+	}
 
-	body, err := json.Marshal(doc)
+	body, err := json.Marshal(stringifyKeys(doc))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode config: %w", err)
 	}
 	return body, nil
+}
+
+// stringifyKeys converts YAML's non-string map keys (e.g. an unquoted 2024:) to
+// strings, since JSON object keys are always strings.
+func stringifyKeys(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		for k, val := range t {
+			t[k] = stringifyKeys(val)
+		}
+		return t
+	case map[any]any:
+		m := make(map[string]any, len(t))
+		for k, val := range t {
+			m[fmt.Sprint(k)] = stringifyKeys(val)
+		}
+		return m
+	case []any:
+		for i, item := range t {
+			t[i] = stringifyKeys(item)
+		}
+		return t
+	}
+	return v
 }
 
 // BuildChunkCountBody builds the count request body from an optional metadata

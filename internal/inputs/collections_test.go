@@ -2,7 +2,10 @@ package inputs
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -108,5 +111,49 @@ func TestBuildAddSlotBody(t *testing.T) {
 	}
 	if _, err := BuildAddSlotBody("float32", 0, ""); err == nil {
 		t.Errorf("dimension 0 should error")
+	}
+}
+
+func TestReadCollectionBodyFile(t *testing.T) {
+	cases := []struct {
+		name    string
+		content string
+		want    string
+		wantErr string
+	}{
+		{
+			name:    "yaml config",
+			content: "full_text:\n  enabled: true\n",
+			want:    `{"full_text":{"enabled":true}}`,
+		},
+		{
+			name:    "numeric metadata key becomes a string",
+			content: "metadata:\n  2024: budget\n",
+			want:    `{"metadata":{"2024":"budget"}}`,
+		},
+		{name: "empty file rejected", content: "", wantErr: "has no content"},
+		{name: "comment-only file rejected", content: "# notes\n", wantErr: "has no content"},
+		{name: "malformed rejected", content: "a: [b", wantErr: "failed to parse"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "body.yaml")
+			if err := os.WriteFile(path, []byte(c.content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			got, err := ReadCollectionBodyFile(path)
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("err = %v, want containing %q", err, c.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected err: %v", err)
+			}
+			if string(got) != c.want {
+				t.Errorf("body = %s, want %s", got, c.want)
+			}
+		})
 	}
 }
