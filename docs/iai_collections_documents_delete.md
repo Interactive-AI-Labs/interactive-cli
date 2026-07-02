@@ -17,8 +17,10 @@ iai collections documents delete <collection> <documentId> [flags]
 ```
   -d, --database string       Database that holds the collection (required)
   -h, --help                  help for delete
+      --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
