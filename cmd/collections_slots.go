@@ -257,7 +257,7 @@ func init() {
 	slotsAddCmd.Flags().
 		IntVar(&slotDimension, "dimension", 0, "Vector dimension (required unless --file is provided)")
 	slotsAddCmd.Flags().
-		StringVar(&slotDistance, "distance", "", "Distance metric (default: cosine)")
+		StringVar(&slotDistance, "distance", "", "Distance metric (omit for the server default, cosine)")
 	slotsAddCmd.Flags().StringVar(&slotFile, "file", "", "Path to a YAML/JSON slot config")
 	slotsAddCmd.Flags().BoolVar(&collJSON, "json", false, "Output raw API response as JSON")
 	slotsAddCmd.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")

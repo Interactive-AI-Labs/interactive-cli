@@ -234,7 +234,7 @@ func init() {
 	searchCmd.Flags().
 		StringVar(&searchVector, "vector", "", "Query vector as comma-separated floats")
 	searchCmd.Flags().
-		StringVar(&searchUsing, "using", "", "Vector slot to search (default: default)")
+		StringVar(&searchUsing, "using", "", `Vector slot to search (omit for the server default, "default")`)
 	searchCmd.Flags().IntVar(&searchLimit, "limit", 0, "Max results")
 	searchCmd.Flags().StringVar(&searchFilter, "filter", "", "Metadata filter as a JSON object")
 	searchCmd.Flags().BoolVar(&searchExact, "exact", false, "Exhaustive scan instead of the index")

@@ -32,7 +32,7 @@ iai collections search <collection> [flags]
   -o, --organization string   Organization name
   -p, --project string        Project name
       --query string          Query text (embedded server-side)
-      --using string          Vector slot to search (default: default)
+      --using string          Vector slot to search (omit for the server default, "default")
       --vector string         Query vector as comma-separated floats
       --yaml                  Output raw API response as YAML
 ```
