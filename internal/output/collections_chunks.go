@@ -67,16 +67,39 @@ func PrintChunk(out io.Writer, c *clients.Chunk) error {
 		fmt.Fprintf(out, "Metadata:  %s\n", string(b))
 	}
 
-	for slot, raw := range c.Vectors {
-		var v []float64
-		if err := json.Unmarshal(raw, &v); err == nil {
-			fmt.Fprintf(out, "Vector[%s]: %d dims\n", slot, len(v))
-		}
+	slots := make([]string, 0, len(c.Vectors))
+	for slot := range c.Vectors {
+		slots = append(slots, slot)
+	}
+	sort.Strings(slots)
+	for _, slot := range slots {
+		fmt.Fprintf(out, "Vector[%s]: %s\n", slot, vectorSummary(c.Vectors[slot]))
 	}
 	if len(c.Vector) > 0 {
 		fmt.Fprintf(out, "Vector:    %d dims\n", len(c.Vector))
 	}
 	return nil
+}
+
+// vectorSummary describes a stored vector without dumping its values: dense
+// dimension count, sparse fill, or binary bit length.
+func vectorSummary(raw json.RawMessage) string {
+	var dense []float64
+	if err := json.Unmarshal(raw, &dense); err == nil {
+		return fmt.Sprintf("%d dims", len(dense))
+	}
+	var sparse struct {
+		Indices []int `json:"indices"`
+		Dim     int   `json:"dim"`
+	}
+	if err := json.Unmarshal(raw, &sparse); err == nil && len(sparse.Indices) > 0 {
+		return fmt.Sprintf("sparse, %d of %d dims set", len(sparse.Indices), sparse.Dim)
+	}
+	var bits string
+	if err := json.Unmarshal(raw, &bits); err == nil {
+		return fmt.Sprintf("binary, %d bits", len(bits))
+	}
+	return "present (unrecognized format)"
 }
 
 // PrintBulkDeleteResult renders a bulk-delete response. The deleted id list is

@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -304,6 +305,11 @@ func TestPrintChunk(t *testing.T) {
 		Text:     "hello",
 		Metadata: map[string]any{"lang": "en"},
 		Vector:   []float64{0.1, 0.2, 0.3},
+		Vectors: map[string]json.RawMessage{
+			"c-binary": json.RawMessage(`"0101"`),
+			"b-sparse": json.RawMessage(`{"indices":[1,5],"values":[0.5,0.6],"dim":100}`),
+			"a-dense":  json.RawMessage(`[0.1,0.2]`),
+		},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -313,6 +319,9 @@ func TestPrintChunk(t *testing.T) {
 		"Document:  doc\n",
 		"Text:      hello\n",
 		"\"lang\": \"en\"",
+		// slots sorted by name; every vector kind summarized, none dropped
+		"Vector[a-dense]: 2 dims\nVector[b-sparse]: sparse, 2 of 100 dims set\n" +
+			"Vector[c-binary]: binary, 4 bits\n",
 		"Vector:    3 dims\n",
 	} {
 		if !strings.Contains(got, want) {
