@@ -146,9 +146,9 @@ func init() {
 		c.Flags().BoolVar(&collYAML, "yaml", false, "Output raw API response as YAML")
 		c.Flags().IntVar(&docLimit, "limit", 0, "Page size (1-1000, default 100)")
 		c.Flags().StringVar(&docCursor, "cursor", "", "Opaque cursor from a previous page")
-		c.Flags().
-			StringVar(&docFilter, "filter", "", "Metadata filter as a JSON object (list only)")
 	}
+	documentsListCmd.Flags().
+		StringVar(&docFilter, "filter", "", "Metadata filter as a JSON object")
 
 	documentsGetCmd.Flags().
 		BoolVar(&docIncludeVector, "include-vector", false, "Include the stored vector(s)")

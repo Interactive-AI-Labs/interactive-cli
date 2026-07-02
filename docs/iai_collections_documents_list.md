@@ -17,7 +17,7 @@ iai collections documents list <collection> [flags]
 ```
       --cursor string         Opaque cursor from a previous page
   -d, --database string       Database that holds the collection (required)
-      --filter string         Metadata filter as a JSON object (list only)
+      --filter string         Metadata filter as a JSON object
   -h, --help                  help for list
       --json                  Output raw API response as JSON
       --limit int             Page size (1-1000, default 100)

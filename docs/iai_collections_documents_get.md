@@ -17,7 +17,6 @@ iai collections documents get <collection> <documentId> [flags]
 ```
       --cursor string         Opaque cursor from a previous page
   -d, --database string       Database that holds the collection (required)
-      --filter string         Metadata filter as a JSON object (list only)
   -h, --help                  help for get
       --include-vector        Include the stored vector(s)
       --json                  Output raw API response as JSON
