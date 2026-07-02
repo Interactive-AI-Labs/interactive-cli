@@ -30,9 +30,17 @@ type CollectionSlot struct {
 	Embedding *struct {
 		Model string `json:"model"`
 	} `json:"embedding"`
-	Index *struct {
-		Type string `json:"type"`
-	} `json:"index"`
+	Index *CollectionIndex `json:"index"`
+}
+
+// CollectionIndex is a slot's index config, including the tunable parameters
+// (patchable via ef_search_default), so describe reflects what patch set.
+type CollectionIndex struct {
+	Type            string `json:"type"`
+	M               int    `json:"m,omitempty"`
+	EfConstruction  int    `json:"ef_construction,omitempty"`
+	Lists           *int   `json:"lists,omitempty"`
+	EfSearchDefault *int   `json:"ef_search_default,omitempty"`
 }
 
 // CollectionFullText is the optional full-text search config.

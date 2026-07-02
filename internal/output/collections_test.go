@@ -172,9 +172,9 @@ func TestPrintCollectionDescribe(t *testing.T) {
 							Embedding: &struct {
 								Model string `json:"model"`
 							}{Model: "interactive/openai/text-embedding-3-small"},
-							Index: &struct {
-								Type string `json:"type"`
-							}{Type: "hnsw"},
+							Index: &clients.CollectionIndex{
+								Type: "hnsw", M: 16, EfConstruction: 64,
+							},
 						},
 					},
 					FullText: &clients.CollectionFullText{Enabled: true, Language: "english"},
@@ -183,7 +183,7 @@ func TestPrintCollectionDescribe(t *testing.T) {
 			wantSubs: []string{
 				"Full-text:  enabled (english)",
 				"interactive/openai/text-embedding-3-small",
-				"hnsw",
+				"hnsw (m=16, ef_construction=64)",
 			},
 		},
 	}

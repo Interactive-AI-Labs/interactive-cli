@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -91,10 +92,27 @@ func embeddingModel(slot clients.CollectionSlot) string {
 }
 
 func indexType(slot clients.CollectionSlot) string {
-	if slot.Index != nil && slot.Index.Type != "" {
-		return slot.Index.Type
+	idx := slot.Index
+	if idx == nil || idx.Type == "" {
+		return "deferred"
 	}
-	return "deferred"
+	params := []string{}
+	if idx.M != 0 {
+		params = append(params, fmt.Sprintf("m=%d", idx.M))
+	}
+	if idx.EfConstruction != 0 {
+		params = append(params, fmt.Sprintf("ef_construction=%d", idx.EfConstruction))
+	}
+	if idx.Lists != nil {
+		params = append(params, fmt.Sprintf("lists=%d", *idx.Lists))
+	}
+	if idx.EfSearchDefault != nil {
+		params = append(params, fmt.Sprintf("ef_search_default=%d", *idx.EfSearchDefault))
+	}
+	if len(params) == 0 {
+		return idx.Type
+	}
+	return fmt.Sprintf("%s (%s)", idx.Type, strings.Join(params, ", "))
 }
 
 // humanBytes renders a byte count in the largest unit that keeps it >= 1.
