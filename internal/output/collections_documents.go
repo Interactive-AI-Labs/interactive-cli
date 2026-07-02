@@ -40,7 +40,7 @@ func PrintDocumentChunks(out io.Writer, doc *clients.DocumentChunks) error {
 	headers := []string{"ID", "TEXT"}
 	rows := make([][]string, len(doc.Chunks))
 	for i, c := range doc.Chunks {
-		rows[i] = []string{c.ID, truncate(c.Text, 70)}
+		rows[i] = []string{c.ID, truncateString(c.Text, 70)}
 	}
 	if err := PrintTable(out, headers, rows); err != nil {
 		return err

@@ -34,22 +34,22 @@ func TestHumanBytes(t *testing.T) {
 	}
 }
 
-func TestTruncate(t *testing.T) {
+func TestTruncateString(t *testing.T) {
 	cases := []struct {
-		name string
-		in   string
-		n    int
-		want string
+		name   string
+		in     string
+		maxLen int
+		want   string
 	}{
-		{"shorter-than-n", "hello", 10, "hello"},
-		{"exact-n", "hello", 5, "hello"},
-		{"rune-cut", "hello world", 5, "hello…"},
-		{"multi-byte-safe", "héllo wörld", 5, "héllo…"},
+		{"shorter-than-max", "hello", 10, "hello"},
+		{"exact-max", "hello", 5, "hello"},
+		{"cut-appends-ellipsis", "hello world", 8, "hello..."},
+		{"multi-byte-safe", "héllo wörld", 8, "héllo..."},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := truncate(c.in, c.n); got != c.want {
-				t.Errorf("truncate(%q, %d) = %q, want %q", c.in, c.n, got, c.want)
+			if got := truncateString(c.in, c.maxLen); got != c.want {
+				t.Errorf("truncateString(%q, %d) = %q, want %q", c.in, c.maxLen, got, c.want)
 			}
 		})
 	}

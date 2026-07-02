@@ -40,7 +40,7 @@ func searchHitsTable(out io.Writer, hits []clients.SearchHit) error {
 	headers := []string{"SCORE", "ID", "TEXT"}
 	rows := make([][]string, len(hits))
 	for i, h := range hits {
-		rows[i] = []string{fmt.Sprintf("%.4f", h.Score), h.ID, truncate(h.Text, 60)}
+		rows[i] = []string{fmt.Sprintf("%.4f", h.Score), h.ID, truncateString(h.Text, 60)}
 	}
 	return PrintTable(out, headers, rows)
 }

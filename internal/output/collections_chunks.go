@@ -44,7 +44,7 @@ func PrintChunkList(out io.Writer, list *clients.ChunkList) error {
 	headers := []string{"ID", "DOCUMENT", "TEXT"}
 	rows := make([][]string, len(list.Chunks))
 	for i, c := range list.Chunks {
-		rows[i] = []string{c.ID, c.DocumentID, truncate(c.Text, 60)}
+		rows[i] = []string{c.ID, c.DocumentID, truncateString(c.Text, 60)}
 	}
 	if err := PrintTable(out, headers, rows); err != nil {
 		return err
@@ -113,13 +113,4 @@ func PrintBulkDeleteResult(out io.Writer, r *clients.BulkDeleteResult) error {
 		}
 	}
 	return nil
-}
-
-// truncate shortens s to n runes, appending an ellipsis when cut.
-func truncate(s string, n int) string {
-	r := []rune(s)
-	if len(r) <= n {
-		return s
-	}
-	return string(r[:n]) + "…"
 }
