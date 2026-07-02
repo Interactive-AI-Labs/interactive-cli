@@ -126,5 +126,10 @@ func humanBytes(n int64) string {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
+	val := float64(n) / float64(div)
+	if val >= 1023.95 { // %.1f would render 1024.0; step up to the next unit
+		val /= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", val, "KMGTPE"[exp])
 }
