@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -167,13 +166,5 @@ func (c *DeploymentClient) DeleteSlot(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
-	msg := ExtractServerMessage(respBody)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg != "" {
-			return "", errors.New(msg)
-		}
-		return "", fmt.Errorf("failed to delete slot: server returned %s", resp.Status)
-	}
-	return msg, nil
+	return serverMessage(resp, "delete slot")
 }

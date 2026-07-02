@@ -98,6 +98,20 @@ func collectionErr(resp *http.Response, action string) error {
 	return fmt.Errorf("failed to %s: server returned %s", action, resp.Status)
 }
 
+// serverMessage returns a 2xx response's server message, or turns a non-2xx
+// response into an error via collectionErr. A body read error is surfaced, not
+// dropped, so a truncated success body doesn't read as a clean empty response.
+func serverMessage(resp *http.Response, action string) (string, error) {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", collectionErr(resp, action)
+	}
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to %s: reading response body: %w", action, err)
+	}
+	return ExtractServerMessage(respBody), nil
+}
+
 // ListCollections returns the collections in a database.
 func (c *DeploymentClient) ListCollections(
 	ctx context.Context,
@@ -223,15 +237,7 @@ func (c *DeploymentClient) DeleteCollection(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
-	msg := ExtractServerMessage(respBody)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg != "" {
-			return "", errors.New(msg)
-		}
-		return "", fmt.Errorf("failed to delete collection: server returned %s", resp.Status)
-	}
-	return msg, nil
+	return serverMessage(resp, "delete collection")
 }
 
 // sendCollectionBody issues a JSON-body request and returns the server message.
@@ -256,13 +262,5 @@ func (c *DeploymentClient) sendCollectionBody(
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
-	msg := ExtractServerMessage(respBody)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg != "" {
-			return "", errors.New(msg)
-		}
-		return "", fmt.Errorf("failed to %s: server returned %s", action, resp.Status)
-	}
-	return msg, nil
+	return serverMessage(resp, action)
 }
