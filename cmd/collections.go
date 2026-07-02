@@ -316,7 +316,8 @@ chunks upsert/patch, slots add/reindex, and search batch/hybrid. Use --json or
 	},
 }
 
-const collectionSchemaText = `Collection file schemas (bodies for --file). All fields camelCase.
+const collectionSchemaText = `Collection file schemas (bodies for --file). Keys are snake_case
+(full_text, ef_search_default) except chunk record fields, which are camelCase (documentId).
 
 create (--file):
   {
