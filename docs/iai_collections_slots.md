@@ -4,7 +4,13 @@ Manage a collection's vector slots and their indexes
 
 ### Synopsis
 
-Add, reindex, vacuum, inspect, and remove the vector slots of a collection.
+Add, reindex, vacuum, inspect, and remove a collection's vector slots.
+
+A slot is a named vector space (a column) on a collection: if a collection is a
+table and a chunk is a row, a slot is a vector column down every row. A
+collection can have several — e.g. a dense slot for embeddings and a sparse slot
+for keywords — and each chunk holds one vector per slot. The slot's index is
+what makes searching that column fast.
 
 ### Options
 
