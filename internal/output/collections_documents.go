@@ -51,9 +51,3 @@ func PrintDocumentChunks(out io.Writer, doc *clients.DocumentChunks) error {
 	}
 	return nil
 }
-
-// PrintDeleteDocumentResult renders a document-delete response.
-func PrintDeleteDocumentResult(out io.Writer, r *clients.DeleteDocumentResult) error {
-	fmt.Fprintf(out, "Deleted document %q (%d chunk(s))\n", r.DocumentID, r.DeletedCount)
-	return nil
-}

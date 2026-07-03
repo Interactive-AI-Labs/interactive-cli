@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -134,7 +135,8 @@ var documentsDeleteCmd = &cobra.Command{
 		if collYAML {
 			return output.PrintStructuredYAML(out, result)
 		}
-		return output.PrintDeleteDocumentResult(out, result)
+		fmt.Fprintf(out, "Deleted document %q (%d chunk(s))\n", result.DocumentID, result.DeletedCount)
+		return nil
 	},
 }
 
