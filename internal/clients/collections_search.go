@@ -1,11 +1,9 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 )
@@ -41,40 +39,10 @@ func (c *DeploymentClient) postSearch(
 	action string,
 ) (*SearchResponse, error) {
 	var result SearchResponse
-	if err := c.postJSONInto(ctx, path, body, action, &result); err != nil {
+	if err := c.sendJSONInto(ctx, http.MethodPost, path, body, action, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
-}
-
-// postJSONInto POSTs a JSON body and decodes the response into dst.
-func (c *DeploymentClient) postJSONInto(
-	ctx context.Context,
-	path string,
-	body []byte,
-	action string,
-	dst any,
-) error {
-	req, err := c.newRequest(ctx, http.MethodPost, path)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(bytes.NewReader(body))
-
-	resp, err := c.do(req)
-	if err != nil {
-		return fmt.Errorf("%s request failed: %w", action, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return collectionErr(resp, action)
-	}
-	if err := json.NewDecoder(resp.Body).Decode(dst); err != nil {
-		return fmt.Errorf("failed to decode %s response: %w", action, err)
-	}
-	return nil
 }
 
 // Search runs a single-lane search; exact routes to the exhaustive scan.
@@ -138,7 +106,7 @@ func (c *DeploymentClient) SearchBatch(
 ) (*BatchSearchResponse, error) {
 	path := searchBase(orgId, projectId, database, collection) + "/search/batch"
 	var result BatchSearchResponse
-	if err := c.postJSONInto(ctx, path, body, "batch search", &result); err != nil {
+	if err := c.sendJSONInto(ctx, http.MethodPost, path, body, "batch search", &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

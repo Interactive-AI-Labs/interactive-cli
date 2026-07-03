@@ -1,11 +1,9 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 )
@@ -38,40 +36,6 @@ func slotPath(orgId, projectId, database, collection, slot string) string {
 	return base + "/" + url.PathEscape(collection) + "/vectors/" + url.PathEscape(slot)
 }
 
-// sendSlotBody issues a POST/PUT request to a slot path with an optional JSON
-// body and decodes the response into dst. Use an inlined GET for read-only
-// slot endpoints to keep the body-bearing path explicit.
-func (c *DeploymentClient) sendSlotBody(
-	ctx context.Context,
-	method, path string,
-	body []byte,
-	action string,
-	dst any,
-) error {
-	req, err := c.newRequest(ctx, method, path)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-		req.Body = io.NopCloser(bytes.NewReader(body))
-	}
-
-	resp, err := c.do(req)
-	if err != nil {
-		return fmt.Errorf("%s request failed: %w", action, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return collectionErr(resp, action)
-	}
-	if err := json.NewDecoder(resp.Body).Decode(dst); err != nil {
-		return fmt.Errorf("failed to decode %s response: %w", action, err)
-	}
-	return nil
-}
-
 // AddSlot adds a vector slot from a raw JSON body.
 func (c *DeploymentClient) AddSlot(
 	ctx context.Context,
@@ -80,7 +44,7 @@ func (c *DeploymentClient) AddSlot(
 ) (*SlotAddResult, error) {
 	var result SlotAddResult
 	path := slotPath(orgId, projectId, database, collection, slot)
-	if err := c.sendSlotBody(ctx, http.MethodPut, path, body, "add slot", &result); err != nil {
+	if err := c.sendJSONInto(ctx, http.MethodPut, path, body, "add slot", &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -94,14 +58,7 @@ func (c *DeploymentClient) ReindexSlot(
 ) (*SlotOpResult, error) {
 	var result SlotOpResult
 	path := slotPath(orgId, projectId, database, collection, slot) + "/reindex"
-	if err := c.sendSlotBody(
-		ctx,
-		http.MethodPost,
-		path,
-		body,
-		"reindex slot",
-		&result,
-	); err != nil {
+	if err := c.sendJSONInto(ctx, http.MethodPost, path, body, "reindex slot", &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -115,7 +72,7 @@ func (c *DeploymentClient) VacuumSlot(
 ) (*SlotOpResult, error) {
 	var result SlotOpResult
 	path := slotPath(orgId, projectId, database, collection, slot) + "/vacuum"
-	if err := c.sendSlotBody(ctx, http.MethodPost, path, nil, "vacuum slot", &result); err != nil {
+	if err := c.sendJSONInto(ctx, http.MethodPost, path, nil, "vacuum slot", &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
