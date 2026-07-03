@@ -23,7 +23,7 @@ A document groups chunks by documentId; these commands read or delete them.
 
 ### SEE ALSO
 
-* [iai collections](iai_collections.md)	 - Vector collections (knowledge bases) inside a pgvector database
+* [iai collections](iai_collections.md)	 - Knowledge bases (searchable tables of chunks) inside a pgvector database
 * [iai collections documents delete](iai_collections_documents_delete.md)	 - Delete a document (all chunks sharing the documentId)
 * [iai collections documents get](iai_collections_documents_get.md)	 - Get a document's chunks
 * [iai collections documents list](iai_collections_documents_list.md)	 - List documents in a collection

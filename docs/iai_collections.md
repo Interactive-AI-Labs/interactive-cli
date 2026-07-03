@@ -1,14 +1,15 @@
 ## iai collections
 
-Vector collections (knowledge bases) inside a pgvector database
+Knowledge bases (searchable tables of chunks) inside a pgvector database
 
 ### Synopsis
 
-Manage vector collections within a database.
+Manage collections within a database.
 
-A collection is a vector store (knowledge base) that lives inside an existing
-pgvector database, so every command requires --database. Use 'iai databases
-create' first to provision the database.
+A collection is a table of chunks (rows) — each chunk is text plus its vector
+embedding(s) — that you search by meaning or keyword; it's what backs a
+knowledge base. It lives inside an existing pgvector database, so every command
+requires --database. Use 'iai databases create' first to provision the database.
 
 Run 'iai collections schema' to see the body format for every --file command.
 

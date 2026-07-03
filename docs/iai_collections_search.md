@@ -50,7 +50,7 @@ iai collections search <collection> [flags]
 
 ### SEE ALSO
 
-* [iai collections](iai_collections.md)	 - Vector collections (knowledge bases) inside a pgvector database
+* [iai collections](iai_collections.md)	 - Knowledge bases (searchable tables of chunks) inside a pgvector database
 * [iai collections search batch](iai_collections_search_batch.md)	 - Run several searches in one request (from a file)
 * [iai collections search by-id](iai_collections_search_by-id.md)	 - Find neighbors of an existing chunk by its stored vector
 * [iai collections search hybrid](iai_collections_search_hybrid.md)	 - Run a multi-lane hybrid search (RRF) from a file

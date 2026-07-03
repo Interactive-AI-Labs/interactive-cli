@@ -32,5 +32,5 @@ iai collections delete <collection> [flags]
 
 ### SEE ALSO
 
-* [iai collections](iai_collections.md)	 - Vector collections (knowledge bases) inside a pgvector database
+* [iai collections](iai_collections.md)	 - Knowledge bases (searchable tables of chunks) inside a pgvector database
 

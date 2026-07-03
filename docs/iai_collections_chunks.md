@@ -23,7 +23,7 @@ Upsert, inspect, and delete the chunks stored in a collection.
 
 ### SEE ALSO
 
-* [iai collections](iai_collections.md)	 - Vector collections (knowledge bases) inside a pgvector database
+* [iai collections](iai_collections.md)	 - Knowledge bases (searchable tables of chunks) inside a pgvector database
 * [iai collections chunks bulk-delete](iai_collections_chunks_bulk-delete.md)	 - Delete many chunks by ids, metadata filter, or all
 * [iai collections chunks count](iai_collections_chunks_count.md)	 - Count chunks, optionally scoped by a metadata filter or id prefix
 * [iai collections chunks delete](iai_collections_chunks_delete.md)	 - Delete a single chunk by id

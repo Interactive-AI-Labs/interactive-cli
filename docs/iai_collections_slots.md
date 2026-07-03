@@ -23,7 +23,7 @@ Add, reindex, vacuum, inspect, and remove the vector slots of a collection.
 
 ### SEE ALSO
 
-* [iai collections](iai_collections.md)	 - Vector collections (knowledge bases) inside a pgvector database
+* [iai collections](iai_collections.md)	 - Knowledge bases (searchable tables of chunks) inside a pgvector database
 * [iai collections slots add](iai_collections_slots_add.md)	 - Add a vector slot
 * [iai collections slots delete](iai_collections_slots_delete.md)	 - Delete a vector slot
 * [iai collections slots progress](iai_collections_slots_progress.md)	 - Show a slot's index build progress
