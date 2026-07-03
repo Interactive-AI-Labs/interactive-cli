@@ -31,7 +31,12 @@ func PrintDocumentList(out io.Writer, list *clients.DocumentList) error {
 
 // PrintDocumentChunks renders one document's chunks: a header plus a chunk table.
 func PrintDocumentChunks(out io.Writer, doc *clients.DocumentChunks) error {
-	fmt.Fprintf(out, "Document:  %s\n\n", doc.DocumentID)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Document:\t%s\n", doc.DocumentID)
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	fmt.Fprintln(out)
 	if len(doc.Chunks) == 0 {
 		fmt.Fprintln(out, "No chunks found.")
 		return nil

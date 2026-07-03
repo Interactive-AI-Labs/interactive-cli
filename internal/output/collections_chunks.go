@@ -63,8 +63,8 @@ func PrintChunk(out io.Writer, c *clients.Chunk) error {
 	fmt.Fprintf(out, "Text:      %s\n", c.Text)
 
 	if len(c.Metadata) > 0 {
-		b, _ := json.MarshalIndent(c.Metadata, "           ", "  ")
-		fmt.Fprintf(out, "Metadata:  %s\n", string(b))
+		b, _ := json.MarshalIndent(c.Metadata, "", "  ")
+		fmt.Fprintf(out, "Metadata:\n%s\n", indentLines(string(b), "  "))
 	}
 
 	slots := make([]string, 0, len(c.Vectors))

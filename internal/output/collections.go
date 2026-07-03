@@ -27,15 +27,19 @@ func PrintCollectionList(out io.Writer, collections []clients.CollectionSummary)
 // PrintCollectionDescribe renders a collection's config: header fields plus a
 // per-slot table.
 func PrintCollectionDescribe(out io.Writer, c *clients.DescribeCollectionResponse) error {
-	fmt.Fprintf(out, "Name:       %s\n", c.Name)
-	fmt.Fprintf(out, "Created:    %s\n", LocalTime(c.CreatedAt))
-	fmt.Fprintf(out, "Updated:    %s\n", LocalTime(c.UpdatedAt))
-
 	ft := "disabled"
 	if c.Config.FullText != nil && c.Config.FullText.Enabled {
 		ft = fmt.Sprintf("enabled (%s)", c.Config.FullText.Language)
 	}
-	fmt.Fprintf(out, "Full-text:  %s\n\n", ft)
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Name:\t%s\n", c.Name)
+	fmt.Fprintf(w, "Created:\t%s\n", LocalTime(c.CreatedAt))
+	fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(c.UpdatedAt))
+	fmt.Fprintf(w, "Full-text:\t%s\n", ft)
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	fmt.Fprintln(out)
 
 	headers := []string{"SLOT", "TYPE", "DIMENSION", "DISTANCE", "EMBEDDING MODEL", "INDEX"}
 	rows := make([][]string, 0, len(c.Config.Vectors))
@@ -55,8 +59,12 @@ func PrintCollectionDescribe(out io.Writer, c *clients.DescribeCollectionRespons
 
 // PrintCollectionStats renders a collection's operational stats.
 func PrintCollectionStats(out io.Writer, s *clients.CollectionStats) error {
-	fmt.Fprintf(out, "Chunks:  %d\n", s.ChunkCount)
-	fmt.Fprintf(out, "Size:    %s\n", humanBytes(s.SizeBytes))
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Chunks:\t%d\n", s.ChunkCount)
+	fmt.Fprintf(w, "Size:\t%s\n", humanBytes(s.SizeBytes))
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	if len(s.IndexValid) == 0 {
 		return nil

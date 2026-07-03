@@ -3,11 +3,16 @@ package output
 import (
 	"bytes"
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
+
+// squashSpaces collapses runs of spaces to one so assertions check content, not
+// the exact column widths the tabwriter picks.
+func squashSpaces(s string) string { return regexp.MustCompile(` +`).ReplaceAllString(s, " ") }
 
 func TestHumanBytes(t *testing.T) {
 	cases := []struct {
@@ -110,7 +115,7 @@ func TestPrintCollectionStats(t *testing.T) {
 		{
 			name:     "no-index-valid",
 			stats:    &clients.CollectionStats{ChunkCount: 0, SizeBytes: 0},
-			wantSubs: []string{"Chunks:  0", "Size:    0 B"},
+			wantSubs: []string{"Chunks: 0", "Size: 0 B"},
 		},
 		{
 			name: "with-index-valid",
@@ -120,8 +125,8 @@ func TestPrintCollectionStats(t *testing.T) {
 				IndexValid: map[string]bool{"default": true, "extra": false},
 			},
 			wantSubs: []string{
-				"Chunks:  42",
-				"Size:    5.0 MiB",
+				"Chunks: 42",
+				"Size: 5.0 MiB",
 				"default",
 				"true",
 				"extra",
@@ -135,7 +140,7 @@ func TestPrintCollectionStats(t *testing.T) {
 			if err := PrintCollectionStats(&buf, c.stats); err != nil {
 				t.Fatal(err)
 			}
-			got := buf.String()
+			got := squashSpaces(buf.String())
 			for _, want := range c.wantSubs {
 				if !strings.Contains(got, want) {
 					t.Errorf("output missing %q\n%s", want, got)
@@ -161,7 +166,7 @@ func TestPrintCollectionDescribe(t *testing.T) {
 					},
 				},
 			},
-			wantSubs: []string{"Name:       c", "Full-text:  disabled", "float32", "deferred", "-"},
+			wantSubs: []string{"Name: c", "Full-text: disabled", "float32", "deferred", "-"},
 		},
 		{
 			name: "embedding-slot-with-index",
@@ -185,7 +190,7 @@ func TestPrintCollectionDescribe(t *testing.T) {
 				},
 			},
 			wantSubs: []string{
-				"Full-text:  enabled (english)",
+				"Full-text: enabled (english)",
 				"interactive/openai/text-embedding-3-small",
 				"hnsw (m=16, ef_construction=64)",
 			},
@@ -197,7 +202,7 @@ func TestPrintCollectionDescribe(t *testing.T) {
 			if err := PrintCollectionDescribe(&buf, c.in); err != nil {
 				t.Fatal(err)
 			}
-			got := buf.String()
+			got := squashSpaces(buf.String())
 			for _, want := range c.wantSubs {
 				if !strings.Contains(got, want) {
 					t.Errorf("output missing %q\n%s", want, got)
@@ -409,7 +414,7 @@ func TestPrintDocumentChunks(t *testing.T) {
 		{
 			name:     "empty",
 			in:       &clients.DocumentChunks{DocumentID: "doc"},
-			wantSubs: []string{"Document:  doc", "No chunks found."},
+			wantSubs: []string{"Document: doc", "No chunks found."},
 		},
 		{
 			name: "with-chunks",
@@ -417,7 +422,7 @@ func TestPrintDocumentChunks(t *testing.T) {
 				DocumentID: "doc",
 				Chunks:     []clients.Chunk{{ID: "a", Text: "hello"}},
 			},
-			wantSubs: []string{"Document:  doc", "ID", "TEXT", "hello"},
+			wantSubs: []string{"Document: doc", "ID", "TEXT", "hello"},
 		},
 	}
 	for _, c := range cases {
@@ -426,7 +431,7 @@ func TestPrintDocumentChunks(t *testing.T) {
 			if err := PrintDocumentChunks(&buf, c.in); err != nil {
 				t.Fatal(err)
 			}
-			got := buf.String()
+			got := squashSpaces(buf.String())
 			for _, want := range c.wantSubs {
 				if !strings.Contains(got, want) {
 					t.Errorf("output missing %q\n%s", want, got)
@@ -520,8 +525,8 @@ func TestPrintSlotResults(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		want := "Slot:          s\nType:          float32\nDimension:     4\nDistance:      l2\nIndex status:  ready\n"
-		if got := buf.String(); got != want {
+		want := "Slot: s\nType: float32\nDimension: 4\nDistance: l2\nIndex status: ready\n"
+		if got := squashSpaces(buf.String()); got != want {
 			t.Errorf("got:\n%s\nwant:\n%s", got, want)
 		}
 	})
@@ -533,8 +538,8 @@ func TestPrintSlotResults(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		want := "Slot:        s\nIndex type:  hnsw\nStatus:      ready\n"
-		if got := buf.String(); got != want {
+		want := "Slot: s\nIndex type: hnsw\nStatus: ready\n"
+		if got := squashSpaces(buf.String()); got != want {
 			t.Errorf("got:\n%s\nwant:\n%s", got, want)
 		}
 	})

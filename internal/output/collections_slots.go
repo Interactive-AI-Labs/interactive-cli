@@ -9,20 +9,22 @@ import (
 
 // PrintSlotAddResult renders the result of adding a slot.
 func PrintSlotAddResult(out io.Writer, r *clients.SlotAddResult) error {
-	fmt.Fprintf(out, "Slot:          %s\n", r.Slot)
-	fmt.Fprintf(out, "Type:          %s\n", r.Type)
-	fmt.Fprintf(out, "Dimension:     %d\n", r.Dimension)
-	fmt.Fprintf(out, "Distance:      %s\n", r.Distance)
-	fmt.Fprintf(out, "Index status:  %s\n", r.IndexStatus)
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Slot:\t%s\n", r.Slot)
+	fmt.Fprintf(w, "Type:\t%s\n", r.Type)
+	fmt.Fprintf(w, "Dimension:\t%d\n", r.Dimension)
+	fmt.Fprintf(w, "Distance:\t%s\n", r.Distance)
+	fmt.Fprintf(w, "Index status:\t%s\n", r.IndexStatus)
+	return w.Flush()
 }
 
 // PrintSlotIndexProgress renders a slot's index build progress.
 func PrintSlotIndexProgress(out io.Writer, p *clients.SlotIndexProgress) error {
-	fmt.Fprintf(out, "Slot:        %s\n", p.Slot)
-	fmt.Fprintf(out, "Index type:  %s\n", p.IndexType)
-	fmt.Fprintf(out, "Status:      %s\n", p.Status)
-	return nil
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "Slot:\t%s\n", p.Slot)
+	fmt.Fprintf(w, "Index type:\t%s\n", p.IndexType)
+	fmt.Fprintf(w, "Status:\t%s\n", p.Status)
+	return w.Flush()
 }
 
 // PrintSlotOpResult renders a reindex/vacuum result (whichever status is set).
