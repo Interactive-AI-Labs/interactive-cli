@@ -58,7 +58,14 @@ func (c *DeploymentClient) ReindexSlot(
 ) (*SlotOpResult, error) {
 	var result SlotOpResult
 	path := slotPath(orgId, projectId, database, collection, slot) + "/reindex"
-	if err := c.sendJSONInto(ctx, http.MethodPost, path, body, "reindex slot", &result); err != nil {
+	if err := c.sendJSONInto(
+		ctx,
+		http.MethodPost,
+		path,
+		body,
+		"reindex slot",
+		&result,
+	); err != nil {
 		return nil, err
 	}
 	return &result, nil

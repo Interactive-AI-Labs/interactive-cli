@@ -106,7 +106,14 @@ func (c *DeploymentClient) SearchBatch(
 ) (*BatchSearchResponse, error) {
 	path := searchBase(orgId, projectId, database, collection) + "/search/batch"
 	var result BatchSearchResponse
-	if err := c.sendJSONInto(ctx, http.MethodPost, path, body, "batch search", &result); err != nil {
+	if err := c.sendJSONInto(
+		ctx,
+		http.MethodPost,
+		path,
+		body,
+		"batch search",
+		&result,
+	); err != nil {
 		return nil, err
 	}
 	return &result, nil

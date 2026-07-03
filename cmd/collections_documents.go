@@ -135,7 +135,12 @@ var documentsDeleteCmd = &cobra.Command{
 		if collYAML {
 			return output.PrintStructuredYAML(out, result)
 		}
-		fmt.Fprintf(out, "Deleted document %q (%d chunk(s))\n", result.DocumentID, result.DeletedCount)
+		fmt.Fprintf(
+			out,
+			"Deleted document %q (%d chunk(s))\n",
+			result.DocumentID,
+			result.DeletedCount,
+		)
 		return nil
 	},
 }
