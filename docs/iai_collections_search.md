@@ -7,7 +7,9 @@ Search a collection (single-lane vector search)
 Run a single-lane search: --query (text, embedded server-side) or --vector
 (comma-separated floats). --exact runs an exhaustive scan instead of the index.
 
-Sub-commands cover the other modes: batch, by-id, hybrid.
+Sub-commands cover the other modes: batch, by-id, hybrid. A collection named
+after a sub-command (batch, by-id, hybrid) can't be searched via this command
+(the sub-command wins); rename it or query it through the API.
 
 ```
 iai collections search <collection> [flags]

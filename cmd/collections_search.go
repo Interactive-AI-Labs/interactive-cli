@@ -27,7 +27,9 @@ var searchCmd = &cobra.Command{
 	Long: `Run a single-lane search: --query (text, embedded server-side) or --vector
 (comma-separated floats). --exact runs an exhaustive scan instead of the index.
 
-Sub-commands cover the other modes: batch, by-id, hybrid.`,
+Sub-commands cover the other modes: batch, by-id, hybrid. A collection named
+after a sub-command (batch, by-id, hybrid) can't be searched via this command
+(the sub-command wins); rename it or query it through the API.`,
 	Example: `  iai collections search docs -d my-db --query "reset my password"
   iai collections search docs -d my-db --query "..." --exact --limit 5`,
 	Args: cobra.ExactArgs(1),
@@ -233,8 +235,10 @@ func init() {
 	searchCmd.Flags().StringVar(&searchQuery, "query", "", "Query text (embedded server-side)")
 	searchCmd.Flags().
 		StringVar(&searchVector, "vector", "", "Query vector as comma-separated floats")
-	searchCmd.Flags().
-		StringVar(&searchUsing, "using", "", `Vector slot to search (omit for the server default, "default")`)
+	searchCmd.Flags().StringVar(
+		&searchUsing, "using", "",
+		`Vector slot to search (omit for the server default, "default")`,
+	)
 	searchCmd.Flags().IntVar(&searchLimit, "limit", 0, "Max results")
 	searchCmd.Flags().StringVar(&searchFilter, "filter", "", "Metadata filter as a JSON object")
 	searchCmd.Flags().BoolVar(&searchExact, "exact", false, "Exhaustive scan instead of the index")
