@@ -70,8 +70,8 @@ type CollectionStats struct {
 	SizeBytes  int64           `json:"sizeBytes"`
 }
 
-// collectionsPath builds the base collections path for a database.
-func collectionsPath(orgId, projectId, database string) string {
+// CollectionsPath builds the base collections path for a database.
+func CollectionsPath(orgId, projectId, database string) string {
 	return fmt.Sprintf(
 		"/v1/organizations/%s/projects/%s/databases/%s/collections",
 		url.PathEscape(orgId),
@@ -150,7 +150,7 @@ func (c *DeploymentClient) ListCollections(
 	ctx context.Context,
 	orgId, projectId, database string,
 ) ([]CollectionSummary, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, collectionsPath(orgId, projectId, database))
+	req, err := c.newRequest(ctx, http.MethodGet, CollectionsPath(orgId, projectId, database))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -177,7 +177,7 @@ func (c *DeploymentClient) DescribeCollection(
 	ctx context.Context,
 	orgId, projectId, database, name string,
 ) (*DescribeCollectionResponse, error) {
-	path := collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
+	path := CollectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -205,7 +205,7 @@ func (c *DeploymentClient) GetCollectionStats(
 	ctx context.Context,
 	orgId, projectId, database, name string,
 ) (*CollectionStats, error) {
-	path := collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name) + "/stats"
+	path := CollectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name) + "/stats"
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -235,22 +235,12 @@ func (c *DeploymentClient) CreateCollection(
 	body []byte,
 	dryRun bool,
 ) (string, error) {
-	path := collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
+	path := CollectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
 	rawQuery := ""
 	if dryRun {
 		rawQuery = "dry_run=true"
 	}
-	return c.sendCollectionBody(ctx, http.MethodPost, path, body, "create collection", rawQuery)
-}
-
-// PatchCollection updates a collection's mutable config from a raw JSON body.
-func (c *DeploymentClient) PatchCollection(
-	ctx context.Context,
-	orgId, projectId, database, name string,
-	body []byte,
-) (string, error) {
-	path := collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
-	return c.sendCollectionBody(ctx, http.MethodPatch, path, body, "update collection", "")
+	return c.SendCollectionBody(ctx, http.MethodPost, path, body, "create collection", rawQuery)
 }
 
 // DeleteCollection deletes a collection and its data.
@@ -258,7 +248,7 @@ func (c *DeploymentClient) DeleteCollection(
 	ctx context.Context,
 	orgId, projectId, database, name string,
 ) (string, error) {
-	path := collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
+	path := CollectionsPath(orgId, projectId, database) + "/" + url.PathEscape(name)
 	req, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -273,8 +263,8 @@ func (c *DeploymentClient) DeleteCollection(
 	return serverMessage(resp, "delete collection")
 }
 
-// sendCollectionBody issues a JSON-body request and returns the server message.
-func (c *DeploymentClient) sendCollectionBody(
+// SendCollectionBody issues a JSON-body request and returns the server message.
+func (c *DeploymentClient) SendCollectionBody(
 	ctx context.Context,
 	method, path string,
 	body []byte,

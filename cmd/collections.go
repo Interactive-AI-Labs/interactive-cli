@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -212,13 +215,10 @@ and the embedding model are immutable.`,
 			return err
 		}
 
-		msg, err := deployClient.PatchCollection(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			collDatabase,
-			name,
-			body,
+		path := clients.CollectionsPath(pCtx.orgId, pCtx.projectId, collDatabase) +
+			"/" + url.PathEscape(name)
+		msg, err := deployClient.SendCollectionBody(
+			cmd.Context(), http.MethodPatch, path, body, "update collection", "",
 		)
 		if err != nil {
 			return err

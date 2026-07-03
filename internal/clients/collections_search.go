@@ -28,7 +28,7 @@ type BatchSearchResponse struct {
 }
 
 func searchBase(orgId, projectId, database, collection string) string {
-	return collectionsPath(orgId, projectId, database) + "/" + url.PathEscape(collection)
+	return CollectionsPath(orgId, projectId, database) + "/" + url.PathEscape(collection)
 }
 
 // postSearch POSTs a JSON body and decodes a SearchResponse.

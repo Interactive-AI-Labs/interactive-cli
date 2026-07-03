@@ -32,7 +32,7 @@ type SlotOpResult struct {
 }
 
 func slotPath(orgId, projectId, database, collection, slot string) string {
-	base := collectionsPath(orgId, projectId, database)
+	base := CollectionsPath(orgId, projectId, database)
 	return base + "/" + url.PathEscape(collection) + "/vectors/" + url.PathEscape(slot)
 }
 

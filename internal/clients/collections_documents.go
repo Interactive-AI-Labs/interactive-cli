@@ -37,7 +37,7 @@ type DeleteDocumentResult struct {
 }
 
 func documentsPath(orgId, projectId, database, collection string) string {
-	base := collectionsPath(orgId, projectId, database)
+	base := CollectionsPath(orgId, projectId, database)
 	return base + "/" + url.PathEscape(collection) + "/documents"
 }
 
