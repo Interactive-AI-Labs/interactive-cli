@@ -61,12 +61,8 @@ func stringifyKeys(v any) any {
 // filter (a JSON object string) and an optional id prefix.
 func BuildChunkCountBody(filterJSON, prefix string) ([]byte, error) {
 	body := map[string]any{}
-	if filterJSON != "" {
-		var filter map[string]any
-		if err := json.Unmarshal([]byte(filterJSON), &filter); err != nil {
-			return nil, fmt.Errorf("--filter must be a JSON object: %w", err)
-		}
-		body["filter"] = filter
+	if err := addFilter(body, filterJSON); err != nil {
+		return nil, err
 	}
 	if prefix != "" {
 		body["prefix"] = prefix
@@ -101,11 +97,11 @@ func BuildBulkDeleteBody(ids []string, filterJSON string, all bool) ([]byte, err
 	case len(ids) > 0:
 		return json.Marshal(map[string]any{"ids": ids})
 	case filterJSON != "":
-		var filter map[string]any
-		if err := json.Unmarshal([]byte(filterJSON), &filter); err != nil {
-			return nil, fmt.Errorf("--filter must be a JSON object: %w", err)
+		body := map[string]any{}
+		if err := addFilter(body, filterJSON); err != nil {
+			return nil, err
 		}
-		return json.Marshal(map[string]any{"filter": filter})
+		return json.Marshal(body)
 	default:
 		return json.Marshal(map[string]any{"all": true})
 	}
