@@ -94,23 +94,80 @@ func TestBuildSearchBody(t *testing.T) {
 }
 
 func TestBuildChunkCountBody(t *testing.T) {
-	if _, err := BuildChunkCountBody("", ""); err != nil {
-		t.Errorf("empty count body should not error: %v", err)
+	cases := []struct {
+		name    string
+		filter  string
+		prefix  string
+		want    string
+		wantErr bool
+	}{
+		{name: "empty counts all", want: "{}"},
+		{
+			name:   "filter and prefix",
+			filter: `{"lang":"en"}`,
+			prefix: "doc-",
+			want:   `{"filter":{"lang":"en"},"prefix":"doc-"}`,
+		},
+		{name: "prefix only", prefix: "doc-", want: `{"prefix":"doc-"}`},
+		{name: "bad filter", filter: `{bad`, wantErr: true},
 	}
-	if _, err := BuildChunkCountBody(`{"lang":"en"}`, "doc-"); err != nil {
-		t.Errorf("valid count body should not error: %v", err)
-	}
-	if _, err := BuildChunkCountBody(`{bad`, ""); err == nil {
-		t.Errorf("bad filter should error")
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := BuildChunkCountBody(c.filter, c.prefix)
+			if c.wantErr {
+				if err == nil {
+					t.Fatalf("BuildChunkCountBody(%q, %q) expected error", c.filter, c.prefix)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected err: %v", err)
+			}
+			if string(got) != c.want {
+				t.Errorf("body = %s, want %s", got, c.want)
+			}
+		})
 	}
 }
 
 func TestBuildAddSlotBody(t *testing.T) {
-	if _, err := BuildAddSlotBody("float32", 1536, "cosine"); err != nil {
-		t.Errorf("valid slot body should not error: %v", err)
+	cases := []struct {
+		name      string
+		slotType  string
+		dimension int
+		distance  string
+		want      string
+		wantErr   bool
+	}{
+		{
+			name:     "type, dimension, distance",
+			slotType: "float32", dimension: 1536, distance: "cosine",
+			want: `{"dimension":1536,"distance":"cosine","type":"float32"}`,
+		},
+		{
+			name:     "distance omitted",
+			slotType: "float32", dimension: 1536,
+			want: `{"dimension":1536,"type":"float32"}`,
+		},
+		{name: "zero dimension errors", slotType: "float32", dimension: 0, wantErr: true},
 	}
-	if _, err := BuildAddSlotBody("float32", 0, ""); err == nil {
-		t.Errorf("dimension 0 should error")
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := BuildAddSlotBody(c.slotType, c.dimension, c.distance)
+			if c.wantErr {
+				if err == nil {
+					t.Fatalf("BuildAddSlotBody(%q, %d, %q) expected error",
+						c.slotType, c.dimension, c.distance)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected err: %v", err)
+			}
+			if string(got) != c.want {
+				t.Errorf("body = %s, want %s", got, c.want)
+			}
+		})
 	}
 }
 
