@@ -31,9 +31,11 @@ connection credentials (host, port, username, password, URI).
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
+* [iai databases activate](iai_databases_activate.md)	 - Activate a deactivated database in a project
 * [iai databases backup](iai_databases_backup.md)	 - Trigger an on-demand backup
 * [iai databases backups](iai_databases_backups.md)	 - List backups for a database
 * [iai databases create](iai_databases_create.md)	 - Create a database in a project
+* [iai databases deactivate](iai_databases_deactivate.md)	 - Deactivate a database in a project
 * [iai databases delete](iai_databases_delete.md)	 - Delete a database from a project
 * [iai databases describe](iai_databases_describe.md)	 - Describe a database in detail
 * [iai databases list](iai_databases_list.md)	 - List databases in a project

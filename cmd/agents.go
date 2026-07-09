@@ -378,6 +378,86 @@ var agentRestartCmd = &cobra.Command{
 	},
 }
 
+var agentDeactivateCmd = &cobra.Command{
+	Use:     "deactivate <agent_name>",
+	Short:   "Deactivate an agent in a project",
+	Long:    `Deactivate an agent until it is activated again.`,
+	Example: `  iai agents deactivate my-agent`,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		agentName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			agentOrganization,
+			agentProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+
+		serverMessage, err := deployClient.DeactivateAgent(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
+var agentActivateCmd = &cobra.Command{
+	Use:     "activate <agent_name>",
+	Short:   "Activate a deactivated agent in a project",
+	Long:    `Activate a deactivated agent and restore its previous scale configuration.`,
+	Example: `  iai agents activate my-agent`,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		agentName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			agentOrganization,
+			agentProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+
+		serverMessage, err := deployClient.ActivateAgent(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 var (
 	agentLogsFollow     bool
 	agentLogsSince      string
@@ -864,6 +944,18 @@ func init() {
 	agentRestartCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
+	// Flags for "agents deactivate"
+	agentDeactivateCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentDeactivateCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "agents activate"
+	agentActivateCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentActivateCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
 	// Flags for "agents logs"
 	agentLogsCmd.Flags().
 		StringVarP(&agentProject, "project", "p", "", "Project name")
@@ -947,6 +1039,8 @@ func init() {
 	agentsCmd.AddCommand(agentDescribeCmd)
 	agentsCmd.AddCommand(agentDeleteCmd)
 	agentsCmd.AddCommand(agentRestartCmd)
+	agentsCmd.AddCommand(agentDeactivateCmd)
+	agentsCmd.AddCommand(agentActivateCmd)
 	agentsCmd.AddCommand(agentLogsCmd)
 	agentsCmd.AddCommand(agentSchemaCmd)
 	agentsCmd.AddCommand(agentCatalogCmd)

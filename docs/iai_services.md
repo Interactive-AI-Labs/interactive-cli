@@ -24,7 +24,9 @@ Manage deployment of services to InteractiveAI projects.
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
+* [iai services activate](iai_services_activate.md)	 - Activate a deactivated service in a project
 * [iai services create](iai_services_create.md)	 - Create a service in a project
+* [iai services deactivate](iai_services_deactivate.md)	 - Deactivate a service in a project
 * [iai services delete](iai_services_delete.md)	 - Delete a service from a project
 * [iai services describe](iai_services_describe.md)	 - Describe a service in detail
 * [iai services diff](iai_services_diff.md)	 - Compare two revisions of a service

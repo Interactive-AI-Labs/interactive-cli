@@ -437,6 +437,88 @@ var servRestartCmd = &cobra.Command{
 	},
 }
 
+var servDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <service_name>",
+	Short: "Deactivate a service in a project",
+	Long:  `Deactivate a service until it is activated again.`,
+	Example: `  iai services deactivate my-svc
+  iai services deactivate my-svc --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		serviceName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+
+		serverMessage, err := deployClient.DeactivateService(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			serviceName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
+var servActivateCmd = &cobra.Command{
+	Use:   "activate <service_name>",
+	Short: "Activate a deactivated service in a project",
+	Long:  `Activate a deactivated service and restore its previous scale configuration.`,
+	Example: `  iai services activate my-svc
+  iai services activate my-svc --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		serviceName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+
+		serverMessage, err := deployClient.ActivateService(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			serviceName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 var (
 	servLogsFollow     bool
 	servLogsSince      string
@@ -974,6 +1056,18 @@ func init() {
 	servRestartCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	// Flags for "services deactivate"
+	servDeactivateCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servDeactivateCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "services activate"
+	servActivateCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servActivateCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+
 	// Flags for "services logs"
 	servLogsCmd.Flags().
 		StringVarP(&serviceProject, "project", "p", "", "Project name that owns the service")
@@ -1047,6 +1141,8 @@ func init() {
 	servicesCmd.AddCommand(servDescribeCmd)
 	servicesCmd.AddCommand(servDCmd)
 	servicesCmd.AddCommand(servRestartCmd)
+	servicesCmd.AddCommand(servDeactivateCmd)
+	servicesCmd.AddCommand(servActivateCmd)
 	servicesCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servRevisionsCmd)
 	servicesCmd.AddCommand(servDiffCmd)
