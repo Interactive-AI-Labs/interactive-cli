@@ -18,10 +18,11 @@ type CreateMcpBody struct {
 	Type string `json:"type,omitempty"` // "internal" (default) | "external"
 
 	// internal only
-	Port      int       `json:"port,omitempty"`
-	Image     ImageSpec `json:"image,omitempty"`
-	Resources Resources `json:"resources,omitempty"`
-	Env       []EnvVar  `json:"env,omitempty"`
+	Port       int         `json:"port,omitempty"`
+	Image      ImageSpec   `json:"image,omitempty"`
+	Resources  Resources   `json:"resources,omitempty"`
+	Env        []EnvVar    `json:"env,omitempty"`
+	SecretRefs []SecretRef `json:"secretRefs,omitempty"`
 
 	// external only — endpointUrl and catalogId are mutually exclusive.
 	EndpointURL string `json:"endpointUrl,omitempty"`
@@ -45,12 +46,13 @@ type McpOutput struct {
 	Revision  int    `json:"revision"`
 	Updated   string `json:"updated,omitempty"`
 
-	Type        string         `json:"type"`
-	EndpointURL string         `json:"endpointUrl"`
-	Slug        string         `json:"slug"`
-	CatalogID   string         `json:"catalogId,omitempty"`
-	Status      string         `json:"status,omitempty"` // internal only
-	Verify      McpVerifyState `json:"verify"`
+	Type           string         `json:"type"`
+	EndpointURL    string         `json:"endpointUrl"`
+	Slug           string         `json:"slug"`
+	CatalogID      string         `json:"catalogId,omitempty"`
+	Status         string         `json:"status,omitempty"` // internal only
+	Verify         McpVerifyState `json:"verify"`
+	AttachedAgents []string       `json:"attachedAgents,omitempty"`
 }
 
 type DescribeMcpResponse struct {
@@ -58,6 +60,7 @@ type DescribeMcpResponse struct {
 
 	Transport     string           `json:"transport"`
 	HasCredential bool             `json:"hasCredential"`
+	SecretRefs    []SecretRef      `json:"secretRefs,omitempty"`
 	Tools         []map[string]any `json:"tools"`
 	ToolVersions  []string         `json:"toolVersions,omitempty"`
 }

@@ -29,6 +29,7 @@ var (
 	mcpMemory          string
 	mcpCPU             string
 	mcpEnvVars         []string
+	mcpSecretRefs      []string
 	mcpEndpointURL     string
 	mcpCatalogID       string
 	mcpCredential      string
@@ -52,7 +53,11 @@ var (
 	mcpCatalogYAML bool
 	mcpVerifyJSON  bool
 	mcpVerifyYAML  bool
+	mcpToolsJSON   bool
+	mcpToolsYAML   bool
 )
+
+var mcpToolsVersion string
 
 var mcpsCmd = &cobra.Command{
 	Use:     "mcps",
@@ -123,6 +128,7 @@ func runMcpUpsert(cmd *cobra.Command, mcpName, verb string, submit func(
 		Memory:          mcpMemory,
 		CPU:             mcpCPU,
 		EnvVars:         mcpEnvVars,
+		SecretRefs:      mcpSecretRefs,
 		EndpointURL:     mcpEndpointURL,
 		CatalogID:       mcpCatalogID,
 		Credential:      cred,
@@ -155,8 +161,10 @@ var mcpCreateCmd = &cobra.Command{
 	Long: `Create an mcp — an in-cluster MCP server ("internal"), a custom external
 endpoint, or a catalog-backed provider.
 
-Internal: --image-name, --image-tag, --port (like 'iai services create').
-External custom: --endpoint-url.
+Internal: --image-name, --image-tag, --port (like 'iai services create'); --env
+and --secret load env vars from literal values or existing k8s Secrets.
+External custom: --external-url — a server not owned by the platform, dialed
+directly at that URL.
 External catalog: --catalog-id (see 'iai mcps catalog'); endpoint and auth are
 derived from the catalog entry — only entries resolvable to plain
 Authorization: Bearer (or no auth) can be used this way.
@@ -166,7 +174,7 @@ is verified once its pod is up (checked in the background — see 'iai mcps get'
 an external mcp (custom or catalog) is verified immediately, and the create
 fails if the server is unreachable or rejects the credential.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080
-  iai mcps create acme --endpoint-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
+  iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt`,
 	Args: cobra.ExactArgs(1),
@@ -191,7 +199,7 @@ default. The type (internal/external) cannot change; delete and recreate instead
 Changing --credential rotates the mcp's Secret and restarts the mcp (if internal)
 and every agent currently attached to it, so they pick up the new value.`,
 	Example: `  iai mcps update my-tool --image-name my-mcp-server --image-tag v2 --port 8080
-  iai mcps update acme --endpoint-url https://mcp.acme.com/mcp --credential "$NEW_TOKEN"`,
+  iai mcps update acme --external-url https://mcp.acme.com/mcp --credential "$NEW_TOKEN"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		mcpName := strings.TrimSpace(args[0])
@@ -272,12 +280,50 @@ and the tools discovered there.
 	},
 }
 
+var mcpToolsCmd = &cobra.Command{
+	Use:   "tools <mcp_name>",
+	Short: "List an mcp's cached tools with descriptions",
+	Long: `Show the full cached tool list — name and description — discovered by the last
+verify. 'iai mcps get' only shows a count; use this to see the tools themselves.
+
+--version reads a past image version's cached tools instead of the latest verify
+(internal mcps only — the cache is keyed by image tag, see 'iai mcps update').`,
+	Example: `  iai mcps tools my-tool
+  iai mcps tools my-tool --version v1
+  iai mcps tools my-tool --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		res, err := deployClient.DescribeMcp(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, mcpToolsVersion,
+		)
+		if err != nil {
+			return err
+		}
+
+		if mcpToolsJSON {
+			return output.PrintStructuredJSON(out, res.Tools)
+		}
+		if mcpToolsYAML {
+			return output.PrintStructuredYAML(out, res.Tools)
+		}
+		return output.PrintMcpTools(out, res)
+	},
+}
+
 var mcpVerifyCmd = &cobra.Command{
 	Use:   "verify <mcp_name>",
-	Short: "Re-verify an mcp and refresh its cached tools",
-	Long: `Re-dial the mcp (initialize + list tools) and refresh the cached tool list —
-also cached per image version for internal mcps. Reports tool count and, on
-failure, the error.`,
+	Short: "Re-verify an external mcp and refresh its cached tools",
+	Long: `Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
+External mcps only — internal mcps verify automatically once their pod is up
+(background reconciler; see 'iai mcps get') and reject a manual verify.`,
 	Example: `  iai mcps verify my-tool
   iai mcps verify my-tool --json`,
 	Args: cobra.ExactArgs(1),
@@ -414,24 +460,26 @@ func init() {
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)
 		c.Flags().IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal)")
-		c.Flags().StringVar(&mcpImageType, "image-type", "internal", `Image source: "internal", "external", or "platform" (internal)`)
-		c.Flags().StringVar(&mcpImageRepository, "image-repository", "", "Image repository (required for external/platform images)")
+		c.Flags().StringVar(&mcpImageType, "image-type", "internal", `Image source: "internal" or "external" (internal)`)
+		c.Flags().StringVar(&mcpImageRepository, "image-repository", "", "Image repository (required for external images)")
 		c.Flags().StringVar(&mcpImageName, "image-name", "", "Container image name (internal)")
 		c.Flags().StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal)")
 		c.Flags().StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal, default 512M)")
 		c.Flags().StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal, default 250m)")
 		c.Flags().StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)")
-		c.Flags().StringVar(&mcpEndpointURL, "endpoint-url", "", "MCP server endpoint URL (custom external mcp)")
+		c.Flags().StringArrayVar(&mcpSecretRefs, "secret", nil, "Existing k8s Secret to load as env vars; can be repeated (internal)")
+		c.Flags().StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
 		c.Flags().StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
 		c.Flags().StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
 		c.Flags().BoolVar(&mcpCredentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
-		c.MarkFlagsMutuallyExclusive("catalog-id", "endpoint-url")
+		c.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
 		c.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
-		c.MarkFlagsMutuallyExclusive("endpoint-url", "image-name")
+		c.MarkFlagsMutuallyExclusive("external-url", "image-name")
 	}
 
 	mcpGetCmd.Flags().StringVar(&mcpGetVersion, "version", "", "Read this image tag's cached tools instead of the latest verify (internal only)")
+	mcpToolsCmd.Flags().StringVar(&mcpToolsVersion, "version", "", "Read this image tag's cached tools instead of the latest verify (internal only)")
 
 	mcpRunToolCmd.Flags().StringVar(&mcpArgsJSON, "args", "", "Tool arguments as an inline JSON object")
 	mcpRunToolCmd.Flags().StringVar(&mcpArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
@@ -447,6 +495,8 @@ func init() {
 	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogYAML, "yaml", false, "Output raw API response as YAML")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyJSON, "json", false, "Output raw API response as JSON")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyYAML, "yaml", false, "Output raw API response as YAML")
+	mcpToolsCmd.Flags().BoolVar(&mcpToolsJSON, "json", false, "Output raw API response as JSON")
+	mcpToolsCmd.Flags().BoolVar(&mcpToolsYAML, "yaml", false, "Output raw API response as YAML")
 
 	rootCmd.AddCommand(mcpsCmd)
 	mcpsCmd.AddCommand(
@@ -455,6 +505,7 @@ func init() {
 		mcpUpdateCmd,
 		mcpListCmd,
 		mcpGetCmd,
+		mcpToolsCmd,
 		mcpVerifyCmd,
 		mcpRunToolCmd,
 		mcpDeleteCmd,

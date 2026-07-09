@@ -8,7 +8,7 @@ import (
 )
 
 // McpInput holds the flags for `iai mcps create`/`update`. Exactly one
-// source must be set: --catalog-id, --endpoint-url (both external), or
+// source must be set: --catalog-id, --external-url (both external), or
 // --image-name/--image-tag/--port (internal). The server does the real
 // validation; this builder only assembles the request body.
 type McpInput struct {
@@ -23,6 +23,7 @@ type McpInput struct {
 	Memory          string
 	CPU             string
 	EnvVars         []string
+	SecretRefs      []string // existing k8s Secrets loaded as env vars
 
 	// external
 	EndpointURL string
@@ -42,6 +43,14 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 			Name:  strings.TrimSpace(parts[0]),
 			Value: parts[1],
 		})
+	}
+
+	if err := ValidateServiceSecretRefs(in.SecretRefs); err != nil {
+		return clients.CreateMcpBody{}, err
+	}
+	var secretRefs []clients.SecretRef
+	for _, name := range in.SecretRefs {
+		secretRefs = append(secretRefs, clients.SecretRef{SecretName: strings.TrimSpace(name)})
 	}
 
 	mcpType := strings.TrimSpace(in.Type)
@@ -64,12 +73,17 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 	case "external":
 		if in.CatalogID != "" && in.EndpointURL != "" {
 			return clients.CreateMcpBody{}, fmt.Errorf(
-				"--catalog-id and --endpoint-url are mutually exclusive",
+				"--catalog-id and --external-url are mutually exclusive",
 			)
 		}
 		if in.CatalogID == "" && in.EndpointURL == "" {
 			return clients.CreateMcpBody{}, fmt.Errorf(
-				"external mcps need --catalog-id or --endpoint-url",
+				"external mcps need --catalog-id or --external-url",
+			)
+		}
+		if len(env) > 0 || len(secretRefs) > 0 {
+			return clients.CreateMcpBody{}, fmt.Errorf(
+				"--env and --secret don't apply to an external mcp",
 			)
 		}
 		body.EndpointURL = strings.TrimSpace(in.EndpointURL)
@@ -90,6 +104,7 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 			Tag:        in.ImageTag,
 		}
 		body.Env = env
+		body.SecretRefs = secretRefs
 		if in.Memory != "" || in.CPU != "" {
 			body.Resources = clients.Resources{Memory: in.Memory, CPU: in.CPU}
 		}

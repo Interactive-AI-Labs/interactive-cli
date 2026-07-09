@@ -13,7 +13,7 @@ func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
 		fmt.Fprintln(out, "No mcps found.")
 		return nil
 	}
-	headers := []string{"NAME", "TYPE", "STATUS", "VERIFY", "TOOLS", "CATALOG", "UPDATED"}
+	headers := []string{"NAME", "TYPE", "STATUS", "VERIFY", "TOOLS", "UPDATED"}
 	rows := make([][]string, len(mcps))
 	for i, m := range mcps {
 		status := m.Status
@@ -30,7 +30,6 @@ func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
 			status,
 			verify,
 			fmt.Sprintf("%d", m.Verify.ToolCount),
-			orDash(m.CatalogID),
 			LocalTime(m.Updated),
 		}
 	}
@@ -51,6 +50,16 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 		fmt.Fprintf(w, "Status:\t%s\n", m.Status)
 	}
 	fmt.Fprintf(w, "Credential Set:\t%t\n", m.HasCredential)
+	if len(m.SecretRefs) > 0 {
+		names := make([]string, len(m.SecretRefs))
+		for i, ref := range m.SecretRefs {
+			names[i] = ref.SecretName
+		}
+		fmt.Fprintf(w, "Secrets:\t%s\n", strings.Join(names, ", "))
+	}
+	if len(m.AttachedAgents) > 0 {
+		fmt.Fprintf(w, "Attached Agents:\t%s\n", strings.Join(m.AttachedAgents, ", "))
+	}
 	fmt.Fprintf(w, "Revision:\t%d\n", m.Revision)
 	fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(m.Updated))
 
@@ -67,21 +76,25 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	if len(m.ToolVersions) > 0 {
 		fmt.Fprintf(w, "Cached Versions:\t%s\n", strings.Join(m.ToolVersions, ", "))
 	}
+	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools %s')\n", len(m.Tools), m.Name)
 
-	if err := w.Flush(); err != nil {
-		return err
+	return w.Flush()
+}
+
+// PrintMcpTools lists an mcp's cached tools with their descriptions.
+func PrintMcpTools(out io.Writer, m *clients.DescribeMcpResponse) error {
+	if len(m.Tools) == 0 {
+		fmt.Fprintln(out, "No tools cached — run 'iai mcps verify' first.")
+		return nil
 	}
-
-	if len(m.Tools) > 0 {
-		fmt.Fprintf(out, "\nTools (%d):\n", len(m.Tools))
-		for _, t := range m.Tools {
-			name, _ := t["name"].(string)
-			desc, _ := t["description"].(string)
-			if desc != "" {
-				fmt.Fprintf(out, "  %s — %s\n", name, desc)
-			} else {
-				fmt.Fprintf(out, "  %s\n", name)
-			}
+	fmt.Fprintf(out, "Tools (%d):\n", len(m.Tools))
+	for _, t := range m.Tools {
+		name, _ := t["name"].(string)
+		desc, _ := t["description"].(string)
+		if desc != "" {
+			fmt.Fprintf(out, "  %s — %s\n", name, desc)
+		} else {
+			fmt.Fprintf(out, "  %s\n", name)
 		}
 	}
 	return nil
