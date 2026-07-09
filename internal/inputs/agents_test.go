@@ -197,3 +197,47 @@ func TestBuildAgentRequestBody(t *testing.T) {
 		})
 	}
 }
+
+func TestInjectMcpRefsDedup(t *testing.T) {
+	cfg := map[string]any{
+		"mcps": []any{
+			map[string]any{"mcp_id": "github"},
+			map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"},
+		},
+	}
+
+	out, err := InjectMcpRefs(cfg, []string{"github", "acme", "acme", "mslearn"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mcps := out.(map[string]any)["mcps"].([]any)
+
+	if len(mcps) != 3 {
+		t.Fatalf("expected 3 entries (2 existing + 1 new 'acme'), got %d: %v", len(mcps), mcps)
+	}
+	counts := map[string]int{}
+	for _, e := range mcps {
+		m := e.(map[string]any)
+		if ref, ok := m["mcp_id"].(string); ok {
+			counts[ref]++
+		}
+	}
+	if counts["github"] != 1 {
+		t.Errorf("github should appear exactly once (was already a bare ref); got %d", counts["github"])
+	}
+	if counts["acme"] != 1 {
+		t.Errorf("acme should appear exactly once (repeated in the same call); got %d", counts["acme"])
+	}
+}
+
+func TestInjectMcpRefsNoExisting(t *testing.T) {
+	cfg := map[string]any{}
+	out, err := InjectMcpRefs(cfg, []string{"github"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mcps := out.(map[string]any)["mcps"].([]any)
+	if len(mcps) != 1 || mcps[0].(map[string]any)["mcp_id"] != "github" {
+		t.Errorf("mcps = %v", mcps)
+	}
+}

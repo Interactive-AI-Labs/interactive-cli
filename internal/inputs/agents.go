@@ -49,8 +49,27 @@ func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 		return nil, fmt.Errorf("agent config must be a YAML/JSON object to attach --mcp references")
 	}
 	mcps, _ := cfg["mcps"].([]any)
+
+	// An mcp already present — as a bare ref (mcp_id) or a resolved entry
+	// (id, matching the mcp's slug) — is skipped rather than duplicated.
+	// Also covers passing the same --mcp name twice in one command.
+	seen := make(map[string]bool, len(mcps)+len(names))
+	for _, entry := range mcps {
+		if m, ok := entry.(map[string]any); ok {
+			if ref, ok := m["mcp_id"].(string); ok && ref != "" {
+				seen[ref] = true
+			}
+			if id, ok := m["id"].(string); ok && id != "" {
+				seen[id] = true
+			}
+		}
+	}
 	for _, name := range names {
+		if seen[name] {
+			continue
+		}
 		mcps = append(mcps, map[string]any{"mcp_id": name})
+		seen[name] = true
 	}
 	cfg["mcps"] = mcps
 	return cfg, nil
