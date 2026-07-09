@@ -424,6 +424,86 @@ func (c *DeploymentClient) RestartService(
 	return "", fmt.Errorf("service restart failed with status %s", resp.Status)
 }
 
+func (c *DeploymentClient) DeactivateService(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	serviceName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/services/%s/deactivate",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(serviceName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("service deactivate request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("service deactivate failed with status %s", resp.Status)
+}
+
+func (c *DeploymentClient) ActivateService(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	serviceName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/services/%s/activate",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(serviceName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("service activate request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("service activate failed with status %s", resp.Status)
+}
+
 func (c *DeploymentClient) ListServices(
 	ctx context.Context,
 	orgId,
@@ -1595,6 +1675,86 @@ func (c *DeploymentClient) RestartAgent(
 	return "", fmt.Errorf("agent restart failed with status %s", resp.Status)
 }
 
+func (c *DeploymentClient) DeactivateAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s/deactivate",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("agent deactivate request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("agent deactivate failed with status %s", resp.Status)
+}
+
+func (c *DeploymentClient) ActivateAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s/activate",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("agent activate request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("agent activate failed with status %s", resp.Status)
+}
+
 func (c *DeploymentClient) GetAgentLogs(
 	ctx context.Context,
 	orgId,
@@ -2065,6 +2225,86 @@ func (c *DeploymentClient) DeleteDatabase(
 	}
 
 	return serverMessage, nil
+}
+
+func (c *DeploymentClient) DeactivateDatabase(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	databaseName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s/deactivate",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("database deactivate request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("database deactivate failed with status %s", resp.Status)
+}
+
+func (c *DeploymentClient) ActivateDatabase(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	databaseName string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s/activate",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+	)
+	reqHTTP, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return "", fmt.Errorf("database activate request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	serverMessage := ExtractServerMessage(respBody)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return serverMessage, nil
+	}
+
+	if serverMessage != "" {
+		return "", fmt.Errorf("%s", serverMessage)
+	}
+	return "", fmt.Errorf("database activate failed with status %s", resp.Status)
 }
 
 func (c *DeploymentClient) ListDatabases(

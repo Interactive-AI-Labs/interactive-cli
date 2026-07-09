@@ -303,6 +303,78 @@ var dbDeleteCmd = &cobra.Command{
 	},
 }
 
+var dbDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <database_name>",
+	Short: "Deactivate a database in a project",
+	Long:  `Deactivate a database until it is activated again.`,
+	Example: `  iai databases deactivate my-db
+  iai databases deactivate my-db -p my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		databaseName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+
+		serverMessage, err := deployClient.DeactivateDatabase(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			databaseName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
+var dbActivateCmd = &cobra.Command{
+	Use:   "activate <database_name>",
+	Short: "Activate a deactivated database in a project",
+	Long:  `Activate a deactivated database.`,
+	Example: `  iai databases activate my-db
+  iai databases activate my-db -p my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		databaseName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+
+		serverMessage, err := deployClient.ActivateDatabase(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			databaseName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 var dbLogsCmd = &cobra.Command{
 	Use:   "logs <database_name>",
 	Short: "Show logs for a database",
@@ -678,6 +750,18 @@ func init() {
 	dbDeleteCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 
+	// databases deactivate
+	dbDeactivateCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbDeactivateCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+
+	// databases activate
+	dbActivateCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbActivateCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+
 	// databases logs
 	dbLogsCmd.Flags().
 		StringVarP(&dbProject, "project", "p", "", "Project name")
@@ -758,6 +842,7 @@ func init() {
 	// Wire up command hierarchy
 	databasesCmd.AddCommand(
 		dbListCmd, dbDescribeCmd, dbCreateCmd, dbUpdateCmd, dbDeleteCmd,
+		dbDeactivateCmd, dbActivateCmd,
 		dbLogsCmd, dbLogFieldsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd, dbPortForwardCmd,
 	)
 	rootCmd.AddCommand(databasesCmd)
