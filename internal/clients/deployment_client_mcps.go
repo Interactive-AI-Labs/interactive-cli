@@ -188,6 +188,14 @@ func (c *DeploymentClient) DeleteMcp(
 	if err != nil {
 		return "", err
 	}
+	var result map[string]any
+	if jsonErr := json.Unmarshal(respBody, &result); jsonErr == nil {
+		msg, _ := result["message"].(string)
+		if warning, ok := result["warning"].(string); ok && warning != "" {
+			return fmt.Sprintf("%s\nWarning: %s", msg, warning), nil
+		}
+		return msg, nil
+	}
 	return ExtractServerMessage(respBody), nil
 }
 
