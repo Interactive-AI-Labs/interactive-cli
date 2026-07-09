@@ -23,6 +23,37 @@ type AgentInput struct {
 	ScheduleTimezone string
 
 	StackId string
+
+	// McpNames are attached as bare {mcp_id: <name>} references, appended to
+	// whatever mcps entries the file already declares. The operator resolves
+	// each reference from the mcp's own release at deploy time.
+	McpNames []string
+}
+
+// InjectMcpRefs appends a {mcp_id: <name>} reference for each name to the
+// agent config's mcps list (creating the key if absent). Existing entries —
+// whether bare refs or fully hand-written McpConfig blocks — are preserved.
+func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
+	names := make([]string, 0, len(mcpNames))
+	for _, n := range mcpNames {
+		if n = strings.TrimSpace(n); n != "" {
+			names = append(names, n)
+		}
+	}
+	if len(names) == 0 {
+		return agentConfig, nil
+	}
+
+	cfg, ok := agentConfig.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("agent config must be a YAML/JSON object to attach --mcp references")
+	}
+	mcps, _ := cfg["mcps"].([]any)
+	for _, name := range names {
+		mcps = append(mcps, map[string]any{"mcp_id": name})
+	}
+	cfg["mcps"] = mcps
+	return cfg, nil
 }
 
 func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
@@ -61,6 +92,10 @@ func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
 			err,
 		)
 	}
+	agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
+	if err != nil {
+		return clients.CreateAgentBody{}, err
+	}
 
 	reqBody := clients.CreateAgentBody{
 		Id:          in.Id,
@@ -96,6 +131,7 @@ var AgentUpdateFlags = struct {
 	ScheduleDowntime string
 	ScheduleTimezone string
 	StackId          string
+	Mcp              string
 }{
 	Id:               "id",
 	Version:          "version",
@@ -107,6 +143,7 @@ var AgentUpdateFlags = struct {
 	ScheduleDowntime: "schedule-downtime",
 	ScheduleTimezone: "schedule-timezone",
 	StackId:          "stack-id",
+	Mcp:              "mcp",
 }
 
 // BuildAgentUpdatePatch produces a partial-update body containing only the
@@ -141,6 +178,10 @@ func BuildAgentUpdatePatch(
 			return nil, fmt.Errorf(
 				"failed to parse YAML from %q: %w", in.FilePath, err,
 			)
+		}
+		agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
+		if err != nil {
+			return nil, err
 		}
 		if err := setJSON(patch, "agentConfig", agentConfig); err != nil {
 			return nil, err

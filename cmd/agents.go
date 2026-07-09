@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -26,6 +27,7 @@ var (
 	agentEndpoint   bool
 	agentEnvVars    []string
 	agentSecretRefs []string
+	agentMcpNames   []string
 
 	agentScheduleUptime   string
 	agentScheduleDowntime string
@@ -98,6 +100,7 @@ on their create/update commands).`,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
 			StackId:          agentStackId,
+			McpNames:         agentMcpNames,
 		})
 		if err != nil {
 			return err
@@ -158,7 +161,8 @@ remove those configurations entirely.`,
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
-  iai agents update chat-agent --clear-stack-id`,
+  iai agents update chat-agent --clear-stack-id
+  iai agents update chat-agent --mcp github --mcp stripe`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -169,20 +173,44 @@ remove those configurations entirely.`,
 			return err
 		}
 
-		patch, err := inputs.BuildAgentUpdatePatch(inputs.AgentInput{
-			Id:               agentId,
-			Version:          agentVersion,
-			FilePath:         agentFile,
-			Endpoint:         agentEndpoint,
-			EnvVars:          agentEnvVars,
-			SecretRefs:       agentSecretRefs,
-			ScheduleUptime:   agentScheduleUptime,
-			ScheduleDowntime: agentScheduleDowntime,
-			ScheduleTimezone: agentScheduleTimezone,
-			StackId:          agentStackId,
-		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
-		if err != nil {
-			return err
+		var patch clients.UpdatePatch
+		if cmd.Flags().Changed("mcp") && !cmd.Flags().Changed("file") {
+			// No --file: attach to the agent's CURRENT config (fetched via
+			// describe, which already returns mcps in authoring form —
+			// resolved entries masked back to {mcp_id: ...}) instead of
+			// requiring the whole config to be resupplied.
+			current, describeErr := deployClient.DescribeAgent(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
+			)
+			if describeErr != nil {
+				return describeErr
+			}
+			augmented, injectErr := inputs.InjectMcpRefs(current.AgentConfig, agentMcpNames)
+			if injectErr != nil {
+				return injectErr
+			}
+			raw, marshalErr := json.Marshal(augmented)
+			if marshalErr != nil {
+				return fmt.Errorf("failed to encode agent config: %w", marshalErr)
+			}
+			patch = clients.UpdatePatch{"agentConfig": json.RawMessage(raw)}
+		} else {
+			patch, err = inputs.BuildAgentUpdatePatch(inputs.AgentInput{
+				Id:               agentId,
+				Version:          agentVersion,
+				FilePath:         agentFile,
+				Endpoint:         agentEndpoint,
+				EnvVars:          agentEnvVars,
+				SecretRefs:       agentSecretRefs,
+				ScheduleUptime:   agentScheduleUptime,
+				ScheduleDowntime: agentScheduleDowntime,
+				ScheduleTimezone: agentScheduleTimezone,
+				StackId:          agentStackId,
+				McpNames:         agentMcpNames,
+			}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
+			if err != nil {
+				return err
+			}
 		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update; pass at least one flag")
@@ -792,6 +820,8 @@ func init() {
 		StringVar(&agentScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 	agentCreateCmd.Flags().
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
+	agentCreateCmd.Flags().
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated")
 	_ = agentCreateCmd.MarkFlagRequired("id")
 	_ = agentCreateCmd.MarkFlagRequired("version")
 	_ = agentCreateCmd.MarkFlagRequired("file")
@@ -829,6 +859,8 @@ func init() {
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
+	agentUpdateCmd.Flags().
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().
