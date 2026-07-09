@@ -164,39 +164,50 @@ func (c *DeploymentClient) PutMcp(
 	}
 	var result map[string]any
 	if jsonErr := json.Unmarshal(respBody, &result); jsonErr == nil {
-		msg, _ := result["message"].(string)
 		if restarted, ok := result["restarted"].([]any); ok && len(restarted) > 0 {
 			names := make([]string, len(restarted))
 			for i, r := range restarted {
 				names[i], _ = r.(string)
 			}
+			msg, _ := result["message"].(string)
 			return fmt.Sprintf("%s (restarted: %s)", msg, strings.Join(names, ", ")), nil
 		}
-		if warning, ok := result["warning"].(string); ok && warning != "" {
-			return fmt.Sprintf("%s\nWarning: %s", msg, warning), nil
-		}
-		return msg, nil
 	}
-	return ExtractServerMessage(respBody), nil
+	return decodeMcpMessage(respBody), nil
 }
 
-func (c *DeploymentClient) DeleteMcp(
-	ctx context.Context,
-	orgId, projectId, mcpName string,
-) (string, error) {
-	respBody, err := c.sendMcpRequest(ctx, http.MethodDelete, mcpsPath(orgId, projectId, mcpName), nil)
-	if err != nil {
-		return "", err
-	}
+// decodeMcpMessage extracts the {message, warning} pair the operator's mcp
+// endpoints return on success, appending the warning (e.g. dangling agent
+// refs) when present.
+func decodeMcpMessage(respBody []byte) string {
 	var result map[string]any
 	if jsonErr := json.Unmarshal(respBody, &result); jsonErr == nil {
 		msg, _ := result["message"].(string)
 		if warning, ok := result["warning"].(string); ok && warning != "" {
-			return fmt.Sprintf("%s\nWarning: %s", msg, warning), nil
+			return fmt.Sprintf("%s\nWarning: %s", msg, warning)
 		}
-		return msg, nil
+		return msg
 	}
-	return ExtractServerMessage(respBody), nil
+	return ExtractServerMessage(respBody)
+}
+
+// DeleteMcp uninstalls the mcp's release. If agents are still attached, the
+// operator rejects the delete with a 409 unless force is set, in which case
+// it proceeds and returns a warning naming the now-dangling agents.
+func (c *DeploymentClient) DeleteMcp(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+	force bool,
+) (string, error) {
+	path := mcpsPath(orgId, projectId, mcpName)
+	if force {
+		path += "?force=true"
+	}
+	respBody, err := c.sendMcpRequest(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return "", err
+	}
+	return decodeMcpMessage(respBody), nil
 }
 
 func (c *DeploymentClient) ListMcps(

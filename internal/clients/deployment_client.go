@@ -134,12 +134,15 @@ func (c *DeploymentClient) newRequest(
 	ctx context.Context,
 	method, path string,
 ) (*http.Request, error) {
-	u, err := url.Parse(c.hostname)
+	base, err := url.Parse(c.hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse deployment hostname: %w", err)
 	}
-	u.Path = path
-	return http.NewRequestWithContext(ctx, method, u.String(), nil)
+	rel, err := url.Parse(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse request path: %w", err)
+	}
+	return http.NewRequestWithContext(ctx, method, base.ResolveReference(rel).String(), nil)
 }
 
 type CreateServiceBody struct {

@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -96,6 +98,57 @@ so this reuses the same listing 'iai connectors catalog' uses.`,
 	},
 }
 
+// runMcpUpsert builds the request body from the mcp* flag vars and submits
+// it via submit (deployClient.CreateMcp or .PutMcp), sharing everything
+// create and update have in common bar the verb-specific log line and client
+// method.
+func runMcpUpsert(cmd *cobra.Command, mcpName, verb string, submit func(
+	deployClient *clients.DeploymentClient,
+	ctx context.Context, orgId, projectId, mcpName string, body clients.CreateMcpBody,
+) (string, error)) error {
+	out := cmd.OutOrStdout()
+
+	cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
+	if err != nil {
+		return err
+	}
+
+	reqBody, err := inputs.BuildMcpRequestBody(inputs.McpInput{
+		Type:            mcpType,
+		Port:            mcpPort,
+		ImageType:       mcpImageType,
+		ImageRepository: mcpImageRepository,
+		ImageName:       mcpImageName,
+		ImageTag:        mcpImageTag,
+		Memory:          mcpMemory,
+		CPU:             mcpCPU,
+		EnvVars:         mcpEnvVars,
+		EndpointURL:     mcpEndpointURL,
+		CatalogID:       mcpCatalogID,
+		Credential:      cred,
+	})
+	if err != nil {
+		return err
+	}
+
+	pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "Submitting mcp %s request...\n", verb)
+
+	serverMessage, err := submit(deployClient, cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, reqBody)
+	if err != nil {
+		return err
+	}
+	if serverMessage != "" {
+		fmt.Fprintln(out, serverMessage)
+	}
+	return nil
+}
+
 var mcpCreateCmd = &cobra.Command{
 	Use:   "create <mcp_name>",
 	Short: "Create an mcp in a project",
@@ -118,50 +171,13 @@ fails if the server is unreachable or rejects the credential.`,
   iai mcps create github --catalog-id github --credential-stdin < token.txt`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
-
-		cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
-		if err != nil {
-			return err
-		}
-
-		reqBody, err := inputs.BuildMcpRequestBody(inputs.McpInput{
-			Type:            mcpType,
-			Port:            mcpPort,
-			ImageType:       mcpImageType,
-			ImageRepository: mcpImageRepository,
-			ImageName:       mcpImageName,
-			ImageTag:        mcpImageTag,
-			Memory:          mcpMemory,
-			CPU:             mcpCPU,
-			EnvVars:         mcpEnvVars,
-			EndpointURL:     mcpEndpointURL,
-			CatalogID:       mcpCatalogID,
-			Credential:      cred,
+		return runMcpUpsert(cmd, mcpName, "creation", func(
+			deployClient *clients.DeploymentClient,
+			ctx context.Context, orgId, projectId, mcpName string, body clients.CreateMcpBody,
+		) (string, error) {
+			return deployClient.CreateMcp(ctx, orgId, projectId, mcpName, body)
 		})
-		if err != nil {
-			return err
-		}
-
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
-		if err != nil {
-			return err
-		}
-
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting mcp creation request...")
-
-		serverMessage, err := deployClient.CreateMcp(
-			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, reqBody,
-		)
-		if err != nil {
-			return err
-		}
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
-		}
-		return nil
 	},
 }
 
@@ -178,50 +194,13 @@ and every agent currently attached to it, so they pick up the new value.`,
   iai mcps update acme --endpoint-url https://mcp.acme.com/mcp --credential "$NEW_TOKEN"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
-
-		cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
-		if err != nil {
-			return err
-		}
-
-		reqBody, err := inputs.BuildMcpRequestBody(inputs.McpInput{
-			Type:            mcpType,
-			Port:            mcpPort,
-			ImageType:       mcpImageType,
-			ImageRepository: mcpImageRepository,
-			ImageName:       mcpImageName,
-			ImageTag:        mcpImageTag,
-			Memory:          mcpMemory,
-			CPU:             mcpCPU,
-			EnvVars:         mcpEnvVars,
-			EndpointURL:     mcpEndpointURL,
-			CatalogID:       mcpCatalogID,
-			Credential:      cred,
+		return runMcpUpsert(cmd, mcpName, "update", func(
+			deployClient *clients.DeploymentClient,
+			ctx context.Context, orgId, projectId, mcpName string, body clients.CreateMcpBody,
+		) (string, error) {
+			return deployClient.PutMcp(ctx, orgId, projectId, mcpName, body)
 		})
-		if err != nil {
-			return err
-		}
-
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
-		if err != nil {
-			return err
-		}
-
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting mcp update request...")
-
-		serverMessage, err := deployClient.PutMcp(
-			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, reqBody,
-		)
-		if err != nil {
-			return err
-		}
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
-		}
-		return nil
 	},
 }
 
@@ -384,8 +363,10 @@ var mcpDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "Delete an mcp",
 	Long: `Remove the mcp's release from the project namespace — its workload (if
-internal), credential Secret, and cached tools. Agents still attached to it will
-fail to resolve on their next deploy. Use -f to skip the confirmation prompt.`,
+internal), credential Secret, and cached tools. Rejected if agents are still
+attached, unless -f is also set, in which case the delete proceeds and those
+agents keep a dangling reference until it's removed. -f also skips the
+confirmation prompt.`,
 	Example: `  iai mcps delete my-tool
   iai mcps delete my-tool -f`,
 	Args: cobra.ExactArgs(1),
@@ -409,7 +390,7 @@ fail to resolve on their next deploy. Use -f to skip the confirmation prompt.`,
 			return err
 		}
 
-		serverMessage, err := deployClient.DeleteMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		serverMessage, err := deployClient.DeleteMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, mcpForce)
 		if err != nil {
 			return err
 		}

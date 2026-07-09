@@ -150,7 +150,6 @@ var AgentUpdateFlags = struct {
 	ScheduleDowntime string
 	ScheduleTimezone string
 	StackId          string
-	Mcp              string
 }{
 	Id:               "id",
 	Version:          "version",
@@ -162,7 +161,6 @@ var AgentUpdateFlags = struct {
 	ScheduleDowntime: "schedule-downtime",
 	ScheduleTimezone: "schedule-timezone",
 	StackId:          "stack-id",
-	Mcp:              "mcp",
 }
 
 // BuildAgentUpdatePatch produces a partial-update body containing only the
