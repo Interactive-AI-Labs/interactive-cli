@@ -281,14 +281,14 @@ func TestPrintLogFieldDiscoveryTruncationWarning(t *testing.T) {
 	}{
 		{
 			name: "prints plain warning text for non-terminal writer",
-			want: "Warning: field discovery may be incomplete because the server truncated the log response (max 5000 lines). Use --since to scan a narrower time range.\n",
+			want: "Warning: field discovery may be incomplete because the server truncated the log response (max 1000 lines). Use --since to scan a narrower time range.\n",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			PrintLogFieldDiscoveryTruncationWarning(&buf)
+			PrintLogFieldDiscoveryTruncationWarning(&buf, 1000)
 			if got := buf.String(); got != tt.want {
 				t.Errorf("warning mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
 			}
