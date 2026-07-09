@@ -241,3 +241,40 @@ func TestInjectMcpRefsNoExisting(t *testing.T) {
 		t.Errorf("mcps = %v", mcps)
 	}
 }
+
+func TestDetachMcpRefs(t *testing.T) {
+	cfg := map[string]any{
+		"mcps": []any{
+			map[string]any{"mcp_id": "github"},
+			map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"},
+			map[string]any{"mcp_id": "stripe"},
+		},
+	}
+
+	out, err := DetachMcpRefs(cfg, []string{"mslearn", "not-attached"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mcps := out.(map[string]any)["mcps"].([]any)
+	if len(mcps) != 2 {
+		t.Fatalf("expected 2 remaining entries, got %d: %v", len(mcps), mcps)
+	}
+	for _, e := range mcps {
+		m := e.(map[string]any)
+		if m["id"] == "mslearn" || m["mcp_id"] == "mslearn" {
+			t.Errorf("mslearn should have been detached, still present: %v", mcps)
+		}
+	}
+}
+
+func TestDetachMcpRefsNoNames(t *testing.T) {
+	cfg := map[string]any{"mcps": []any{map[string]any{"mcp_id": "github"}}}
+	out, err := DetachMcpRefs(cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mcps := out.(map[string]any)["mcps"].([]any)
+	if len(mcps) != 1 {
+		t.Errorf("expected no-op with empty names, got %v", mcps)
+	}
+}

@@ -366,7 +366,9 @@ var mcpDeleteCmd = &cobra.Command{
 internal), credential Secret, and cached tools. Rejected if agents are still
 attached, unless -f is also set, in which case the delete proceeds and those
 agents keep a dangling reference until it's removed. -f also skips the
-confirmation prompt.`,
+confirmation prompt.
+
+Detach it from any attached agent first with 'iai agents update <agent> --detach-mcp <mcp_name>'.`,
 	Example: `  iai mcps delete my-tool
   iai mcps delete my-tool -f`,
 	Args: cobra.ExactArgs(1),

@@ -28,6 +28,10 @@ type AgentInput struct {
 	// whatever mcps entries the file already declares. The operator resolves
 	// each reference from the mcp's own release at deploy time.
 	McpNames []string
+
+	// DetachMcpNames removes any existing mcps entry (bare ref or resolved)
+	// matching one of these names, applied before McpNames are (re-)injected.
+	DetachMcpNames []string
 }
 
 // InjectMcpRefs appends a {mcp_id: <name>} reference for each name to the
@@ -72,6 +76,44 @@ func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 		seen[name] = true
 	}
 	cfg["mcps"] = mcps
+	return cfg, nil
+}
+
+// DetachMcpRefs removes any mcps entry matching one of the given names — by
+// bare ref (mcp_id) or resolved entry (id) — from the agent config. Names not
+// present are ignored, so it's safe to call speculatively.
+func DetachMcpRefs(agentConfig any, mcpNames []string) (any, error) {
+	names := make(map[string]bool, len(mcpNames))
+	for _, n := range mcpNames {
+		if n = strings.TrimSpace(n); n != "" {
+			names[n] = true
+		}
+	}
+	if len(names) == 0 {
+		return agentConfig, nil
+	}
+
+	cfg, ok := agentConfig.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("agent config must be a YAML/JSON object to detach --detach-mcp references")
+	}
+	mcps, _ := cfg["mcps"].([]any)
+
+	kept := make([]any, 0, len(mcps))
+	for _, entry := range mcps {
+		m, ok := entry.(map[string]any)
+		if !ok {
+			kept = append(kept, entry)
+			continue
+		}
+		ref, _ := m["mcp_id"].(string)
+		id, _ := m["id"].(string)
+		if names[ref] || names[id] {
+			continue
+		}
+		kept = append(kept, entry)
+	}
+	cfg["mcps"] = kept
 	return cfg, nil
 }
 
@@ -195,6 +237,10 @@ func BuildAgentUpdatePatch(
 			return nil, fmt.Errorf(
 				"failed to parse YAML from %q: %w", in.FilePath, err,
 			)
+		}
+		agentConfig, err = DetachMcpRefs(agentConfig, in.DetachMcpNames)
+		if err != nil {
+			return nil, err
 		}
 		agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
 		if err != nil {
