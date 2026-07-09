@@ -6,7 +6,7 @@ Show logs for an agent
 
 Show logs for an agent in a project.
 
-Returns up to 5000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
