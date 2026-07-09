@@ -4,7 +4,8 @@ Deactivate a service in a project
 
 ### Synopsis
 
-Deactivate a service until it is activated again.
+Deactivate a service, stopping all running instances. The current configuration
+is preserved and will be restored when the service is activated again.
 
 ```
 iai services deactivate <service_name> [flags]

@@ -4,7 +4,7 @@ Activate a deactivated service in a project
 
 ### Synopsis
 
-Activate a deactivated service and restore its previous scale configuration.
+Activate a deactivated service, restoring it to its previous configuration.
 
 ```
 iai services activate <service_name> [flags]

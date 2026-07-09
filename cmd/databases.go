@@ -306,7 +306,8 @@ var dbDeleteCmd = &cobra.Command{
 var dbDeactivateCmd = &cobra.Command{
 	Use:   "deactivate <database_name>",
 	Short: "Deactivate a database in a project",
-	Long:  `Deactivate a database until it is activated again.`,
+	Long: `Deactivate a database by hibernating it. The database configuration is
+preserved and will be restored when the database is activated again.`,
 	Example: `  iai databases deactivate my-db
   iai databases deactivate my-db -p my-project`,
 	Args: cobra.ExactArgs(1),
@@ -320,6 +321,7 @@ var dbDeactivateCmd = &cobra.Command{
 		}
 
 		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting database deactivate request...")
 
 		serverMessage, err := deployClient.DeactivateDatabase(
 			cmd.Context(),
@@ -342,7 +344,7 @@ var dbDeactivateCmd = &cobra.Command{
 var dbActivateCmd = &cobra.Command{
 	Use:   "activate <database_name>",
 	Short: "Activate a deactivated database in a project",
-	Long:  `Activate a deactivated database.`,
+	Long:  `Activate a deactivated database, restoring it from hibernation.`,
 	Example: `  iai databases activate my-db
   iai databases activate my-db -p my-project`,
 	Args: cobra.ExactArgs(1),
@@ -356,6 +358,7 @@ var dbActivateCmd = &cobra.Command{
 		}
 
 		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting database activate request...")
 
 		serverMessage, err := deployClient.ActivateDatabase(
 			cmd.Context(),

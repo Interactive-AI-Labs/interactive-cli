@@ -4,7 +4,8 @@ Deactivate an agent in a project
 
 ### Synopsis
 
-Deactivate an agent until it is activated again.
+Deactivate an agent, stopping all running instances. The current configuration
+is preserved and will be restored when the agent is activated again.
 
 ```
 iai agents deactivate <agent_name> [flags]

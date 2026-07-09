@@ -440,7 +440,8 @@ var servRestartCmd = &cobra.Command{
 var servDeactivateCmd = &cobra.Command{
 	Use:   "deactivate <service_name>",
 	Short: "Deactivate a service in a project",
-	Long:  `Deactivate a service until it is activated again.`,
+	Long: `Deactivate a service, stopping all running instances. The current configuration
+is preserved and will be restored when the service is activated again.`,
 	Example: `  iai services deactivate my-svc
   iai services deactivate my-svc --project my-project`,
 	Args: cobra.ExactArgs(1),
@@ -459,6 +460,7 @@ var servDeactivateCmd = &cobra.Command{
 		}
 
 		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting service deactivate request...")
 
 		serverMessage, err := deployClient.DeactivateService(
 			cmd.Context(),
@@ -481,7 +483,7 @@ var servDeactivateCmd = &cobra.Command{
 var servActivateCmd = &cobra.Command{
 	Use:   "activate <service_name>",
 	Short: "Activate a deactivated service in a project",
-	Long:  `Activate a deactivated service and restore its previous scale configuration.`,
+	Long:  `Activate a deactivated service, restoring it to its previous configuration.`,
 	Example: `  iai services activate my-svc
   iai services activate my-svc --project my-project`,
 	Args: cobra.ExactArgs(1),
@@ -500,6 +502,7 @@ var servActivateCmd = &cobra.Command{
 		}
 
 		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting service activate request...")
 
 		serverMessage, err := deployClient.ActivateService(
 			cmd.Context(),
