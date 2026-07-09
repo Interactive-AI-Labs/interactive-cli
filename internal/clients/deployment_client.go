@@ -1171,6 +1171,9 @@ func (c *DeploymentClient) fetchLogs(
 	}
 
 	limit, _ := strconv.Atoi(resp.Header.Get("X-Log-Limit"))
+	if limit <= 0 {
+		limit = 1000 // server default when the X-Log-Limit header is absent (pre-header operator)
+	}
 	return &LogsResponse{
 		Body:      resp.Body,
 		Start:     resp.Header.Get("X-Log-Start"),
