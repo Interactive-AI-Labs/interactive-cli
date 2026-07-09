@@ -48,6 +48,7 @@ var (
 	dbLogsFields     []string
 	dbLogsAllFields  bool
 	dbLogsTimestamps bool
+	dbLogsLimit      int
 )
 
 var databasesCmd = &cobra.Command{
@@ -383,7 +384,8 @@ var dbLogsCmd = &cobra.Command{
 	Short: "Show logs for a database",
 	Long: `Show logs for a database in a project.
 
-Returns up to 1000 log entries in chronological order. Default lookback is 1h.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000. Default lookback is 1h.
 
 Structured (JSON) logs are automatically formatted: the level and message are
 extracted and displayed. PostgreSQL-style logs use a "record" envelope — the
@@ -430,6 +432,7 @@ JSON strings into nested JSON values.`,
 			Since:     dbLogsSince,
 			StartTime: dbLogsStartTime,
 			EndTime:   dbLogsEndTime,
+			Limit:     dbLogsLimit,
 		}
 
 		logsResp, err := deployClient.GetDatabaseLogs(
@@ -789,6 +792,8 @@ func init() {
 		BoolVar(&dbLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
 	dbLogsCmd.Flags().
 		BoolVar(&dbLogsTimestamps, "timestamps", false, "Include platform log timestamps")
+	dbLogsCmd.Flags().
+		IntVar(&dbLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

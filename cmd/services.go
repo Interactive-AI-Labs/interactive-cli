@@ -532,6 +532,7 @@ var (
 	servLogsFields     []string
 	servLogsAllFields  bool
 	servLogsTimestamps bool
+	servLogsLimit      int
 )
 
 var servLogsCmd = &cobra.Command{
@@ -539,7 +540,8 @@ var servLogsCmd = &cobra.Command{
 	Short: "Show logs for a service",
 	Long: `Show logs for all replicas of a service in a project.
 
-Returns up to 1000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
@@ -585,6 +587,7 @@ nested JSON values.`,
 			Since:     servLogsSince,
 			StartTime: servLogsStartTime,
 			EndTime:   servLogsEndTime,
+			Limit:     servLogsLimit,
 		}
 
 		logsResp, err := deployClient.GetServiceLogs(
@@ -1095,6 +1098,8 @@ func init() {
 		BoolVar(&servLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
 	servLogsCmd.Flags().
 		BoolVar(&servLogsTimestamps, "timestamps", false, "Include platform log timestamps")
+	servLogsCmd.Flags().
+		IntVar(&servLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

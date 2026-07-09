@@ -137,6 +137,7 @@ var (
 	replicaLogsFields     []string
 	replicaLogsAllFields  bool
 	replicaLogsTimestamps bool
+	replicaLogsLimit      int
 )
 
 var replicasLogsCmd = &cobra.Command{
@@ -144,7 +145,8 @@ var replicasLogsCmd = &cobra.Command{
 	Short: "Show logs for a specific replica",
 	Long: `Show logs for a specific replica in a project.
 
-Returns up to 1000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
@@ -225,6 +227,7 @@ nested JSON values.`,
 			Since:     replicaLogsSince,
 			StartTime: replicaLogsStartTime,
 			EndTime:   replicaLogsEndTime,
+			Limit:     replicaLogsLimit,
 		}
 
 		logsResp, err := deployClient.GetReplicaLogs(ctx, orgId, projectId, replicaName, opts)
@@ -359,6 +362,8 @@ func init() {
 		BoolVar(&replicaLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
 	replicasLogsCmd.Flags().
 		BoolVar(&replicaLogsTimestamps, "timestamps", false, "Include platform log timestamps")
+	replicasLogsCmd.Flags().
+		IntVar(&replicaLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
