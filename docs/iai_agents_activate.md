@@ -4,7 +4,7 @@ Activate a deactivated agent in a project
 
 ### Synopsis
 
-Activate a deactivated agent and restore its previous scale configuration.
+Activate a deactivated agent, restoring it to its previous configuration.
 
 ```
 iai agents activate <agent_name> [flags]

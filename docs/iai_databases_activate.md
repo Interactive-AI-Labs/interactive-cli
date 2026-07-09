@@ -4,7 +4,7 @@ Activate a deactivated database in a project
 
 ### Synopsis
 
-Activate a deactivated database.
+Activate a deactivated database, restoring it from hibernation.
 
 ```
 iai databases activate <database_name> [flags]

@@ -4,7 +4,8 @@ Deactivate a database in a project
 
 ### Synopsis
 
-Deactivate a database until it is activated again.
+Deactivate a database by hibernating it. The database configuration is
+preserved and will be restored when the database is activated again.
 
 ```
 iai databases deactivate <database_name> [flags]

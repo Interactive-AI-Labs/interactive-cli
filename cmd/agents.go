@@ -379,9 +379,10 @@ var agentRestartCmd = &cobra.Command{
 }
 
 var agentDeactivateCmd = &cobra.Command{
-	Use:     "deactivate <agent_name>",
-	Short:   "Deactivate an agent in a project",
-	Long:    `Deactivate an agent until it is activated again.`,
+	Use:   "deactivate <agent_name>",
+	Short: "Deactivate an agent in a project",
+	Long: `Deactivate an agent, stopping all running instances. The current configuration
+is preserved and will be restored when the agent is activated again.`,
 	Example: `  iai agents deactivate my-agent`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -399,6 +400,7 @@ var agentDeactivateCmd = &cobra.Command{
 		}
 
 		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting agent deactivate request...")
 
 		serverMessage, err := deployClient.DeactivateAgent(
 			cmd.Context(),
@@ -421,7 +423,7 @@ var agentDeactivateCmd = &cobra.Command{
 var agentActivateCmd = &cobra.Command{
 	Use:     "activate <agent_name>",
 	Short:   "Activate a deactivated agent in a project",
-	Long:    `Activate a deactivated agent and restore its previous scale configuration.`,
+	Long:    `Activate a deactivated agent, restoring it to its previous configuration.`,
 	Example: `  iai agents activate my-agent`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -439,6 +441,7 @@ var agentActivateCmd = &cobra.Command{
 		}
 
 		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting agent activate request...")
 
 		serverMessage, err := deployClient.ActivateAgent(
 			cmd.Context(),
