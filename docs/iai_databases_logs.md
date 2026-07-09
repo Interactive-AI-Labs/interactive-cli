@@ -6,7 +6,7 @@ Show logs for a database
 
 Show logs for a database in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.
+Returns up to 1000 log entries in chronological order. Default lookback is 1h.
 
 Structured (JSON) logs are automatically formatted: the level and message are
 extracted and displayed. PostgreSQL-style logs use a "record" envelope — the

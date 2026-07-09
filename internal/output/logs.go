@@ -412,7 +412,10 @@ func PrintNoLogsFound(errOut io.Writer, start, end string) {
 func printLogTruncationWarning(errOut io.Writer, limit int) {
 	printWarning(
 		errOut,
-		fmt.Sprintf("Warning: output was truncated by the server (max %d lines). Use --since or --start-time/--end-time to narrow the time range.", limit),
+		fmt.Sprintf(
+			"Warning: output was truncated by the server (max %d lines). Use --since or --start-time/--end-time to narrow the time range.",
+			limit,
+		),
 		true,
 	)
 }
@@ -421,7 +424,10 @@ func printLogTruncationWarning(errOut io.Writer, limit int) {
 func PrintLogFieldDiscoveryTruncationWarning(errOut io.Writer, limit int) {
 	printWarning(
 		errOut,
-		fmt.Sprintf("Warning: field discovery may be incomplete because the server truncated the log response (max %d lines). Use --since to scan a narrower time range.", limit),
+		fmt.Sprintf(
+			"Warning: field discovery may be incomplete because the server truncated the log response (max %d lines). Use --since to scan a narrower time range.",
+			limit,
+		),
 		false,
 	)
 }
