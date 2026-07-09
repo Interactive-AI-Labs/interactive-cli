@@ -1083,6 +1083,7 @@ type LogsOptions struct {
 	Since     string
 	StartTime string
 	EndTime   string
+	Limit     int // entries to request; 0 leaves it to the server default
 }
 
 // LogsResponse wraps the log body stream together with metadata returned by the server.
@@ -1149,6 +1150,9 @@ func (c *DeploymentClient) fetchLogs(
 	}
 	if opts.EndTime != "" {
 		q.Set("end-time", opts.EndTime)
+	}
+	if opts.Limit > 0 {
+		q.Set("limit", strconv.Itoa(opts.Limit))
 	}
 	req.URL.RawQuery = q.Encode()
 

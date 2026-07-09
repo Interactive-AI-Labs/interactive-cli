@@ -471,6 +471,7 @@ var (
 	agentLogsFields     []string
 	agentLogsAllFields  bool
 	agentLogsTimestamps bool
+	agentLogsLimit      int
 )
 
 var agentLogsCmd = &cobra.Command{
@@ -478,7 +479,8 @@ var agentLogsCmd = &cobra.Command{
 	Short: "Show logs for an agent",
 	Long: `Show logs for an agent in a project.
 
-Returns up to 1000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
@@ -520,6 +522,7 @@ nested JSON values.`,
 			Since:     agentLogsSince,
 			StartTime: agentLogsStartTime,
 			EndTime:   agentLogsEndTime,
+			Limit:     agentLogsLimit,
 		}
 
 		logsResp, err := deployClient.GetAgentLogs(ctx, pCtx.orgId, pCtx.projectId, agentName, opts)
@@ -983,6 +986,8 @@ func init() {
 		BoolVar(&agentLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
 	agentLogsCmd.Flags().
 		BoolVar(&agentLogsTimestamps, "timestamps", false, "Include platform log timestamps")
+	agentLogsCmd.Flags().
+		IntVar(&agentLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

@@ -6,7 +6,8 @@ Show logs for a database
 
 Show logs for a database in a project.
 
-Returns up to 1000 log entries in chronological order. Default lookback is 1h.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000. Default lookback is 1h.
 
 Structured (JSON) logs are automatically formatted: the level and message are
 extracted and displayed. PostgreSQL-style logs use a "record" envelope — the
@@ -38,6 +39,7 @@ iai databases logs <database_name> [flags]
       --fields strings        Additional fields to show after the message for structured (JSON) logs (e.g. --fields record); ignored for plain-text logs; use --raw for exact server JSON
   -f, --follow                Stream new log entries as they arrive; mutually exclusive with --end-time
   -h, --help                  help for logs
+      --limit int             Maximum number of log entries to return (1-5000); defaults to 1000
   -o, --organization string   Organization name
   -p, --project string        Project name
       --raw                   Output exact server JSON lines without formatting
