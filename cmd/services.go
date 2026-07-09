@@ -539,7 +539,7 @@ var servLogsCmd = &cobra.Command{
 	Short: "Show logs for a service",
 	Long: `Show logs for all replicas of a service in a project.
 
-Returns up to 5000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
@@ -604,6 +604,7 @@ nested JSON values.`,
 			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
+			Limit:     logsResp.Limit,
 		}
 		fmtOpts := output.LogFormatOptions{
 			Raw:        servLogsRaw || servLogsDecode,
@@ -666,7 +667,7 @@ Use the reported field names with 'iai services logs --fields' to include them i
 			return err
 		}
 		if logsResp.Truncated {
-			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr())
+			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr(), logsResp.Limit)
 		}
 		return nil
 	},

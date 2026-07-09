@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -1091,6 +1092,7 @@ type LogsResponse struct {
 	End       string // effective end timestamp (from X-Log-End header)
 	Truncated bool   // true when the server hit the entry limit (X-Log-Truncated header)
 	Empty     bool   // true when there are no logs (X-Log-Empty header)
+	Limit     int    // the entry limit the server applied (from X-Log-Limit header)
 }
 
 func (c *DeploymentClient) GetReplicaLogs(
@@ -1168,12 +1170,14 @@ func (c *DeploymentClient) fetchLogs(
 		return nil, fmt.Errorf("logs request failed with status %s", resp.Status)
 	}
 
+	limit, _ := strconv.Atoi(resp.Header.Get("X-Log-Limit"))
 	return &LogsResponse{
 		Body:      resp.Body,
 		Start:     resp.Header.Get("X-Log-Start"),
 		End:       resp.Header.Get("X-Log-End"),
 		Truncated: resp.Header.Get("X-Log-Truncated") == "true",
 		Empty:     resp.Header.Get("X-Log-Empty") == "true",
+		Limit:     limit,
 	}, nil
 }
 

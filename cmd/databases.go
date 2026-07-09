@@ -383,7 +383,7 @@ var dbLogsCmd = &cobra.Command{
 	Short: "Show logs for a database",
 	Long: `Show logs for a database in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.
+Returns up to 1000 log entries in chronological order. Default lookback is 1h.
 
 Structured (JSON) logs are automatically formatted: the level and message are
 extracted and displayed. PostgreSQL-style logs use a "record" envelope — the
@@ -449,6 +449,7 @@ JSON strings into nested JSON values.`,
 			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
+			Limit:     logsResp.Limit,
 		}
 		fmtOpts := output.LogFormatOptions{
 			Raw:        dbLogsRaw || dbLogsDecode,
@@ -512,7 +513,7 @@ PostgreSQL-specific details are often nested under the 'record' field, so seeing
 			return err
 		}
 		if logsResp.Truncated {
-			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr())
+			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr(), logsResp.Limit)
 		}
 		return nil
 	},
