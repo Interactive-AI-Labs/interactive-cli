@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -41,10 +43,12 @@ var (
 	serviceHealthcheckPath         string
 	serviceHealthcheckInitialDelay int
 
-	serviceListJSON     bool
-	serviceListYAML     bool
-	serviceDescribeJSON bool
-	serviceDescribeYAML bool
+	serviceListJSON      bool
+	serviceListYAML      bool
+	serviceListWatch     bool
+	serviceDescribeJSON  bool
+	serviceDescribeYAML  bool
+	serviceDescribeWatch bool
 )
 
 var (
@@ -271,19 +275,24 @@ var servListCmd = &cobra.Command{
 			return err
 		}
 
-		services, err := deployClient.ListServices(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			services, err := deployClient.ListServices(ctx, pCtx.orgId, pCtx.projectId, "")
+			if err != nil {
+				return err
+			}
+			if serviceListJSON {
+				return output.PrintStructuredJSON(w, services)
+			}
+			if serviceListYAML {
+				return output.PrintStructuredYAML(w, services)
+			}
+			return output.PrintServiceList(w, services)
 		}
 
-		if serviceListJSON {
-			return output.PrintStructuredJSON(out, services)
+		if serviceListWatch {
+			return runWatch(cmd, render)
 		}
-		if serviceListYAML {
-			return output.PrintStructuredYAML(out, services)
-		}
-
-		return output.PrintServiceList(out, services)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -333,24 +342,29 @@ Use --version to view a specific past version instead of the current state.`,
 			return output.PrintServiceRevision(out, rev)
 		}
 
-		service, err := deployClient.DescribeService(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			serviceName,
-		)
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			service, err := deployClient.DescribeService(
+				ctx,
+				pCtx.orgId,
+				pCtx.projectId,
+				serviceName,
+			)
+			if err != nil {
+				return err
+			}
+			if serviceDescribeJSON {
+				return output.PrintStructuredJSON(w, service)
+			}
+			if serviceDescribeYAML {
+				return output.PrintStructuredYAML(w, service)
+			}
+			return output.PrintServiceDescribe(w, service)
 		}
 
-		if serviceDescribeJSON {
-			return output.PrintStructuredJSON(out, service)
+		if serviceDescribeWatch {
+			return runWatch(cmd, render)
 		}
-		if serviceDescribeYAML {
-			return output.PrintStructuredYAML(out, service)
-		}
-
-		return output.PrintServiceDescribe(out, service)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -1036,7 +1050,11 @@ func init() {
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servListCmd.Flags().BoolVar(&serviceListJSON, "json", false, "Output raw API response as JSON")
 	servListCmd.Flags().BoolVar(&serviceListYAML, "yaml", false, "Output raw API response as YAML")
+	servListCmd.Flags().
+		BoolVarP(&serviceListWatch, "watch", "w", false, "Poll and refresh the list every 2s until interrupted")
 	servListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	servListCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	servListCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// Flags for "services describe"
 	servDescribeCmd.Flags().
@@ -1049,7 +1067,12 @@ func init() {
 		BoolVar(&serviceDescribeJSON, "json", false, "Output raw API response as JSON")
 	servDescribeCmd.Flags().
 		BoolVar(&serviceDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	servDescribeCmd.Flags().
+		BoolVarP(&serviceDescribeWatch, "watch", "w", false, "Poll and refresh every 2s until interrupted")
 	servDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	servDescribeCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	servDescribeCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
+	servDescribeCmd.MarkFlagsMutuallyExclusive("watch", "revision")
 
 	// Flags for "services delete"
 	servDCmd.Flags().

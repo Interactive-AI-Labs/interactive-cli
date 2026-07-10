@@ -99,7 +99,7 @@ const (
 )
 
 func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
-	isTTY := isTerminal(out)
+	isTTY := IsTerminal(out)
 	const jsonPrefix = "  "
 
 	w := NewDescribeWriter(out)
