@@ -180,14 +180,32 @@ references it.`,
 			return err
 		}
 
-		mcpFlagsChanged := cmd.Flags().Changed("mcp") || cmd.Flags().Changed("detach-mcp")
+		patch, err := inputs.BuildAgentUpdatePatch(inputs.AgentInput{
+			Id:               agentId,
+			Version:          agentVersion,
+			FilePath:         agentFile,
+			Endpoint:         agentEndpoint,
+			EnvVars:          agentEnvVars,
+			SecretRefs:       agentSecretRefs,
+			ScheduleUptime:   agentScheduleUptime,
+			ScheduleDowntime: agentScheduleDowntime,
+			ScheduleTimezone: agentScheduleTimezone,
+			StackId:          agentStackId,
+			McpNames:         agentMcpNames,
+			DetachMcpNames:   agentDetachMcpNames,
+		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
+		if err != nil {
+			return err
+		}
 
-		var patch clients.UpdatePatch
+		mcpFlagsChanged := cmd.Flags().Changed("mcp") || cmd.Flags().Changed("detach-mcp")
 		if mcpFlagsChanged && !cmd.Flags().Changed("file") {
 			// No --file: apply to the agent's CURRENT config (fetched via
 			// describe, which already returns mcps in authoring form —
 			// resolved entries masked back to {mcp_id: ...}) instead of
-			// requiring the whole config to be resupplied.
+			// requiring the whole config to be resupplied. Overlaid onto the
+			// patch above so other flags in the same invocation (--env,
+			// --secret, etc.) aren't silently dropped.
 			current, describeErr := deployClient.DescribeAgent(
 				cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
 			)
@@ -206,25 +224,7 @@ references it.`,
 			if marshalErr != nil {
 				return fmt.Errorf("failed to encode agent config: %w", marshalErr)
 			}
-			patch = clients.UpdatePatch{"agentConfig": json.RawMessage(raw)}
-		} else {
-			patch, err = inputs.BuildAgentUpdatePatch(inputs.AgentInput{
-				Id:               agentId,
-				Version:          agentVersion,
-				FilePath:         agentFile,
-				Endpoint:         agentEndpoint,
-				EnvVars:          agentEnvVars,
-				SecretRefs:       agentSecretRefs,
-				ScheduleUptime:   agentScheduleUptime,
-				ScheduleDowntime: agentScheduleDowntime,
-				ScheduleTimezone: agentScheduleTimezone,
-				StackId:          agentStackId,
-				McpNames:         agentMcpNames,
-				DetachMcpNames:   agentDetachMcpNames,
-			}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
-			if err != nil {
-				return err
-			}
+			patch["agentConfig"] = json.RawMessage(raw)
 		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update; pass at least one flag")
