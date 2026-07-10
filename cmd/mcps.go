@@ -567,14 +567,19 @@ func init() {
 
 	mcpListCmd.Flags().BoolVar(&mcpListJSON, "json", false, "Output raw API response as JSON")
 	mcpListCmd.Flags().BoolVar(&mcpListYAML, "yaml", false, "Output raw API response as YAML")
+	mcpListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	mcpGetCmd.Flags().BoolVar(&mcpGetJSON, "json", false, "Output raw API response as JSON")
 	mcpGetCmd.Flags().BoolVar(&mcpGetYAML, "yaml", false, "Output raw API response as YAML")
+	mcpGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogJSON, "json", false, "Output raw API response as JSON")
 	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogYAML, "yaml", false, "Output raw API response as YAML")
+	mcpCatalogCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyJSON, "json", false, "Output raw API response as JSON")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyYAML, "yaml", false, "Output raw API response as YAML")
+	mcpVerifyCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	mcpToolsGetCmd.Flags().BoolVar(&mcpToolsJSON, "json", false, "Output raw API response as JSON")
 	mcpToolsGetCmd.Flags().BoolVar(&mcpToolsYAML, "yaml", false, "Output raw API response as YAML")
+	mcpToolsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	mcpToolsCmd.AddCommand(mcpToolsGetCmd, mcpToolsRevisionsCmd, mcpToolsDiffCmd)
 
