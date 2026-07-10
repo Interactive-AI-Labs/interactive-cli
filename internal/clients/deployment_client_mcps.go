@@ -179,9 +179,11 @@ func (c *DeploymentClient) PutMcp(
 	var result map[string]any
 	if jsonErr := json.Unmarshal(respBody, &result); jsonErr == nil {
 		if restarted, ok := result["restarted"].([]any); ok && len(restarted) > 0 {
-			names := make([]string, len(restarted))
-			for i, r := range restarted {
-				names[i], _ = r.(string)
+			names := make([]string, 0, len(restarted))
+			for _, r := range restarted {
+				if name, ok := r.(string); ok {
+					names = append(names, name)
+				}
 			}
 			msg, _ := result["message"].(string)
 			return fmt.Sprintf("%s (restarted: %s)", msg, strings.Join(names, ", ")), nil
