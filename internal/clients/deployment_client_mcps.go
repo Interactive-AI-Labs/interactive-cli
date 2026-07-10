@@ -78,9 +78,12 @@ type listMcpsResponse struct {
 }
 
 type RunMcpToolResult struct {
-	Mcp    string         `json:"mcp"`
-	Tool   string         `json:"tool"`
-	Result map[string]any `json:"result"`
+	Mcp  string `json:"mcp"`
+	Tool string `json:"tool"`
+	// Result is kept as raw JSON: a tool may return an object, array, or
+	// scalar at the top level, and decoding into a typed map would silently
+	// fail on the non-object shapes.
+	Result json.RawMessage `json:"result,omitempty"`
 }
 
 type verifyMcpResponse struct {

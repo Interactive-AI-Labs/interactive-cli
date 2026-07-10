@@ -470,7 +470,7 @@ internal mcps need the in-cluster operator.`,
 		if err != nil {
 			return err
 		}
-		return output.PrintStructuredJSON(out, res.Result)
+		return output.PrintRawJSON(out, res.Result)
 	},
 }
 
