@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -15,12 +17,14 @@ import (
 )
 
 var (
-	dbProject      string
-	dbOrganization string
-	dbListJSON     bool
-	dbListYAML     bool
-	dbDescribeJSON bool
-	dbDescribeYAML bool
+	dbProject       string
+	dbOrganization  string
+	dbListJSON      bool
+	dbListYAML      bool
+	dbListWatch     bool
+	dbDescribeJSON  bool
+	dbDescribeYAML  bool
+	dbDescribeWatch bool
 
 	dbInstances       int
 	dbPostgresVersion string
@@ -83,19 +87,24 @@ var dbListCmd = &cobra.Command{
 			return err
 		}
 
-		databases, err := deployClient.ListDatabases(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			databases, err := deployClient.ListDatabases(ctx, pCtx.orgId, pCtx.projectId, "")
+			if err != nil {
+				return err
+			}
+			if dbListJSON {
+				return output.PrintStructuredJSON(w, databases)
+			}
+			if dbListYAML {
+				return output.PrintStructuredYAML(w, databases)
+			}
+			return output.PrintDatabaseList(w, databases)
 		}
 
-		if dbListJSON {
-			return output.PrintStructuredJSON(out, databases)
+		if dbListWatch {
+			return runWatch(cmd, render)
 		}
-		if dbListYAML {
-			return output.PrintStructuredYAML(out, databases)
-		}
-
-		return output.PrintDatabaseList(out, databases)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -117,24 +126,24 @@ status, and connection credentials.`,
 			return err
 		}
 
-		db, err := deployClient.DescribeDatabase(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			databaseName,
-		)
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			db, err := deployClient.DescribeDatabase(ctx, pCtx.orgId, pCtx.projectId, databaseName)
+			if err != nil {
+				return err
+			}
+			if dbDescribeJSON {
+				return output.PrintStructuredJSON(w, db)
+			}
+			if dbDescribeYAML {
+				return output.PrintStructuredYAML(w, db)
+			}
+			return output.PrintDatabaseDescribe(w, db)
 		}
 
-		if dbDescribeJSON {
-			return output.PrintStructuredJSON(out, db)
+		if dbDescribeWatch {
+			return runWatch(cmd, render)
 		}
-		if dbDescribeYAML {
-			return output.PrintStructuredYAML(out, db)
-		}
-
-		return output.PrintDatabaseDescribe(out, db)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -714,7 +723,11 @@ func init() {
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 	dbListCmd.Flags().BoolVar(&dbListJSON, "json", false, "Output raw API response as JSON")
 	dbListCmd.Flags().BoolVar(&dbListYAML, "yaml", false, "Output raw API response as YAML")
+	dbListCmd.Flags().
+		BoolVarP(&dbListWatch, "watch", "w", false, "Poll and refresh the list every 2s until interrupted")
 	dbListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	dbListCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	dbListCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// databases describe
 	dbDescribeCmd.Flags().
@@ -723,7 +736,11 @@ func init() {
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 	dbDescribeCmd.Flags().BoolVar(&dbDescribeJSON, "json", false, "Output raw API response as JSON")
 	dbDescribeCmd.Flags().BoolVar(&dbDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	dbDescribeCmd.Flags().
+		BoolVarP(&dbDescribeWatch, "watch", "w", false, "Poll and refresh every 2s until interrupted")
 	dbDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	dbDescribeCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	dbDescribeCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// databases create
 	dbCreateCmd.Flags().

@@ -20,7 +20,7 @@ func PrintPromptList(out io.Writer, prompts []clients.PromptInfo) error {
 		return nil
 	}
 
-	useColor := isTerminal(out)
+	useColor := IsTerminal(out)
 	headers := []string{"NAME", "LABELS", "TAGS", "UPDATED"}
 	rows := make([][]string, len(prompts))
 	for i, p := range prompts {
@@ -140,7 +140,7 @@ func PrintPromptDiff(
 	}
 
 	var opts []textdiff.Option
-	if isTerminal(out) {
+	if IsTerminal(out) {
 		opts = append(opts, textdiff.TerminalColors())
 		fmt.Fprintf(out, "%s--- version %s%s\n", colorRed, versionA, colorReset)
 		fmt.Fprintf(out, "%s+++ version %s%s\n", colorGreen, versionB, colorReset)

@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -38,10 +40,12 @@ var (
 
 	agentStackId string
 
-	agentListJSON     bool
-	agentListYAML     bool
-	agentDescribeJSON bool
-	agentDescribeYAML bool
+	agentListJSON      bool
+	agentListYAML      bool
+	agentListWatch     bool
+	agentDescribeJSON  bool
+	agentDescribeYAML  bool
+	agentDescribeWatch bool
 )
 
 var (
@@ -227,19 +231,24 @@ var agentListCmd = &cobra.Command{
 			return err
 		}
 
-		agents, err := deployClient.ListAgents(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			agents, err := deployClient.ListAgents(ctx, pCtx.orgId, pCtx.projectId, "")
+			if err != nil {
+				return err
+			}
+			if agentListJSON {
+				return output.PrintStructuredJSON(w, agents)
+			}
+			if agentListYAML {
+				return output.PrintStructuredYAML(w, agents)
+			}
+			return output.PrintAgentList(w, agents)
 		}
 
-		if agentListJSON {
-			return output.PrintStructuredJSON(out, agents)
+		if agentListWatch {
+			return runWatch(cmd, render)
 		}
-		if agentListYAML {
-			return output.PrintStructuredYAML(out, agents)
-		}
-
-		return output.PrintAgentList(out, agents)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -285,24 +294,24 @@ Use --version to view a specific past version instead of the current state.`,
 			return output.PrintAgentRevision(out, rev)
 		}
 
-		agent, err := deployClient.DescribeAgent(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			agentName,
-		)
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			agent, err := deployClient.DescribeAgent(ctx, pCtx.orgId, pCtx.projectId, agentName)
+			if err != nil {
+				return err
+			}
+			if agentDescribeJSON {
+				return output.PrintStructuredJSON(w, agent)
+			}
+			if agentDescribeYAML {
+				return output.PrintStructuredYAML(w, agent)
+			}
+			return output.PrintAgentDescribe(w, agent)
 		}
 
-		if agentDescribeJSON {
-			return output.PrintStructuredJSON(out, agent)
+		if agentDescribeWatch {
+			return runWatch(cmd, render)
 		}
-		if agentDescribeYAML {
-			return output.PrintStructuredYAML(out, agent)
-		}
-
-		return output.PrintAgentDescribe(out, agent)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -924,7 +933,11 @@ func init() {
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 	agentListCmd.Flags().BoolVar(&agentListJSON, "json", false, "Output raw API response as JSON")
 	agentListCmd.Flags().BoolVar(&agentListYAML, "yaml", false, "Output raw API response as YAML")
+	agentListCmd.Flags().
+		BoolVarP(&agentListWatch, "watch", "w", false, "Poll and refresh the list every 2s until interrupted")
 	agentListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	agentListCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	agentListCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// Flags for "agents describe"
 	agentDescribeCmd.Flags().
@@ -937,7 +950,12 @@ func init() {
 		BoolVar(&agentDescribeJSON, "json", false, "Output raw API response as JSON")
 	agentDescribeCmd.Flags().
 		BoolVar(&agentDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	agentDescribeCmd.Flags().
+		BoolVarP(&agentDescribeWatch, "watch", "w", false, "Poll and refresh every 2s until interrupted")
 	agentDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	agentDescribeCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	agentDescribeCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
+	agentDescribeCmd.MarkFlagsMutuallyExclusive("watch", "revision")
 
 	// Flags for "agents delete"
 	agentDeleteCmd.Flags().

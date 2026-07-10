@@ -92,7 +92,7 @@ func PrintLogStream(
 		fmt.Fprintf(os.Stderr, "Showing logs since %s\n\n", LocalTime(meta.Start))
 	}
 
-	useColor := isTerminal(out)
+	useColor := IsTerminal(out)
 	colorMap := make(map[string]string)
 	nextColor := 0
 	scanner := bufio.NewScanner(r)
@@ -437,14 +437,14 @@ func printWarning(out io.Writer, msg string, leadingNewline bool) {
 	if leadingNewline {
 		prefix = "\n"
 	}
-	if isTerminal(out) {
+	if IsTerminal(out) {
 		fmt.Fprintf(out, "%s\033[91m%s%s\n", prefix, msg, colorReset)
 		return
 	}
 	fmt.Fprintf(out, "%s%s\n", prefix, msg)
 }
 
-func isTerminal(w io.Writer) bool {
+func IsTerminal(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
 		return term.IsTerminal(int(f.Fd()))
 	}

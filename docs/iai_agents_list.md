@@ -25,6 +25,7 @@ iai agents list [flags]
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
+  -w, --watch                 Poll and refresh the list every 2s until interrupted
       --yaml                  Output raw API response as YAML
 ```
 
