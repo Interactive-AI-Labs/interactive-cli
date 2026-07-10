@@ -70,25 +70,21 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	if m.Verify.Error != "" {
 		fmt.Fprintf(w, "Verify Error:\t%s\n", m.Verify.Error)
 	}
-	if m.Verify.Version != "" {
-		fmt.Fprintf(w, "Verified Image Version:\t%s\n", m.Verify.Version)
-	}
-	if len(m.ToolVersions) > 0 {
-		fmt.Fprintf(w, "Cached Versions:\t%s\n", strings.Join(m.ToolVersions, ", "))
-	}
-	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools %s')\n", len(m.Tools), m.Name)
+	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools get %s', 'iai mcps tools revisions %s')\n", len(m.Tools), m.Name, m.Name)
 
 	return w.Flush()
 }
 
-// PrintMcpTools lists an mcp's cached tools with their descriptions.
-func PrintMcpTools(out io.Writer, m *clients.DescribeMcpResponse) error {
-	if len(m.Tools) == 0 {
+// PrintMcpTools lists an mcp's cached tools with their descriptions — the
+// current revision's (DescribeMcp) or a past one's (DescribeMcpToolRevision),
+// both of which carry a Tools []map[string]any field.
+func PrintMcpTools(out io.Writer, tools []map[string]any) error {
+	if len(tools) == 0 {
 		fmt.Fprintln(out, "No tools cached — run 'iai mcps verify' first.")
 		return nil
 	}
-	fmt.Fprintf(out, "Tools (%d):\n", len(m.Tools))
-	for _, t := range m.Tools {
+	fmt.Fprintf(out, "Tools (%d):\n", len(tools))
+	for _, t := range tools {
 		name, _ := t["name"].(string)
 		desc, _ := t["description"].(string)
 		if desc != "" {

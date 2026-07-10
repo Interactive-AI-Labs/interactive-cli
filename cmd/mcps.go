@@ -37,7 +37,6 @@ var (
 )
 
 var mcpForce bool
-var mcpGetVersion string
 
 var (
 	mcpArgsJSON string
@@ -57,7 +56,7 @@ var (
 	mcpToolsYAML   bool
 )
 
-var mcpToolsVersion string
+var mcpToolsRevision int
 
 var mcpsCmd = &cobra.Command{
 	Use:     "mcps",
@@ -245,13 +244,11 @@ var mcpListCmd = &cobra.Command{
 var mcpGetCmd = &cobra.Command{
 	Use:   "get <mcp_name>",
 	Short: "Show mcp details, verify state, and cached tools",
-	Long: `Show the mcp's record (type, endpoint, catalog origin), its last verify result,
-and the tools discovered there.
+	Long: `Show the mcp's record (type, endpoint, catalog origin) and its current-revision
+verify result — a tool count, not the tool list itself (see 'iai mcps tools get').
 
---version reads a past image version's cached tools instead of the latest verify
-(internal mcps only — the cache is keyed by image tag, see 'iai mcps update').`,
+For past revisions, see 'iai mcps tools revisions' and 'iai mcps tools diff'.`,
 	Example: `  iai mcps get my-tool
-  iai mcps get my-tool --version v1
   iai mcps get my-tool --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -263,9 +260,7 @@ and the tools discovered there.
 			return err
 		}
 
-		res, err := deployClient.DescribeMcp(
-			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, mcpGetVersion,
-		)
+		res, err := deployClient.DescribeMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
 		if err != nil {
 			return err
 		}
@@ -280,17 +275,26 @@ and the tools discovered there.
 	},
 }
 
+// mcpToolsCmd is a group, not a leaf: tools are versioned per helm release
+// revision (see mcps_verify.go's mcpToolsConfigMapName), so "current" (get),
+// "list past" (revisions), and "compare two" (diff) are three distinct
+// operations — mirroring 'iai agents revisions'/'iai agents diff'.
 var mcpToolsCmd = &cobra.Command{
-	Use:   "tools <mcp_name>",
-	Short: "List an mcp's cached tools with descriptions",
-	Long: `Show the full cached tool list — name and description — discovered by the last
-verify. 'iai mcps get' only shows a count; use this to see the tools themselves.
+	Use:   "tools",
+	Short: "Inspect an mcp's cached tools, current or past",
+}
 
---version reads a past image version's cached tools instead of the latest verify
-(internal mcps only — the cache is keyed by image tag, see 'iai mcps update').`,
-	Example: `  iai mcps tools my-tool
-  iai mcps tools my-tool --version v1
-  iai mcps tools my-tool --json`,
+var mcpToolsGetCmd = &cobra.Command{
+	Use:   "get <mcp_name>",
+	Short: "List an mcp's cached tools with descriptions",
+	Long: `Show the full cached tool list — name and description. 'iai mcps get' only
+shows a count; use this to see the tools themselves.
+
+--revision reads a past helm release revision's snapshot instead of the
+current one (see 'iai mcps tools revisions').`,
+	Example: `  iai mcps tools get my-tool
+  iai mcps tools get my-tool --revision 3
+  iai mcps tools get my-tool --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -301,20 +305,95 @@ verify. 'iai mcps get' only shows a count; use this to see the tools themselves.
 			return err
 		}
 
-		res, err := deployClient.DescribeMcp(
-			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, mcpToolsVersion,
-		)
+		if mcpToolsRevision > 0 {
+			rev, err := deployClient.DescribeMcpToolRevision(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, mcpToolsRevision,
+			)
+			if err != nil {
+				return err
+			}
+			if mcpToolsJSON {
+				return output.PrintStructuredJSON(out, rev)
+			}
+			if mcpToolsYAML {
+				return output.PrintStructuredYAML(out, rev)
+			}
+			return output.PrintMcpTools(out, rev.Tools)
+		}
+
+		res, err := deployClient.DescribeMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
 		if err != nil {
 			return err
 		}
-
 		if mcpToolsJSON {
 			return output.PrintStructuredJSON(out, res.Tools)
 		}
 		if mcpToolsYAML {
 			return output.PrintStructuredYAML(out, res.Tools)
 		}
-		return output.PrintMcpTools(out, res)
+		return output.PrintMcpTools(out, res.Tools)
+	},
+}
+
+var mcpToolsRevisionsCmd = &cobra.Command{
+	Use:     "revisions <mcp_name>",
+	Aliases: []string{"revs"},
+	Short:   "List an mcp's tool revisions",
+	Long:    `Show past tool snapshots, one per helm release revision, sorted newest-first.`,
+	Example: `  iai mcps tools revisions my-tool`,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		revisions, err := deployClient.ListMcpToolRevisions(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintAgentRevisions(out, revisions)
+	},
+}
+
+var mcpToolsDiffCmd = &cobra.Command{
+	Use:     "diff <mcp_name> <revision_a> <revision_b>",
+	Short:   "Compare tool sets between two revisions of an mcp",
+	Long:    `Show the differences in cached tools between two past revisions of an mcp.`,
+	Example: `  iai mcps tools diff my-tool 1 3`,
+	Args:    cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		revA, err := inputs.ParseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+		revB, err := inputs.ParseRevisionArg(args[2])
+		if err != nil {
+			return err
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		a, err := deployClient.DescribeMcpToolRevision(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, revA)
+		if err != nil {
+			return err
+		}
+		b, err := deployClient.DescribeMcpToolRevision(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, revB)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintRevisionDiff(out, args[1], a, args[2], b)
 	},
 }
 
@@ -478,8 +557,7 @@ func init() {
 		c.MarkFlagsMutuallyExclusive("external-url", "image-name")
 	}
 
-	mcpGetCmd.Flags().StringVar(&mcpGetVersion, "version", "", "Read this image tag's cached tools instead of the latest verify (internal only)")
-	mcpToolsCmd.Flags().StringVar(&mcpToolsVersion, "version", "", "Read this image tag's cached tools instead of the latest verify (internal only)")
+	mcpToolsGetCmd.Flags().IntVar(&mcpToolsRevision, "revision", 0, "Read this past helm release revision's cached tools instead of the current one")
 
 	mcpRunToolCmd.Flags().StringVar(&mcpArgsJSON, "args", "", "Tool arguments as an inline JSON object")
 	mcpRunToolCmd.Flags().StringVar(&mcpArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
@@ -495,8 +573,10 @@ func init() {
 	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogYAML, "yaml", false, "Output raw API response as YAML")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyJSON, "json", false, "Output raw API response as JSON")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyYAML, "yaml", false, "Output raw API response as YAML")
-	mcpToolsCmd.Flags().BoolVar(&mcpToolsJSON, "json", false, "Output raw API response as JSON")
-	mcpToolsCmd.Flags().BoolVar(&mcpToolsYAML, "yaml", false, "Output raw API response as YAML")
+	mcpToolsGetCmd.Flags().BoolVar(&mcpToolsJSON, "json", false, "Output raw API response as JSON")
+	mcpToolsGetCmd.Flags().BoolVar(&mcpToolsYAML, "yaml", false, "Output raw API response as YAML")
+
+	mcpToolsCmd.AddCommand(mcpToolsGetCmd, mcpToolsRevisionsCmd, mcpToolsDiffCmd)
 
 	rootCmd.AddCommand(mcpsCmd)
 	mcpsCmd.AddCommand(

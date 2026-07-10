@@ -35,7 +35,6 @@ type McpVerifyState struct {
 	Status     string `json:"status,omitempty"`
 	VerifiedAt string `json:"verifiedAt,omitempty"`
 	Error      string `json:"error,omitempty"`
-	Version    string `json:"version,omitempty"`
 	ToolCount  int    `json:"toolCount"`
 	Truncated  bool   `json:"truncated,omitempty"`
 }
@@ -62,7 +61,16 @@ type DescribeMcpResponse struct {
 	HasCredential bool             `json:"hasCredential"`
 	SecretRefs    []SecretRef      `json:"secretRefs,omitempty"`
 	Tools         []map[string]any `json:"tools"`
-	ToolVersions  []string         `json:"toolVersions,omitempty"`
+}
+
+// McpToolsRevisionResponse is one past revision's tools snapshot — see
+// ListMcpToolRevisions (list) and DescribeMcpToolRevision (this shape).
+type McpToolsRevisionResponse struct {
+	RevisionMeta
+	Error           string           `json:"error,omitempty"`
+	ProtocolVersion string           `json:"protocolVersion,omitempty"`
+	Tools           []map[string]any `json:"tools"`
+	Truncated       bool             `json:"truncated,omitempty"`
 }
 
 type listMcpsResponse struct {
@@ -228,22 +236,16 @@ func (c *DeploymentClient) ListMcps(
 	return result.Mcps, nil
 }
 
-// DescribeMcp returns the mcp's record, verify state, and cached tools.
-// version, when non-empty, reads that image-tag's tools snapshot instead of
-// the latest verify (internal mcps only — see `iai mcps get --version`).
+// DescribeMcp returns the mcp's record, verify state, and current-revision
+// cached tools. Past revisions: see ListMcpToolRevisions/DescribeMcpToolRevision.
 func (c *DeploymentClient) DescribeMcp(
 	ctx context.Context,
-	orgId, projectId, mcpName, version string,
+	orgId, projectId, mcpName string,
 ) (*DescribeMcpResponse, error) {
 	path := mcpsPath(orgId, projectId, mcpName)
 	reqHTTP, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	if version != "" {
-		q := reqHTTP.URL.Query()
-		q.Set("version", version)
-		reqHTTP.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := c.do(reqHTTP)
@@ -266,6 +268,53 @@ func (c *DeploymentClient) DescribeMcp(
 	var result DescribeMcpResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode mcp response: %w", err)
+	}
+	return &result, nil
+}
+
+// ListMcpToolRevisions lists past tool snapshots for an mcp, one per helm
+// release revision, sorted newest-first.
+func (c *DeploymentClient) ListMcpToolRevisions(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+) ([]RevisionMeta, error) {
+	path := mcpsPath(orgId, projectId, mcpName) + "/tools/revisions"
+	return c.fetchRevisions(ctx, path, "mcp tool revisions")
+}
+
+// DescribeMcpToolRevision returns the tool snapshot cached for one past
+// revision of an mcp.
+func (c *DeploymentClient) DescribeMcpToolRevision(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+	revision int,
+) (*McpToolsRevisionResponse, error) {
+	path := fmt.Sprintf("%s/tools/revisions/%d", mcpsPath(orgId, projectId, mcpName), revision)
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("mcp tool revision request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read error response: %w", err)
+		}
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("mcp tool revision request failed with status %s", resp.Status)
+	}
+
+	var result McpToolsRevisionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode mcp tool revision response: %w", err)
 	}
 	return &result, nil
 }
