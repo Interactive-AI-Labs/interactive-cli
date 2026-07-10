@@ -71,11 +71,6 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 
 	switch mcpType {
 	case "external":
-		if in.CatalogID != "" && in.EndpointURL != "" {
-			return clients.CreateMcpBody{}, fmt.Errorf(
-				"--catalog-id and --external-url are mutually exclusive",
-			)
-		}
 		if in.CatalogID == "" && in.EndpointURL == "" {
 			return clients.CreateMcpBody{}, fmt.Errorf(
 				"external mcps need --catalog-id or --external-url",
