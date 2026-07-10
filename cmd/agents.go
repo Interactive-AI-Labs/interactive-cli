@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -497,13 +494,6 @@ nested JSON values.`,
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		ctx := cmd.Context()
-		if agentLogsFollow {
-			var stop func()
-			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-			defer stop()
-		}
-
 		timeout := 1 * time.Minute
 		if agentLogsFollow {
 			timeout = 0
@@ -525,9 +515,12 @@ nested JSON values.`,
 			Limit:     agentLogsLimit,
 		}
 
+		ctx, stop := logFollowContext(cmd.Context(), agentLogsFollow)
+		defer stop()
+
 		logsResp, err := deployClient.GetAgentLogs(ctx, pCtx.orgId, pCtx.projectId, agentName, opts)
 		if err != nil {
-			return err
+			return finishLogStream(cmd.ErrOrStderr(), agentLogsFollow, ctx, err)
 		}
 		defer logsResp.Body.Close()
 
@@ -546,10 +539,7 @@ nested JSON values.`,
 			Timestamps: agentLogsTimestamps,
 		}
 		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
-		if agentLogsFollow && ctx.Err() != nil {
-			return nil
-		}
-		return err
+		return finishLogStream(cmd.ErrOrStderr(), agentLogsFollow, ctx, err)
 	},
 }
 

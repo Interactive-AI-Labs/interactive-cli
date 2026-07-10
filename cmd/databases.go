@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -407,13 +404,6 @@ JSON strings into nested JSON values.`,
 			return fmt.Errorf("database name is required")
 		}
 
-		ctx := cmd.Context()
-		if dbLogsFollow {
-			var stop func()
-			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-			defer stop()
-		}
-
 		timeout := 1 * time.Minute
 		if dbLogsFollow {
 			timeout = 0
@@ -435,6 +425,9 @@ JSON strings into nested JSON values.`,
 			Limit:     dbLogsLimit,
 		}
 
+		ctx, stop := logFollowContext(cmd.Context(), dbLogsFollow)
+		defer stop()
+
 		logsResp, err := deployClient.GetDatabaseLogs(
 			ctx,
 			pCtx.orgId,
@@ -443,7 +436,7 @@ JSON strings into nested JSON values.`,
 			opts,
 		)
 		if err != nil {
-			return err
+			return finishLogStream(cmd.ErrOrStderr(), dbLogsFollow, ctx, err)
 		}
 		defer logsResp.Body.Close()
 
@@ -463,10 +456,7 @@ JSON strings into nested JSON values.`,
 			Timestamps: dbLogsTimestamps,
 		}
 		err = output.PrintLogStream(out, logsResp.Body, true, meta, fmtOpts)
-		if dbLogsFollow && ctx.Err() != nil {
-			return nil
-		}
-		return err
+		return finishLogStream(cmd.ErrOrStderr(), dbLogsFollow, ctx, err)
 	},
 }
 

@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -167,13 +164,6 @@ nested JSON values.`,
 			return fmt.Errorf("replica name is required")
 		}
 
-		ctx := cmd.Context()
-		if replicaLogsFollow {
-			var stop func()
-			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-			defer stop()
-		}
-
 		cfg, err := files.LoadStackConfig(cfgFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load config file: %w", err)
@@ -230,9 +220,12 @@ nested JSON values.`,
 			Limit:     replicaLogsLimit,
 		}
 
+		ctx, stop := logFollowContext(cmd.Context(), replicaLogsFollow)
+		defer stop()
+
 		logsResp, err := deployClient.GetReplicaLogs(ctx, orgId, projectId, replicaName, opts)
 		if err != nil {
-			return err
+			return finishLogStream(cmd.ErrOrStderr(), replicaLogsFollow, ctx, err)
 		}
 		defer logsResp.Body.Close()
 
@@ -251,10 +244,7 @@ nested JSON values.`,
 			Timestamps: replicaLogsTimestamps,
 		}
 		err = output.PrintLogStream(out, logsResp.Body, false, meta, fmtOpts)
-		if replicaLogsFollow && ctx.Err() != nil {
-			return nil
-		}
-		return err
+		return finishLogStream(cmd.ErrOrStderr(), replicaLogsFollow, ctx, err)
 	},
 }
 
