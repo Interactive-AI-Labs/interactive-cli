@@ -63,7 +63,11 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	fmt.Fprintf(w, "Revision:\t%d\n", m.Revision)
 	fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(m.Updated))
 
-	fmt.Fprintf(w, "Verify Status:\t%s\n", orDash(m.Verify.Status))
+	verifyStatus := m.Verify.Status
+	if verifyStatus == "" {
+		verifyStatus = "-"
+	}
+	fmt.Fprintf(w, "Verify Status:\t%s\n", verifyStatus)
 	if m.Verify.VerifiedAt != "" {
 		fmt.Fprintf(w, "Last Verified:\t%s\n", LocalTime(m.Verify.VerifiedAt))
 	}
@@ -94,11 +98,4 @@ func PrintMcpTools(out io.Writer, tools []map[string]any) error {
 		}
 	}
 	return nil
-}
-
-func orDash(s string) string {
-	if s == "" {
-		return "-"
-	}
-	return s
 }
