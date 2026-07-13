@@ -108,7 +108,8 @@ var mcpCatalogCmd = &cobra.Command{
 func runMcpUpsert(cmd *cobra.Command, mcpName, verb string, submit func(
 	deployClient *clients.DeploymentClient,
 	ctx context.Context, orgId, projectId, mcpName string, body clients.CreateMcpBody,
-) (string, error)) error {
+) (string, error),
+) error {
 	out := cmd.OutOrStdout()
 
 	cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
@@ -143,7 +144,14 @@ func runMcpUpsert(cmd *cobra.Command, mcpName, verb string, submit func(
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "Submitting mcp %s request...\n", verb)
 
-	serverMessage, err := submit(deployClient, cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, reqBody)
+	serverMessage, err := submit(
+		deployClient,
+		cmd.Context(),
+		pCtx.orgId,
+		pCtx.projectId,
+		mcpName,
+		reqBody,
+	)
 	if err != nil {
 		return err
 	}
@@ -350,7 +358,12 @@ var mcpToolsRevisionsCmd = &cobra.Command{
 			return err
 		}
 
-		revisions, err := deployClient.ListMcpToolRevisions(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		revisions, err := deployClient.ListMcpToolRevisions(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+		)
 		if err != nil {
 			return err
 		}
@@ -383,11 +396,23 @@ var mcpToolsDiffCmd = &cobra.Command{
 			return err
 		}
 
-		a, err := deployClient.DescribeMcpToolRevision(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, revA)
+		a, err := deployClient.DescribeMcpToolRevision(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+			revA,
+		)
 		if err != nil {
 			return err
 		}
-		b, err := deployClient.DescribeMcpToolRevision(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, revB)
+		b, err := deployClient.DescribeMcpToolRevision(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+			revB,
+		)
 		if err != nil {
 			return err
 		}
@@ -519,7 +544,13 @@ Detach it from any attached agent first with 'iai agents update <agent> --detach
 			return err
 		}
 
-		serverMessage, err := deployClient.DeleteMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, mcpForce)
+		serverMessage, err := deployClient.DeleteMcp(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+			mcpForce,
+		)
 		if err != nil {
 			return err
 		}
@@ -539,30 +570,44 @@ func init() {
 		StringVarP(&mcpOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
-		c.Flags().StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)
+		c.Flags().
+			StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)
 		c.Flags().IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal)")
-		c.Flags().StringVar(&mcpImageType, "image-type", "internal", `Image source: "internal" or "external" (internal)`)
-		c.Flags().StringVar(&mcpImageRepository, "image-repository", "", "Image repository (required for external images)")
+		c.Flags().
+			StringVar(&mcpImageType, "image-type", "internal", `Image source: "internal" or "external" (internal)`)
+		c.Flags().
+			StringVar(&mcpImageRepository, "image-repository", "", "Image repository (required for external images)")
 		c.Flags().StringVar(&mcpImageName, "image-name", "", "Container image name (internal)")
 		c.Flags().StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal)")
-		c.Flags().StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal, default 512M)")
-		c.Flags().StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal, default 250m)")
-		c.Flags().StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)")
-		c.Flags().StringArrayVar(&mcpSecretRefs, "secret", nil, "Existing k8s Secret to load as env vars; can be repeated (internal)")
-		c.Flags().StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
-		c.Flags().StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
-		c.Flags().StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
-		c.Flags().BoolVar(&mcpCredentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
+		c.Flags().
+			StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal, default 512M)")
+		c.Flags().
+			StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal, default 250m)")
+		c.Flags().
+			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)")
+		c.Flags().
+			StringArrayVar(&mcpSecretRefs, "secret", nil, "Existing k8s Secret to load as env vars; can be repeated (internal)")
+		c.Flags().
+			StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
+		c.Flags().
+			StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
+		c.Flags().
+			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
+		c.Flags().
+			BoolVar(&mcpCredentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 		c.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
 		c.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
 		c.MarkFlagsMutuallyExclusive("external-url", "image-name")
 	}
 
-	mcpToolsGetCmd.Flags().IntVar(&mcpToolsRevision, "revision", 0, "Read this past helm release revision's cached tools instead of the current one")
+	mcpToolsGetCmd.Flags().
+		IntVar(&mcpToolsRevision, "revision", 0, "Read this past helm release revision's cached tools instead of the current one")
 
-	mcpRunToolCmd.Flags().StringVar(&mcpArgsJSON, "args", "", "Tool arguments as an inline JSON object")
-	mcpRunToolCmd.Flags().StringVar(&mcpArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
+	mcpRunToolCmd.Flags().
+		StringVar(&mcpArgsJSON, "args", "", "Tool arguments as an inline JSON object")
+	mcpRunToolCmd.Flags().
+		StringVar(&mcpArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
 	mcpRunToolCmd.MarkFlagsMutuallyExclusive("args", "args-file")
 
 	mcpDeleteCmd.Flags().BoolVarP(&mcpForce, "force", "f", false, "Skip confirmation prompt")

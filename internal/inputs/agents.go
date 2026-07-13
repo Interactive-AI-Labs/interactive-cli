@@ -95,7 +95,9 @@ func DetachMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 
 	cfg, ok := agentConfig.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("agent config must be a YAML/JSON object to detach --detach-mcp references")
+		return nil, fmt.Errorf(
+			"agent config must be a YAML/JSON object to detach --detach-mcp references",
+		)
 	}
 	mcps, _ := cfg["mcps"].([]any)
 

@@ -157,7 +157,12 @@ func (c *DeploymentClient) CreateMcp(
 	orgId, projectId, mcpName string,
 	body CreateMcpBody,
 ) (string, error) {
-	respBody, err := c.sendMcpRequest(ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName), body)
+	respBody, err := c.sendMcpRequest(
+		ctx,
+		http.MethodPost,
+		mcpsPath(orgId, projectId, mcpName),
+		body,
+	)
 	if err != nil {
 		return "", err
 	}
@@ -172,7 +177,12 @@ func (c *DeploymentClient) PutMcp(
 	orgId, projectId, mcpName string,
 	body CreateMcpBody,
 ) (string, error) {
-	respBody, err := c.sendMcpRequest(ctx, http.MethodPut, mcpsPath(orgId, projectId, mcpName), body)
+	respBody, err := c.sendMcpRequest(
+		ctx,
+		http.MethodPut,
+		mcpsPath(orgId, projectId, mcpName),
+		body,
+	)
 	if err != nil {
 		return "", err
 	}

@@ -199,7 +199,12 @@ func TestBuildAgentRequestBody(t *testing.T) {
 }
 
 func TestInjectMcpRefs(t *testing.T) {
-	mslearn := map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"}
+	mslearn := map[string]any{
+		"id":        "mslearn",
+		"hostname":  "https://learn.microsoft.com",
+		"port":      443,
+		"transport": "streamable-http",
+	}
 	tests := []struct {
 		name  string
 		cfg   map[string]any
@@ -243,7 +248,12 @@ func TestInjectMcpRefs(t *testing.T) {
 }
 
 func TestDetachMcpRefs(t *testing.T) {
-	mslearn := map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"}
+	mslearn := map[string]any{
+		"id":        "mslearn",
+		"hostname":  "https://learn.microsoft.com",
+		"port":      443,
+		"transport": "streamable-http",
+	}
 	tests := []struct {
 		name  string
 		cfg   map[string]any

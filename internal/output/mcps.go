@@ -87,7 +87,13 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	if m.Verify.Error != "" {
 		fmt.Fprintf(w, "Verify Error:\t%s\n", m.Verify.Error)
 	}
-	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools get %s', 'iai mcps tools revisions %s')\n", len(m.Tools), m.Name, m.Name)
+	fmt.Fprintf(
+		w,
+		"Tools:\t%d (see 'iai mcps tools get %s', 'iai mcps tools revisions %s')\n",
+		len(m.Tools),
+		m.Name,
+		m.Name,
+	)
 
 	return w.Flush()
 }
