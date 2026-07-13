@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -15,12 +17,14 @@ import (
 )
 
 var (
-	dbProject      string
-	dbOrganization string
-	dbListJSON     bool
-	dbListYAML     bool
-	dbDescribeJSON bool
-	dbDescribeYAML bool
+	dbProject       string
+	dbOrganization  string
+	dbListJSON      bool
+	dbListYAML      bool
+	dbListWatch     bool
+	dbDescribeJSON  bool
+	dbDescribeYAML  bool
+	dbDescribeWatch bool
 
 	dbInstances       int
 	dbPostgresVersion string
@@ -48,6 +52,7 @@ var (
 	dbLogsFields     []string
 	dbLogsAllFields  bool
 	dbLogsTimestamps bool
+	dbLogsLimit      int
 )
 
 var databasesCmd = &cobra.Command{
@@ -82,19 +87,24 @@ var dbListCmd = &cobra.Command{
 			return err
 		}
 
-		databases, err := deployClient.ListDatabases(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			databases, err := deployClient.ListDatabases(ctx, pCtx.orgId, pCtx.projectId, "")
+			if err != nil {
+				return err
+			}
+			if dbListJSON {
+				return output.PrintStructuredJSON(w, databases)
+			}
+			if dbListYAML {
+				return output.PrintStructuredYAML(w, databases)
+			}
+			return output.PrintDatabaseList(w, databases)
 		}
 
-		if dbListJSON {
-			return output.PrintStructuredJSON(out, databases)
+		if dbListWatch {
+			return runWatch(cmd, render)
 		}
-		if dbListYAML {
-			return output.PrintStructuredYAML(out, databases)
-		}
-
-		return output.PrintDatabaseList(out, databases)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -116,24 +126,24 @@ status, and connection credentials.`,
 			return err
 		}
 
-		db, err := deployClient.DescribeDatabase(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			databaseName,
-		)
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			db, err := deployClient.DescribeDatabase(ctx, pCtx.orgId, pCtx.projectId, databaseName)
+			if err != nil {
+				return err
+			}
+			if dbDescribeJSON {
+				return output.PrintStructuredJSON(w, db)
+			}
+			if dbDescribeYAML {
+				return output.PrintStructuredYAML(w, db)
+			}
+			return output.PrintDatabaseDescribe(w, db)
 		}
 
-		if dbDescribeJSON {
-			return output.PrintStructuredJSON(out, db)
+		if dbDescribeWatch {
+			return runWatch(cmd, render)
 		}
-		if dbDescribeYAML {
-			return output.PrintStructuredYAML(out, db)
-		}
-
-		return output.PrintDatabaseDescribe(out, db)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -303,12 +313,88 @@ var dbDeleteCmd = &cobra.Command{
 	},
 }
 
+var dbDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <database_name>",
+	Short: "Deactivate a database in a project",
+	Long: `Deactivate a database by hibernating it. The database configuration is
+preserved and will be restored when the database is activated again.`,
+	Example: `  iai databases deactivate my-db
+  iai databases deactivate my-db -p my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		databaseName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting database deactivate request...")
+
+		serverMessage, err := deployClient.DeactivateDatabase(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			databaseName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
+var dbActivateCmd = &cobra.Command{
+	Use:   "activate <database_name>",
+	Short: "Activate a deactivated database in a project",
+	Long:  `Activate a deactivated database, restoring it from hibernation.`,
+	Example: `  iai databases activate my-db
+  iai databases activate my-db -p my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		databaseName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting database activate request...")
+
+		serverMessage, err := deployClient.ActivateDatabase(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			databaseName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 var dbLogsCmd = &cobra.Command{
 	Use:   "logs <database_name>",
 	Short: "Show logs for a database",
 	Long: `Show logs for a database in a project.
 
-Returns up to 5000 log entries in chronological order. Default lookback is 1h.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000. Default lookback is 1h.
 
 Structured (JSON) logs are automatically formatted: the level and message are
 extracted and displayed. PostgreSQL-style logs use a "record" envelope — the
@@ -355,6 +441,7 @@ JSON strings into nested JSON values.`,
 			Since:     dbLogsSince,
 			StartTime: dbLogsStartTime,
 			EndTime:   dbLogsEndTime,
+			Limit:     dbLogsLimit,
 		}
 
 		logsResp, err := deployClient.GetDatabaseLogs(
@@ -374,6 +461,7 @@ JSON strings into nested JSON values.`,
 			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
+			Limit:     logsResp.Limit,
 		}
 		fmtOpts := output.LogFormatOptions{
 			Raw:        dbLogsRaw || dbLogsDecode,
@@ -437,7 +525,7 @@ PostgreSQL-specific details are often nested under the 'record' field, so seeing
 			return err
 		}
 		if logsResp.Truncated {
-			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr())
+			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr(), logsResp.Limit)
 		}
 		return nil
 	},
@@ -635,7 +723,11 @@ func init() {
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 	dbListCmd.Flags().BoolVar(&dbListJSON, "json", false, "Output raw API response as JSON")
 	dbListCmd.Flags().BoolVar(&dbListYAML, "yaml", false, "Output raw API response as YAML")
+	dbListCmd.Flags().
+		BoolVarP(&dbListWatch, "watch", "w", false, "Poll and refresh the list every 2s until interrupted")
 	dbListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	dbListCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	dbListCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// databases describe
 	dbDescribeCmd.Flags().
@@ -644,7 +736,11 @@ func init() {
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 	dbDescribeCmd.Flags().BoolVar(&dbDescribeJSON, "json", false, "Output raw API response as JSON")
 	dbDescribeCmd.Flags().BoolVar(&dbDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	dbDescribeCmd.Flags().
+		BoolVarP(&dbDescribeWatch, "watch", "w", false, "Poll and refresh every 2s until interrupted")
 	dbDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	dbDescribeCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	dbDescribeCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// databases create
 	dbCreateCmd.Flags().
@@ -678,6 +774,18 @@ func init() {
 	dbDeleteCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 
+	// databases deactivate
+	dbDeactivateCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbDeactivateCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+
+	// databases activate
+	dbActivateCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbActivateCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+
 	// databases logs
 	dbLogsCmd.Flags().
 		StringVarP(&dbProject, "project", "p", "", "Project name")
@@ -701,6 +809,8 @@ func init() {
 		BoolVar(&dbLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
 	dbLogsCmd.Flags().
 		BoolVar(&dbLogsTimestamps, "timestamps", false, "Include platform log timestamps")
+	dbLogsCmd.Flags().
+		IntVar(&dbLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
@@ -758,6 +868,7 @@ func init() {
 	// Wire up command hierarchy
 	databasesCmd.AddCommand(
 		dbListCmd, dbDescribeCmd, dbCreateCmd, dbUpdateCmd, dbDeleteCmd,
+		dbDeactivateCmd, dbActivateCmd,
 		dbLogsCmd, dbLogFieldsCmd, dbBackupsCmd, dbBackupCmd, dbRestoreCmd, dbPortForwardCmd,
 	)
 	rootCmd.AddCommand(databasesCmd)

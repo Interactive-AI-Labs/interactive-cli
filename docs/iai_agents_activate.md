@@ -1,32 +1,27 @@
-## iai agents list
+## iai agents activate
 
-List agents in a project
+Activate a deactivated agent in a project
 
 ### Synopsis
 
-List agents in a specific project.
+Activate a deactivated agent, restoring it to its previous configuration.
 
 ```
-iai agents list [flags]
+iai agents activate <agent_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai agents list
-  iai agents list -p my-project
-  iai agents list --json
+  iai agents activate my-agent
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
-      --json                  Output raw API response as JSON
+  -h, --help                  help for activate
   -o, --organization string   Organization name
   -p, --project string        Project name
-  -w, --watch                 Poll and refresh the list every 2s until interrupted
-      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

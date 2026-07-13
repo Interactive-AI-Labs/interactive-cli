@@ -1,32 +1,29 @@
-## iai databases describe
+## iai databases deactivate
 
-Describe a database in detail
+Deactivate a database in a project
 
 ### Synopsis
 
-Show detailed information about a database including configuration, runtime
-status, and connection credentials.
+Deactivate a database by hibernating it. The database configuration is
+preserved and will be restored when the database is activated again.
 
 ```
-iai databases describe <database_name> [flags]
+iai databases deactivate <database_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai databases describe my-db
-  iai databases describe my-db --json
+  iai databases deactivate my-db
+  iai databases deactivate my-db -p my-project
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for describe
-      --json                  Output raw API response as JSON
+  -h, --help                  help for deactivate
   -o, --organization string   Organization name
   -p, --project string        Project name
-  -w, --watch                 Poll and refresh every 2s until interrupted
-      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

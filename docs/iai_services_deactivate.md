@@ -1,32 +1,29 @@
-## iai agents list
+## iai services deactivate
 
-List agents in a project
+Deactivate a service in a project
 
 ### Synopsis
 
-List agents in a specific project.
+Deactivate a service, stopping all running instances. The current configuration
+is preserved and will be restored when the service is activated again.
 
 ```
-iai agents list [flags]
+iai services deactivate <service_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai agents list
-  iai agents list -p my-project
-  iai agents list --json
+  iai services deactivate my-svc
+  iai services deactivate my-svc --project my-project
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
-      --json                  Output raw API response as JSON
+  -h, --help                  help for deactivate
   -o, --organization string   Organization name
   -p, --project string        Project name
-  -w, --watch                 Poll and refresh the list every 2s until interrupted
-      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +37,5 @@ iai agents list [flags]
 
 ### SEE ALSO
 
-* [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
+* [iai services](iai_services.md)	 - Deploy and manage HTTP services
 

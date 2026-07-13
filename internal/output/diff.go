@@ -53,7 +53,7 @@ func PrintRevisionDiff(out io.Writer, nameA string, a any, nameB string, b any) 
 	}
 
 	var opts []textdiff.Option
-	if isTerminal(out) {
+	if IsTerminal(out) {
 		opts = append(opts, textdiff.TerminalColors())
 		fmt.Fprintf(out, "%s--- revision %s%s\n", colorRed, nameA, colorReset)
 		fmt.Fprintf(out, "%s+++ revision %s%s\n", colorGreen, nameB, colorReset)

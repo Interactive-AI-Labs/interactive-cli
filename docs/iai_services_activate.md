@@ -1,32 +1,28 @@
-## iai agents list
+## iai services activate
 
-List agents in a project
+Activate a deactivated service in a project
 
 ### Synopsis
 
-List agents in a specific project.
+Activate a deactivated service, restoring it to its previous configuration.
 
 ```
-iai agents list [flags]
+iai services activate <service_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai agents list
-  iai agents list -p my-project
-  iai agents list --json
+  iai services activate my-svc
+  iai services activate my-svc --project my-project
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
-      --json                  Output raw API response as JSON
+  -h, --help                  help for activate
   -o, --organization string   Organization name
   -p, --project string        Project name
-  -w, --watch                 Poll and refresh the list every 2s until interrupted
-      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +36,5 @@ iai agents list [flags]
 
 ### SEE ALSO
 
-* [iai agents](iai_agents.md)	 - Deploy AI agents with policies, routines, and tools
+* [iai services](iai_services.md)	 - Deploy and manage HTTP services
 

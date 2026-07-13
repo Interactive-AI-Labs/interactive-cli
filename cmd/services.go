@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -41,10 +43,12 @@ var (
 	serviceHealthcheckPath         string
 	serviceHealthcheckInitialDelay int
 
-	serviceListJSON     bool
-	serviceListYAML     bool
-	serviceDescribeJSON bool
-	serviceDescribeYAML bool
+	serviceListJSON      bool
+	serviceListYAML      bool
+	serviceListWatch     bool
+	serviceDescribeJSON  bool
+	serviceDescribeYAML  bool
+	serviceDescribeWatch bool
 )
 
 var (
@@ -271,19 +275,24 @@ var servListCmd = &cobra.Command{
 			return err
 		}
 
-		services, err := deployClient.ListServices(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			services, err := deployClient.ListServices(ctx, pCtx.orgId, pCtx.projectId, "")
+			if err != nil {
+				return err
+			}
+			if serviceListJSON {
+				return output.PrintStructuredJSON(w, services)
+			}
+			if serviceListYAML {
+				return output.PrintStructuredYAML(w, services)
+			}
+			return output.PrintServiceList(w, services)
 		}
 
-		if serviceListJSON {
-			return output.PrintStructuredJSON(out, services)
+		if serviceListWatch {
+			return runWatch(cmd, render)
 		}
-		if serviceListYAML {
-			return output.PrintStructuredYAML(out, services)
-		}
-
-		return output.PrintServiceList(out, services)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -333,24 +342,29 @@ Use --version to view a specific past version instead of the current state.`,
 			return output.PrintServiceRevision(out, rev)
 		}
 
-		service, err := deployClient.DescribeService(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			serviceName,
-		)
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			service, err := deployClient.DescribeService(
+				ctx,
+				pCtx.orgId,
+				pCtx.projectId,
+				serviceName,
+			)
+			if err != nil {
+				return err
+			}
+			if serviceDescribeJSON {
+				return output.PrintStructuredJSON(w, service)
+			}
+			if serviceDescribeYAML {
+				return output.PrintStructuredYAML(w, service)
+			}
+			return output.PrintServiceDescribe(w, service)
 		}
 
-		if serviceDescribeJSON {
-			return output.PrintStructuredJSON(out, service)
+		if serviceDescribeWatch {
+			return runWatch(cmd, render)
 		}
-		if serviceDescribeYAML {
-			return output.PrintStructuredYAML(out, service)
-		}
-
-		return output.PrintServiceDescribe(out, service)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -437,6 +451,91 @@ var servRestartCmd = &cobra.Command{
 	},
 }
 
+var servDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <service_name>",
+	Short: "Deactivate a service in a project",
+	Long: `Deactivate a service, stopping all running instances. The current configuration
+is preserved and will be restored when the service is activated again.`,
+	Example: `  iai services deactivate my-svc
+  iai services deactivate my-svc --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		serviceName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting service deactivate request...")
+
+		serverMessage, err := deployClient.DeactivateService(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			serviceName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
+var servActivateCmd = &cobra.Command{
+	Use:   "activate <service_name>",
+	Short: "Activate a deactivated service in a project",
+	Long:  `Activate a deactivated service, restoring it to its previous configuration.`,
+	Example: `  iai services activate my-svc
+  iai services activate my-svc --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		serviceName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			serviceOrganization,
+			serviceProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting service activate request...")
+
+		serverMessage, err := deployClient.ActivateService(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			serviceName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 var (
 	servLogsFollow     bool
 	servLogsSince      string
@@ -447,6 +546,7 @@ var (
 	servLogsFields     []string
 	servLogsAllFields  bool
 	servLogsTimestamps bool
+	servLogsLimit      int
 )
 
 var servLogsCmd = &cobra.Command{
@@ -454,7 +554,8 @@ var servLogsCmd = &cobra.Command{
 	Short: "Show logs for a service",
 	Long: `Show logs for all replicas of a service in a project.
 
-Returns up to 5000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
@@ -500,6 +601,7 @@ nested JSON values.`,
 			Since:     servLogsSince,
 			StartTime: servLogsStartTime,
 			EndTime:   servLogsEndTime,
+			Limit:     servLogsLimit,
 		}
 
 		logsResp, err := deployClient.GetServiceLogs(
@@ -519,6 +621,7 @@ nested JSON values.`,
 			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
+			Limit:     logsResp.Limit,
 		}
 		fmtOpts := output.LogFormatOptions{
 			Raw:        servLogsRaw || servLogsDecode,
@@ -581,7 +684,7 @@ Use the reported field names with 'iai services logs --fields' to include them i
 			return err
 		}
 		if logsResp.Truncated {
-			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr())
+			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr(), logsResp.Limit)
 		}
 		return nil
 	},
@@ -947,7 +1050,11 @@ func init() {
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servListCmd.Flags().BoolVar(&serviceListJSON, "json", false, "Output raw API response as JSON")
 	servListCmd.Flags().BoolVar(&serviceListYAML, "yaml", false, "Output raw API response as YAML")
+	servListCmd.Flags().
+		BoolVarP(&serviceListWatch, "watch", "w", false, "Poll and refresh the list every 2s until interrupted")
 	servListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	servListCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	servListCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// Flags for "services describe"
 	servDescribeCmd.Flags().
@@ -960,7 +1067,12 @@ func init() {
 		BoolVar(&serviceDescribeJSON, "json", false, "Output raw API response as JSON")
 	servDescribeCmd.Flags().
 		BoolVar(&serviceDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	servDescribeCmd.Flags().
+		BoolVarP(&serviceDescribeWatch, "watch", "w", false, "Poll and refresh every 2s until interrupted")
 	servDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	servDescribeCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	servDescribeCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
+	servDescribeCmd.MarkFlagsMutuallyExclusive("watch", "revision")
 
 	// Flags for "services delete"
 	servDCmd.Flags().
@@ -973,6 +1085,18 @@ func init() {
 		StringVarP(&serviceProject, "project", "p", "", "Project name to restart the service in")
 	servRestartCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
+
+	// Flags for "services deactivate"
+	servDeactivateCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servDeactivateCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "services activate"
+	servActivateCmd.Flags().
+		StringVarP(&serviceProject, "project", "p", "", "Project name")
+	servActivateCmd.Flags().
+		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name")
 
 	// Flags for "services logs"
 	servLogsCmd.Flags().
@@ -997,6 +1121,8 @@ func init() {
 		BoolVar(&servLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
 	servLogsCmd.Flags().
 		BoolVar(&servLogsTimestamps, "timestamps", false, "Include platform log timestamps")
+	servLogsCmd.Flags().
+		IntVar(&servLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
@@ -1047,6 +1173,8 @@ func init() {
 	servicesCmd.AddCommand(servDescribeCmd)
 	servicesCmd.AddCommand(servDCmd)
 	servicesCmd.AddCommand(servRestartCmd)
+	servicesCmd.AddCommand(servDeactivateCmd)
+	servicesCmd.AddCommand(servActivateCmd)
 	servicesCmd.AddCommand(servLogsCmd)
 	servicesCmd.AddCommand(servRevisionsCmd)
 	servicesCmd.AddCommand(servDiffCmd)

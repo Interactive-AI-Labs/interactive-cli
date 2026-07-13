@@ -6,7 +6,8 @@ Show logs for an agent
 
 Show logs for an agent in a project.
 
-Returns up to 5000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
@@ -37,6 +38,7 @@ iai agents logs <agent_name> [flags]
       --fields strings        Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON
   -f, --follow                Stream new log entries as they arrive; mutually exclusive with --end-time
   -h, --help                  help for logs
+      --limit int             Maximum number of log entries to return (1-5000); defaults to 1000
   -o, --organization string   Organization name
   -p, --project string        Project name
       --raw                   Output exact server JSON lines without formatting

@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -41,10 +43,12 @@ var (
 
 	agentStackId string
 
-	agentListJSON     bool
-	agentListYAML     bool
-	agentDescribeJSON bool
-	agentDescribeYAML bool
+	agentListJSON      bool
+	agentListYAML      bool
+	agentListWatch     bool
+	agentDescribeJSON  bool
+	agentDescribeYAML  bool
+	agentDescribeWatch bool
 )
 
 var (
@@ -269,19 +273,24 @@ var agentListCmd = &cobra.Command{
 			return err
 		}
 
-		agents, err := deployClient.ListAgents(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			agents, err := deployClient.ListAgents(ctx, pCtx.orgId, pCtx.projectId, "")
+			if err != nil {
+				return err
+			}
+			if agentListJSON {
+				return output.PrintStructuredJSON(w, agents)
+			}
+			if agentListYAML {
+				return output.PrintStructuredYAML(w, agents)
+			}
+			return output.PrintAgentList(w, agents)
 		}
 
-		if agentListJSON {
-			return output.PrintStructuredJSON(out, agents)
+		if agentListWatch {
+			return runWatch(cmd, render)
 		}
-		if agentListYAML {
-			return output.PrintStructuredYAML(out, agents)
-		}
-
-		return output.PrintAgentList(out, agents)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -327,24 +336,24 @@ Use --version to view a specific past version instead of the current state.`,
 			return output.PrintAgentRevision(out, rev)
 		}
 
-		agent, err := deployClient.DescribeAgent(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			agentName,
-		)
-		if err != nil {
-			return err
+		render := func(ctx context.Context, w io.Writer) error {
+			agent, err := deployClient.DescribeAgent(ctx, pCtx.orgId, pCtx.projectId, agentName)
+			if err != nil {
+				return err
+			}
+			if agentDescribeJSON {
+				return output.PrintStructuredJSON(w, agent)
+			}
+			if agentDescribeYAML {
+				return output.PrintStructuredYAML(w, agent)
+			}
+			return output.PrintAgentDescribe(w, agent)
 		}
 
-		if agentDescribeJSON {
-			return output.PrintStructuredJSON(out, agent)
+		if agentDescribeWatch {
+			return runWatch(cmd, render)
 		}
-		if agentDescribeYAML {
-			return output.PrintStructuredYAML(out, agent)
-		}
-
-		return output.PrintAgentDescribe(out, agent)
+		return render(cmd.Context(), out)
 	},
 }
 
@@ -420,6 +429,89 @@ var agentRestartCmd = &cobra.Command{
 	},
 }
 
+var agentDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <agent_name>",
+	Short: "Deactivate an agent in a project",
+	Long: `Deactivate an agent, stopping all running instances. The current configuration
+is preserved and will be restored when the agent is activated again.`,
+	Example: `  iai agents deactivate my-agent`,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		agentName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			agentOrganization,
+			agentProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting agent deactivate request...")
+
+		serverMessage, err := deployClient.DeactivateAgent(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
+var agentActivateCmd = &cobra.Command{
+	Use:     "activate <agent_name>",
+	Short:   "Activate a deactivated agent in a project",
+	Long:    `Activate a deactivated agent, restoring it to its previous configuration.`,
+	Example: `  iai agents activate my-agent`,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		agentName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			agentOrganization,
+			agentProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting agent activate request...")
+
+		serverMessage, err := deployClient.ActivateAgent(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			agentName,
+		)
+		if err != nil {
+			return err
+		}
+
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+
+		return nil
+	},
+}
+
 var (
 	agentLogsFollow     bool
 	agentLogsSince      string
@@ -430,6 +522,7 @@ var (
 	agentLogsFields     []string
 	agentLogsAllFields  bool
 	agentLogsTimestamps bool
+	agentLogsLimit      int
 )
 
 var agentLogsCmd = &cobra.Command{
@@ -437,7 +530,8 @@ var agentLogsCmd = &cobra.Command{
 	Short: "Show logs for an agent",
 	Long: `Show logs for an agent in a project.
 
-Returns up to 5000 log entries in chronological order.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000.
 
 Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
@@ -479,6 +573,7 @@ nested JSON values.`,
 			Since:     agentLogsSince,
 			StartTime: agentLogsStartTime,
 			EndTime:   agentLogsEndTime,
+			Limit:     agentLogsLimit,
 		}
 
 		logsResp, err := deployClient.GetAgentLogs(ctx, pCtx.orgId, pCtx.projectId, agentName, opts)
@@ -492,6 +587,7 @@ nested JSON values.`,
 			End:       logsResp.End,
 			Truncated: logsResp.Truncated,
 			Empty:     logsResp.Empty,
+			Limit:     logsResp.Limit,
 		}
 		fmtOpts := output.LogFormatOptions{
 			Raw:        agentLogsRaw || agentLogsDecode,
@@ -802,7 +898,7 @@ Use the reported field names with 'iai agents logs --fields' to include them in 
 			return err
 		}
 		if logsResp.Truncated {
-			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr())
+			output.PrintLogFieldDiscoveryTruncationWarning(cmd.ErrOrStderr(), logsResp.Limit)
 		}
 		return nil
 	},
@@ -885,7 +981,11 @@ func init() {
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 	agentListCmd.Flags().BoolVar(&agentListJSON, "json", false, "Output raw API response as JSON")
 	agentListCmd.Flags().BoolVar(&agentListYAML, "yaml", false, "Output raw API response as YAML")
+	agentListCmd.Flags().
+		BoolVarP(&agentListWatch, "watch", "w", false, "Poll and refresh the list every 2s until interrupted")
 	agentListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	agentListCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	agentListCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
 	// Flags for "agents describe"
 	agentDescribeCmd.Flags().
@@ -898,7 +998,12 @@ func init() {
 		BoolVar(&agentDescribeJSON, "json", false, "Output raw API response as JSON")
 	agentDescribeCmd.Flags().
 		BoolVar(&agentDescribeYAML, "yaml", false, "Output raw API response as YAML")
+	agentDescribeCmd.Flags().
+		BoolVarP(&agentDescribeWatch, "watch", "w", false, "Poll and refresh every 2s until interrupted")
 	agentDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	agentDescribeCmd.MarkFlagsMutuallyExclusive("watch", "json")
+	agentDescribeCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
+	agentDescribeCmd.MarkFlagsMutuallyExclusive("watch", "revision")
 
 	// Flags for "agents delete"
 	agentDeleteCmd.Flags().
@@ -910,6 +1015,18 @@ func init() {
 	agentRestartCmd.Flags().
 		StringVarP(&agentProject, "project", "p", "", "Project name")
 	agentRestartCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "agents deactivate"
+	agentDeactivateCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentDeactivateCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+
+	// Flags for "agents activate"
+	agentActivateCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentActivateCmd.Flags().
 		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 
 	// Flags for "agents logs"
@@ -935,6 +1052,8 @@ func init() {
 		BoolVar(&agentLogsAllFields, "all-fields", false, "Show all extra top-level fields from structured (JSON) logs after the message")
 	agentLogsCmd.Flags().
 		BoolVar(&agentLogsTimestamps, "timestamps", false, "Include platform log timestamps")
+	agentLogsCmd.Flags().
+		IntVar(&agentLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
@@ -995,6 +1114,8 @@ func init() {
 	agentsCmd.AddCommand(agentDescribeCmd)
 	agentsCmd.AddCommand(agentDeleteCmd)
 	agentsCmd.AddCommand(agentRestartCmd)
+	agentsCmd.AddCommand(agentDeactivateCmd)
+	agentsCmd.AddCommand(agentActivateCmd)
 	agentsCmd.AddCommand(agentLogsCmd)
 	agentsCmd.AddCommand(agentSchemaCmd)
 	agentsCmd.AddCommand(agentCatalogCmd)

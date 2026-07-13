@@ -1,32 +1,28 @@
-## iai agents list
+## iai agents deactivate
 
-List agents in a project
+Deactivate an agent in a project
 
 ### Synopsis
 
-List agents in a specific project.
+Deactivate an agent, stopping all running instances. The current configuration
+is preserved and will be restored when the agent is activated again.
 
 ```
-iai agents list [flags]
+iai agents deactivate <agent_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai agents list
-  iai agents list -p my-project
-  iai agents list --json
+  iai agents deactivate my-agent
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
-      --json                  Output raw API response as JSON
+  -h, --help                  help for deactivate
   -o, --organization string   Organization name
   -p, --project string        Project name
-  -w, --watch                 Poll and refresh the list every 2s until interrupted
-      --yaml                  Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands

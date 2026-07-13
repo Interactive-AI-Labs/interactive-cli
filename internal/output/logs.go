@@ -62,6 +62,7 @@ type LogsMeta struct {
 	End       string
 	Truncated bool
 	Empty     bool
+	Limit     int
 }
 
 type LogFormatOptions struct {
@@ -91,7 +92,7 @@ func PrintLogStream(
 		fmt.Fprintf(os.Stderr, "Showing logs since %s\n\n", LocalTime(meta.Start))
 	}
 
-	useColor := isTerminal(out)
+	useColor := IsTerminal(out)
 	colorMap := make(map[string]string)
 	nextColor := 0
 	scanner := bufio.NewScanner(r)
@@ -137,7 +138,7 @@ func PrintLogStream(
 	}
 
 	if meta.Truncated {
-		printLogTruncationWarning(os.Stderr)
+		printLogTruncationWarning(os.Stderr, meta.Limit)
 	}
 
 	return nil
@@ -408,19 +409,25 @@ func PrintNoLogsFound(errOut io.Writer, start, end string) {
 }
 
 // printLogTruncationWarning warns that the server truncated the log stream.
-func printLogTruncationWarning(errOut io.Writer) {
+func printLogTruncationWarning(errOut io.Writer, limit int) {
 	printWarning(
 		errOut,
-		"Warning: output was truncated by the server (max 5000 lines). Use --since or --start-time/--end-time to narrow the time range.",
+		fmt.Sprintf(
+			"Warning: output was truncated by the server (max %d lines). Use --since or --start-time/--end-time to narrow the time range.",
+			limit,
+		),
 		true,
 	)
 }
 
 // PrintLogFieldDiscoveryTruncationWarning warns that field discovery may be incomplete.
-func PrintLogFieldDiscoveryTruncationWarning(errOut io.Writer) {
+func PrintLogFieldDiscoveryTruncationWarning(errOut io.Writer, limit int) {
 	printWarning(
 		errOut,
-		"Warning: field discovery may be incomplete because the server truncated the log response (max 5000 lines). Use --since to scan a narrower time range.",
+		fmt.Sprintf(
+			"Warning: field discovery may be incomplete because the server truncated the log response (max %d lines). Use --since to scan a narrower time range.",
+			limit,
+		),
 		false,
 	)
 }
@@ -430,14 +437,14 @@ func printWarning(out io.Writer, msg string, leadingNewline bool) {
 	if leadingNewline {
 		prefix = "\n"
 	}
-	if isTerminal(out) {
+	if IsTerminal(out) {
 		fmt.Fprintf(out, "%s\033[91m%s%s\n", prefix, msg, colorReset)
 		return
 	}
 	fmt.Fprintf(out, "%s%s\n", prefix, msg)
 }
 
-func isTerminal(w io.Writer) bool {
+func IsTerminal(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
 		return term.IsTerminal(int(f.Fd()))
 	}

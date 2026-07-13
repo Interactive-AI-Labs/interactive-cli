@@ -184,7 +184,7 @@ func PrintStandaloneObservationList(
 }
 
 func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error {
-	isTTY := isTerminal(out)
+	isTTY := IsTerminal(out)
 	const jsonPrefix = "  "
 
 	w := NewDescribeWriter(out)

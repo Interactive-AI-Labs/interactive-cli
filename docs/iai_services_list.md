@@ -25,6 +25,7 @@ iai services list [flags]
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name to list services from
+  -w, --watch                 Poll and refresh the list every 2s until interrupted
       --yaml                  Output raw API response as YAML
 ```
 

@@ -28,6 +28,7 @@ iai services describe <service_name> [flags]
   -o, --organization string   Organization name
   -p, --project string        Project name
       --revision int          Show a specific past revision instead of the current state
+  -w, --watch                 Poll and refresh every 2s until interrupted
       --yaml                  Output raw API response as YAML
 ```
 
