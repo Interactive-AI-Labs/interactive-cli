@@ -1,23 +1,24 @@
-## iai connectors run-tool
+## iai mcps run-tool
 
-Run a tool on a connector
+Run a tool on an mcp
 
 ### Synopsis
 
-Call one of a connector's enabled tools and print the result it returns.
+Call one of an mcp's tools and print the result.
 
 Pass arguments as a JSON object with --args or --args-file (mutually exclusive);
-omit both to send an empty object.
+omit both to send an empty object. Works for external mcps from anywhere;
+internal mcps need the in-cluster operator.
 
 ```
-iai connectors run-tool <connector_id> <tool_name> [flags]
+iai mcps run-tool <mcp_name> <tool_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai connectors run-tool 3f9c1a2e-... search --args '{"query":"langfuse"}'
-  iai connectors run-tool 3f9c1a2e-... search --args-file ./args.json
+  iai mcps run-tool github search_repositories --args '{"query":"interactiveai"}'
+  iai mcps run-tool github search_repositories --args-file ./args.json
 ```
 
 ### Options
@@ -36,10 +37,10 @@ iai connectors run-tool <connector_id> <tool_name> [flags]
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
   -o, --organization string          Organization name that owns the project
-  -p, --project string               Project name that owns the connectors
+  -p, --project string               Project name that owns the mcps
 ```
 
 ### SEE ALSO
 
-* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
+* [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
 

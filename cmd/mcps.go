@@ -64,7 +64,7 @@ var mcpsCmd = &cobra.Command{
 	Short:   "Deploy and manage MCP servers",
 	GroupID: groupInfra,
 	Long: `Manage MCP servers for a project — in-cluster workloads ("internal"), custom
-external endpoints, or catalog-backed providers (external, endpoint + auth derived
+external URLs, or catalog-backed providers (external, external URL + auth derived
 from the curated catalog).
 
 Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.`,
@@ -74,8 +74,7 @@ var mcpCatalogCmd = &cobra.Command{
 	Use:   "catalog",
 	Short: "Browse the curated MCP catalog",
 	Long: `List curated MCP providers available to create an mcp from (see 'iai mcps create
---catalog-id'). Catalog browsing is platform data — not project-scoped infrastructure —
-so this reuses the same listing 'iai connectors catalog' uses.`,
+--catalog-id'), showing each entry's id, category, and supported auth methods.`,
 	Example: `  iai mcps catalog
   iai mcps catalog --json`,
 	Args: cobra.NoArgs,
@@ -158,13 +157,13 @@ var mcpCreateCmd = &cobra.Command{
 	Use:   "create <mcp_name>",
 	Short: "Create an mcp in a project",
 	Long: `Create an mcp — an in-cluster MCP server ("internal"), a custom external
-endpoint, or a catalog-backed provider.
+URL, or a catalog-backed provider.
 
 Internal: --image-name, --image-tag, --port (like 'iai services create'); --env
 and --secret load env vars from literal values or existing k8s Secrets.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL.
-External catalog: --catalog-id (see 'iai mcps catalog'); endpoint and auth are
+External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
 derived from the catalog entry — only entries resolvable to plain
 Authorization: Bearer (or no auth) can be used this way.
 
@@ -244,7 +243,7 @@ var mcpListCmd = &cobra.Command{
 var mcpGetCmd = &cobra.Command{
 	Use:   "get <mcp_name>",
 	Short: "Show mcp details, verify state, and cached tools",
-	Long: `Show the mcp's record (type, endpoint, catalog origin) and its current-revision
+	Long: `Show the mcp's record (type, external URL, catalog origin) and its current-revision
 verify result — a tool count, not the tool list itself (see 'iai mcps tools get').
 
 For past revisions, see 'iai mcps tools revisions' and 'iai mcps tools diff'.`,
@@ -474,7 +473,10 @@ internal mcps need the in-cluster operator.`,
 	},
 }
 
-func confirmMcpDeletion(in io.Reader, out io.Writer, name string) (bool, error) {
+// confirmDeletion stays here rather than in inputs: it is interactive I/O, not
+// input parsing. Tolerating io.EOF honors input without a trailing newline
+// (echo -n y); a bare EOF with no input declines rather than erroring.
+func confirmDeletion(in io.Reader, out io.Writer, name string) (bool, error) {
 	fmt.Fprintf(out, "This will delete mcp %q. Continue? [y/N] ", name)
 	answer, err := bufio.NewReader(in).ReadString('\n')
 	if err != nil && !errors.Is(err, io.EOF) {
@@ -502,7 +504,7 @@ Detach it from any attached agent first with 'iai agents update <agent> --detach
 		mcpName := strings.TrimSpace(args[0])
 
 		if !mcpForce {
-			confirmed, err := confirmMcpDeletion(cmd.InOrStdin(), out, mcpName)
+			confirmed, err := confirmDeletion(cmd.InOrStdin(), out, mcpName)
 			if err != nil {
 				return err
 			}

@@ -198,83 +198,90 @@ func TestBuildAgentRequestBody(t *testing.T) {
 	}
 }
 
-func TestInjectMcpRefsDedup(t *testing.T) {
-	cfg := map[string]any{
-		"mcps": []any{
-			map[string]any{"mcp_id": "github"},
-			map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"},
+func TestInjectMcpRefs(t *testing.T) {
+	mslearn := map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"}
+	tests := []struct {
+		name  string
+		cfg   map[string]any
+		names []string
+		want  []any
+	}{
+		{
+			name: "dedups against existing bare and resolved refs, and repeats in the same call",
+			cfg: map[string]any{
+				"mcps": []any{
+					map[string]any{"mcp_id": "github"},
+					mslearn,
+				},
+			},
+			names: []string{"github", "acme", "acme", "mslearn"},
+			want: []any{
+				map[string]any{"mcp_id": "github"},
+				mslearn,
+				map[string]any{"mcp_id": "acme"},
+			},
+		},
+		{
+			name:  "no existing mcps key",
+			cfg:   map[string]any{},
+			names: []string{"github"},
+			want:  []any{map[string]any{"mcp_id": "github"}},
 		},
 	}
-
-	out, err := InjectMcpRefs(cfg, []string{"github", "acme", "acme", "mslearn"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	mcps := out.(map[string]any)["mcps"].([]any)
-
-	if len(mcps) != 3 {
-		t.Fatalf("expected 3 entries (2 existing + 1 new 'acme'), got %d: %v", len(mcps), mcps)
-	}
-	counts := map[string]int{}
-	for _, e := range mcps {
-		m := e.(map[string]any)
-		if ref, ok := m["mcp_id"].(string); ok {
-			counts[ref]++
-		}
-	}
-	if counts["github"] != 1 {
-		t.Errorf("github should appear exactly once (was already a bare ref); got %d", counts["github"])
-	}
-	if counts["acme"] != 1 {
-		t.Errorf("acme should appear exactly once (repeated in the same call); got %d", counts["acme"])
-	}
-}
-
-func TestInjectMcpRefsNoExisting(t *testing.T) {
-	cfg := map[string]any{}
-	out, err := InjectMcpRefs(cfg, []string{"github"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	mcps := out.(map[string]any)["mcps"].([]any)
-	if len(mcps) != 1 || mcps[0].(map[string]any)["mcp_id"] != "github" {
-		t.Errorf("mcps = %v", mcps)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := InjectMcpRefs(tt.cfg, tt.names)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mcps := out.(map[string]any)["mcps"].([]any)
+			if !reflect.DeepEqual(mcps, tt.want) {
+				t.Errorf("mcps = %v, want %v", mcps, tt.want)
+			}
+		})
 	}
 }
 
 func TestDetachMcpRefs(t *testing.T) {
-	cfg := map[string]any{
-		"mcps": []any{
-			map[string]any{"mcp_id": "github"},
-			map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"},
-			map[string]any{"mcp_id": "stripe"},
+	mslearn := map[string]any{"id": "mslearn", "hostname": "https://learn.microsoft.com", "port": 443, "transport": "streamable-http"}
+	tests := []struct {
+		name  string
+		cfg   map[string]any
+		names []string
+		want  []any
+	}{
+		{
+			name: "removes matching bare and resolved refs, ignores unmatched names",
+			cfg: map[string]any{
+				"mcps": []any{
+					map[string]any{"mcp_id": "github"},
+					mslearn,
+					map[string]any{"mcp_id": "stripe"},
+				},
+			},
+			names: []string{"mslearn", "not-attached"},
+			want: []any{
+				map[string]any{"mcp_id": "github"},
+				map[string]any{"mcp_id": "stripe"},
+			},
+		},
+		{
+			name:  "no names is a no-op",
+			cfg:   map[string]any{"mcps": []any{map[string]any{"mcp_id": "github"}}},
+			names: nil,
+			want:  []any{map[string]any{"mcp_id": "github"}},
 		},
 	}
-
-	out, err := DetachMcpRefs(cfg, []string{"mslearn", "not-attached"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	mcps := out.(map[string]any)["mcps"].([]any)
-	if len(mcps) != 2 {
-		t.Fatalf("expected 2 remaining entries, got %d: %v", len(mcps), mcps)
-	}
-	for _, e := range mcps {
-		m := e.(map[string]any)
-		if m["id"] == "mslearn" || m["mcp_id"] == "mslearn" {
-			t.Errorf("mslearn should have been detached, still present: %v", mcps)
-		}
-	}
-}
-
-func TestDetachMcpRefsNoNames(t *testing.T) {
-	cfg := map[string]any{"mcps": []any{map[string]any{"mcp_id": "github"}}}
-	out, err := DetachMcpRefs(cfg, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mcps := out.(map[string]any)["mcps"].([]any)
-	if len(mcps) != 1 {
-		t.Errorf("expected no-op with empty names, got %v", mcps)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := DetachMcpRefs(tt.cfg, tt.names)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mcps := out.(map[string]any)["mcps"].([]any)
+			if !reflect.DeepEqual(mcps, tt.want) {
+				t.Errorf("mcps = %v, want %v", mcps, tt.want)
+			}
+		})
 	}
 }

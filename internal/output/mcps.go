@@ -36,11 +36,24 @@ func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
 	return PrintTable(out, headers, rows)
 }
 
+func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
+	if len(entries) == 0 {
+		fmt.Fprintln(out, "No catalog entries found.")
+		return nil
+	}
+	headers := []string{"ID", "NAME", "CATEGORY", "TYPE", "AUTH"}
+	rows := make([][]string, len(entries))
+	for i, e := range entries {
+		rows[i] = []string{e.ID, e.Name, e.Category, e.Type, TruncateList(e.AuthMethods, 3)}
+	}
+	return PrintTable(out, headers, rows)
+}
+
 func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", m.Name)
 	fmt.Fprintf(w, "Type:\t%s\n", m.Type)
-	fmt.Fprintf(w, "Endpoint:\t%s\n", m.EndpointURL)
+	fmt.Fprintf(w, "External URL:\t%s\n", m.EndpointURL)
 	fmt.Fprintf(w, "Transport:\t%s\n", m.Transport)
 	fmt.Fprintf(w, "Slug:\t%s\n", m.Slug)
 	if m.CatalogID != "" {

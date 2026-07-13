@@ -90,7 +90,6 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai collections](iai_collections.md)	 - Knowledge bases (searchable tables of chunks) inside a pgvector database
 * [iai comments](iai_comments.md)	 - Annotate traces, observations, and sessions
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
-* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
 * [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
 * [iai dataset-items](iai_dataset-items.md)	 - Manage items in evaluation datasets
 * [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
@@ -100,6 +99,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai login](iai_login.md)	 - Authenticate with InteractiveAI
 * [iai logout](iai_logout.md)	 - Clear local session
 * [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines
+* [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
 * [iai metrics](iai_metrics.md)	 - Query aggregated observability metrics
 * [iai observations](iai_observations.md)	 - Inspect spans within traces
 * [iai organizations](iai_organizations.md)	 - Switch or list organizations

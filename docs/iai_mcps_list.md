@@ -1,27 +1,22 @@
-## iai connectors verify
+## iai mcps list
 
-Re-verify a connector and refresh its tools
-
-### Synopsis
-
-Re-dial the MCP server for a connector (initialize + list tools) and refresh the
-cached tool list. Reports the status and, on failure, the error class and message.
+List mcps in a project
 
 ```
-iai connectors verify <connector_id> [flags]
+iai mcps list [flags]
 ```
 
 ### Examples
 
 ```
-  iai connectors verify 3f9c1a2e-...
-  iai connectors verify 3f9c1a2e-... --json
+  iai mcps list
+  iai mcps list --json
 ```
 
 ### Options
 
 ```
-  -h, --help   help for verify
+  -h, --help   help for list
       --json   Output raw API response as JSON
       --yaml   Output raw API response as YAML
 ```
@@ -34,10 +29,10 @@ iai connectors verify <connector_id> [flags]
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
   -o, --organization string          Organization name that owns the project
-  -p, --project string               Project name that owns the connectors
+  -p, --project string               Project name that owns the mcps
 ```
 
 ### SEE ALSO
 
-* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
+* [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
 

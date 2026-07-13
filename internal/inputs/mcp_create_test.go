@@ -1,40 +1,68 @@
 package inputs
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestBuildMcpRequestBodyInternalSecrets(t *testing.T) {
-	body, err := BuildMcpRequestBody(McpInput{
-		Port:       8080,
-		ImageName:  "my-mcp",
-		ImageTag:   "v1",
-		SecretRefs: []string{"db-creds", "api-key"},
-	})
-	if err != nil {
-		t.Fatal(err)
+func TestBuildMcpRequestBody(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      McpInput
+		wantErr    bool
+		errContain string
+		wantSecret []string
+	}{
+		{
+			name: "internal with secrets",
+			input: McpInput{
+				Port:       8080,
+				ImageName:  "my-mcp",
+				ImageTag:   "v1",
+				SecretRefs: []string{"db-creds", "api-key"},
+			},
+			wantSecret: []string{"db-creds", "api-key"},
+		},
+		{
+			name: "internal rejects empty secret name",
+			input: McpInput{
+				Port:       8080,
+				ImageName:  "my-mcp",
+				ImageTag:   "v1",
+				SecretRefs: []string{"  "},
+			},
+			wantErr: true,
+		},
+		{
+			name: "external rejects secret instead of silently dropping it",
+			input: McpInput{
+				EndpointURL: "https://mcp.acme.com/mcp",
+				SecretRefs:  []string{"some-secret"},
+			},
+			wantErr:    true,
+			errContain: "--env and --secret don't apply",
+		},
 	}
-	if len(body.SecretRefs) != 2 || body.SecretRefs[0].SecretName != "db-creds" || body.SecretRefs[1].SecretName != "api-key" {
-		t.Errorf("SecretRefs = %+v", body.SecretRefs)
-	}
-}
-
-func TestBuildMcpRequestBodyInternalSecretsRejectsEmptyName(t *testing.T) {
-	_, err := BuildMcpRequestBody(McpInput{
-		Port:       8080,
-		ImageName:  "my-mcp",
-		ImageTag:   "v1",
-		SecretRefs: []string{"  "},
-	})
-	if err == nil {
-		t.Fatal("empty secret name must be rejected")
-	}
-}
-
-func TestBuildMcpRequestBodyExternalRejectsSecret(t *testing.T) {
-	_, err := BuildMcpRequestBody(McpInput{
-		EndpointURL: "https://mcp.acme.com/mcp",
-		SecretRefs:  []string{"some-secret"},
-	})
-	if err == nil {
-		t.Fatal("--secret with an external mcp must be rejected, not silently dropped")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := BuildMcpRequestBody(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				if tt.errContain != "" && !strings.Contains(err.Error(), tt.errContain) {
+					t.Fatalf("err = %q, want containing %q", err, tt.errContain)
+				}
+				return
+			}
+			if len(body.SecretRefs) != len(tt.wantSecret) {
+				t.Fatalf("SecretRefs = %+v, want %v", body.SecretRefs, tt.wantSecret)
+			}
+			for i, want := range tt.wantSecret {
+				if body.SecretRefs[i].SecretName != want {
+					t.Errorf("SecretRefs[%d] = %q, want %q", i, body.SecretRefs[i].SecretName, want)
+				}
+			}
+		})
 	}
 }

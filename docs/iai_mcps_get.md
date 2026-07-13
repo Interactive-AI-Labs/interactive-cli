@@ -1,26 +1,29 @@
-## iai connectors list
+## iai mcps get
 
-List connectors in a project
+Show mcp details, verify state, and cached tools
 
 ### Synopsis
 
-Show each connector's type, status, tool count, and endpoint in a table.
+Show the mcp's record (type, external URL, catalog origin) and its current-revision
+verify result — a tool count, not the tool list itself (see 'iai mcps tools get').
+
+For past revisions, see 'iai mcps tools revisions' and 'iai mcps tools diff'.
 
 ```
-iai connectors list [flags]
+iai mcps get <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai connectors list
-  iai connectors list --json
+  iai mcps get my-tool
+  iai mcps get my-tool --json
 ```
 
 ### Options
 
 ```
-  -h, --help   help for list
+  -h, --help   help for get
       --json   Output raw API response as JSON
       --yaml   Output raw API response as YAML
 ```
@@ -33,10 +36,10 @@ iai connectors list [flags]
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
   -o, --organization string          Organization name that owns the project
-  -p, --project string               Project name that owns the connectors
+  -p, --project string               Project name that owns the mcps
 ```
 
 ### SEE ALSO
 
-* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
+* [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
 

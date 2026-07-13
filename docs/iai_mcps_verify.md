@@ -1,28 +1,28 @@
-## iai connectors catalog
+## iai mcps verify
 
-Browse the connector catalog
+Re-verify an external mcp and refresh its cached tools
 
 ### Synopsis
 
-List the curated catalog of MCP servers you can connect to with
-'iai connectors create --catalog-id', showing each entry's id, category, and
-supported auth methods.
+Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
+External mcps only — internal mcps verify automatically once their pod is up
+(background reconciler; see 'iai mcps get') and reject a manual verify.
 
 ```
-iai connectors catalog [flags]
+iai mcps verify <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai connectors catalog
-  iai connectors catalog --json
+  iai mcps verify my-tool
+  iai mcps verify my-tool --json
 ```
 
 ### Options
 
 ```
-  -h, --help   help for catalog
+  -h, --help   help for verify
       --json   Output raw API response as JSON
       --yaml   Output raw API response as YAML
 ```
@@ -35,10 +35,10 @@ iai connectors catalog [flags]
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
   -o, --organization string          Organization name that owns the project
-  -p, --project string               Project name that owns the connectors
+  -p, --project string               Project name that owns the mcps
 ```
 
 ### SEE ALSO
 
-* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
+* [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
 

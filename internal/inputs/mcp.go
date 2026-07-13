@@ -6,21 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
-
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
-
-func ParseHeaderFlags(pairs []string) (map[string]string, error) {
-	headers := make(map[string]string, len(pairs))
-	for _, p := range pairs {
-		key, value, found := strings.Cut(p, "=")
-		if !found || key == "" {
-			return nil, fmt.Errorf("invalid --header %q: expected KEY=VALUE", p)
-		}
-		headers[key] = value
-	}
-	return headers, nil
-}
 
 // ResolveCredential reads the credential from stdin when --credential-stdin is
 // set, which keeps the secret out of the process list and shell history.
@@ -56,21 +42,4 @@ func ResolveToolArgs(inline, file string) (map[string]any, error) {
 		return nil, fmt.Errorf("invalid tool arguments: must be a JSON object, got null")
 	}
 	return args, nil
-}
-
-// CatalogEndpointURL returns the canonical endpoint of a catalog entry, which
-// the backend requires when creating a connection from the catalog.
-func CatalogEndpointURL(entries []clients.McpCatalogEntry, catalogID string) (string, error) {
-	for _, e := range entries {
-		if e.ID == catalogID {
-			if strings.TrimSpace(e.EndpointURL) == "" {
-				return "", fmt.Errorf(
-					"catalog entry %q has no managed endpoint; create a custom connector with --endpoint-url instead",
-					catalogID,
-				)
-			}
-			return e.EndpointURL, nil
-		}
-	}
-	return "", fmt.Errorf("catalog entry %q not found; see 'iai connectors catalog'", catalogID)
 }

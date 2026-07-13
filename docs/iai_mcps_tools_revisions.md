@@ -1,28 +1,25 @@
-## iai connectors delete
+## iai mcps tools revisions
 
-Delete a connector
+List an mcp's tool revisions
 
 ### Synopsis
 
-Remove a connector and its cached tools from the project. The remote MCP server
-is not affected. Use -f to skip the confirmation prompt.
+Show past tool snapshots, one per helm release revision, sorted newest-first.
 
 ```
-iai connectors delete <connector_id> [flags]
+iai mcps tools revisions <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai connectors delete 3f9c1a2e-...
-  iai connectors delete 3f9c1a2e-... -f
+  iai mcps tools revisions my-tool
 ```
 
 ### Options
 
 ```
-  -f, --force   Skip confirmation prompt
-  -h, --help    help for delete
+  -h, --help   help for revisions
 ```
 
 ### Options inherited from parent commands
@@ -33,10 +30,10 @@ iai connectors delete <connector_id> [flags]
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
   -o, --organization string          Organization name that owns the project
-  -p, --project string               Project name that owns the connectors
+  -p, --project string               Project name that owns the mcps
 ```
 
 ### SEE ALSO
 
-* [iai connectors](iai_connectors.md)	 - Manage MCP connectors in a project
+* [iai mcps tools](iai_mcps_tools.md)	 - Inspect an mcp's cached tools, current or past
 
