@@ -86,8 +86,12 @@ func TestBuildMcpRequestBodyAuth(t *testing.T) {
 			wantAuthType: "none",
 		},
 		{
-			name:         "explicit auth-type wins over inference",
-			input:        McpInput{EndpointURL: "https://x.io/mcp", Credential: "k", AuthType: "api_key"},
+			name: "explicit auth-type wins over inference",
+			input: McpInput{
+				EndpointURL: "https://x.io/mcp",
+				Credential:  "k",
+				AuthType:    "api_key",
+			},
 			wantAuthType: "api_key",
 		},
 		{

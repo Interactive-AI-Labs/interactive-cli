@@ -60,7 +60,6 @@ var (
 	mcpToolsYAML   bool
 )
 
-
 var mcpsCmd = &cobra.Command{
 	Use:     "mcps",
 	Aliases: []string{"mcp"},

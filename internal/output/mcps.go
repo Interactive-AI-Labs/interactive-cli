@@ -116,7 +116,12 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 
 // PrintMcpTools lists an mcp's cached tools with their descriptions, plus the
 // names-level diff vs the previous verify snapshot when one is recorded.
-func PrintMcpTools(out io.Writer, tools []map[string]any, added, removed []string, changedFrom string) error {
+func PrintMcpTools(
+	out io.Writer,
+	tools []map[string]any,
+	added, removed []string,
+	changedFrom string,
+) error {
 	if len(tools) == 0 {
 		fmt.Fprintln(out, "No tools cached — run 'iai mcps verify' first.")
 		return nil
