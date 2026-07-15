@@ -63,14 +63,14 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	if m.Status != "" {
 		fmt.Fprintf(w, "Status:\t%s\n", m.Status)
 	}
-	if m.AuthType != "" {
-		fmt.Fprintf(w, "Auth Type:\t%s\n", m.AuthType)
+	if m.Auth.Type != "" {
+		fmt.Fprintf(w, "Auth Type:\t%s\n", m.Auth.Type)
 	}
-	if m.AuthHeader != "" {
-		fmt.Fprintf(w, "Auth Header:\t%s\n", m.AuthHeader)
+	if m.Auth.Header != "" {
+		fmt.Fprintf(w, "Auth Header:\t%s\n", m.Auth.Header)
 	}
-	if m.AuthHeaderPrefix != "" {
-		fmt.Fprintf(w, "Auth Header Prefix:\t%s\n", m.AuthHeaderPrefix)
+	if m.Auth.HeaderPrefix != "" {
+		fmt.Fprintf(w, "Auth Header Prefix:\t%s\n", m.Auth.HeaderPrefix)
 	}
 	if len(m.Headers) > 0 {
 		names := make([]string, 0, len(m.Headers))

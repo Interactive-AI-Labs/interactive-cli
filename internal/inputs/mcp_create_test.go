@@ -121,8 +121,8 @@ func TestBuildMcpRequestBodyAuth(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected err: %v", err)
 			}
-			if body.AuthType != tt.wantAuthType {
-				t.Errorf("AuthType = %q, want %q", body.AuthType, tt.wantAuthType)
+			if body.Auth.Type != tt.wantAuthType {
+				t.Errorf("Auth.Type = %q, want %q", body.Auth.Type, tt.wantAuthType)
 			}
 			if len(body.Headers) != len(tt.wantHeaders) {
 				t.Fatalf("Headers = %v, want %v", body.Headers, tt.wantHeaders)

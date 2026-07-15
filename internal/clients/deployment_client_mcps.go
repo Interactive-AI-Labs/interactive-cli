@@ -28,15 +28,28 @@ type CreateMcpBody struct {
 	EndpointURL string `json:"endpointUrl,omitempty"`
 	CatalogID   string `json:"catalogId,omitempty"`
 
-	// AuthType controls how the credential is sent: bearer | api_key | none.
-	AuthType   string `json:"authType,omitempty"`
-	Credential string `json:"credential,omitempty"`
-	// AuthHeader overrides the default header (Authorization / X-API-Key).
-	AuthHeader string `json:"authHeader,omitempty"`
-	// AuthHeaderPrefix overrides the default value prefix (bearer's "Bearer ").
-	AuthHeaderPrefix string `json:"authHeaderPrefix,omitempty"`
+	// Auth is how the credential is sent.
+	Auth McpAuthBody `json:"auth"`
 	// Headers are extra non-secret request headers.
 	Headers map[string]string `json:"headers,omitempty"`
+}
+
+// McpAuthBody is the auth block of a create/update request.
+type McpAuthBody struct {
+	Type string `json:"type,omitempty"` // bearer | api_key | none
+	// Credential is required for bearer and api_key, forbidden for none.
+	Credential string `json:"credential,omitempty"`
+	// Header overrides the default header (Authorization / X-API-Key).
+	Header string `json:"header,omitempty"`
+	// HeaderPrefix overrides the default value prefix (bearer's "Bearer ").
+	HeaderPrefix string `json:"headerPrefix,omitempty"`
+}
+
+// McpAuthInfo describes how an mcp's credential is sent — never the credential.
+type McpAuthInfo struct {
+	Type         string `json:"type"`
+	Header       string `json:"header,omitempty"`
+	HeaderPrefix string `json:"headerPrefix,omitempty"`
 }
 
 type McpVerifyState struct {
@@ -54,7 +67,7 @@ type McpOutput struct {
 	Updated   string `json:"updated,omitempty"`
 
 	Type           string         `json:"type"`
-	AuthType       string         `json:"authType"`
+	Auth           McpAuthInfo    `json:"auth"`
 	EndpointURL    string         `json:"endpointUrl"`
 	Slug           string         `json:"slug"`
 	CatalogID      string         `json:"catalogId,omitempty"`
@@ -66,12 +79,10 @@ type McpOutput struct {
 type DescribeMcpResponse struct {
 	McpOutput
 
-	Transport        string            `json:"transport"`
-	AuthHeader       string            `json:"authHeader,omitempty"`
-	AuthHeaderPrefix string            `json:"authHeaderPrefix,omitempty"`
-	Headers          map[string]string `json:"headers,omitempty"`
-	HasCredential    bool              `json:"hasCredential"`
-	SecretRefs       []SecretRef       `json:"secretRefs,omitempty"`
+	Transport     string            `json:"transport"`
+	Headers       map[string]string `json:"headers,omitempty"`
+	HasCredential bool              `json:"hasCredential"`
+	SecretRefs    []SecretRef       `json:"secretRefs,omitempty"`
 	// Tool count is in Verify.ToolCount; the full list comes from GetMcpTools.
 }
 

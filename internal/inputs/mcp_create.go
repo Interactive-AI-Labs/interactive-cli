@@ -103,13 +103,15 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 	}
 
 	body := clients.CreateMcpBody{
-		Type:             mcpType,
-		CatalogID:        strings.TrimSpace(in.CatalogID),
-		AuthType:         authType,
-		Credential:       in.Credential,
-		AuthHeader:       strings.TrimSpace(in.AuthHeader),
-		AuthHeaderPrefix: in.AuthHeaderPrefix,
-		Headers:          headers,
+		Type:      mcpType,
+		CatalogID: strings.TrimSpace(in.CatalogID),
+		Auth: clients.McpAuthBody{
+			Type:         authType,
+			Credential:   in.Credential,
+			Header:       strings.TrimSpace(in.AuthHeader),
+			HeaderPrefix: in.AuthHeaderPrefix,
+		},
+		Headers: headers,
 	}
 
 	switch mcpType {
