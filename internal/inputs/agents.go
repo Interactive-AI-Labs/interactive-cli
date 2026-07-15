@@ -34,9 +34,9 @@ type AgentInput struct {
 	DetachMcpNames []string
 }
 
-// InjectMcpRefs appends a {mcp_id: <name>} reference for each name to the
-// agent config's mcps list (creating the key if absent). Existing entries —
-// whether bare refs or fully hand-written McpConfig blocks — are preserved.
+// InjectMcpRefs appends a bare-string reference for each name to the agent
+// config's mcps list (creating the key if absent). Existing entries — whether
+// bare refs or fully hand-written McpConfig blocks — are preserved.
 func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 	names := make([]string, 0, len(mcpNames))
 	for _, n := range mcpNames {
@@ -54,16 +54,18 @@ func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 	}
 	mcps, _ := cfg["mcps"].([]any)
 
-	// An mcp already present — as a bare ref (mcp_id) or a resolved entry
-	// (id, matching the mcp's slug) — is skipped rather than duplicated.
-	// Also covers passing the same --mcp name twice in one command.
+	// An mcp already present — as a bare-string ref or a resolved entry
+	// (a map with an id matching the mcp's slug) — is skipped rather than
+	// duplicated. Also covers passing the same --mcp name twice in one command.
 	seen := make(map[string]bool, len(mcps)+len(names))
 	for _, entry := range mcps {
-		if m, ok := entry.(map[string]any); ok {
-			if ref, ok := m["mcp_id"].(string); ok && ref != "" {
-				seen[ref] = true
+		switch e := entry.(type) {
+		case string:
+			if e != "" {
+				seen[e] = true
 			}
-			if id, ok := m["id"].(string); ok && id != "" {
+		case map[string]any:
+			if id, ok := e["id"].(string); ok && id != "" {
 				seen[id] = true
 			}
 		}
@@ -72,7 +74,7 @@ func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 		if seen[name] {
 			continue
 		}
-		mcps = append(mcps, map[string]any{"mcp_id": name})
+		mcps = append(mcps, name)
 		seen[name] = true
 	}
 	cfg["mcps"] = mcps
@@ -80,8 +82,8 @@ func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 }
 
 // DetachMcpRefs removes any mcps entry matching one of the given names — by
-// bare ref (mcp_id) or resolved entry (id) — from the agent config. Names not
-// present are ignored, so it's safe to call speculatively.
+// bare-string ref or resolved entry (a map with a matching id) — from the agent
+// config. Names not present are ignored, so it's safe to call speculatively.
 func DetachMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 	names := make(map[string]bool, len(mcpNames))
 	for _, n := range mcpNames {
@@ -103,15 +105,15 @@ func DetachMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 
 	kept := make([]any, 0, len(mcps))
 	for _, entry := range mcps {
-		m, ok := entry.(map[string]any)
-		if !ok {
-			kept = append(kept, entry)
-			continue
-		}
-		ref, _ := m["mcp_id"].(string)
-		id, _ := m["id"].(string)
-		if names[ref] || names[id] {
-			continue
+		switch e := entry.(type) {
+		case string:
+			if names[e] {
+				continue
+			}
+		case map[string]any:
+			if id, _ := e["id"].(string); names[id] {
+				continue
+			}
 		}
 		kept = append(kept, entry)
 	}

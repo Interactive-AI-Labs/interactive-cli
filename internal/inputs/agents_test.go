@@ -215,22 +215,22 @@ func TestInjectMcpRefs(t *testing.T) {
 			name: "dedups against existing bare and resolved refs, and repeats in the same call",
 			cfg: map[string]any{
 				"mcps": []any{
-					map[string]any{"mcp_id": "github"},
+					"github",
 					mslearn,
 				},
 			},
 			names: []string{"github", "acme", "acme", "mslearn"},
 			want: []any{
-				map[string]any{"mcp_id": "github"},
+				"github",
 				mslearn,
-				map[string]any{"mcp_id": "acme"},
+				"acme",
 			},
 		},
 		{
 			name:  "no existing mcps key",
 			cfg:   map[string]any{},
 			names: []string{"github"},
-			want:  []any{map[string]any{"mcp_id": "github"}},
+			want:  []any{"github"},
 		},
 	}
 	for _, tt := range tests {
@@ -264,22 +264,22 @@ func TestDetachMcpRefs(t *testing.T) {
 			name: "removes matching bare and resolved refs, ignores unmatched names",
 			cfg: map[string]any{
 				"mcps": []any{
-					map[string]any{"mcp_id": "github"},
+					"github",
 					mslearn,
-					map[string]any{"mcp_id": "stripe"},
+					"stripe",
 				},
 			},
 			names: []string{"mslearn", "not-attached"},
 			want: []any{
-				map[string]any{"mcp_id": "github"},
-				map[string]any{"mcp_id": "stripe"},
+				"github",
+				"stripe",
 			},
 		},
 		{
 			name:  "no names is a no-op",
-			cfg:   map[string]any{"mcps": []any{map[string]any{"mcp_id": "github"}}},
+			cfg:   map[string]any{"mcps": []any{"github"}},
 			names: nil,
-			want:  []any{map[string]any{"mcp_id": "github"}},
+			want:  []any{"github"},
 		},
 	}
 	for _, tt := range tests {
