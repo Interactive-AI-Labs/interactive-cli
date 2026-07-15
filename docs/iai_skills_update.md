@@ -25,7 +25,7 @@ iai skills update <name> [flags]
   iai skills update summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills update summarize-trace --file ./skill.md --labels production,staging
+  iai skills update summarize-trace --file ./skill.md --labels active
 ```
 
 ### Options
