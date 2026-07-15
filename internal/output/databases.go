@@ -43,9 +43,9 @@ func PrintDatabaseDescribe(out io.Writer, db *clients.DescribeDatabaseResponse) 
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(db.Updated))
 	}
 	fmt.Fprintf(w, "PostgreSQL Version:\t%s\n", db.PostgresVersion)
-	fmt.Fprintf(w, "Replicas:\t%d\n", db.Instances)
+	fmt.Fprintf(w, "Replicas:\t%d\n", db.Replicas)
 	highAvailability := "No"
-	if db.Instances >= 2 {
+	if db.HighAvailability {
 		highAvailability = "Yes"
 	}
 	fmt.Fprintf(w, "High Availability:\t%s\n", highAvailability)
@@ -62,7 +62,7 @@ func PrintDatabaseDescribe(out io.Writer, db *clients.DescribeDatabaseResponse) 
 	}
 
 	fmt.Fprintln(w)
-	if db.Backup == nil {
+	if !db.Backup.Enabled {
 		fmt.Fprintln(w, "Backup:\tnot configured")
 	} else {
 		fmt.Fprintln(w, "Backup:")

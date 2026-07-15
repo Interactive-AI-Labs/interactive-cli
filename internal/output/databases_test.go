@@ -82,19 +82,23 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 		{
 			name: "full describe output",
 			db: &clients.DescribeDatabaseResponse{
-				Name:            "my-db",
-				Revision:        2,
-				Status:          "Healthy",
-				Message:         "All instances running",
-				Updated:         "2025-01-15T10:30:00Z",
-				PostgresVersion: "17",
-				Instances:       2,
-				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
-				Extensions:      []string{"vector", "pg_trgm"},
-				Backup: &clients.DatabaseBackupConfig{
-					Schedule:        "0 0 2 * * *",
-					RetentionPolicy: "30d",
+				Name:             "my-db",
+				Revision:         2,
+				Status:           "Healthy",
+				Message:          "All instances running",
+				Updated:          "2025-01-15T10:30:00Z",
+				PostgresVersion:  "17",
+				Replicas:         2,
+				HighAvailability: true,
+				Resources:        clients.Resources{CPU: "1", Memory: "2G"},
+				Storage:          clients.DatabaseStorageConfig{Size: "20G"},
+				Extensions:       []string{"vector", "pg_trgm"},
+				Backup: clients.DatabaseBackupStatus{
+					Enabled: true,
+					DatabaseBackupConfig: clients.DatabaseBackupConfig{
+						Schedule:        "0 0 2 * * *",
+						RetentionPolicy: "30d",
+					},
 				},
 				StackId:           "my-stack",
 				CredentialsSecret: "my-db-app",
@@ -121,13 +125,41 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 				"Credentials Secret:   my-db-app\n",
 		},
 		{
+			name: "HA independent of replica count",
+			db: &clients.DescribeDatabaseResponse{
+				Name:              "flexible-db",
+				Revision:          1,
+				Status:            "Healthy",
+				PostgresVersion:   "17",
+				Replicas:          2,
+				HighAvailability:  false,
+				Resources:         clients.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:           clients.DatabaseStorageConfig{Size: "10G"},
+				CredentialsSecret: "flexible-db-app",
+			},
+			want: "Name:                 flexible-db\n" +
+				"Revision:             1\n" +
+				"Status:               Healthy\n" +
+				"PostgreSQL Version:   17\n" +
+				"Replicas:             2\n" +
+				"High Availability:    No\n" +
+				"Resources:\n" +
+				"  CPU:      0.5\n" +
+				"  Memory:   1G\n" +
+				"Storage:\n" +
+				"  Size:   10G\n" +
+				"\n" +
+				"Backup:               not configured\n" +
+				"Credentials Secret:   flexible-db-app\n",
+		},
+		{
 			name: "without backup configuration",
 			db: &clients.DescribeDatabaseResponse{
 				Name:              "basic-db",
 				Revision:          1,
 				Status:            "Provisioning",
 				PostgresVersion:   "17",
-				Instances:         1,
+				Replicas:          1,
 				Resources:         clients.Resources{CPU: "0.5", Memory: "1G"},
 				Storage:           clients.DatabaseStorageConfig{Size: "10G"},
 				CredentialsSecret: "basic-db-app",

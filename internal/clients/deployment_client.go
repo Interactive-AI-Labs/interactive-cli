@@ -2042,6 +2042,11 @@ type DatabaseBackupConfig struct {
 	RetentionPolicy string `json:"retentionPolicy"`
 }
 
+type DatabaseBackupStatus struct {
+	Enabled bool `json:"enabled"`
+	DatabaseBackupConfig
+}
+
 type CreateDatabaseBody struct {
 	Instances       int                   `json:"instances"`
 	PostgresVersion string                `json:"postgresVersion,omitempty"`
@@ -2062,12 +2067,13 @@ type DescribeDatabaseResponse struct {
 	Name              string                `json:"name"`
 	Revision          int                   `json:"revision"`
 	Updated           string                `json:"updated,omitempty"`
-	Instances         int                   `json:"instances"`
+	Replicas          int                   `json:"replicas"`
+	HighAvailability  bool                  `json:"highAvailability"`
 	PostgresVersion   string                `json:"postgresVersion"`
 	Resources         Resources             `json:"resources"`
 	Storage           DatabaseStorageConfig `json:"storage"`
 	Extensions        []string              `json:"extensions,omitempty"`
-	Backup            *DatabaseBackupConfig `json:"backup,omitempty"`
+	Backup            DatabaseBackupStatus  `json:"backup"`
 	StackId           string                `json:"stackId,omitempty"`
 	CredentialsSecret string                `json:"credentialsSecret"`
 	Status            string                `json:"status"`
