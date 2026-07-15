@@ -6,11 +6,10 @@ Describe a skill in detail
 
 Show a Copilot skill in detail, including its config and full content.
 
-A label-less get returns whatever the server resolves by default: the version
-labeled "production" if one exists, otherwise the highest version number.
-Copilot loads the "active" version, so use --label active to fetch the version
-Copilot uses. Use --version to retrieve a specific version number, or --label
-to resolve any other label.
+Without flags, returns the version the server resolves by default. Copilot
+loads the "active" version, so use --label active to fetch the version Copilot
+uses. Use --version to retrieve a specific version number, or --label to
+resolve any other label.
 
 ```
 iai skills get <name> [flags]
@@ -29,7 +28,7 @@ iai skills get <name> [flags]
 ```
   -h, --help                  help for get
       --json                  Output response as JSON
-      --label string          Retrieve the version with this label (default: server resolves 'production')
+      --label string          Retrieve the version with this label
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --version int           Retrieve a specific version number

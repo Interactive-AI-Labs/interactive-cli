@@ -6,8 +6,9 @@ Describe a variable in detail
 
 Show detailed information about a specific variable definition, including its full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
+Without flags, returns the version the server resolves by default. Use
+--version to retrieve a specific version number, or --label to resolve a
+specific label.
 
 ```
 iai variables get <name> [flags]
@@ -26,7 +27,7 @@ iai variables get <name> [flags]
 ```
   -h, --help                  help for get
       --json                  Output response as JSON
-      --label string          Retrieve the version with this label (default: server resolves 'production')
+      --label string          Retrieve the version with this label
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --version int           Retrieve a specific version number

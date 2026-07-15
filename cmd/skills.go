@@ -53,11 +53,10 @@ can be browsed into with --folder.`,
   iai skills list --page 2 --limit 10`,
 		GetLong: `Show a Copilot skill in detail, including its config and full content.
 
-A label-less get returns whatever the server resolves by default: the version
-labeled "production" if one exists, otherwise the highest version number.
-Copilot loads the "active" version, so use --label active to fetch the version
-Copilot uses. Use --version to retrieve a specific version number, or --label
-to resolve any other label.`,
+Without flags, returns the version the server resolves by default. Copilot
+loads the "active" version, so use --label active to fetch the version Copilot
+uses. Use --version to retrieve a specific version number, or --label to
+resolve any other label.`,
 		GetExample: `  iai skills get summarize-trace
   iai skills get summarize-trace --version 3
   iai skills get summarize-trace --label active`,

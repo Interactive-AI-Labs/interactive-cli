@@ -40,12 +40,11 @@ Example (glossary.json):
 
   Add as many entries under 'terms' as you need — each key must be unique.
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.`,
+The server automatically assigns the "latest" label to new versions. Use
+--labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai glossaries create finance-terms --file glossary.json
   iai glossaries create finance-terms --file glossary.json --schema-version 2.1.0
-  iai glossaries create finance-terms --file glossary.json --labels production
+  iai glossaries create finance-terms --file glossary.json --labels staging
   iai glossaries create finance-terms --file glossary.json --tags domain`,
 		ListLong: `List glossary definitions in a specific project.
 
@@ -58,8 +57,9 @@ can be browsed into with --folder.`,
   iai glossaries list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific glossary definition, including its full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.`,
+Without flags, returns the version the server resolves by default. Use
+--version to retrieve a specific version number, or --label to resolve a
+specific label.`,
 		GetExample: `  iai glossaries get finance-terms
   iai glossaries get finance-terms --version 3
   iai glossaries get finance-terms --label staging`,
@@ -94,7 +94,7 @@ Example (glossary.json):
   Add as many entries under 'terms' as you need — each key must be unique.`,
 		UpdateExample: `  iai glossaries update finance-terms --file glossary.json
   iai glossaries update finance-terms --file glossary.json --schema-version 2.1.0
-  iai glossaries update finance-terms --file glossary.json --labels production,staging`,
+  iai glossaries update finance-terms --file glossary.json --labels staging,qa`,
 		DeleteLong: `Delete a glossary definition and all its versions, or delete specific versions.
 
 Without flags, deletes the glossary entry and all its versions (requires

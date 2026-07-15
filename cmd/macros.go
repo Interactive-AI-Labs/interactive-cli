@@ -19,11 +19,10 @@ No schema validation is applied — any text content is accepted.
 Example (disclaimer.md):
   **Disclaimer:** This is not financial advice. Consult a professional.
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.`,
+The server automatically assigns the "latest" label to new versions. Use
+--labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai macros create disclaimer --file disclaimer.md
-  iai macros create disclaimer --file disclaimer.md --labels production
+  iai macros create disclaimer --file disclaimer.md --labels staging
   iai macros create disclaimer --file disclaimer.md --tags legal`,
 		ListLong: `List macros in a specific project.
 
@@ -36,8 +35,9 @@ can be browsed into with --folder.`,
   iai macros list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific macro, including its full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.`,
+Without flags, returns the version the server resolves by default. Use
+--version to retrieve a specific version number, or --label to resolve a
+specific label.`,
 		GetExample: `  iai macros get disclaimer
   iai macros get disclaimer --version 3
   iai macros get disclaimer --label staging`,
@@ -51,7 +51,7 @@ No schema validation is applied — any text content is accepted.
 Example (disclaimer.md):
   **Disclaimer:** This is not financial advice. Consult a professional.`,
 		UpdateExample: `  iai macros update disclaimer --file disclaimer.md
-  iai macros update disclaimer --file disclaimer.md --labels production,staging`,
+  iai macros update disclaimer --file disclaimer.md --labels staging,qa`,
 		DeleteLong: `Delete a macro and all its versions, or delete specific versions.
 
 Without flags, deletes the macro and all its versions (requires confirmation).

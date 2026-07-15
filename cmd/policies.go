@@ -30,12 +30,11 @@ Example (policy.yaml):
   action: Transfer to human
   criticality: HIGH
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.`,
+The server automatically assigns the "latest" label to new versions. Use
+--labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai policies create safety-rules --file policy.yaml
   iai policies create safety-rules --file policy.yaml --schema-version 2.1.0
-  iai policies create safety-rules --file policy.yaml --labels production
+  iai policies create safety-rules --file policy.yaml --labels staging
   iai policies create safety-rules --file policy.yaml --tags compliance`,
 		ListLong: `List policies in a specific project.
 
@@ -48,8 +47,9 @@ can be browsed into with --folder.`,
   iai policies list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific policy, including its full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.`,
+Without flags, returns the version the server resolves by default. Use
+--version to retrieve a specific version number, or --label to resolve a
+specific label.`,
 		GetExample: `  iai policies get safety-rules
   iai policies get safety-rules --version 3
   iai policies get safety-rules --label staging`,
@@ -74,7 +74,7 @@ Example (policy.yaml):
   criticality: HIGH`,
 		UpdateExample: `  iai policies update safety-rules --file policy.yaml
   iai policies update safety-rules --file policy.yaml --schema-version 2.1.0
-  iai policies update safety-rules --file policy.yaml --labels production,staging`,
+  iai policies update safety-rules --file policy.yaml --labels staging,qa`,
 		DeleteLong: `Delete a policy and all its versions, or delete specific versions.
 
 Without flags, deletes the policy and all its versions (requires confirmation).

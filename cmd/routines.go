@@ -35,12 +35,11 @@ Example (routine.yaml):
       tools: crm:get_user
       tool_instruction: Fetch user data
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.`,
+The server automatically assigns the "latest" label to new versions. Use
+--labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai routines create onboarding-flow --file routine.yaml
   iai routines create onboarding-flow --file routine.yaml --schema-version 2.1.0
-  iai routines create onboarding-flow --file routine.yaml --labels production
+  iai routines create onboarding-flow --file routine.yaml --labels staging
   iai routines create onboarding-flow --file routine.yaml --tags v2,experimental`,
 		ListLong: `List routines in a specific project.
 
@@ -53,8 +52,9 @@ can be browsed into with --folder.`,
   iai routines list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific routine, including its full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.`,
+Without flags, returns the version the server resolves by default. Use
+--version to retrieve a specific version number, or --label to resolve a
+specific label.`,
 		GetExample: `  iai routines get onboarding-flow
   iai routines get onboarding-flow --version 3
   iai routines get onboarding-flow --label staging`,
@@ -84,7 +84,7 @@ Example (routine.yaml):
       tool_instruction: Fetch user data`,
 		UpdateExample: `  iai routines update onboarding-flow --file routine.yaml
   iai routines update onboarding-flow --file routine.yaml --schema-version 2.1.0
-  iai routines update onboarding-flow --file routine.yaml --labels production,staging`,
+  iai routines update onboarding-flow --file routine.yaml --labels staging,qa`,
 		DeleteLong: `Delete a routine and all its versions, or delete specific versions.
 
 Without flags, deletes the routine and all its versions (requires confirmation).

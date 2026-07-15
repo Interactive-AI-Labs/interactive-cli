@@ -11,9 +11,8 @@ Exactly one of --file or --content must be specified.
 
 The --type flag selects the prompt type: "text" (default) or "chat".
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.
+The server automatically assigns the "latest" label to new versions. Use
+--labels to assign additional labels (e.g. --labels staging).
 
 ```
 iai prompts create <name> [flags]
@@ -25,7 +24,7 @@ iai prompts create <name> [flags]
   iai prompts create greeting --content "Hello, how can I help you?"
   iai prompts create greeting --file greeting.txt
   iai prompts create greeting --file greeting.txt --type chat
-  iai prompts create greeting --content "Hi!" --labels production
+  iai prompts create greeting --content "Hi!" --labels staging
   iai prompts create greeting --file greeting.txt --tags support
 ```
 

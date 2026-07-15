@@ -38,12 +38,11 @@ Example (variables.json):
 
   Add as many entries under 'variables' as you need — each key must be unique.
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.`,
+The server automatically assigns the "latest" label to new versions. Use
+--labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai variables create session-vars --file variables.json
   iai variables create session-vars --file variables.json --schema-version 2.1.0
-  iai variables create session-vars --file variables.json --labels production
+  iai variables create session-vars --file variables.json --labels staging
   iai variables create session-vars --file variables.json --tags core`,
 		ListLong: `List variables in a specific project.
 
@@ -56,8 +55,9 @@ can be browsed into with --folder.`,
   iai variables list --page 2 --limit 10`,
 		GetLong: `Show detailed information about a specific variable definition, including its full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.`,
+Without flags, returns the version the server resolves by default. Use
+--version to retrieve a specific version number, or --label to resolve a
+specific label.`,
 		GetExample: `  iai variables get session-vars
   iai variables get session-vars --version 3
   iai variables get session-vars --label staging`,
@@ -90,7 +90,7 @@ Example (variables.json):
   Add as many entries under 'variables' as you need — each key must be unique.`,
 		UpdateExample: `  iai variables update session-vars --file variables.json
   iai variables update session-vars --file variables.json --schema-version 2.1.0
-  iai variables update session-vars --file variables.json --labels production,staging`,
+  iai variables update session-vars --file variables.json --labels staging,qa`,
 		DeleteLong: `Delete a variable definition and all its versions, or delete specific versions.
 
 Without flags, deletes the variable and all its versions (requires confirmation).

@@ -34,7 +34,7 @@ steps:
 ```
   iai routines update onboarding-flow --file routine.yaml
   iai routines update onboarding-flow --file routine.yaml --schema-version 2.1.0
-  iai routines update onboarding-flow --file routine.yaml --labels production,staging
+  iai routines update onboarding-flow --file routine.yaml --labels staging,qa
 ```
 
 ### Options
