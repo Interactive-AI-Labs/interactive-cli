@@ -25,9 +25,9 @@ iai mcps update <mcp_name> [flags]
 ### Options
 
 ```
-      --auth-header string          Override the header the credential is sent in (default Authorization for bearer, X-API-Key for api_key)
-      --auth-header-prefix string   Override the credential value prefix (default "Bearer " for bearer)
-      --auth-type string            How the credential is sent: "bearer", "api_key", or "none" (inferred from --credential if omitted)
+      --auth-header string          Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)
+      --auth-header-prefix string   Credential value prefix — only valid with --auth-type custom
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
       --cpu string                  CPU request/limit, e.g. 250m (required for internal)
       --credential string           Credential the mcp server requires (bearer token, API key)

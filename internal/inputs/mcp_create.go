@@ -29,8 +29,10 @@ type McpInput struct {
 	EndpointURL string
 	CatalogID   string
 
-	// AuthType is bearer | api_key | none. Inferred when empty: bearer if a
-	// credential is given, otherwise none.
+	// AuthType is bearer | api_key | custom | none. Inferred when empty: custom
+	// if --auth-header/--auth-header-prefix is given, bearer if a credential is
+	// given, otherwise none. --auth-header/--auth-header-prefix are only valid
+	// with custom — bearer/api_key/none each imply their own header.
 	AuthType         string
 	Credential       string
 	AuthHeader       string
@@ -92,12 +94,16 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 	}
 
 	// authType is required by the server; infer the common cases so existing
-	// invocations keep working — a credential means bearer, none means no auth.
+	// invocations keep working — a header override means custom (the only type
+	// that accepts one), otherwise a credential means bearer, none means no auth.
 	authType := strings.TrimSpace(in.AuthType)
 	if authType == "" {
-		if strings.TrimSpace(in.Credential) != "" {
+		switch {
+		case strings.TrimSpace(in.AuthHeader) != "" || strings.TrimSpace(in.AuthHeaderPrefix) != "":
+			authType = "custom"
+		case strings.TrimSpace(in.Credential) != "":
 			authType = "bearer"
-		} else {
+		default:
 			authType = "none"
 		}
 	}

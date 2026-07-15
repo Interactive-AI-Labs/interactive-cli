@@ -95,6 +95,15 @@ func TestBuildMcpRequestBodyAuth(t *testing.T) {
 			wantAuthType: "api_key",
 		},
 		{
+			name: "auth-header without auth-type infers custom",
+			input: McpInput{
+				EndpointURL: "https://x.io/mcp",
+				Credential:  "k",
+				AuthHeader:  "X-Api-Token",
+			},
+			wantAuthType: "custom",
+		},
+		{
 			name: "headers parsed into a map",
 			input: McpInput{
 				EndpointURL: "https://x.io/mcp",

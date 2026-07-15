@@ -561,15 +561,15 @@ func init() {
 		c.Flags().
 			StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
 		c.Flags().
-			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", or "none" (inferred from --credential if omitted)`)
+			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")`)
 		c.Flags().
 			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
 		c.Flags().
 			BoolVar(&mcpCredentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
 		c.Flags().
-			StringVar(&mcpAuthHeader, "auth-header", "", "Override the header the credential is sent in (default Authorization for bearer, X-API-Key for api_key)")
+			StringVar(&mcpAuthHeader, "auth-header", "", `Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)`)
 		c.Flags().
-			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", `Override the credential value prefix (default "Bearer " for bearer)`)
+			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", `Credential value prefix — only valid with --auth-type custom`)
 		c.Flags().
 			StringArrayVar(&mcpHeaders, "header", nil, "Extra non-secret request header (NAME=VALUE); can be repeated")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
