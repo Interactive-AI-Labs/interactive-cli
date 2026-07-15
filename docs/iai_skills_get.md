@@ -6,8 +6,11 @@ Describe a skill in detail
 
 Show a Copilot skill in detail, including its config and full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.
+A label-less get returns whatever the server resolves by default: the version
+labeled "production" if one exists, otherwise the highest version number.
+Copilot loads the "active" version, so use --label active to fetch the version
+Copilot uses. Use --version to retrieve a specific version number, or --label
+to resolve any other label.
 
 ```
 iai skills get <name> [flags]
@@ -18,7 +21,7 @@ iai skills get <name> [flags]
 ```
   iai skills get summarize-trace
   iai skills get summarize-trace --version 3
-  iai skills get summarize-trace --label staging
+  iai skills get summarize-trace --label active
 ```
 
 ### Options

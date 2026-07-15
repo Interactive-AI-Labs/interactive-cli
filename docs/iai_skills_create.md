@@ -19,9 +19,9 @@ Example (skill.md):
   Given a Langfuse trace ID, fetch the trace and summarize key steps,
   latencies, and any errors.
 
-The server automatically assigns the "latest" label to new versions. To make
-a version retrievable via the default 'get' (which resolves "production"),
-assign the "production" label with --labels production.
+The server automatically assigns the "latest" label to new versions. Copilot
+loads the version labeled "active", so assign it with --labels active to make
+a skill the one Copilot uses.
 
 ```
 iai skills create <name> [flags]
@@ -33,7 +33,7 @@ iai skills create <name> [flags]
   iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills create summarize-trace --file ./skill.md --labels production
+  iai skills create summarize-trace --file ./skill.md --labels active
 ```
 
 ### Options

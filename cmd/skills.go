@@ -36,13 +36,13 @@ Example (skill.md):
   Given a Langfuse trace ID, fetch the trace and summarize key steps,
   latencies, and any errors.
 
-The server automatically assigns the "latest" label to new versions. To make
-a version retrievable via the default 'get' (which resolves "production"),
-assign the "production" label with --labels production.`,
+The server automatically assigns the "latest" label to new versions. Copilot
+loads the version labeled "active", so assign it with --labels active to make
+a skill the one Copilot uses.`,
 		CreateExample: `  iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills create summarize-trace --file ./skill.md --labels production`,
+  iai skills create summarize-trace --file ./skill.md --labels active`,
 		ListLong: `List Copilot skills in a project.
 
 Returns all Copilot skills with their name, labels, tags, and last update time.
@@ -53,11 +53,14 @@ can be browsed into with --folder.`,
   iai skills list --page 2 --limit 10`,
 		GetLong: `Show a Copilot skill in detail, including its config and full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.`,
+A label-less get returns whatever the server resolves by default: the version
+labeled "production" if one exists, otherwise the highest version number.
+Copilot loads the "active" version, so use --label active to fetch the version
+Copilot uses. Use --version to retrieve a specific version number, or --label
+to resolve any other label.`,
 		GetExample: `  iai skills get summarize-trace
   iai skills get summarize-trace --version 3
-  iai skills get summarize-trace --label staging`,
+  iai skills get summarize-trace --label active`,
 		UpdateLong: `Update a Copilot skill by creating a new version with updated content.
 
 Each update creates a brand-new version with exactly the content and config
@@ -71,7 +74,7 @@ Pass --intents once per intent (the flag is repeatable).`,
 		UpdateExample: `  iai skills update summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills update summarize-trace --file ./skill.md --labels production,staging`,
+  iai skills update summarize-trace --file ./skill.md --labels active`,
 		DeleteLong: `Delete a Copilot skill and all its versions, or delete specific versions.
 
 Without flags, deletes the skill and all its versions (requires confirmation).
