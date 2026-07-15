@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestPrintDatabaseList(t *testing.T) {
@@ -105,7 +106,8 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 				"Message:              All instances running\n" +
 				"Updated:              2025-01-15 11:30:00 CET\n" +
 				"PostgreSQL Version:   17\n" +
-				"Instances:            2\n" +
+				"Replicas:             2\n" +
+				"High Availability:    Yes\n" +
 				"Resources:\n" +
 				"  CPU:      1\n" +
 				"  Memory:   2G\n" +
@@ -119,26 +121,31 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 				"Credentials Secret:   my-db-app\n",
 		},
 		{
-			name: "minimal without optional fields",
+			name: "without backup configuration",
 			db: &clients.DescribeDatabaseResponse{
-				Name:            "basic-db",
-				Revision:        1,
-				Status:          "Provisioning",
-				PostgresVersion: "17",
-				Instances:       1,
-				Resources:       clients.Resources{CPU: "0.5", Memory: "1G"},
-				Storage:         clients.DatabaseStorageConfig{Size: "10G"},
+				Name:              "basic-db",
+				Revision:          1,
+				Status:            "Provisioning",
+				PostgresVersion:   "17",
+				Instances:         1,
+				Resources:         clients.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:           clients.DatabaseStorageConfig{Size: "10G"},
+				CredentialsSecret: "basic-db-app",
 			},
 			want: "Name:                 basic-db\n" +
 				"Revision:             1\n" +
 				"Status:               Provisioning\n" +
 				"PostgreSQL Version:   17\n" +
-				"Instances:            1\n" +
+				"Replicas:             1\n" +
+				"High Availability:    No\n" +
 				"Resources:\n" +
 				"  CPU:      0.5\n" +
 				"  Memory:   1G\n" +
 				"Storage:\n" +
-				"  Size:   10G\n",
+				"  Size:   10G\n" +
+				"\n" +
+				"Backup:               not configured\n" +
+				"Credentials Secret:   basic-db-app\n",
 		},
 	}
 
@@ -149,8 +156,8 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 			if err != nil {
 				t.Fatalf("PrintDatabaseDescribe() error = %v", err)
 			}
-			if got := buf.String(); got != tt.want {
-				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
+			if diff := cmp.Diff(tt.want, buf.String()); diff != "" {
+				t.Errorf("output mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
