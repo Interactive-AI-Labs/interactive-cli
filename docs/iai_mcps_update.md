@@ -25,21 +25,25 @@ iai mcps update <mcp_name> [flags]
 ### Options
 
 ```
-      --catalog-id string         Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
-      --cpu string                CPU request/limit, e.g. 250m (internal, default 250m)
-      --credential string         Credential the mcp server requires (bearer token, API key)
-      --credential-stdin          Read the credential from stdin instead of --credential
-      --env stringArray           Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)
-      --external-url string       External MCP server URL — not platform-owned, dialed directly (custom external mcp)
-  -h, --help                      help for update
-      --image-name string         Container image name (internal)
-      --image-repository string   Image repository (required for external images)
-      --image-tag string          Container image tag (internal)
-      --image-type string         Image source: "internal" or "external" (internal) (default "internal")
-      --memory string             Memory request/limit, e.g. 512M (internal, default 512M)
-      --port int                  Port the mcp server listens on (internal)
-      --secret stringArray        Existing k8s Secret to load as env vars; can be repeated (internal)
-      --type string               Mcp type: "internal" or "external" (inferred from other flags if omitted)
+      --auth-header string          Override the header the credential is sent in (default Authorization for bearer, X-API-Key for api_key)
+      --auth-header-prefix string   Override the credential value prefix (default "Bearer " for bearer)
+      --auth-type string            How the credential is sent: "bearer", "api_key", or "none" (inferred from --credential if omitted)
+      --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
+      --cpu string                  CPU request/limit, e.g. 250m (required for internal)
+      --credential string           Credential the mcp server requires (bearer token, API key)
+      --credential-stdin            Read the credential from stdin instead of --credential
+      --env stringArray             Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)
+      --external-url string         External MCP server URL — not platform-owned, dialed directly (custom external mcp)
+      --header stringArray          Extra non-secret request header (NAME=VALUE); can be repeated
+  -h, --help                        help for update
+      --image-name string           Container image name (internal)
+      --image-repository string     Image repository (required for external images)
+      --image-tag string            Container image tag (internal)
+      --image-type string           Image source: "internal" or "external" (internal) (default "internal")
+      --memory string               Memory request/limit, e.g. 512M (required for internal)
+      --port int                    Port the mcp server listens on (internal)
+      --secret stringArray          Existing k8s Secret to load as env vars; can be repeated (internal)
+      --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```
 
 ### Options inherited from parent commands

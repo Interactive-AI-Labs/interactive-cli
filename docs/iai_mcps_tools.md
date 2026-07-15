@@ -1,11 +1,29 @@
 ## iai mcps tools
 
-Inspect an mcp's cached tools, current or past
+List an mcp's cached tools with descriptions
+
+### Synopsis
+
+Show the full cached tool list — name and description. 'iai mcps get' only
+shows a count; use this to see the tools themselves.
+
+```
+iai mcps tools <mcp_name> [flags]
+```
+
+### Examples
+
+```
+  iai mcps tools my-tool
+  iai mcps tools my-tool --json
+```
 
 ### Options
 
 ```
   -h, --help   help for tools
+      --json   Output raw API response as JSON
+      --yaml   Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
@@ -22,7 +40,4 @@ Inspect an mcp's cached tools, current or past
 ### SEE ALSO
 
 * [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
-* [iai mcps tools diff](iai_mcps_tools_diff.md)	 - Compare tool sets between two revisions of an mcp
-* [iai mcps tools get](iai_mcps_tools_get.md)	 - List an mcp's cached tools with descriptions
-* [iai mcps tools revisions](iai_mcps_tools_revisions.md)	 - List an mcp's tool revisions
 

@@ -4,10 +4,8 @@ Show mcp details, verify state, and cached tools
 
 ### Synopsis
 
-Show the mcp's record (type, external URL, catalog origin) and its current-revision
-verify result — a tool count, not the tool list itself (see 'iai mcps tools get').
-
-For past revisions, see 'iai mcps tools revisions' and 'iai mcps tools diff'.
+Show the mcp's record (type, external URL, catalog origin) and its latest
+verify result — a tool count, not the tool list itself (see 'iai mcps tools').
 
 ```
 iai mcps get <mcp_name> [flags]

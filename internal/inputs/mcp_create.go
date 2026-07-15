@@ -29,7 +29,30 @@ type McpInput struct {
 	EndpointURL string
 	CatalogID   string
 
-	Credential string
+	// AuthType is bearer | api_key | none. Inferred when empty: bearer if a
+	// credential is given, otherwise none.
+	AuthType         string
+	Credential       string
+	AuthHeader       string
+	AuthHeaderPrefix string
+	Headers          []string // raw KEY=VALUE pairs
+}
+
+// parseHeaderFlags turns repeated --header KEY=VALUE pairs into a map.
+func parseHeaderFlags(pairs []string) (map[string]string, error) {
+	if len(pairs) == 0 {
+		return nil, nil
+	}
+	headers := make(map[string]string, len(pairs))
+	for _, p := range pairs {
+		key, value, found := strings.Cut(p, "=")
+		key = strings.TrimSpace(key)
+		if !found || key == "" {
+			return nil, fmt.Errorf("invalid --header %q: expected KEY=VALUE", p)
+		}
+		headers[key] = value
+	}
+	return headers, nil
 }
 
 func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
@@ -53,6 +76,11 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 		secretRefs = append(secretRefs, clients.SecretRef{SecretName: strings.TrimSpace(name)})
 	}
 
+	headers, err := parseHeaderFlags(in.Headers)
+	if err != nil {
+		return clients.CreateMcpBody{}, err
+	}
+
 	mcpType := strings.TrimSpace(in.Type)
 	switch {
 	case mcpType != "":
@@ -63,10 +91,25 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 		mcpType = "internal"
 	}
 
+	// authType is required by the server; infer the common cases so existing
+	// invocations keep working — a credential means bearer, none means no auth.
+	authType := strings.TrimSpace(in.AuthType)
+	if authType == "" {
+		if strings.TrimSpace(in.Credential) != "" {
+			authType = "bearer"
+		} else {
+			authType = "none"
+		}
+	}
+
 	body := clients.CreateMcpBody{
-		Type:       mcpType,
-		CatalogID:  strings.TrimSpace(in.CatalogID),
-		Credential: in.Credential,
+		Type:             mcpType,
+		CatalogID:        strings.TrimSpace(in.CatalogID),
+		AuthType:         authType,
+		Credential:       in.Credential,
+		AuthHeader:       strings.TrimSpace(in.AuthHeader),
+		AuthHeaderPrefix: in.AuthHeaderPrefix,
+		Headers:          headers,
 	}
 
 	switch mcpType {

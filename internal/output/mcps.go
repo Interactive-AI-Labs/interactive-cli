@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -62,6 +63,27 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	if m.Status != "" {
 		fmt.Fprintf(w, "Status:\t%s\n", m.Status)
 	}
+	if m.AuthType != "" {
+		fmt.Fprintf(w, "Auth Type:\t%s\n", m.AuthType)
+	}
+	if m.AuthHeader != "" {
+		fmt.Fprintf(w, "Auth Header:\t%s\n", m.AuthHeader)
+	}
+	if m.AuthHeaderPrefix != "" {
+		fmt.Fprintf(w, "Auth Header Prefix:\t%s\n", m.AuthHeaderPrefix)
+	}
+	if len(m.Headers) > 0 {
+		names := make([]string, 0, len(m.Headers))
+		for k := range m.Headers {
+			names = append(names, k)
+		}
+		sort.Strings(names)
+		pairs := make([]string, len(names))
+		for i, k := range names {
+			pairs[i] = k + "=" + m.Headers[k]
+		}
+		fmt.Fprintf(w, "Extra Headers:\t%s\n", strings.Join(pairs, ", "))
+	}
 	fmt.Fprintf(w, "Credential Set:\t%t\n", m.HasCredential)
 	if len(m.SecretRefs) > 0 {
 		names := make([]string, len(m.SecretRefs))
@@ -87,20 +109,12 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	if m.Verify.Error != "" {
 		fmt.Fprintf(w, "Verify Error:\t%s\n", m.Verify.Error)
 	}
-	fmt.Fprintf(
-		w,
-		"Tools:\t%d (see 'iai mcps tools get %s', 'iai mcps tools revisions %s')\n",
-		len(m.Tools),
-		m.Name,
-		m.Name,
-	)
+	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools %s')\n", m.Verify.ToolCount, m.Name)
 
 	return w.Flush()
 }
 
-// PrintMcpTools lists an mcp's cached tools with their descriptions — the
-// current revision's (DescribeMcp) or a past one's (DescribeMcpToolRevision),
-// both of which carry a Tools []map[string]any field.
+// PrintMcpTools lists an mcp's cached tools with their descriptions.
 func PrintMcpTools(out io.Writer, tools []map[string]any) error {
 	if len(tools) == 0 {
 		fmt.Fprintln(out, "No tools cached — run 'iai mcps verify' first.")

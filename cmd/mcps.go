@@ -32,8 +32,12 @@ var (
 	mcpSecretRefs      []string
 	mcpEndpointURL     string
 	mcpCatalogID       string
+	mcpAuthType        string
 	mcpCredential      string
 	mcpCredentialStdin bool
+	mcpAuthHeader      string
+	mcpAuthHeaderPfx   string
+	mcpHeaders         []string
 )
 
 var mcpForce bool
@@ -56,7 +60,6 @@ var (
 	mcpToolsYAML   bool
 )
 
-var mcpToolsRevision int
 
 var mcpsCmd = &cobra.Command{
 	Use:     "mcps",
@@ -118,19 +121,23 @@ func runMcpUpsert(cmd *cobra.Command, mcpName, verb string, submit func(
 	}
 
 	reqBody, err := inputs.BuildMcpRequestBody(inputs.McpInput{
-		Type:            mcpType,
-		Port:            mcpPort,
-		ImageType:       mcpImageType,
-		ImageRepository: mcpImageRepository,
-		ImageName:       mcpImageName,
-		ImageTag:        mcpImageTag,
-		Memory:          mcpMemory,
-		CPU:             mcpCPU,
-		EnvVars:         mcpEnvVars,
-		SecretRefs:      mcpSecretRefs,
-		EndpointURL:     mcpEndpointURL,
-		CatalogID:       mcpCatalogID,
-		Credential:      cred,
+		Type:             mcpType,
+		Port:             mcpPort,
+		ImageType:        mcpImageType,
+		ImageRepository:  mcpImageRepository,
+		ImageName:        mcpImageName,
+		ImageTag:         mcpImageTag,
+		Memory:           mcpMemory,
+		CPU:              mcpCPU,
+		EnvVars:          mcpEnvVars,
+		SecretRefs:       mcpSecretRefs,
+		EndpointURL:      mcpEndpointURL,
+		CatalogID:        mcpCatalogID,
+		AuthType:         mcpAuthType,
+		Credential:       cred,
+		AuthHeader:       mcpAuthHeader,
+		AuthHeaderPrefix: mcpAuthHeaderPfx,
+		Headers:          mcpHeaders,
 	})
 	if err != nil {
 		return err
@@ -172,14 +179,14 @@ and --secret load env vars from literal values or existing k8s Secrets.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
-derived from the catalog entry — only entries resolvable to plain
-Authorization: Bearer (or no auth) can be used this way.
+derived from the catalog entry. Pass an auth type the entry supports; catalog
+entries provide their own credential header and prefix.
 
 The mcp is verified against the live server before it's kept: an internal mcp
 is verified once its pod is up (checked in the background — see 'iai mcps get');
 an external mcp (custom or catalog) is verified immediately, and the create
 fails if the server is unreachable or rejects the credential.`,
-	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080
+	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt`,
@@ -251,10 +258,8 @@ var mcpListCmd = &cobra.Command{
 var mcpGetCmd = &cobra.Command{
 	Use:   "get <mcp_name>",
 	Short: "Show mcp details, verify state, and cached tools",
-	Long: `Show the mcp's record (type, external URL, catalog origin) and its current-revision
-verify result — a tool count, not the tool list itself (see 'iai mcps tools get').
-
-For past revisions, see 'iai mcps tools revisions' and 'iai mcps tools diff'.`,
+	Long: `Show the mcp's record (type, external URL, catalog origin) and its latest
+verify result — a tool count, not the tool list itself (see 'iai mcps tools').`,
 	Example: `  iai mcps get my-tool
   iai mcps get my-tool --json`,
 	Args: cobra.ExactArgs(1),
@@ -282,26 +287,13 @@ For past revisions, see 'iai mcps tools revisions' and 'iai mcps tools diff'.`,
 	},
 }
 
-// mcpToolsCmd is a group, not a leaf: tools are versioned per helm release
-// revision (see mcps_verify.go's mcpToolsConfigMapName), so "current" (get),
-// "list past" (revisions), and "compare two" (diff) are three distinct
-// operations — mirroring 'iai agents revisions'/'iai agents diff'.
 var mcpToolsCmd = &cobra.Command{
-	Use:   "tools",
-	Short: "Inspect an mcp's cached tools, current or past",
-}
-
-var mcpToolsGetCmd = &cobra.Command{
-	Use:   "get <mcp_name>",
+	Use:   "tools <mcp_name>",
 	Short: "List an mcp's cached tools with descriptions",
 	Long: `Show the full cached tool list — name and description. 'iai mcps get' only
-shows a count; use this to see the tools themselves.
-
---revision reads a past helm release revision's snapshot instead of the
-current one (see 'iai mcps tools revisions').`,
-	Example: `  iai mcps tools get my-tool
-  iai mcps tools get my-tool --revision 3
-  iai mcps tools get my-tool --json`,
+shows a count; use this to see the tools themselves.`,
+	Example: `  iai mcps tools my-tool
+  iai mcps tools my-tool --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -312,23 +304,7 @@ current one (see 'iai mcps tools revisions').`,
 			return err
 		}
 
-		if mcpToolsRevision > 0 {
-			rev, err := deployClient.DescribeMcpToolRevision(
-				cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, mcpToolsRevision,
-			)
-			if err != nil {
-				return err
-			}
-			if mcpToolsJSON {
-				return output.PrintStructuredJSON(out, rev)
-			}
-			if mcpToolsYAML {
-				return output.PrintStructuredYAML(out, rev)
-			}
-			return output.PrintMcpTools(out, rev.Tools)
-		}
-
-		res, err := deployClient.DescribeMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		res, err := deployClient.GetMcpTools(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
 		if err != nil {
 			return err
 		}
@@ -339,85 +315,6 @@ current one (see 'iai mcps tools revisions').`,
 			return output.PrintStructuredYAML(out, res.Tools)
 		}
 		return output.PrintMcpTools(out, res.Tools)
-	},
-}
-
-var mcpToolsRevisionsCmd = &cobra.Command{
-	Use:     "revisions <mcp_name>",
-	Aliases: []string{"revs"},
-	Short:   "List an mcp's tool revisions",
-	Long:    `Show past tool snapshots, one per helm release revision, sorted newest-first.`,
-	Example: `  iai mcps tools revisions my-tool`,
-	Args:    cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-		mcpName := strings.TrimSpace(args[0])
-
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
-		if err != nil {
-			return err
-		}
-
-		revisions, err := deployClient.ListMcpToolRevisions(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			mcpName,
-		)
-		if err != nil {
-			return err
-		}
-
-		return output.PrintAgentRevisions(out, revisions)
-	},
-}
-
-var mcpToolsDiffCmd = &cobra.Command{
-	Use:     "diff <mcp_name> <revision_a> <revision_b>",
-	Short:   "Compare tool sets between two revisions of an mcp",
-	Long:    `Show the differences in cached tools between two past revisions of an mcp.`,
-	Example: `  iai mcps tools diff my-tool 1 3`,
-	Args:    cobra.ExactArgs(3),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-		mcpName := strings.TrimSpace(args[0])
-
-		revA, err := inputs.ParseRevisionArg(args[1])
-		if err != nil {
-			return err
-		}
-		revB, err := inputs.ParseRevisionArg(args[2])
-		if err != nil {
-			return err
-		}
-
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
-		if err != nil {
-			return err
-		}
-
-		a, err := deployClient.DescribeMcpToolRevision(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			mcpName,
-			revA,
-		)
-		if err != nil {
-			return err
-		}
-		b, err := deployClient.DescribeMcpToolRevision(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			mcpName,
-			revB,
-		)
-		if err != nil {
-			return err
-		}
-
-		return output.PrintRevisionDiff(out, args[1], a, args[2], b)
 	},
 }
 
@@ -580,9 +477,9 @@ func init() {
 		c.Flags().StringVar(&mcpImageName, "image-name", "", "Container image name (internal)")
 		c.Flags().StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal)")
 		c.Flags().
-			StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal, default 512M)")
+			StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (required for internal)")
 		c.Flags().
-			StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal, default 250m)")
+			StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (required for internal)")
 		c.Flags().
 			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)")
 		c.Flags().
@@ -592,17 +489,26 @@ func init() {
 		c.Flags().
 			StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
 		c.Flags().
+			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", or "none" (inferred from --credential if omitted)`)
+		c.Flags().
 			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
 		c.Flags().
 			BoolVar(&mcpCredentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
+		c.Flags().
+			StringVar(&mcpAuthHeader, "auth-header", "", "Override the header the credential is sent in (default Authorization for bearer, X-API-Key for api_key)")
+		c.Flags().
+			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", `Override the credential value prefix (default "Bearer " for bearer)`)
+		c.Flags().
+			StringArrayVar(&mcpHeaders, "header", nil, "Extra non-secret request header (NAME=VALUE); can be repeated")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 		c.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
 		c.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
 		c.MarkFlagsMutuallyExclusive("external-url", "image-name")
+		// Catalog entries carry their own auth routing — these only apply to custom endpoints.
+		c.MarkFlagsMutuallyExclusive("catalog-id", "auth-header")
+		c.MarkFlagsMutuallyExclusive("catalog-id", "auth-header-prefix")
+		c.MarkFlagsMutuallyExclusive("catalog-id", "header")
 	}
-
-	mcpToolsGetCmd.Flags().
-		IntVar(&mcpToolsRevision, "revision", 0, "Read this past helm release revision's cached tools instead of the current one")
 
 	mcpRunToolCmd.Flags().
 		StringVar(&mcpArgsJSON, "args", "", "Tool arguments as an inline JSON object")
@@ -624,11 +530,9 @@ func init() {
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyJSON, "json", false, "Output raw API response as JSON")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyYAML, "yaml", false, "Output raw API response as YAML")
 	mcpVerifyCmd.MarkFlagsMutuallyExclusive("json", "yaml")
-	mcpToolsGetCmd.Flags().BoolVar(&mcpToolsJSON, "json", false, "Output raw API response as JSON")
-	mcpToolsGetCmd.Flags().BoolVar(&mcpToolsYAML, "yaml", false, "Output raw API response as YAML")
-	mcpToolsGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
-
-	mcpToolsCmd.AddCommand(mcpToolsGetCmd, mcpToolsRevisionsCmd, mcpToolsDiffCmd)
+	mcpToolsCmd.Flags().BoolVar(&mcpToolsJSON, "json", false, "Output raw API response as JSON")
+	mcpToolsCmd.Flags().BoolVar(&mcpToolsYAML, "yaml", false, "Output raw API response as YAML")
+	mcpToolsCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	rootCmd.AddCommand(mcpsCmd)
 	mcpsCmd.AddCommand(
