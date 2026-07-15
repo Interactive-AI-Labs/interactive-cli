@@ -314,7 +314,80 @@ shows a count; use this to see the tools themselves.`,
 		if mcpToolsYAML {
 			return output.PrintStructuredYAML(out, res.Tools)
 		}
-		return output.PrintMcpTools(out, res.Tools)
+		return output.PrintMcpTools(
+			out, res.Tools,
+			res.ToolsAdded, res.ToolsRemoved, res.ChangedFromRevision,
+		)
+	},
+}
+
+var mcpRevisionsCmd = &cobra.Command{
+	Use:     "revisions <mcp_name>",
+	Aliases: []string{"revs"},
+	Short:   "List revisions of an mcp",
+	Long: `Show past revisions of an mcp, sorted newest-first. Up to 50 revisions are
+retained per mcp. Every spec change — update, credential rotation, agent
+attach/detach — creates a revision.`,
+	Example: `  iai mcps revisions my-tool`,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		revisions, err := deployClient.ListMcpRevisions(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName,
+		)
+		if err != nil {
+			return err
+		}
+		return output.PrintServiceRevisions(out, revisions)
+	},
+}
+
+var mcpDiffCmd = &cobra.Command{
+	Use:   "diff <mcp_name> <revision_a> <revision_b>",
+	Short: "Compare two revisions of an mcp",
+	Long: `Show the config differences between two revisions of an mcp — spec only.
+Cached tools change at verify time, not per revision; 'iai mcps tools' shows
+what changed since the previous verify.`,
+	Example: `  iai mcps diff my-tool 1 3`,
+	Args:    cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		revA, err := inputs.ParseRevisionArg(args[1])
+		if err != nil {
+			return err
+		}
+		revB, err := inputs.ParseRevisionArg(args[2])
+		if err != nil {
+			return err
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		a, err := deployClient.DescribeMcpRevision(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, revA,
+		)
+		if err != nil {
+			return err
+		}
+		b, err := deployClient.DescribeMcpRevision(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, revB,
+		)
+		if err != nil {
+			return err
+		}
+		return output.PrintRevisionDiff(out, args[1], a, args[2], b)
 	},
 }
 
@@ -542,6 +615,8 @@ func init() {
 		mcpListCmd,
 		mcpGetCmd,
 		mcpToolsCmd,
+		mcpRevisionsCmd,
+		mcpDiffCmd,
 		mcpVerifyCmd,
 		mcpRunToolCmd,
 		mcpDeleteCmd,

@@ -114,8 +114,9 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	return w.Flush()
 }
 
-// PrintMcpTools lists an mcp's cached tools with their descriptions.
-func PrintMcpTools(out io.Writer, tools []map[string]any) error {
+// PrintMcpTools lists an mcp's cached tools with their descriptions, plus the
+// names-level diff vs the previous verify snapshot when one is recorded.
+func PrintMcpTools(out io.Writer, tools []map[string]any, added, removed []string, changedFrom string) error {
 	if len(tools) == 0 {
 		fmt.Fprintln(out, "No tools cached — run 'iai mcps verify' first.")
 		return nil
@@ -129,6 +130,16 @@ func PrintMcpTools(out io.Writer, tools []map[string]any) error {
 		} else {
 			fmt.Fprintf(out, "  %s\n", name)
 		}
+	}
+	if len(added) > 0 || len(removed) > 0 {
+		fmt.Fprintf(out, "\nChanged since revision %s:", changedFrom)
+		for _, n := range added {
+			fmt.Fprintf(out, " +%s", n)
+		}
+		for _, n := range removed {
+			fmt.Fprintf(out, " -%s", n)
+		}
+		fmt.Fprintln(out)
 	}
 	return nil
 }

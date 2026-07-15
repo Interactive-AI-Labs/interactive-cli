@@ -84,6 +84,10 @@ type McpToolsResponse struct {
 	ProtocolVersion string           `json:"protocolVersion,omitempty"`
 	Tools           []map[string]any `json:"tools"`
 	Truncated       bool             `json:"truncated,omitempty"`
+	// Names-level diff vs the previous verify snapshot.
+	ToolsAdded          []string `json:"toolsAdded,omitempty"`
+	ToolsRemoved        []string `json:"toolsRemoved,omitempty"`
+	ChangedFromRevision string   `json:"changedFromRevision,omitempty"`
 }
 
 type listMcpsResponse struct {
@@ -354,4 +358,43 @@ func (c *DeploymentClient) RunMcpTool(
 		return nil, fmt.Errorf("failed to decode run-tool response: %w", err)
 	}
 	return &result, nil
+}
+
+// ListMcpRevisions returns past revisions of an mcp, newest-first.
+func (c *DeploymentClient) ListMcpRevisions(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+) ([]RevisionMeta, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/mcps/%s/revisions",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(mcpName),
+	)
+	return c.fetchRevisions(ctx, path, "mcp revisions")
+}
+
+// DescribeMcpRevision returns the config snapshot of one mcp revision. Decoded
+// as a plain map so PrintRevisionDiff can diff any pair of revisions directly.
+func (c *DeploymentClient) DescribeMcpRevision(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+	revision int,
+) (map[string]any, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/mcps/%s/revisions/%d",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(mcpName),
+		revision,
+	)
+	respBody, err := c.sendMcpRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode mcp revision response: %w", err)
+	}
+	return result, nil
 }
