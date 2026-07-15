@@ -325,8 +325,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&version, "version", 0, "Retrieve a specific version number")
-	cmd.Flags().
-		StringVar(&label, "label", "", "Retrieve the version with this label (default: server resolves 'production')")
+	cmd.Flags().StringVar(&label, "label", "", "Retrieve the version with this label")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
 	cmd.MarkFlagsMutuallyExclusive("json", "yaml")

@@ -62,13 +62,12 @@ Exactly one of --file or --content must be specified.
 
 The --type flag selects the prompt type: "text" (default) or "chat".
 
-The server automatically assigns the "latest" label to new versions. To make a
-version retrievable via the default 'get' (which resolves "production"), assign
-the "production" label with --labels production.`,
+The server automatically assigns the "latest" label to new versions. Use
+--labels to assign additional labels (e.g. --labels staging).`,
 		Example: `  iai prompts create greeting --content "Hello, how can I help you?"
   iai prompts create greeting --file greeting.txt
   iai prompts create greeting --file greeting.txt --type chat
-  iai prompts create greeting --content "Hi!" --labels production
+  iai prompts create greeting --content "Hi!" --labels staging
   iai prompts create greeting --file greeting.txt --tags support`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -232,8 +231,9 @@ func makeGenericGetCmd() *cobra.Command {
 		Short:   "Describe a prompt in detail",
 		Long: `Show detailed information about a specific prompt, including its full content.
 
-By default returns the version labeled "production". Use --version to retrieve a
-specific version number, or --label to resolve a different label.`,
+Without flags, returns the version the server resolves by default. Use
+--version to retrieve a specific version number, or --label to resolve a
+specific label.`,
 		Example: `  iai prompts get greeting
   iai prompts get greeting --version 3
   iai prompts get greeting --label staging`,
@@ -271,10 +271,7 @@ specific version number, or --label to resolve a different label.`,
 	}
 
 	cmd.Flags().IntVar(&version, "version", 0, "Retrieve a specific version number")
-	cmd.Flags().StringVar(
-		&label, "label", "",
-		`Retrieve the version with this label (default: server resolves "production")`,
-	)
+	cmd.Flags().StringVar(&label, "label", "", "Retrieve the version with this label")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
 	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
@@ -308,7 +305,7 @@ by version number.
 Exactly one of --file or --content must be specified.`,
 		Example: `  iai prompts update greeting --content "Hello! How may I assist you today?"
   iai prompts update greeting --file greeting.txt
-  iai prompts update greeting --file greeting.txt --labels production,staging`,
+  iai prompts update greeting --file greeting.txt --labels staging,qa`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()

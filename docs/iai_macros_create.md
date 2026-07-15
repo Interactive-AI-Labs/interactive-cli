@@ -20,7 +20,7 @@ No schema validation is applied — any text content is accepted.
 
 ```
   iai macros create disclaimer --file disclaimer.md
-  iai macros create disclaimer --file disclaimer.md --labels production
+  iai macros create disclaimer --file disclaimer.md --labels staging
   iai macros create disclaimer --file disclaimer.md --tags legal
 ```
 

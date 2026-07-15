@@ -27,7 +27,7 @@ criticality: HIGH
 ```
   iai policies create safety-rules --file policy.yaml
   iai policies create safety-rules --file policy.yaml --schema-version 2.1.0
-  iai policies create safety-rules --file policy.yaml --labels production
+  iai policies create safety-rules --file policy.yaml --labels staging
   iai policies create safety-rules --file policy.yaml --tags compliance
 ```
 
