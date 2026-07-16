@@ -3,80 +3,9 @@ package clients
 import (
 	"context"
 	"encoding/json"
-	"net/url"
 )
 
-// These mirror the backend mcp_connections schemas; the credential is never
-// returned by the API, so it has no field here.
-
-type ConnectedAgentRef struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-type McpTool struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description,omitempty"`
-	InputSchema map[string]any `json:"input_schema,omitempty"`
-	Enabled     bool           `json:"enabled"`
-}
-
-type McpConnection struct {
-	ID              string              `json:"id"`
-	ProjectID       string              `json:"project_id"`
-	CatalogID       string              `json:"catalog_id,omitempty"`
-	Type            string              `json:"type"`
-	Name            string              `json:"name"`
-	Slug            string              `json:"slug"`
-	Description     string              `json:"description,omitempty"`
-	EndpointURL     string              `json:"endpoint_url"`
-	Transport       string              `json:"transport"`
-	AuthType        string              `json:"auth_type"`
-	HasCredential   bool                `json:"has_credential"`
-	CustomHeaders   map[string]string   `json:"custom_headers,omitempty"`
-	Status          string              `json:"status"`
-	LastVerifiedAt  string              `json:"last_verified_at,omitempty"`
-	LastErrorClass  string              `json:"last_error_class,omitempty"`
-	ProtocolVersion string              `json:"protocol_version,omitempty"`
-	ToolCount       int                 `json:"tool_count"`
-	ConnectedAgents []ConnectedAgentRef `json:"connected_agents"`
-	CreatedBy       string              `json:"created_by"`
-	CreatedAt       string              `json:"created_at"`
-	UpdatedAt       string              `json:"updated_at"`
-}
-
-type McpConnectionDetail struct {
-	McpConnection
-	Tools     []McpTool `json:"tools"`
-	LastError string    `json:"last_error,omitempty"`
-}
-
-type McpConnectionListData struct {
-	Connections []McpConnection `json:"connections"`
-}
-
-type McpConnectionDetailData struct {
-	Connection McpConnectionDetail `json:"connection"`
-}
-
-type McpVerifyData struct {
-	Status          string         `json:"status"`
-	ErrorClass      string         `json:"error_class,omitempty"`
-	ErrorMessage    string         `json:"error_message,omitempty"`
-	ProtocolVersion string         `json:"protocol_version,omitempty"`
-	ServerInfo      map[string]any `json:"server_info,omitempty"`
-	Tools           []McpTool      `json:"tools"`
-}
-
-type McpToolCallData struct {
-	Status string `json:"status"`
-	// Result is kept as raw JSON: a tool may return an object, array, or scalar
-	// at the top level, and decoding into a typed map would silently drop the
-	// non-object shapes.
-	Result       json.RawMessage `json:"result,omitempty"`
-	ErrorClass   string          `json:"error_class,omitempty"`
-	ErrorMessage string          `json:"error_message,omitempty"`
-}
+// These mirror the backend mcp-catalog schemas.
 
 type McpCatalogEntry struct {
 	ID          string   `json:"id"`
@@ -94,41 +23,6 @@ type McpCatalogListData struct {
 	Entries []McpCatalogEntry `json:"entries"`
 }
 
-type McpConnectionCreateBody struct {
-	Type          string            `json:"type"`
-	CatalogID     string            `json:"catalog_id,omitempty"`
-	Name          string            `json:"name"`
-	Slug          string            `json:"slug,omitempty"`
-	Description   string            `json:"description,omitempty"`
-	EndpointURL   string            `json:"endpoint_url,omitempty"`
-	Transport     string            `json:"transport,omitempty"`
-	AuthType      string            `json:"auth_type"`
-	Credential    string            `json:"credential,omitempty"`
-	CustomHeaders map[string]string `json:"custom_headers,omitempty"`
-}
-
-func (c *APIClient) ListMcpConnections(
-	ctx context.Context, orgID, projectID string,
-) (*McpConnectionListData, json.RawMessage, error) {
-	path := evalBasePath(orgID, projectID) + "/mcp-connections"
-	data, raw, err := doGet[McpConnectionListData](c, ctx, path, "list mcp connections")
-	if err != nil {
-		return nil, nil, err
-	}
-	return &data, raw, nil
-}
-
-func (c *APIClient) GetMcpConnection(
-	ctx context.Context, orgID, projectID, id string,
-) (*McpConnectionDetail, json.RawMessage, error) {
-	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id)
-	data, raw, err := doGet[McpConnectionDetailData](c, ctx, path, "get mcp connection")
-	if err != nil {
-		return nil, nil, err
-	}
-	return &data.Connection, raw, nil
-}
-
 func (c *APIClient) ListMcpCatalog(
 	ctx context.Context, orgID, projectID string,
 ) (*McpCatalogListData, json.RawMessage, error) {
@@ -138,57 +32,4 @@ func (c *APIClient) ListMcpCatalog(
 		return nil, nil, err
 	}
 	return &data, raw, nil
-}
-
-// No requireAPIKeyMode() on these writes: the MCP endpoints accept cookie and
-// bearer auth, so gating on API-key mode would break iai-login users and the copilot.
-func (c *APIClient) CreateMcpConnection(
-	ctx context.Context, orgID, projectID string, body McpConnectionCreateBody,
-) (*McpConnectionDetail, error) {
-	path := evalBasePath(orgID, projectID) + "/mcp-connections"
-	data, _, err := doCreate[McpConnectionDetailData](c, ctx, path, body, "create mcp connection")
-	if err != nil {
-		return nil, err
-	}
-	return &data.Connection, nil
-}
-
-func (c *APIClient) DeleteMcpConnection(
-	ctx context.Context, orgID, projectID, id string,
-) error {
-	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id)
-	_, err := c.doDelete(ctx, path, "delete mcp connection")
-	return err
-}
-
-func (c *APIClient) VerifyMcpConnection(
-	ctx context.Context, orgID, projectID, id string,
-) (*McpVerifyData, json.RawMessage, error) {
-	path := evalBasePath(orgID, projectID) + "/mcp-connections/" + url.PathEscape(id) + "/verify"
-	// Send an empty JSON object rather than nil: a nil body skips the
-	// Content-Type: application/json header (see newJSONRequest), which some
-	// servers reject on a POST.
-	data, raw, err := doCreate[McpVerifyData](c, ctx, path, struct{}{}, "verify mcp connection")
-	if err != nil {
-		return nil, nil, err
-	}
-	return &data, raw, nil
-}
-
-func (c *APIClient) RunMcpTool(
-	ctx context.Context, orgID, projectID, id, tool string, arguments map[string]any,
-) (*McpToolCallData, error) {
-	if arguments == nil {
-		arguments = map[string]any{}
-	}
-	path := evalBasePath(orgID, projectID) + "/mcp-connections/" +
-		url.PathEscape(id) + "/tools/" + url.PathEscape(tool) + "/run"
-	body := struct {
-		Arguments map[string]any `json:"arguments"`
-	}{Arguments: arguments}
-	data, _, err := doCreate[McpToolCallData](c, ctx, path, body, "run mcp tool")
-	if err != nil {
-		return nil, err
-	}
-	return &data, nil
 }
