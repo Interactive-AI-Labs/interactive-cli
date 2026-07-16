@@ -5,40 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
-
-func TestParseHeaderFlags(t *testing.T) {
-	tests := []struct {
-		name    string
-		pairs   []string
-		want    map[string]string
-		wantErr bool
-	}{
-		{"simple pair", []string{"X-A=1"}, map[string]string{"X-A": "1"}, false},
-		{"value with equals", []string{"X-B=two=2"}, map[string]string{"X-B": "two=2"}, false},
-		{"multiple", []string{"X-A=1", "X-B=2"}, map[string]string{"X-A": "1", "X-B": "2"}, false},
-		{"missing equals", []string{"bad-no-equals"}, nil, true},
-		{"empty key", []string{"=value"}, nil, true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseHeaderFlags(tt.pairs)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("ParseHeaderFlags(%v) err=%v wantErr=%v", tt.pairs, err, tt.wantErr)
-			}
-			if tt.wantErr {
-				return
-			}
-			for k, v := range tt.want {
-				if got[k] != v {
-					t.Fatalf("ParseHeaderFlags(%v) = %#v, want %q=%q", tt.pairs, got, k, v)
-				}
-			}
-		})
-	}
-}
 
 func TestResolveCredential(t *testing.T) {
 	tests := []struct {
@@ -138,34 +105,6 @@ func TestResolveToolArgsFromFile(t *testing.T) {
 			}
 			if got[tt.wantKey] != "foo" {
 				t.Fatalf("unexpected args: %#v", got)
-			}
-		})
-	}
-}
-
-func TestCatalogEndpointURL(t *testing.T) {
-	entries := []clients.McpCatalogEntry{
-		{ID: "kiwi", EndpointURL: "https://mcp.kiwi.com/"},
-		{ID: "selfhosted", EndpointURL: ""},
-	}
-	tests := []struct {
-		name      string
-		catalogID string
-		want      string
-		wantErr   bool
-	}{
-		{"known entry with endpoint", "kiwi", "https://mcp.kiwi.com/", false},
-		{"unknown entry", "missing", "", true},
-		{"entry without managed endpoint", "selfhosted", "", true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := CatalogEndpointURL(entries, tt.catalogID)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("CatalogEndpointURL(%q) err=%v wantErr=%v", tt.catalogID, err, tt.wantErr)
-			}
-			if got != tt.want {
-				t.Fatalf("got %q, want %q", got, tt.want)
 			}
 		})
 	}

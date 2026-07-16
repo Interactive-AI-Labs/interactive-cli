@@ -1,0 +1,44 @@
+## iai mcps verify
+
+Re-verify an external mcp and refresh its cached tools
+
+### Synopsis
+
+Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
+External mcps only — internal mcps verify automatically once their pod is up
+(background reconciler; see 'iai mcps get') and reject a manual verify.
+
+```
+iai mcps verify <mcp_name> [flags]
+```
+
+### Examples
+
+```
+  iai mcps verify my-tool
+  iai mcps verify my-tool --json
+```
+
+### Options
+
+```
+  -h, --help   help for verify
+      --json   Output raw API response as JSON
+      --yaml   Output raw API response as YAML
+```
+
+### Options inherited from parent commands
+
+```
+      --api-key string               API key for authentication
+      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
+      --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
+      --hostname string              Hostname for the API (default "https://app.interactive.ai")
+  -o, --organization string          Organization name that owns the project
+  -p, --project string               Project name that owns the mcps
+```
+
+### SEE ALSO
+
+* [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
+
