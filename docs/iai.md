@@ -101,6 +101,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai logout](iai_logout.md)	 - Clear local session
 * [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines
 * [iai metrics](iai_metrics.md)	 - Query aggregated observability metrics
+* [iai models](iai_models.md)	 - List and inspect models
 * [iai observations](iai_observations.md)	 - Inspect spans within traces
 * [iai organizations](iai_organizations.md)	 - Switch or list organizations
 * [iai policies](iai_policies.md)	 - Single-step behavioral rules for agents
