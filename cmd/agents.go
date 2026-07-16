@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -25,9 +26,11 @@ var (
 	agentVersion string
 	agentFile    string
 
-	agentEndpoint   bool
-	agentEnvVars    []string
-	agentSecretRefs []string
+	agentEndpoint       bool
+	agentEnvVars        []string
+	agentSecretRefs     []string
+	agentMcpNames       []string
+	agentDetachMcpNames []string
 
 	agentScheduleUptime   string
 	agentScheduleDowntime string
@@ -102,6 +105,7 @@ on their create/update commands).`,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
 			StackId:          agentStackId,
+			McpNames:         agentMcpNames,
 		})
 		if err != nil {
 			return err
@@ -155,14 +159,21 @@ and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezon
 alongside either to change the timezone.
 
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
-remove those configurations entirely.`,
+remove those configurations entirely.
+
+--detach-mcp removes an mcp reference (bare or resolved) by name; combine
+with --mcp in the same command to swap one for another. Detach an mcp before
+deleting it — 'iai mcps delete' blocks by default while an agent still
+references it.`,
 	Example: `  iai agents update chat-agent --version 0.0.3
   iai agents update chat-agent --file agent-config.yaml
   iai agents update chat-agent --endpoint=false
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
-  iai agents update chat-agent --clear-stack-id`,
+  iai agents update chat-agent --clear-stack-id
+  iai agents update chat-agent --mcp github --mcp stripe
+  iai agents update chat-agent --detach-mcp stripe`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -184,9 +195,35 @@ remove those configurations entirely.`,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
 			StackId:          agentStackId,
+			McpNames:         agentMcpNames,
+			DetachMcpNames:   agentDetachMcpNames,
 		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
 		if err != nil {
 			return err
+		}
+
+		mcpFlagsChanged := cmd.Flags().Changed("mcp") || cmd.Flags().Changed("detach-mcp")
+		if mcpFlagsChanged && !cmd.Flags().Changed("file") {
+			// No --file: overlay onto the agent's current config instead of requiring the whole config resupplied.
+			current, describeErr := deployClient.DescribeAgent(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
+			)
+			if describeErr != nil {
+				return describeErr
+			}
+			detached, detachErr := inputs.DetachMcpRefs(current.AgentConfig, agentDetachMcpNames)
+			if detachErr != nil {
+				return detachErr
+			}
+			augmented, injectErr := inputs.InjectMcpRefs(detached, agentMcpNames)
+			if injectErr != nil {
+				return injectErr
+			}
+			raw, marshalErr := json.Marshal(augmented)
+			if marshalErr != nil {
+				return fmt.Errorf("failed to encode agent config: %w", marshalErr)
+			}
+			patch["agentConfig"] = json.RawMessage(raw)
 		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update; pass at least one flag")
@@ -888,6 +925,8 @@ func init() {
 		StringVar(&agentScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 	agentCreateCmd.Flags().
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
+	agentCreateCmd.Flags().
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated")
 	_ = agentCreateCmd.MarkFlagRequired("id")
 	_ = agentCreateCmd.MarkFlagRequired("version")
 	_ = agentCreateCmd.MarkFlagRequired("file")
@@ -925,6 +964,10 @@ func init() {
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
+	agentUpdateCmd.Flags().
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps")
+	agentUpdateCmd.Flags().
+		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().

@@ -197,3 +197,101 @@ func TestBuildAgentRequestBody(t *testing.T) {
 		})
 	}
 }
+
+func TestInjectMcpRefs(t *testing.T) {
+	mslearn := map[string]any{
+		"id":        "mslearn",
+		"hostname":  "https://learn.microsoft.com",
+		"port":      443,
+		"transport": "streamable-http",
+	}
+	tests := []struct {
+		name  string
+		cfg   map[string]any
+		names []string
+		want  []any
+	}{
+		{
+			name: "dedups against existing bare and resolved refs, and repeats in the same call",
+			cfg: map[string]any{
+				"mcps": []any{
+					"github",
+					mslearn,
+				},
+			},
+			names: []string{"github", "acme", "acme", "mslearn"},
+			want: []any{
+				"github",
+				mslearn,
+				"acme",
+			},
+		},
+		{
+			name:  "no existing mcps key",
+			cfg:   map[string]any{},
+			names: []string{"github"},
+			want:  []any{"github"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := InjectMcpRefs(tt.cfg, tt.names)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mcps := out.(map[string]any)["mcps"].([]any)
+			if !reflect.DeepEqual(mcps, tt.want) {
+				t.Errorf("mcps = %v, want %v", mcps, tt.want)
+			}
+		})
+	}
+}
+
+func TestDetachMcpRefs(t *testing.T) {
+	mslearn := map[string]any{
+		"id":        "mslearn",
+		"hostname":  "https://learn.microsoft.com",
+		"port":      443,
+		"transport": "streamable-http",
+	}
+	tests := []struct {
+		name  string
+		cfg   map[string]any
+		names []string
+		want  []any
+	}{
+		{
+			name: "removes matching bare and resolved refs, ignores unmatched names",
+			cfg: map[string]any{
+				"mcps": []any{
+					"github",
+					mslearn,
+					"stripe",
+				},
+			},
+			names: []string{"mslearn", "not-attached"},
+			want: []any{
+				"github",
+				"stripe",
+			},
+		},
+		{
+			name:  "no names is a no-op",
+			cfg:   map[string]any{"mcps": []any{"github"}},
+			names: nil,
+			want:  []any{"github"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := DetachMcpRefs(tt.cfg, tt.names)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mcps := out.(map[string]any)["mcps"].([]any)
+			if !reflect.DeepEqual(mcps, tt.want) {
+				t.Errorf("mcps = %v, want %v", mcps, tt.want)
+			}
+		})
+	}
+}

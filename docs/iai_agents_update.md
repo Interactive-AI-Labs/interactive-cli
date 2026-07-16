@@ -29,6 +29,11 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
+--detach-mcp removes an mcp reference (bare or resolved) by name; combine
+with --mcp in the same command to swap one for another. Detach an mcp before
+deleting it — 'iai mcps delete' blocks by default while an agent still
+references it.
+
 ```
 iai agents update <agent_name> [flags]
 ```
@@ -43,6 +48,8 @@ iai agents update <agent_name> [flags]
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
   iai agents update chat-agent --clear-stack-id
+  iai agents update chat-agent --mcp github --mcp stripe
+  iai agents update chat-agent --detach-mcp stripe
 ```
 
 ### Options
@@ -52,11 +59,13 @@ iai agents update <agent_name> [flags]
       --clear-schedule             Remove the schedule configuration from the agent
       --clear-secret               Remove all secret references from the agent
       --clear-stack-id             Remove the agent from its stack
+      --detach-mcp stringArray     Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)
       --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
   -h, --help                       help for update
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
+      --mcp stringArray            Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps
   -o, --organization string        Organization name
   -p, --project string             Project name
       --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'

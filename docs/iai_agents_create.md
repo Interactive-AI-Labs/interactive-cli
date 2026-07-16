@@ -38,6 +38,7 @@ iai agents create <agent_name> [flags]
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
   -h, --help                       help for create
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
+      --mcp stringArray            Attach an MCP by name (see 'iai mcps list'); can be repeated
   -o, --organization string        Organization name
   -p, --project string             Project name
       --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
