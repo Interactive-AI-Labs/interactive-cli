@@ -23,6 +23,90 @@ type AgentInput struct {
 	ScheduleTimezone string
 
 	StackId string
+
+	McpNames       []string // appended as bare {mcp_id: <name>} references, resolved from the mcp's own release at deploy time
+	DetachMcpNames []string // removed before McpNames are (re-)injected
+}
+
+// InjectMcpRefs appends a bare-string reference for each name to the agent config's mcps list, preserving existing entries.
+func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
+	names := make([]string, 0, len(mcpNames))
+	for _, n := range mcpNames {
+		if n = strings.TrimSpace(n); n != "" {
+			names = append(names, n)
+		}
+	}
+	if len(names) == 0 {
+		return agentConfig, nil
+	}
+
+	cfg, ok := agentConfig.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("agent config must be a YAML/JSON object to attach --mcp references")
+	}
+	mcps, _ := cfg["mcps"].([]any)
+
+	// an mcp already present (bare ref or resolved entry with a matching id) is skipped rather than duplicated
+	seen := make(map[string]bool, len(mcps)+len(names))
+	for _, entry := range mcps {
+		switch e := entry.(type) {
+		case string:
+			if e != "" {
+				seen[e] = true
+			}
+		case map[string]any:
+			if id, ok := e["id"].(string); ok && id != "" {
+				seen[id] = true
+			}
+		}
+	}
+	for _, name := range names {
+		if seen[name] {
+			continue
+		}
+		mcps = append(mcps, name)
+		seen[name] = true
+	}
+	cfg["mcps"] = mcps
+	return cfg, nil
+}
+
+// DetachMcpRefs removes any mcps entry matching one of the given names; names not present are ignored.
+func DetachMcpRefs(agentConfig any, mcpNames []string) (any, error) {
+	names := make(map[string]bool, len(mcpNames))
+	for _, n := range mcpNames {
+		if n = strings.TrimSpace(n); n != "" {
+			names[n] = true
+		}
+	}
+	if len(names) == 0 {
+		return agentConfig, nil
+	}
+
+	cfg, ok := agentConfig.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf(
+			"agent config must be a YAML/JSON object to detach --detach-mcp references",
+		)
+	}
+	mcps, _ := cfg["mcps"].([]any)
+
+	kept := make([]any, 0, len(mcps))
+	for _, entry := range mcps {
+		switch e := entry.(type) {
+		case string:
+			if names[e] {
+				continue
+			}
+		case map[string]any:
+			if id, _ := e["id"].(string); names[id] {
+				continue
+			}
+		}
+		kept = append(kept, entry)
+	}
+	cfg["mcps"] = kept
+	return cfg, nil
 }
 
 func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
@@ -60,6 +144,10 @@ func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
 			in.FilePath,
 			err,
 		)
+	}
+	agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
+	if err != nil {
+		return clients.CreateAgentBody{}, err
 	}
 
 	reqBody := clients.CreateAgentBody{
@@ -141,6 +229,14 @@ func BuildAgentUpdatePatch(
 			return nil, fmt.Errorf(
 				"failed to parse YAML from %q: %w", in.FilePath, err,
 			)
+		}
+		agentConfig, err = DetachMcpRefs(agentConfig, in.DetachMcpNames)
+		if err != nil {
+			return nil, err
+		}
+		agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
+		if err != nil {
+			return nil, err
 		}
 		if err := setJSON(patch, "agentConfig", agentConfig); err != nil {
 			return nil, err
