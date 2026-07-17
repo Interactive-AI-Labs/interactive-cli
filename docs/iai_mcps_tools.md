@@ -4,8 +4,8 @@ List an mcp's cached tools with descriptions
 
 ### Synopsis
 
-Show the full cached tool list — name and description. 'iai mcps get' only
-shows a count; use this to see the tools themselves.
+Show the full cached tool list — name, description, and arguments. 'iai mcps
+describe' only shows a count; use this to see the tools themselves.
 
 ```
 iai mcps tools <mcp_name> [flags]

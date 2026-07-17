@@ -43,7 +43,7 @@ iai mcps update <mcp_name> [flags]
       --memory string               Memory request/limit, e.g. 512M (required for internal)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume
       --port int                    Port the mcp server listens on (internal)
-      --secret stringArray          Existing k8s Secret to load as env vars; can be repeated (internal)
+      --secret stringArray          Existing secret to load as env vars; can be repeated (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```
 
