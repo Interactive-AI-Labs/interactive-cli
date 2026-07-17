@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -130,57 +129,13 @@ func mcpsPath(orgId, projectId, mcpName string) string {
 	return base + "/" + url.PathEscape(mcpName)
 }
 
-func (c *DeploymentClient) sendMcpRequest(
-	ctx context.Context,
-	method, path string,
-	body any,
-) ([]byte, error) {
-	var reqHTTP *http.Request
-	var err error
-	if body != nil {
-		bodyBytes, marshalErr := json.Marshal(body)
-		if marshalErr != nil {
-			return nil, fmt.Errorf("failed to encode request body: %w", marshalErr)
-		}
-		reqHTTP, err = c.newRequest(ctx, method, path)
-		if err == nil {
-			reqHTTP.Header.Set("Content-Type", "application/json")
-			reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
-		}
-	} else {
-		reqHTTP, err = c.newRequest(ctx, method, path)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.do(reqHTTP)
-	if err != nil {
-		return nil, fmt.Errorf("mcp request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
-		}
-		return nil, fmt.Errorf("mcp request failed with status %s", resp.Status)
-	}
-	return respBody, nil
-}
-
 // CreateMcp deploys an internal MCP or registers an external one (custom endpoint or catalog-backed).
 func (c *DeploymentClient) CreateMcp(
 	ctx context.Context,
 	orgId, projectId, mcpName string,
 	body CreateMcpBody,
 ) (string, error) {
-	respBody, err := c.sendMcpRequest(
+	respBody, err := c.sendJSONRequest(
 		ctx,
 		http.MethodPost,
 		mcpsPath(orgId, projectId, mcpName),
@@ -198,7 +153,7 @@ func (c *DeploymentClient) PutMcp(
 	orgId, projectId, mcpName string,
 	body CreateMcpBody,
 ) (string, error) {
-	respBody, err := c.sendMcpRequest(
+	respBody, err := c.sendJSONRequest(
 		ctx,
 		http.MethodPut,
 		mcpsPath(orgId, projectId, mcpName),
@@ -216,7 +171,7 @@ func (c *DeploymentClient) PatchMcp(
 	orgId, projectId, mcpName string,
 	patch UpdatePatch,
 ) (string, error) {
-	respBody, err := c.sendMcpRequest(
+	respBody, err := c.sendJSONRequest(
 		ctx,
 		http.MethodPatch,
 		mcpsPath(orgId, projectId, mcpName),
@@ -269,7 +224,7 @@ func (c *DeploymentClient) DeleteMcp(
 	if force {
 		path += "?force=true"
 	}
-	respBody, err := c.sendMcpRequest(ctx, http.MethodDelete, path, nil)
+	respBody, err := c.sendJSONRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return "", err
 	}
@@ -280,7 +235,7 @@ func (c *DeploymentClient) ListMcps(
 	ctx context.Context,
 	orgId, projectId string,
 ) ([]McpOutput, error) {
-	respBody, err := c.sendMcpRequest(ctx, http.MethodGet, mcpsPath(orgId, projectId, ""), nil)
+	respBody, err := c.sendJSONRequest(ctx, http.MethodGet, mcpsPath(orgId, projectId, ""), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -296,29 +251,12 @@ func (c *DeploymentClient) DescribeMcp(
 	ctx context.Context,
 	orgId, projectId, mcpName string,
 ) (*DescribeMcpResponse, error) {
-	path := mcpsPath(orgId, projectId, mcpName)
-	reqHTTP, err := c.newRequest(ctx, http.MethodGet, path)
+	respBody, err := c.sendJSONRequest(
+		ctx, http.MethodGet, mcpsPath(orgId, projectId, mcpName), nil,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, err
 	}
-
-	resp, err := c.do(reqHTTP)
-	if err != nil {
-		return nil, fmt.Errorf("mcp describe request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
-		}
-		return nil, fmt.Errorf("mcp describe failed with status %s", resp.Status)
-	}
-
 	var result DescribeMcpResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode mcp response: %w", err)
@@ -331,7 +269,7 @@ func (c *DeploymentClient) GetMcpTools(
 	ctx context.Context,
 	orgId, projectId, mcpName string,
 ) (*McpToolsResponse, error) {
-	respBody, err := c.sendMcpRequest(
+	respBody, err := c.sendJSONRequest(
 		ctx, http.MethodGet, mcpsPath(orgId, projectId, mcpName)+"/tools", nil,
 	)
 	if err != nil {
@@ -349,7 +287,7 @@ func (c *DeploymentClient) VerifyMcp(
 	ctx context.Context,
 	orgId, projectId, mcpName string,
 ) (*verifyMcpResponse, error) {
-	respBody, err := c.sendMcpRequest(
+	respBody, err := c.sendJSONRequest(
 		ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName)+"/verify", nil,
 	)
 	if err != nil {
@@ -369,7 +307,7 @@ func (c *DeploymentClient) RunMcpTool(
 	args map[string]any,
 ) (*RunMcpToolResult, error) {
 	body := map[string]any{"tool": tool, "args": args}
-	respBody, err := c.sendMcpRequest(
+	respBody, err := c.sendJSONRequest(
 		ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName)+"/run-tool", body,
 	)
 	if err != nil {
@@ -409,7 +347,7 @@ func (c *DeploymentClient) DescribeMcpRevision(
 		url.PathEscape(mcpName),
 		revision,
 	)
-	respBody, err := c.sendMcpRequest(ctx, http.MethodGet, path, nil)
+	respBody, err := c.sendJSONRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
