@@ -39,6 +39,6 @@ Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 * [iai mcps revisions](iai_mcps_revisions.md)	 - List revisions of an mcp
 * [iai mcps run-tool](iai_mcps_run-tool.md)	 - Run a tool on an mcp
 * [iai mcps tools](iai_mcps_tools.md)	 - List an mcp's cached tools with descriptions
-* [iai mcps update](iai_mcps_update.md)	 - Replace an mcp's spec
+* [iai mcps update](iai_mcps_update.md)	 - Update an mcp's spec
 * [iai mcps verify](iai_mcps_verify.md)	 - Re-verify an external mcp and refresh its cached tools
 

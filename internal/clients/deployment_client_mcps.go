@@ -207,6 +207,29 @@ func (c *DeploymentClient) PutMcp(
 	if err != nil {
 		return "", err
 	}
+	return decodeMcpUpdateMessage(respBody), nil
+}
+
+// PatchMcp applies a partial update; a credential change rotates the Secret and restarts the MCP and every attached agent.
+func (c *DeploymentClient) PatchMcp(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+	patch UpdatePatch,
+) (string, error) {
+	respBody, err := c.sendMcpRequest(
+		ctx,
+		http.MethodPatch,
+		mcpsPath(orgId, projectId, mcpName),
+		patch,
+	)
+	if err != nil {
+		return "", err
+	}
+	return decodeMcpUpdateMessage(respBody), nil
+}
+
+// decodeMcpUpdateMessage handles PutMcp/PatchMcp's optional {restarted: [...]} on top of the usual {message, warning}.
+func decodeMcpUpdateMessage(respBody []byte) string {
 	var result map[string]any
 	if jsonErr := json.Unmarshal(respBody, &result); jsonErr == nil {
 		if restarted, ok := result["restarted"].([]any); ok && len(restarted) > 0 {
@@ -217,10 +240,10 @@ func (c *DeploymentClient) PutMcp(
 				}
 			}
 			msg, _ := result["message"].(string)
-			return fmt.Sprintf("%s (restarted: %s)", msg, strings.Join(names, ", ")), nil
+			return fmt.Sprintf("%s (restarted: %s)", msg, strings.Join(names, ", "))
 		}
 	}
-	return decodeMcpMessage(respBody), nil
+	return decodeMcpMessage(respBody)
 }
 
 // decodeMcpMessage extracts the {message, warning} pair, appending the warning (e.g. dangling agent refs) when present.

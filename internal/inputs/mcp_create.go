@@ -1,6 +1,7 @@
 package inputs
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -55,20 +56,9 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 		secretRefs = append(secretRefs, clients.SecretRef{SecretName: strings.TrimSpace(name)})
 	}
 
-	var headers map[string]string
-	if len(in.Headers) > 0 {
-		headers = make(map[string]string, len(in.Headers))
-		for _, p := range in.Headers {
-			key, value, found := strings.Cut(p, "=")
-			key = strings.TrimSpace(key)
-			if !found || key == "" {
-				return clients.CreateMcpBody{}, fmt.Errorf(
-					"invalid --header %q: expected KEY=VALUE",
-					p,
-				)
-			}
-			headers[key] = value
-		}
+	headers, err := parseHeaderFlags(in.Headers)
+	if err != nil {
+		return clients.CreateMcpBody{}, err
 	}
 
 	mcpType := strings.TrimSpace(in.Type)
@@ -146,4 +136,157 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 	}
 
 	return body, nil
+}
+
+// parseHeaderFlags turns repeated --header KEY=VALUE pairs into a map.
+func parseHeaderFlags(pairs []string) (map[string]string, error) {
+	if len(pairs) == 0 {
+		return nil, nil
+	}
+	headers := make(map[string]string, len(pairs))
+	for _, p := range pairs {
+		key, value, found := strings.Cut(p, "=")
+		key = strings.TrimSpace(key)
+		if !found || key == "" {
+			return nil, fmt.Errorf("invalid --header %q: expected KEY=VALUE", p)
+		}
+		headers[key] = value
+	}
+	return headers, nil
+}
+
+// McpUpdateFlags is the set of cobra flag names BuildMcpUpdatePatch inspects via the `changed` predicate. Keep in sync with cmd/mcps.go.
+var McpUpdateFlags = struct {
+	Port             string
+	Path             string
+	ImageType        string
+	ImageRepository  string
+	ImageName        string
+	ImageTag         string
+	Memory           string
+	CPU              string
+	Env              string
+	Secret           string
+	AuthType         string
+	Credential       string
+	AuthHeader       string
+	AuthHeaderPrefix string
+	Header           string
+}{
+	Port:             "port",
+	Path:             "path",
+	ImageType:        "image-type",
+	ImageRepository:  "image-repository",
+	ImageName:        "image-name",
+	ImageTag:         "image-tag",
+	Memory:           "memory",
+	CPU:              "cpu",
+	Env:              "env",
+	Secret:           "secret",
+	AuthType:         "auth-type",
+	Credential:       "credential",
+	AuthHeader:       "auth-header",
+	AuthHeaderPrefix: "auth-header-prefix",
+	Header:           "header",
+}
+
+// BuildMcpUpdatePatch produces a partial-update body containing only the fields whose flags the user explicitly set.
+func BuildMcpUpdatePatch(
+	in McpInput,
+	clearEnv, clearSecret, clearHeaders bool,
+	changed func(string) bool,
+) (clients.UpdatePatch, error) {
+	f := McpUpdateFlags
+	patch := clients.UpdatePatch{}
+
+	if changed(f.Port) {
+		if err := setJSON(patch, "port", in.Port); err != nil {
+			return nil, err
+		}
+	}
+	if changed(f.Path) {
+		if err := setJSON(patch, "path", strings.TrimSpace(in.Path)); err != nil {
+			return nil, err
+		}
+	}
+
+	if anyChanged(changed, f.ImageType, f.ImageRepository, f.ImageName, f.ImageTag) {
+		img := map[string]any{}
+		if changed(f.ImageType) {
+			img["type"] = in.ImageType
+		}
+		if changed(f.ImageRepository) {
+			img["repository"] = in.ImageRepository
+		}
+		if changed(f.ImageName) {
+			img["name"] = in.ImageName
+		}
+		if changed(f.ImageTag) {
+			img["tag"] = in.ImageTag
+		}
+		if err := setJSON(patch, "image", img); err != nil {
+			return nil, err
+		}
+	}
+
+	if anyChanged(changed, f.Memory, f.CPU) {
+		res := map[string]any{}
+		if changed(f.Memory) {
+			res["memory"] = in.Memory
+		}
+		if changed(f.CPU) {
+			res["cpu"] = in.CPU
+		}
+		if err := setJSON(patch, "resources", res); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := setEnvPatch(patch, in.EnvVars, changed(f.Env), clearEnv); err != nil {
+		return nil, err
+	}
+	if err := setSecretRefsPatch(patch, in.SecretRefs, changed(f.Secret), clearSecret); err != nil {
+		return nil, err
+	}
+
+	if anyChanged(changed, f.AuthType, f.Credential, f.AuthHeader, f.AuthHeaderPrefix) {
+		newType := strings.TrimSpace(in.AuthType)
+		auth := map[string]any{}
+		if changed(f.AuthType) {
+			auth["type"] = newType
+		}
+		switch {
+		case changed(f.Credential):
+			auth["credential"] = in.Credential
+		case changed(f.AuthType) && newType == "none":
+			// switching to none implicitly drops any credential the mcp already has
+			auth["credential"] = ""
+		}
+		if changed(f.AuthHeader) {
+			auth["header"] = strings.TrimSpace(in.AuthHeader)
+		}
+		if changed(f.AuthHeaderPrefix) {
+			auth["headerPrefix"] = in.AuthHeaderPrefix
+		}
+		if err := setJSON(patch, "auth", auth); err != nil {
+			return nil, err
+		}
+	}
+
+	switch {
+	case clearHeaders && changed(f.Header):
+		return nil, fmt.Errorf("--clear-headers cannot be combined with --header")
+	case clearHeaders:
+		patch["headers"] = json.RawMessage("null")
+	case changed(f.Header):
+		headers, err := parseHeaderFlags(in.Headers)
+		if err != nil {
+			return nil, err
+		}
+		if err := setJSON(patch, "headers", headers); err != nil {
+			return nil, err
+		}
+	}
+
+	return patch, nil
 }
