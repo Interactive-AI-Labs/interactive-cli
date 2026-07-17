@@ -21,7 +21,7 @@ type McpInput struct {
 	Memory          string
 	CPU             string
 	EnvVars         []string
-	SecretRefs      []string // existing k8s Secrets loaded as env vars
+	SecretRefs      []string // existing secrets loaded as env vars
 
 	// external
 	EndpointURL string

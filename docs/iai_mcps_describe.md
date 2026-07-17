@@ -1,4 +1,4 @@
-## iai mcps get
+## iai mcps describe
 
 Show mcp details, verify state, and cached tools
 
@@ -8,20 +8,20 @@ Show the mcp's record (type, external URL, catalog origin) and its latest
 verify result — a tool count, not the tool list itself (see 'iai mcps tools').
 
 ```
-iai mcps get <mcp_name> [flags]
+iai mcps describe <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai mcps get my-tool
-  iai mcps get my-tool --json
+  iai mcps describe my-tool
+  iai mcps describe my-tool --json
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+  -h, --help   help for describe
       --json   Output raw API response as JSON
       --yaml   Output raw API response as YAML
 ```

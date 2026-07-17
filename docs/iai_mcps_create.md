@@ -7,11 +7,10 @@ Create an mcp in a project
 Create an mcp — an in-cluster MCP server ("internal"), a custom external
 URL, or a catalog-backed provider.
 
-Internal: --image-name, --image-tag, --port (like 'iai services create'); --env
-and --secret load env vars from literal values or existing k8s Secrets. --path
-is the endpoint path the mcp's own server exposes (default "/mcp" — a common
-convention, not something the MCP protocol requires, so set it to whatever the
-mcp owner actually configured rather than assuming).
+Internal: --image-name, --image-tag, --port; --env and --secret load env vars
+from literal values or existing secrets. --path is the endpoint path the mcp's
+own server exposes (default "/mcp" — set to whatever the mcp owner actually
+configured, don't assume).
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
@@ -19,9 +18,9 @@ derived from the catalog entry. Pass an auth type the entry supports; catalog
 entries provide their own credential header and prefix.
 
 The mcp is verified against the live server before it's kept: an internal mcp
-is verified once its pod is up (checked in the background — see 'iai mcps get');
-an external mcp (custom or catalog) is verified immediately, and the create
-fails if the server is unreachable or rejects the credential.
+is verified once its status is healthy (checked in the background — see 'iai
+mcps describe'); an external mcp (custom or catalog) is verified immediately,
+and the create fails if the server is unreachable or rejects the credential.
 
 ```
 iai mcps create <mcp_name> [flags]
@@ -58,7 +57,7 @@ iai mcps create <mcp_name> [flags]
       --memory string               Memory request/limit, e.g. 512M (required for internal)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume
       --port int                    Port the mcp server listens on (internal)
-      --secret stringArray          Existing k8s Secret to load as env vars; can be repeated (internal)
+      --secret stringArray          Existing secret to load as env vars; can be repeated (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```
 

@@ -130,6 +130,9 @@ func PrintMcpTools(
 	for _, t := range tools {
 		name, _ := t["name"].(string)
 		desc, _ := t["description"].(string)
+		if args := toolArgNames(t); args != "" {
+			name += "(" + args + ")"
+		}
 		if desc != "" {
 			fmt.Fprintf(out, "  %s — %s\n", name, desc)
 		} else {
@@ -147,4 +150,19 @@ func PrintMcpTools(
 		fmt.Fprintln(out)
 	}
 	return nil
+}
+
+// toolArgNames returns a tool's inputSchema property names, sorted, for a compact "name(args)" display.
+func toolArgNames(t map[string]any) string {
+	schema, _ := t["inputSchema"].(map[string]any)
+	props, _ := schema["properties"].(map[string]any)
+	if len(props) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(props))
+	for name := range props {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
 }

@@ -5,8 +5,8 @@ Re-verify an external mcp and refresh its cached tools
 ### Synopsis
 
 Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
-External mcps only — internal mcps verify automatically once their pod is up
-(background reconciler; see 'iai mcps get') and reject a manual verify.
+External mcps only — internal mcps verify automatically once their status is
+healthy (background reconciler; see 'iai mcps describe') and reject a manual verify.
 
 ```
 iai mcps verify <mcp_name> [flags]
