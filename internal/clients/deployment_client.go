@@ -146,6 +146,51 @@ func (c *DeploymentClient) newRequest(
 	return http.NewRequestWithContext(ctx, method, base.ResolveReference(rel).String(), nil)
 }
 
+// sendJSONRequest sends method/path with an optional JSON body and returns the raw response body, surfacing the server's message on a non-2xx status.
+func (c *DeploymentClient) sendJSONRequest(
+	ctx context.Context,
+	method, path string,
+	body any,
+) ([]byte, error) {
+	var reqHTTP *http.Request
+	var err error
+	if body != nil {
+		bodyBytes, marshalErr := json.Marshal(body)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("failed to encode request body: %w", marshalErr)
+		}
+		reqHTTP, err = c.newRequest(ctx, method, path)
+		if err == nil {
+			reqHTTP.Header.Set("Content-Type", "application/json")
+			reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+		}
+	} else {
+		reqHTTP, err = c.newRequest(ctx, method, path)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(reqHTTP)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("request failed with status %s", resp.Status)
+	}
+	return respBody, nil
+}
+
 type CreateServiceBody struct {
 	ServicePort int          `json:"servicePort"`
 	Image       ImageSpec    `json:"image"`
