@@ -30,7 +30,6 @@ var modelsCmd = &cobra.Command{
 	Use:              "models",
 	Aliases:          []string{"model"},
 	Short:            "List and inspect models",
-	GroupID:          groupInfra,
 	Long:             `List and inspect router models available to a project.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -40,13 +39,13 @@ var modelsListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List router models",
 	Long:    `List router models for a project.`,
-	Example: `  iai models list
-  iai models list -o my-org -p my-project
-  iai models list --page 1 --limit 10
-  iai models list --search claude
-  iai models list --region eu
-  iai models list --json
-  iai models list --yaml`,
+	Example: `  iai router models list
+  iai router models list -o my-org -p my-project
+  iai router models list --page 1 --limit 10
+  iai router models list --search claude
+  iai router models list --region eu
+  iai router models list --json
+  iai router models list --yaml`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -92,10 +91,10 @@ var modelsGetCmd = &cobra.Command{
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a router model",
 	Long:    `Get detailed information about a router model by its ID.`,
-	Example: `  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411
-  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 -o my-org -p my-project
-  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --json
-  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --yaml`,
+	Example: `  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411
+  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 -o my-org -p my-project
+  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --json
+  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --yaml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -152,5 +151,5 @@ func init() {
 	modelsGetCmd.Flags().StringVarP(&modelsGetProject, "project", "p", "", "Project name")
 
 	modelsCmd.AddCommand(modelsListCmd, modelsGetCmd)
-	rootCmd.AddCommand(modelsCmd)
+	routerCmd.AddCommand(modelsCmd)
 }

@@ -1,15 +1,17 @@
-## iai models
+## iai router
 
-List and inspect models
+Inspect the inference router and its models
 
 ### Synopsis
 
-List and inspect router models available to a project.
+Inspect the InteractiveAI inference router and its available models.
+
+Use "iai router info" to display inference endpoint URLs.
 
 ### Options
 
 ```
-  -h, --help   help for models
+  -h, --help   help for router
 ```
 
 ### Options inherited from parent commands
@@ -24,6 +26,6 @@ List and inspect router models available to a project.
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai models get](iai_models_get.md)	 - Get a router model
-* [iai models list](iai_models_list.md)	 - List router models
+* [iai router info](iai_router_info.md)	 - Display router endpoint information
+* [iai router models](iai_router_models.md)	 - List and inspect models
 
