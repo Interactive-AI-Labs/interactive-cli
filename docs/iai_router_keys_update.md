@@ -1,18 +1,21 @@
-## iai router-keys list
+## iai router keys update
 
-List router API keys
+Update a router API key
 
 ```
-iai router-keys list [flags]
+iai router keys update <id> [flags]
 ```
 
 ### Options
 
 ```
-      --columns strings       Columns to display for table output only (comma-separated, default: id,name,key,limit,created_at). Cannot be used with --json or --yaml.
-                              Available: id,name,description,status,key,disabled,limit,remaining,limit_reset,expires_at,last_used_at,created_at,updated_at,project_id,user_id
-  -h, --help                  help for list
+      --clear-limit           Remove the credit limit
+      --disable               Disable this key
+      --enable                Enable this key
+  -h, --help                  help for update
       --json                  Output response as JSON
+      --limit float           Credit limit in USD
+      --limit-reset string    Limit reset period: none, daily, weekly, monthly
   -o, --organization string   Organization name
   -p, --project string        Project name
       --yaml                  Output response as YAML
@@ -29,5 +32,5 @@ iai router-keys list [flags]
 
 ### SEE ALSO
 
-* [iai router-keys](iai_router-keys.md)	 - Router API keys
+* [iai router keys](iai_router_keys.md)	 - Router API keys
 

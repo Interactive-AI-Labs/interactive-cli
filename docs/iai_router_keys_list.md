@@ -1,15 +1,17 @@
-## iai router-keys delete
+## iai router keys list
 
-Delete a router API key
+List router API keys
 
 ```
-iai router-keys delete <id> [flags]
+iai router keys list [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for delete
+      --columns strings       Columns to display for table output only (comma-separated, default: id,name,key,limit,created_at). Cannot be used with --json or --yaml.
+                              Available: id,name,description,status,key,disabled,limit,remaining,limit_reset,expires_at,last_used_at,created_at,updated_at,project_id,user_id
+  -h, --help                  help for list
       --json                  Output response as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
@@ -27,5 +29,5 @@ iai router-keys delete <id> [flags]
 
 ### SEE ALSO
 
-* [iai router-keys](iai_router-keys.md)	 - Router API keys
+* [iai router keys](iai_router_keys.md)	 - Router API keys
 

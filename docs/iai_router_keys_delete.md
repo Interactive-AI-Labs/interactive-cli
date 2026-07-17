@@ -1,21 +1,16 @@
-## iai router-keys update
+## iai router keys delete
 
-Update a router API key
+Delete a router API key
 
 ```
-iai router-keys update <id> [flags]
+iai router keys delete <id> [flags]
 ```
 
 ### Options
 
 ```
-      --clear-limit           Remove the credit limit
-      --disable               Disable this key
-      --enable                Enable this key
-  -h, --help                  help for update
+  -h, --help                  help for delete
       --json                  Output response as JSON
-      --limit float           Credit limit in USD
-      --limit-reset string    Limit reset period: none, daily, weekly, monthly
   -o, --organization string   Organization name
   -p, --project string        Project name
       --yaml                  Output response as YAML
@@ -32,5 +27,5 @@ iai router-keys update <id> [flags]
 
 ### SEE ALSO
 
-* [iai router-keys](iai_router-keys.md)	 - Router API keys
+* [iai router keys](iai_router_keys.md)	 - Router API keys
 

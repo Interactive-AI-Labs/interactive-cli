@@ -14,6 +14,23 @@ func TestRouterCommandPaths(t *testing.T) {
 	}{
 		{name: "router", got: routerCmd.CommandPath(), want: "iai router"},
 		{name: "router info", got: routerInfoCmd.CommandPath(), want: "iai router info"},
+		{name: "keys", got: routerKeysCmd.CommandPath(), want: "iai router keys"},
+		{name: "keys list", got: routerKeysListCmd.CommandPath(), want: "iai router keys list"},
+		{
+			name: "keys create",
+			got:  routerKeysCreateCmd.CommandPath(),
+			want: "iai router keys create",
+		},
+		{
+			name: "keys update",
+			got:  routerKeysUpdateCmd.CommandPath(),
+			want: "iai router keys update",
+		},
+		{
+			name: "keys delete",
+			got:  routerKeysDeleteCmd.CommandPath(),
+			want: "iai router keys delete",
+		},
 		{name: "models", got: modelsCmd.CommandPath(), want: "iai router models"},
 		{name: "models list", got: modelsListCmd.CommandPath(), want: "iai router models list"},
 		{name: "models get", got: modelsGetCmd.CommandPath(), want: "iai router models get"},
@@ -28,7 +45,7 @@ func TestRouterCommandPaths(t *testing.T) {
 	}
 }
 
-func TestRouterUsesDefaultParentHelp(t *testing.T) {
+func TestRouterCmdIsNonRunnableParent(t *testing.T) {
 	got := struct {
 		Runnable       bool
 		HasSubcommands bool

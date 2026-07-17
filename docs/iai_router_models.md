@@ -23,7 +23,7 @@ List and inspect router models available to a project.
 
 ### SEE ALSO
 
-* [iai router](iai_router.md)	 - Inspect the inference router and its models
+* [iai router](iai_router.md)	 - Inspect the inference router, keys, and models
 * [iai router models get](iai_router_models_get.md)	 - Get a router model
 * [iai router models list](iai_router_models_list.md)	 - List router models
 

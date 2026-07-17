@@ -1,4 +1,4 @@
-## iai router-keys
+## iai router keys
 
 Router API keys
 
@@ -11,7 +11,7 @@ Router keys authenticate inference requests to the InteractiveAI Router, for exa
 ### Options
 
 ```
-  -h, --help   help for router-keys
+  -h, --help   help for keys
 ```
 
 ### Options inherited from parent commands
@@ -25,9 +25,9 @@ Router keys authenticate inference requests to the InteractiveAI Router, for exa
 
 ### SEE ALSO
 
-* [iai](iai.md)	 - InteractiveAI's CLI
-* [iai router-keys create](iai_router-keys_create.md)	 - Create a router API key
-* [iai router-keys delete](iai_router-keys_delete.md)	 - Delete a router API key
-* [iai router-keys list](iai_router-keys_list.md)	 - List router API keys
-* [iai router-keys update](iai_router-keys_update.md)	 - Update a router API key
+* [iai router](iai_router.md)	 - Inspect the inference router, keys, and models
+* [iai router keys create](iai_router_keys_create.md)	 - Create a router API key
+* [iai router keys delete](iai_router_keys_delete.md)	 - Delete a router API key
+* [iai router keys list](iai_router_keys_list.md)	 - List router API keys
+* [iai router keys update](iai_router_keys_update.md)	 - Update a router API key
 

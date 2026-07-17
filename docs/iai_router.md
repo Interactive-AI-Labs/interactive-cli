@@ -1,10 +1,10 @@
 ## iai router
 
-Inspect the inference router and its models
+Inspect the inference router, keys, and models
 
 ### Synopsis
 
-Inspect the InteractiveAI inference router and its available models.
+Inspect the InteractiveAI inference router, manage its API keys, and browse available models.
 
 Use "iai router info" to display inference endpoint URLs.
 
@@ -27,5 +27,6 @@ Use "iai router info" to display inference endpoint URLs.
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai router info](iai_router_info.md)	 - Display router endpoint information
+* [iai router keys](iai_router_keys.md)	 - Router API keys
 * [iai router models](iai_router_models.md)	 - List and inspect models
 
