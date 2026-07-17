@@ -101,7 +101,6 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines
 * [iai mcps](iai_mcps.md)	 - Deploy and manage MCP servers
 * [iai metrics](iai_metrics.md)	 - Query aggregated observability metrics
-* [iai models](iai_models.md)	 - List and inspect models
 * [iai observations](iai_observations.md)	 - Inspect spans within traces
 * [iai organizations](iai_organizations.md)	 - Switch or list organizations
 * [iai policies](iai_policies.md)	 - Single-step behavioral rules for agents
@@ -110,6 +109,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai queue-items](iai_queue-items.md)	 - Manage items in annotation queues
 * [iai queues](iai_queues.md)	 - Annotation queues for human review workflows
 * [iai replicas](iai_replicas.md)	 - Inspect service replicas
+* [iai router](iai_router.md)	 - Inspect the inference router and its models
 * [iai router-keys](iai_router-keys.md)	 - Router API keys
 * [iai routines](iai_routines.md)	 - Multi-step behavioral processes for agents
 * [iai run-items](iai_run-items.md)	 - Inspect results of evaluation runs

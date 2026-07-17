@@ -1,4 +1,4 @@
-## iai models get
+## iai router models get
 
 Get a router model
 
@@ -7,16 +7,16 @@ Get a router model
 Get detailed information about a router model by its ID.
 
 ```
-iai models get <id> [flags]
+iai router models get <id> [flags]
 ```
 
 ### Examples
 
 ```
-  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411
-  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 -o my-org -p my-project
-  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --json
-  iai models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --yaml
+  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411
+  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 -o my-org -p my-project
+  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --json
+  iai router models get d34313ff-92ce-47ed-a1ae-fbb37f8a9411 --yaml
 ```
 
 ### Options
@@ -40,5 +40,5 @@ iai models get <id> [flags]
 
 ### SEE ALSO
 
-* [iai models](iai_models.md)	 - List and inspect models
+* [iai router models](iai_router_models.md)	 - List and inspect models
 

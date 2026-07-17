@@ -1,4 +1,4 @@
-## iai models list
+## iai router models list
 
 List router models
 
@@ -7,19 +7,19 @@ List router models
 List router models for a project.
 
 ```
-iai models list [flags]
+iai router models list [flags]
 ```
 
 ### Examples
 
 ```
-  iai models list
-  iai models list -o my-org -p my-project
-  iai models list --page 1 --limit 10
-  iai models list --search claude
-  iai models list --region eu
-  iai models list --json
-  iai models list --yaml
+  iai router models list
+  iai router models list -o my-org -p my-project
+  iai router models list --page 1 --limit 10
+  iai router models list --search claude
+  iai router models list --region eu
+  iai router models list --json
+  iai router models list --yaml
 ```
 
 ### Options
@@ -47,5 +47,5 @@ iai models list [flags]
 
 ### SEE ALSO
 
-* [iai models](iai_models.md)	 - List and inspect models
+* [iai router models](iai_router_models.md)	 - List and inspect models
 
