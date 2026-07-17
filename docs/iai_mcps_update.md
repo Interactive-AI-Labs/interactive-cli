@@ -1,15 +1,18 @@
 ## iai mcps update
 
-Replace an mcp's spec
+Update an mcp's spec
 
 ### Synopsis
 
-Full replace — pass the mcp's complete desired spec, same flags as create.
-There is no partial-update mechanism for mcps; anything not passed resets to its
-default. The type (internal/external) cannot change; delete and recreate instead.
+Partial update — only the fields whose flags you pass are changed; everything
+else keeps its current value. port/path/image/memory/cpu/env/secret only apply
+to internal mcps. Use --clear-env, --clear-secret, or --clear-headers to remove
+those entirely. The type (internal/external) and, for external mcps, the
+endpoint/catalog cannot change — delete and recreate instead.
 
-Changing --credential rotates the mcp's Secret and restarts the mcp (if internal)
-and every agent currently attached to it, so they pick up the new value.
+Changing --credential, or switching --auth-type to "none", rotates the mcp's
+Secret and restarts the mcp (if internal) and every agent currently attached
+to it. Auth routing cannot change while agents are attached — detach them first.
 
 ```
 iai mcps update <mcp_name> [flags]
@@ -18,8 +21,10 @@ iai mcps update <mcp_name> [flags]
 ### Examples
 
 ```
-  iai mcps update my-tool --image-name my-mcp-server --image-tag v2 --port 8080
-  iai mcps update acme --external-url https://mcp.acme.com/mcp --credential "$NEW_TOKEN"
+  iai mcps update my-tool --image-tag v2
+  iai mcps update my-tool --memory 1G --cpu 500m
+  iai mcps update acme --credential "$NEW_TOKEN"
+  iai mcps update my-tool --clear-headers
 ```
 
 ### Options
@@ -28,12 +33,13 @@ iai mcps update <mcp_name> [flags]
       --auth-header string          Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)
       --auth-header-prefix string   Credential value prefix — only valid with --auth-type custom
       --auth-type string            How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")
-      --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
+      --clear-env                   Remove all environment variables from the mcp
+      --clear-headers               Remove all extra request headers from the mcp
+      --clear-secret                Remove all secret references from the mcp
       --cpu string                  CPU request/limit, e.g. 250m (required for internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --env stringArray             Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)
-      --external-url string         External MCP server URL — not platform-owned, dialed directly (custom external mcp)
       --header stringArray          Extra non-secret request header (NAME=VALUE); can be repeated
   -h, --help                        help for update
       --image-name string           Container image name (internal)
@@ -44,7 +50,6 @@ iai mcps update <mcp_name> [flags]
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume
       --port int                    Port the mcp server listens on (internal)
       --secret stringArray          Existing secret to load as env vars; can be repeated (internal)
-      --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```
 
 ### Options inherited from parent commands

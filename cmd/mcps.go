@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -39,6 +37,12 @@ var (
 	mcpAuthHeader      string
 	mcpAuthHeaderPfx   string
 	mcpHeaders         []string
+)
+
+var (
+	mcpClearEnv     bool
+	mcpClearSecret  bool
+	mcpClearHeaders bool
 )
 
 var mcpForce bool
@@ -104,68 +108,6 @@ var mcpCatalogCmd = &cobra.Command{
 	},
 }
 
-// runMcpUpsert shares everything create and update have in common bar the verb-specific log line and client method.
-func runMcpUpsert(cmd *cobra.Command, mcpName, verb string, submit func(
-	deployClient *clients.DeploymentClient,
-	ctx context.Context, orgId, projectId, mcpName string, body clients.CreateMcpBody,
-) (string, error),
-) error {
-	out := cmd.OutOrStdout()
-
-	cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
-	if err != nil {
-		return err
-	}
-
-	reqBody, err := inputs.BuildMcpRequestBody(inputs.McpInput{
-		Type:             mcpType,
-		Port:             mcpPort,
-		Path:             mcpPath,
-		ImageType:        mcpImageType,
-		ImageRepository:  mcpImageRepository,
-		ImageName:        mcpImageName,
-		ImageTag:         mcpImageTag,
-		Memory:           mcpMemory,
-		CPU:              mcpCPU,
-		EnvVars:          mcpEnvVars,
-		SecretRefs:       mcpSecretRefs,
-		EndpointURL:      mcpEndpointURL,
-		CatalogID:        mcpCatalogID,
-		AuthType:         mcpAuthType,
-		Credential:       cred,
-		AuthHeader:       mcpAuthHeader,
-		AuthHeaderPrefix: mcpAuthHeaderPfx,
-		Headers:          mcpHeaders,
-	})
-	if err != nil {
-		return err
-	}
-
-	pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
-	if err != nil {
-		return err
-	}
-
-	fmt.Fprintln(out)
-	fmt.Fprintf(out, "Submitting mcp %s request...\n", verb)
-
-	serverMessage, err := submit(
-		deployClient,
-		cmd.Context(),
-		pCtx.orgId,
-		pCtx.projectId,
-		mcpName,
-		reqBody,
-	)
-	if err != nil {
-		return err
-	}
-	if serverMessage != "" {
-		fmt.Fprintln(out, serverMessage)
-	}
-	return nil
-}
-
 var mcpCreateCmd = &cobra.Command{
 	Use:   "create <mcp_name>",
 	Short: "Create an mcp in a project",
@@ -193,36 +135,135 @@ and the create fails if the server is unreachable or rejects the credential.`,
   iai mcps create github --catalog-id github --credential-stdin < token.txt`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
-		return runMcpUpsert(cmd, mcpName, "creation", func(
-			deployClient *clients.DeploymentClient,
-			ctx context.Context, orgId, projectId, mcpName string, body clients.CreateMcpBody,
-		) (string, error) {
-			return deployClient.CreateMcp(ctx, orgId, projectId, mcpName, body)
+
+		cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
+		if err != nil {
+			return err
+		}
+
+		reqBody, err := inputs.BuildMcpRequestBody(inputs.McpInput{
+			Type:             mcpType,
+			Port:             mcpPort,
+			Path:             mcpPath,
+			ImageType:        mcpImageType,
+			ImageRepository:  mcpImageRepository,
+			ImageName:        mcpImageName,
+			ImageTag:         mcpImageTag,
+			Memory:           mcpMemory,
+			CPU:              mcpCPU,
+			EnvVars:          mcpEnvVars,
+			SecretRefs:       mcpSecretRefs,
+			EndpointURL:      mcpEndpointURL,
+			CatalogID:        mcpCatalogID,
+			AuthType:         mcpAuthType,
+			Credential:       cred,
+			AuthHeader:       mcpAuthHeader,
+			AuthHeaderPrefix: mcpAuthHeaderPfx,
+			Headers:          mcpHeaders,
 		})
+		if err != nil {
+			return err
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting mcp creation request...")
+
+		serverMessage, err := deployClient.CreateMcp(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+			reqBody,
+		)
+		if err != nil {
+			return err
+		}
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+		return nil
 	},
 }
 
 var mcpUpdateCmd = &cobra.Command{
 	Use:   "update <mcp_name>",
-	Short: "Replace an mcp's spec",
-	Long: `Full replace — pass the mcp's complete desired spec, same flags as create.
-There is no partial-update mechanism for mcps; anything not passed resets to its
-default. The type (internal/external) cannot change; delete and recreate instead.
+	Short: "Update an mcp's spec",
+	Long: `Partial update — only the fields whose flags you pass are changed; everything
+else keeps its current value. port/path/image/memory/cpu/env/secret only apply
+to internal mcps. Use --clear-env, --clear-secret, or --clear-headers to remove
+those entirely. The type (internal/external) and, for external mcps, the
+endpoint/catalog cannot change — delete and recreate instead.
 
-Changing --credential rotates the mcp's Secret and restarts the mcp (if internal)
-and every agent currently attached to it, so they pick up the new value.`,
-	Example: `  iai mcps update my-tool --image-name my-mcp-server --image-tag v2 --port 8080
-  iai mcps update acme --external-url https://mcp.acme.com/mcp --credential "$NEW_TOKEN"`,
+Changing --credential, or switching --auth-type to "none", rotates the mcp's
+Secret and restarts the mcp (if internal) and every agent currently attached
+to it. Auth routing cannot change while agents are attached — detach them first.`,
+	Example: `  iai mcps update my-tool --image-tag v2
+  iai mcps update my-tool --memory 1G --cpu 500m
+  iai mcps update acme --credential "$NEW_TOKEN"
+  iai mcps update my-tool --clear-headers`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
-		return runMcpUpsert(cmd, mcpName, "update", func(
-			deployClient *clients.DeploymentClient,
-			ctx context.Context, orgId, projectId, mcpName string, body clients.CreateMcpBody,
-		) (string, error) {
-			return deployClient.PutMcp(ctx, orgId, projectId, mcpName, body)
-		})
+
+		cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
+		if err != nil {
+			return err
+		}
+
+		patch, err := inputs.BuildMcpUpdatePatch(inputs.McpInput{
+			Port:             mcpPort,
+			Path:             mcpPath,
+			ImageType:        mcpImageType,
+			ImageRepository:  mcpImageRepository,
+			ImageName:        mcpImageName,
+			ImageTag:         mcpImageTag,
+			Memory:           mcpMemory,
+			CPU:              mcpCPU,
+			EnvVars:          mcpEnvVars,
+			SecretRefs:       mcpSecretRefs,
+			AuthType:         mcpAuthType,
+			Credential:       cred,
+			AuthHeader:       mcpAuthHeader,
+			AuthHeaderPrefix: mcpAuthHeaderPfx,
+			Headers:          mcpHeaders,
+		}, mcpClearEnv, mcpClearSecret, mcpClearHeaders, cmd.Flags().Changed)
+		if err != nil {
+			return err
+		}
+		if len(patch) == 0 {
+			return fmt.Errorf("no fields to update; pass at least one flag")
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting mcp update request...")
+
+		serverMessage, err := deployClient.PatchMcp(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+			patch,
+		)
+		if err != nil {
+			return err
+		}
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+		return nil
 	},
 }
 
@@ -539,9 +580,8 @@ func init() {
 	mcpsCmd.PersistentFlags().
 		StringVarP(&mcpOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	// Flags shared by create and update; type/catalog-id/external-url are create-only (see below) since they're identity, not patchable.
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
-		c.Flags().
-			StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)
 		c.Flags().IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal)")
 		c.Flags().
 			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume`)
@@ -560,10 +600,6 @@ func init() {
 		c.Flags().
 			StringArrayVar(&mcpSecretRefs, "secret", nil, "Existing secret to load as env vars; can be repeated (internal)")
 		c.Flags().
-			StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
-		c.Flags().
-			StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
-		c.Flags().
 			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")`)
 		c.Flags().
 			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
@@ -576,14 +612,28 @@ func init() {
 		c.Flags().
 			StringArrayVar(&mcpHeaders, "header", nil, "Extra non-secret request header (NAME=VALUE); can be repeated")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
-		c.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
-		c.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
-		c.MarkFlagsMutuallyExclusive("external-url", "image-name")
-		// Catalog entries carry their own auth routing — these only apply to custom endpoints.
-		c.MarkFlagsMutuallyExclusive("catalog-id", "auth-header")
-		c.MarkFlagsMutuallyExclusive("catalog-id", "auth-header-prefix")
-		c.MarkFlagsMutuallyExclusive("catalog-id", "header")
 	}
+
+	mcpCreateCmd.Flags().
+		StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)
+	mcpCreateCmd.Flags().
+		StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
+	mcpCreateCmd.Flags().
+		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("external-url", "image-name")
+	// Catalog entries carry their own auth routing — these only apply to custom endpoints.
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "auth-header")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "auth-header-prefix")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "header")
+
+	mcpUpdateCmd.Flags().
+		BoolVar(&mcpClearEnv, "clear-env", false, "Remove all environment variables from the mcp")
+	mcpUpdateCmd.Flags().
+		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp")
+	mcpUpdateCmd.Flags().
+		BoolVar(&mcpClearHeaders, "clear-headers", false, "Remove all extra request headers from the mcp")
 
 	mcpRunToolCmd.Flags().
 		StringVar(&mcpArgsJSON, "args", "", "Tool arguments as an inline JSON object")
