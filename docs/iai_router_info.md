@@ -38,5 +38,5 @@ iai router info [flags]
 
 ### SEE ALSO
 
-* [iai router](iai_router.md)	 - Inspect the inference router and its models
+* [iai router](iai_router.md)	 - Inspect the inference router, keys, and models
 

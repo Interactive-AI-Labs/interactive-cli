@@ -1,4 +1,4 @@
-## iai router-keys create
+## iai router keys create
 
 Create a router API key
 
@@ -9,7 +9,7 @@ Create a router API key.
 Router keys authenticate inference requests to the InteractiveAI Router, for example chat completions and model calls. They are used as bearer tokens for runtime inference, not for managing project context or infrastructure.
 
 ```
-iai router-keys create <name> [flags]
+iai router keys create <name> [flags]
 ```
 
 ### Options
@@ -37,5 +37,5 @@ iai router-keys create <name> [flags]
 
 ### SEE ALSO
 
-* [iai router-keys](iai_router-keys.md)	 - Router API keys
+* [iai router keys](iai_router_keys.md)	 - Router API keys
 

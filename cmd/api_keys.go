@@ -255,10 +255,9 @@ var apiKeysDeleteCmd = &cobra.Command{
 }
 
 var routerKeysCmd = &cobra.Command{
-	Use:     "router-keys",
-	Aliases: []string{"router-key"},
+	Use:     "keys",
+	Aliases: []string{"key"},
 	Short:   "Router API keys",
-	GroupID: groupAuth,
 	Long: `Manage InteractiveAI Router API keys. Requires iai login or JWT authentication. API key authentication is not supported.
 
 Router keys authenticate inference requests to the InteractiveAI Router, for example chat completions and model calls. They are used as bearer tokens for runtime inference, not for managing project context or infrastructure.`,
@@ -478,7 +477,7 @@ var routerKeysDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(apiKeysCmd, routerKeysCmd)
+	rootCmd.AddCommand(apiKeysCmd)
 
 	for _, c := range []*cobra.Command{apiKeysListCmd, apiKeysCreateCmd, apiKeysUpdateCmd, apiKeysDeleteCmd} {
 		c.Flags().StringVarP(&apiKeysProject, "project", "p", "", "Project name")
@@ -528,4 +527,5 @@ func init() {
 		routerKeysUpdateCmd,
 		routerKeysDeleteCmd,
 	)
+	routerCmd.AddCommand(routerKeysCmd)
 }
