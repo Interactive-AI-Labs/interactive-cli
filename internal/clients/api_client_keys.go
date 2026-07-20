@@ -204,7 +204,7 @@ func (c *APIClient) ListRouterAPIKeys(
 		return RouterAPIKeyListResponse{}, err
 	}
 
-	path := fmt.Sprintf("/api/v1/projects/%s/openrouter-keys", url.PathEscape(projectID))
+	path := fmt.Sprintf("/api/v1/projects/%s/router-keys", url.PathEscape(projectID))
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return RouterAPIKeyListResponse{}, err
@@ -229,7 +229,7 @@ func (c *APIClient) CreateRouterAPIKey(
 		return CreateRouterAPIKeyResponse{}, err
 	}
 
-	path := fmt.Sprintf("/api/v1/projects/%s/openrouter-keys", url.PathEscape(projectID))
+	path := fmt.Sprintf("/api/v1/projects/%s/router-keys", url.PathEscape(projectID))
 	req, err := c.newJSONRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return CreateRouterAPIKeyResponse{}, err
@@ -247,7 +247,7 @@ func (c *APIClient) CreateRouterAPIKey(
 
 func routerAPIKeyPath(projectID, keyID string) string {
 	return fmt.Sprintf(
-		"/api/v1/projects/%s/openrouter-keys/%s",
+		"/api/v1/projects/%s/router-keys/%s",
 		url.PathEscape(projectID),
 		url.PathEscape(keyID),
 	)
