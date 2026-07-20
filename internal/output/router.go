@@ -83,7 +83,7 @@ func NewRouterInfo(hostname string) (RouterInfo, error) {
 			),
 			Health: endpoint(
 				"GET",
-				"/health/openrouter",
+				"/health/llm-router",
 				"Check whether the inference router is healthy.",
 			),
 		},

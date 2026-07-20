@@ -81,7 +81,7 @@ Endpoints:
     Description:   List models available for the request region.
   Health:
     Method:        GET
-    URL:           https://app.interactive.ai/api/v1/health/openrouter
+    URL:           https://app.interactive.ai/api/v1/health/llm-router
     Description:   Check whether the inference router is healthy.
 `,
 		},
@@ -118,7 +118,7 @@ Endpoints:
     },
     "health": {
       "method": "GET",
-      "url": "https://app.interactive.ai/api/v1/health/openrouter",
+      "url": "https://app.interactive.ai/api/v1/health/llm-router",
       "description": "Check whether the inference router is healthy."
     }
   },

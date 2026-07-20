@@ -79,13 +79,13 @@ func TestRouterAPIKeyPath(t *testing.T) {
 			name:      "plain ids",
 			projectID: "project-1",
 			keyID:     "key-1",
-			want:      "/api/v1/projects/project-1/openrouter-keys/key-1",
+			want:      "/api/v1/projects/project-1/router-keys/key-1",
 		},
 		{
 			name:      "escapes path segments",
 			projectID: "project 1",
 			keyID:     "key/1",
-			want:      "/api/v1/projects/project%201/openrouter-keys/key%2F1",
+			want:      "/api/v1/projects/project%201/router-keys/key%2F1",
 		},
 	}
 
