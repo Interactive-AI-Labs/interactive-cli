@@ -98,6 +98,25 @@ func TestRouterAPIKeyPath(t *testing.T) {
 	}
 }
 
+func TestRouterAPIKeysPath(t *testing.T) {
+	tests := []struct {
+		name      string
+		projectID string
+		want      string
+	}{
+		{name: "plain id", projectID: "project-1", want: "/api/v1/projects/project-1/router-keys"},
+		{name: "escapes path segment", projectID: "project 1", want: "/api/v1/projects/project%201/router-keys"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := routerAPIKeysPath(tt.projectID); got != tt.want {
+				t.Fatalf("routerAPIKeysPath() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRequireKeyManagementAuth(t *testing.T) {
 	tests := []struct {
 		name    string
