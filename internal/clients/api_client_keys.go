@@ -204,8 +204,7 @@ func (c *APIClient) ListRouterAPIKeys(
 		return RouterAPIKeyListResponse{}, err
 	}
 
-	path := fmt.Sprintf("/api/v1/projects/%s/router-keys", url.PathEscape(projectID))
-	req, err := c.newRequest(ctx, http.MethodGet, path)
+	req, err := c.newRequest(ctx, http.MethodGet, routerAPIKeysPath(projectID))
 	if err != nil {
 		return RouterAPIKeyListResponse{}, err
 	}
@@ -229,8 +228,7 @@ func (c *APIClient) CreateRouterAPIKey(
 		return CreateRouterAPIKeyResponse{}, err
 	}
 
-	path := fmt.Sprintf("/api/v1/projects/%s/router-keys", url.PathEscape(projectID))
-	req, err := c.newJSONRequest(ctx, http.MethodPost, path, body)
+	req, err := c.newJSONRequest(ctx, http.MethodPost, routerAPIKeysPath(projectID), body)
 	if err != nil {
 		return CreateRouterAPIKeyResponse{}, err
 	}
@@ -243,6 +241,10 @@ func (c *APIClient) CreateRouterAPIKey(
 		return CreateRouterAPIKeyResponse{}, fmt.Errorf("failed to decode router key: %w", err)
 	}
 	return res, nil
+}
+
+func routerAPIKeysPath(projectID string) string {
+	return fmt.Sprintf("/api/v1/projects/%s/router-keys", url.PathEscape(projectID))
 }
 
 func routerAPIKeyPath(projectID, keyID string) string {
