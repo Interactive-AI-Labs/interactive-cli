@@ -105,7 +105,11 @@ func TestRouterAPIKeysPath(t *testing.T) {
 		want      string
 	}{
 		{name: "plain id", projectID: "project-1", want: "/api/v1/projects/project-1/router-keys"},
-		{name: "escapes path segment", projectID: "project 1", want: "/api/v1/projects/project%201/router-keys"},
+		{
+			name:      "escapes path segment",
+			projectID: "project 1",
+			want:      "/api/v1/projects/project%201/router-keys",
+		},
 	}
 
 	for _, tt := range tests {
