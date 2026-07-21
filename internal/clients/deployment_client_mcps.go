@@ -107,6 +107,13 @@ type RunMcpToolResult struct {
 	Tool string `json:"tool"`
 	// kept raw: a tool may return an object, array, or scalar at the top level
 	Result json.RawMessage `json:"result,omitempty"`
+	// Error is set instead of Result when the MCP reached but returned a JSON-RPC error.
+	Error *McpToolError `json:"error,omitempty"`
+}
+
+type McpToolError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 type verifyMcpResponse struct {
