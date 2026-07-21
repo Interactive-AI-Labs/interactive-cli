@@ -481,8 +481,8 @@ var mcpRunToolCmd = &cobra.Command{
 	Long: `Call one of an mcp's tools and print the result.
 
 Pass arguments as a JSON object with --args or --args-file (mutually exclusive);
-omit both to send an empty object. Works for external mcps from anywhere;
-internal mcps need the in-cluster operator.`,
+omit both to send an empty object. If the tool itself returns an error, it is
+reported and the command exits non-zero.`,
 	Example: `  iai mcps run-tool github search_repositories --args '{"query":"interactiveai"}'
   iai mcps run-tool github search_repositories --args-file ./args.json`,
 	Args: cobra.ExactArgs(2),
@@ -506,6 +506,12 @@ internal mcps need the in-cluster operator.`,
 		)
 		if err != nil {
 			return err
+		}
+		if res.Error != nil {
+			return fmt.Errorf(
+				"mcp %q tool %q returned an error (JSON-RPC %d): %s",
+				mcpName, tool, res.Error.Code, res.Error.Message,
+			)
 		}
 		return output.PrintRawJSON(out, res.Result)
 	},
