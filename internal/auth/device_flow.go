@@ -47,7 +47,8 @@ func RunDeviceFlow(
 	httpClient := &http.Client{Timeout: 15 * time.Second}
 
 	// 1. Request device code
-	deviceReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
+	deviceReq, err := http.NewRequestWithContext(
+		ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/device/authorize",
 		bytes.NewReader([]byte("{}")),
 	)
@@ -149,7 +150,8 @@ func pollDeviceToken(
 		},
 	}
 
-	pollReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
+	pollReq, err := http.NewRequestWithContext(
+		ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/device/token",
 		bytes.NewReader(body),
 	)
