@@ -74,7 +74,8 @@ func RunBrowserFlow(
 	}
 
 	httpClient := &http.Client{Timeout: 15 * time.Second}
-	authorizeReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
+	authorizeReq, err := http.NewRequestWithContext(
+		ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/authorize",
 		bytes.NewReader(body),
 	)
@@ -148,7 +149,8 @@ func exchangeCode(
 		},
 	}
 
-	tokenReqHTTP, err := http.NewRequestWithContext(ctx, http.MethodPost,
+	tokenReqHTTP, err := http.NewRequestWithContext(
+		ctx, http.MethodPost,
 		hostname+"/api/v1/auth/cli/token",
 		bytes.NewReader(body),
 	)
