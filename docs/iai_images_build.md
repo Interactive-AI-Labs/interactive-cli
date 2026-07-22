@@ -42,5 +42,5 @@ iai images build [image_name] [flags]
 
 ### SEE ALSO
 
-* [iai images](iai_images.md)	 - Build and push container images
+* [iai images](iai_images.md)	 - Manage container images
 

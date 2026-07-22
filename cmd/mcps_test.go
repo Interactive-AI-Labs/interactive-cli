@@ -23,7 +23,7 @@ func TestConfirmDeletion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var out bytes.Buffer
-			ok, err := confirmDeletion(strings.NewReader(tt.stdin), &out, "my-mcp")
+			ok, err := confirmDeletion(strings.NewReader(tt.stdin), &out, `mcp "my-mcp"`)
 			if err != nil {
 				t.Fatalf("stdin=%q unexpected error: %v", tt.stdin, err)
 			}
