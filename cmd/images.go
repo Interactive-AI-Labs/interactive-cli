@@ -24,6 +24,8 @@ var (
 	imageBuildContext  string
 	imageBuildPlatform string
 	imagePushTag       string
+	imageDeleteTag     string
+	imageDeleteForce   bool
 	imageOrganization  string
 	imageProject       string
 	imageListJSON      bool
@@ -33,7 +35,7 @@ var (
 var imageCmd = &cobra.Command{
 	Use:     "images",
 	Aliases: []string{"image"},
-	Short:   "Build and push container images",
+	Short:   "Manage container images",
 	GroupID: groupInfra,
 	Long:    `Manage container images used by services.`,
 }
@@ -69,6 +71,63 @@ var imageListCmd = &cobra.Command{
 		}
 
 		return output.PrintImageList(out, images)
+	},
+}
+
+var imageDeleteCmd = &cobra.Command{
+	Use:     "delete <image_name>",
+	Aliases: []string{"rm"},
+	Short:   "Delete an image from a project",
+	Long: `Delete the image version identified by its name and tag from a project.
+Other tags pointing to the same version are also deleted.`,
+	Example: `  iai images delete my-service --tag 1.2.3
+  iai images delete my-service --tag 1.2.3 --force
+  iai images delete my-service --tag 1.2.3 --organization my-org --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		imageName := strings.TrimSpace(args[0])
+		if imageName == "" {
+			return fmt.Errorf("image name is required")
+		}
+		tag := strings.TrimSpace(imageDeleteTag)
+		if tag == "" {
+			return fmt.Errorf("tag is required; please provide --tag")
+		}
+
+		imageRef := fmt.Sprintf("%s:%s", imageName, tag)
+		if !imageDeleteForce {
+			confirmed, err := confirmDeletion(
+				cmd.InOrStdin(),
+				out,
+				fmt.Sprintf("image %q", imageRef),
+			)
+			if err != nil {
+				return err
+			}
+			if !confirmed {
+				fmt.Fprintln(out, "Aborted.")
+				return nil
+			}
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), imageOrganization, imageProject)
+		if err != nil {
+			return err
+		}
+
+		serverMessage, err := deployClient.DeleteImage(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, imageName, tag,
+		)
+		if err != nil {
+			return err
+		}
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		} else {
+			fmt.Fprintf(out, "Deleted image %q.\n", imageRef)
+		}
+		return nil
 	},
 }
 
@@ -322,6 +381,16 @@ func init() {
 	imageListCmd.Flags().BoolVar(&imageListYAML, "yaml", false, "Output raw API response as YAML")
 	imageListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
+	imageDeleteCmd.Flags().
+		StringVarP(&imageDeleteTag, "tag", "t", "", "Tag of the image version to delete")
+	imageDeleteCmd.Flags().
+		BoolVarP(&imageDeleteForce, "force", "f", false, "Skip confirmation prompt")
+	imageDeleteCmd.Flags().
+		StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
+	imageDeleteCmd.Flags().
+		StringVarP(&imageProject, "project", "p", "", "Project name the image belongs to")
+	_ = imageDeleteCmd.MarkFlagRequired("tag")
+
 	imagePushCmd.Flags().
 		StringVarP(&imagePushTag, "tag", "t", "", "Tag for the image in the fixed registry (e.g. 1.2.3)")
 	imagePushCmd.Flags().
@@ -332,6 +401,7 @@ func init() {
 
 	rootCmd.AddCommand(imageCmd)
 	imageCmd.AddCommand(imageBuildCmd)
+	imageCmd.AddCommand(imageDeleteCmd)
 	imageCmd.AddCommand(imagePushCmd)
 	imageCmd.AddCommand(imageListCmd)
 }

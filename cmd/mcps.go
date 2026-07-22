@@ -518,8 +518,8 @@ reported and the command exits non-zero.`,
 }
 
 // confirmDeletion tolerates io.EOF so input without a trailing newline (echo -n y) still counts.
-func confirmDeletion(in io.Reader, out io.Writer, name string) (bool, error) {
-	fmt.Fprintf(out, "This will delete mcp %q. Continue? [y/N] ", name)
+func confirmDeletion(in io.Reader, out io.Writer, target string) (bool, error) {
+	fmt.Fprintf(out, "This will delete %s. Continue? [y/N] ", target)
 	answer, err := bufio.NewReader(in).ReadString('\n')
 	if err != nil && !errors.Is(err, io.EOF) {
 		return false, fmt.Errorf("failed to read confirmation: %w", err)
@@ -546,7 +546,7 @@ Detach it from any attached agent first with 'iai agents update <agent> --detach
 		mcpName := strings.TrimSpace(args[0])
 
 		if !mcpForce {
-			confirmed, err := confirmDeletion(cmd.InOrStdin(), out, mcpName)
+			confirmed, err := confirmDeletion(cmd.InOrStdin(), out, fmt.Sprintf("mcp %q", mcpName))
 			if err != nil {
 				return err
 			}

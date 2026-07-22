@@ -1,6 +1,6 @@
 ## iai images
 
-Build and push container images
+Manage container images
 
 ### Synopsis
 
@@ -25,6 +25,7 @@ Manage container images used by services.
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai images build](iai_images_build.md)	 - Build a container image with Docker
+* [iai images delete](iai_images_delete.md)	 - Delete an image from a project
 * [iai images list](iai_images_list.md)	 - List images for a project
 * [iai images push](iai_images_push.md)	 - Push an image for a project
 

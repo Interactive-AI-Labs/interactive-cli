@@ -1010,34 +1010,37 @@ func (c *DeploymentClient) ListImages(
 		url.PathEscape(orgId),
 		url.PathEscape(projectId),
 	)
-	req, err := c.newRequest(ctx, http.MethodGet, path)
+	body, err := c.sendJSONRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read error response: %w", err)
-		}
-		if msg := ExtractServerMessage(body); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
-		}
-		return nil, fmt.Errorf("failed to list images: server returned %s", resp.Status)
+		return nil, err
 	}
 
 	var result imagesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
 	return result.Images, nil
+}
+
+func (c *DeploymentClient) DeleteImage(
+	ctx context.Context,
+	orgId,
+	projectId,
+	imageName,
+	tag string,
+) (string, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/images/%s?%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(imageName),
+		url.Values{"tag": {tag}}.Encode(),
+	)
+	body, err := c.sendJSONRequest(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return "", err
+	}
+	return ExtractServerMessage(body), nil
 }
 
 func (c *DeploymentClient) ListReplicas(

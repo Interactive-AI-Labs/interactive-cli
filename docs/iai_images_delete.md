@@ -1,32 +1,32 @@
-## iai images list
+## iai images delete
 
-List images for a project
+Delete an image from a project
 
 ### Synopsis
 
-List container images in the deployment registry for a specific project.
+Delete the image version identified by its name and tag from a project.
+Other tags pointing to the same version are also deleted.
 
 ```
-iai images list [flags]
+iai images delete <image_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai images list
-  iai images list --organization my-org --project my-project
-  iai images list --json
-  iai images list --yaml
+  iai images delete my-service --tag 1.2.3
+  iai images delete my-service --tag 1.2.3 --force
+  iai images delete my-service --tag 1.2.3 --organization my-org --project my-project
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for list
-      --json                  Output raw API response as JSON
+  -f, --force                 Skip confirmation prompt
+  -h, --help                  help for delete
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name to list images for
-      --yaml                  Output raw API response as YAML
+  -p, --project string        Project name the image belongs to
+  -t, --tag string            Tag of the image version to delete
 ```
 
 ### Options inherited from parent commands
