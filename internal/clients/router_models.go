@@ -29,6 +29,9 @@ type RouterModel struct {
 	LastUsed        string             `json:"lastUsed,omitempty"`
 	Region          string             `json:"region"`
 	HasOtherRegion  bool               `json:"hasOtherRegion"`
+	// Effective recommendation rank per category (1 = top), e.g.
+	// {"chat": 3, "vision": 3}. Empty when the model isn't recommended.
+	Recommendations map[string]int `json:"recommendations,omitempty"`
 }
 
 type RouterModelListOptions struct {

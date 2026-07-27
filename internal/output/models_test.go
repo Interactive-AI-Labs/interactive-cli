@@ -33,8 +33,24 @@ func TestPrintRouterModelList(t *testing.T) {
 				},
 			},
 			meta: clients.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
-			want: "NAME     CONTEXT   REGION   ID\n" +
-				"gpt-4o   128000    us       m-1\n" +
+			want: "NAME     CONTEXT   REGION   RECOMMENDED   ID\n" +
+				"gpt-4o   128000    us       -             m-1\n" +
+				"\nPage 1 of 1 (1 total items)\n",
+		},
+		{
+			name: "recommendation ranks render category-sorted",
+			models: []clients.RouterModel{
+				{
+					ID:              "m-2",
+					ModelName:       "claude-opus-5",
+					ContextLength:   intPtr(200000),
+					Region:          "eu",
+					Recommendations: map[string]int{"vision": 1, "chat": 1},
+				},
+			},
+			meta: clients.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			want: "NAME            CONTEXT   REGION   RECOMMENDED       ID\n" +
+				"claude-opus-5   200000    eu       chat:1 vision:1   m-2\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 	}
@@ -55,12 +71,13 @@ func TestPrintRouterModelList(t *testing.T) {
 func TestPrintRouterModelDetail(t *testing.T) {
 	var buf bytes.Buffer
 	model := &clients.RouterModel{
-		ID:           "m-1",
-		ModelName:    "gpt-4o",
-		MatchPattern: "gpt-4o*",
-		Region:       "us",
-		Capabilities: []string{"text", "vision"},
-		Prices:       map[string]float64{"input": 0.01, "output": 0.03},
+		ID:              "m-1",
+		ModelName:       "gpt-4o",
+		MatchPattern:    "gpt-4o*",
+		Region:          "us",
+		Capabilities:    []string{"text", "vision"},
+		Prices:          map[string]float64{"input": 0.01, "output": 0.03},
+		Recommendations: map[string]int{"chat": 3, "vision": 3},
 	}
 	if err := PrintRouterModelDetail(&buf, model); err != nil {
 		t.Fatalf("PrintRouterModelDetail() error = %v", err)
@@ -70,6 +87,7 @@ func TestPrintRouterModelDetail(t *testing.T) {
 		"ID:             m-1",
 		"Model Name:     gpt-4o",
 		"Capabilities:   text, vision",
+		"Recommended:    chat:3 vision:3",
 		"Prices:",
 		"  input:    0.01",
 		"  output:   0.03",
