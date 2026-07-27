@@ -34,6 +34,14 @@ with --mcp in the same command to swap one for another. Detach an mcp before
 deleting it — 'iai mcps delete' blocks by default while an agent still
 references it.
 
+Before applying, the CLI prints deploy-awareness output to stderr: the live
+revision this update replaces, and — when the update replaces the agent
+config — a summary of content pin changes, with downgrades and removals
+flagged (a stale local manifest silently reverts colleagues' work). These
+checks fail open and never block; use --expect-revision to fail instead when
+the live revision differs from what you expect, and --show-diff for a full
+live-vs-incoming config diff.
+
 ```
 iai agents update <agent_name> [flags]
 ```
@@ -43,6 +51,8 @@ iai agents update <agent_name> [flags]
 ```
   iai agents update chat-agent --version 0.0.3
   iai agents update chat-agent --file agent-config.yaml
+  iai agents update chat-agent --file agent-config.yaml --expect-revision 13
+  iai agents update chat-agent --file agent-config.yaml --show-diff
   iai agents update chat-agent --endpoint=false
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
   iai agents update chat-agent --clear-schedule
@@ -62,6 +72,7 @@ iai agents update <agent_name> [flags]
       --detach-mcp stringArray     Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)
       --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
+      --expect-revision int        Fail without applying unless the live revision equals this value (opt-in staleness guard)
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
   -h, --help                       help for update
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
@@ -72,6 +83,7 @@ iai agents update <agent_name> [flags]
       --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
       --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
       --secret stringArray         Secret to inject as environment variables; can be repeated
+      --show-diff                  Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp
       --stack-id string            Stack ID to assign the agent to
       --version string             Agent image version to deploy (e.g. 0.0.1)
 ```

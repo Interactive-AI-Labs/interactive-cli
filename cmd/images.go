@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,12 +9,14 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
@@ -193,7 +196,12 @@ var imagePushCmd = &cobra.Command{
 	Use:     "push [image_name]",
 	Aliases: []string{"p"},
 	Short:   "Push an image for a project",
-	Long:    `Create a Docker image tarball and push it to the deployment images endpoint for a specific project.`,
+	Long: `Create a Docker image tarball and push it to the deployment images endpoint for a specific project.
+
+Pushing to a tag that already exists upstream replaces the previous image:
+the old bytes are unrecoverable and nothing records that the code changed.
+The CLI warns on stderr before pushing to an existing tag — prefer a fresh
+tag (or the git SHA) unless replacing is intended.`,
 	Example: `  iai images push my-service --tag 1.2.3
   iai images push my-service --tag 1.2.3 --organization my-org --project my-project`,
 	Args: cobra.ExactArgs(1),
@@ -238,6 +246,13 @@ var imagePushCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
+
+		// Deploy awareness: pushing to an existing tag replaces the previous
+		// image with no way to recover it or tell that the code changed.
+		// Warn before doing the work; fails open, never blocks the push.
+		warnExistingImageTag(
+			cmd.Context(), cmd.ErrOrStderr(), orgId, projectId, imageName, imagePushTag, cookies,
+		)
 
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf(
@@ -339,6 +354,32 @@ var imagePushCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func warnExistingImageTag(
+	ctx context.Context,
+	errW io.Writer,
+	orgId, projectId, imageName, tag string,
+	cookies []*http.Cookie,
+) {
+	deployClient, err := clients.NewDeploymentClient(
+		deploymentHostname, defaultHTTPTimeout, token, apiKey, cookies,
+	)
+	if err != nil {
+		preflight.PrintFailOpenNote(errW, "list existing image tags", err)
+		return
+	}
+	images, err := deployClient.ListImages(ctx, orgId, projectId)
+	if err != nil {
+		preflight.PrintFailOpenNote(errW, "list existing image tags", err)
+		return
+	}
+	for _, img := range images {
+		if img.Name == imageName && slices.Contains(img.Tags, tag) {
+			preflight.PrintTagOverwriteWarning(errW, tag)
+			return
+		}
+	}
 }
 
 func validateImageArchitecture(imageRef string) error {

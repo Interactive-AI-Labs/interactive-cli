@@ -9,6 +9,7 @@ import (
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 )
 
 func AllowDeleteResource(allowed []string, resource string) bool {
@@ -110,8 +111,13 @@ func PrintResult(
 	return nil
 }
 
+// Services syncs services: creates new ones, updates existing ones, and
+// deletes ones not present in the desired map. Updates go through PUT and
+// replace the whole live spec, so the live revision each one overwrites is
+// announced on warnW (deploy awareness).
 func Services(
 	ctx context.Context,
+	warnW io.Writer,
 	deployClient *clients.DeploymentClient,
 	orgId,
 	projectId,
@@ -151,6 +157,8 @@ func Services(
 			}
 			result.Created = append(result.Created, name)
 		} else {
+			svc := existingByName[name]
+			preflight.PrintUpdateBanner(warnW, "service "+name, svc.Revision, svc.Updated)
 			_, err := deployClient.PutService(
 				ctx, orgId, projectId, name, body,
 			)
@@ -187,9 +195,12 @@ func Services(
 }
 
 // Agents syncs agents: creates new ones, updates existing ones, and deletes ones
-// not present in the desired map.
+// not present in the desired map. Updates go through PUT and replace the
+// whole live spec, so the live revision each one overwrites is announced on
+// warnW (deploy awareness).
 func Agents(
 	ctx context.Context,
+	warnW io.Writer,
 	deployClient *clients.DeploymentClient,
 	orgId,
 	projectId,
@@ -229,6 +240,8 @@ func Agents(
 			}
 			result.Created = append(result.Created, name)
 		} else {
+			a := existingByName[name]
+			preflight.PrintUpdateBanner(warnW, "agent "+name, a.Revision, a.Updated)
 			_, err := deployClient.PutAgent(
 				ctx, orgId, projectId, name, body,
 			)

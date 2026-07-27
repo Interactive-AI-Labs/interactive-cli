@@ -22,6 +22,11 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 --clear-stack-id to remove those configurations entirely.
 
+Before applying, the CLI prints the live revision this update replaces to
+stderr, so a deploy based on stale local state is visible before it lands.
+The check fails open and never blocks; use --expect-revision to fail instead
+when the live revision differs from what you expect.
+
 ```
 iai services update <service_name> [flags]
 ```
@@ -30,6 +35,7 @@ iai services update <service_name> [flags]
 
 ```
   iai services update my-svc --image-tag v2
+  iai services update my-svc --image-tag v2 --expect-revision 47
   iai services update my-svc --memory 1G --cpu 0.5
   iai services update my-svc --replicas 3
   iai services update my-svc --autoscaling-max-replicas 8
@@ -54,6 +60,7 @@ iai services update <service_name> [flags]
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
+      --expect-revision int                 Fail without applying unless the live revision equals this value (opt-in staleness guard)
       --healthcheck-initial-delay int       Initial delay in seconds before starting healthchecks
       --healthcheck-path string             HTTP path for healthcheck endpoint (e.g. /health)
   -h, --help                                help for update

@@ -37,14 +37,19 @@ func PrintRevisionDiff(out io.Writer, nameA string, a any, nameB string, b any) 
 	if err != nil {
 		return fmt.Errorf("failed to process revision %s: %w", nameB, err)
 	}
+	return PrintYAMLDiff(out, "revision "+nameA, mapA, "revision "+nameB, mapB)
+}
 
-	yamlA, err := yaml.Marshal(mapA)
+// PrintYAMLDiff prints a unified diff between the YAML renderings of two
+// values, labeled verbatim.
+func PrintYAMLDiff(out io.Writer, labelA string, a any, labelB string, b any) error {
+	yamlA, err := yaml.Marshal(a)
 	if err != nil {
-		return fmt.Errorf("failed to marshal revision %s: %w", nameA, err)
+		return fmt.Errorf("failed to marshal %s: %w", labelA, err)
 	}
-	yamlB, err := yaml.Marshal(mapB)
+	yamlB, err := yaml.Marshal(b)
 	if err != nil {
-		return fmt.Errorf("failed to marshal revision %s: %w", nameB, err)
+		return fmt.Errorf("failed to marshal %s: %w", labelB, err)
 	}
 
 	if string(yamlA) == string(yamlB) {
@@ -55,11 +60,11 @@ func PrintRevisionDiff(out io.Writer, nameA string, a any, nameB string, b any) 
 	var opts []textdiff.Option
 	if IsTerminal(out) {
 		opts = append(opts, textdiff.TerminalColors())
-		fmt.Fprintf(out, "%s--- revision %s%s\n", colorRed, nameA, colorReset)
-		fmt.Fprintf(out, "%s+++ revision %s%s\n", colorGreen, nameB, colorReset)
+		fmt.Fprintf(out, "%s--- %s%s\n", colorRed, labelA, colorReset)
+		fmt.Fprintf(out, "%s+++ %s%s\n", colorGreen, labelB, colorReset)
 	} else {
-		fmt.Fprintf(out, "--- revision %s\n", nameA)
-		fmt.Fprintf(out, "+++ revision %s\n", nameB)
+		fmt.Fprintf(out, "--- %s\n", labelA)
+		fmt.Fprintf(out, "+++ %s\n", labelB)
 	}
 
 	diff := textdiff.Unified(string(yamlA), string(yamlB), opts...)

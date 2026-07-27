@@ -41,6 +41,9 @@ var (
 	agentClearSecret   bool
 	agentClearStackId  bool
 
+	agentExpectRevision int
+	agentShowDiff       bool
+
 	agentStackId string
 
 	agentListJSON      bool
@@ -164,9 +167,19 @@ remove those configurations entirely.
 --detach-mcp removes an mcp reference (bare or resolved) by name; combine
 with --mcp in the same command to swap one for another. Detach an mcp before
 deleting it — 'iai mcps delete' blocks by default while an agent still
-references it.`,
+references it.
+
+Before applying, the CLI prints deploy-awareness output to stderr: the live
+revision this update replaces, and — when the update replaces the agent
+config — a summary of content pin changes, with downgrades and removals
+flagged (a stale local manifest silently reverts colleagues' work). These
+checks fail open and never block; use --expect-revision to fail instead when
+the live revision differs from what you expect, and --show-diff for a full
+live-vs-incoming config diff.`,
 	Example: `  iai agents update chat-agent --version 0.0.3
   iai agents update chat-agent --file agent-config.yaml
+  iai agents update chat-agent --file agent-config.yaml --expect-revision 13
+  iai agents update chat-agent --file agent-config.yaml --show-diff
   iai agents update chat-agent --endpoint=false
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
   iai agents update chat-agent --clear-schedule
@@ -177,6 +190,7 @@ references it.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
+		errW := cmd.ErrOrStderr()
 		agentName := strings.TrimSpace(args[0])
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
@@ -202,16 +216,28 @@ references it.`,
 			return err
 		}
 
+		// One live read feeds the pre-flight banner, --expect-revision, the
+		// pin summary, --show-diff, and the --mcp overlay below. A failed
+		// read never blocks the update (fail open) — except for the overlay
+		// and --expect-revision, which cannot proceed without it.
+		live, liveErr := deployClient.DescribeAgent(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
+		)
+
 		mcpFlagsChanged := cmd.Flags().Changed("mcp") || cmd.Flags().Changed("detach-mcp")
 		if mcpFlagsChanged && !cmd.Flags().Changed("file") {
 			// No --file: overlay onto the agent's current config instead of requiring the whole config resupplied.
-			current, describeErr := deployClient.DescribeAgent(
-				cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
-			)
-			if describeErr != nil {
-				return describeErr
+			if liveErr != nil {
+				return liveErr
 			}
-			detached, detachErr := inputs.DetachMcpRefs(current.AgentConfig, agentDetachMcpNames)
+			// The overlay helpers mutate the config map in place; give them a
+			// copy so the pin summary and --show-diff below still compare
+			// against the true live state.
+			liveCopy, copyErr := cloneJSON(live.AgentConfig)
+			if copyErr != nil {
+				return fmt.Errorf("failed to copy agent config: %w", copyErr)
+			}
+			detached, detachErr := inputs.DetachMcpRefs(liveCopy, agentDetachMcpNames)
 			if detachErr != nil {
 				return detachErr
 			}
@@ -227,6 +253,26 @@ references it.`,
 		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update; pass at least one flag")
+		}
+		if agentShowDiff {
+			if _, ok := patch["agentConfig"]; !ok {
+				return fmt.Errorf("--show-diff requires --file, --mcp, or --detach-mcp")
+			}
+		}
+
+		var liveRevision int
+		var liveUpdated string
+		if liveErr == nil {
+			liveRevision, liveUpdated = live.Revision, live.Updated
+		}
+		if err := runUpdatePreflight(
+			errW, liveRevision, liveUpdated, liveErr,
+			cmd.Flags().Changed("expect-revision"), agentExpectRevision,
+		); err != nil {
+			return err
+		}
+		if rawCfg, ok := patch["agentConfig"]; ok && liveErr == nil {
+			printConfigPreflight(errW, live.AgentConfig, rawCfg, agentShowDiff)
 		}
 
 		fmt.Fprintln(out)
@@ -899,6 +945,19 @@ Use the reported field names with 'iai agents logs --fields' to include them in 
 	},
 }
 
+// cloneJSON deep-copies a JSON-decoded value via a marshal/unmarshal round trip.
+func cloneJSON(v any) (any, error) {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var out any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func init() {
 	// Flags for "agents create"
 	agentCreateCmd.Flags().
@@ -968,6 +1027,10 @@ func init() {
 		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps")
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)")
+	agentUpdateCmd.Flags().
+		IntVar(&agentExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value (opt-in staleness guard)")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentShowDiff, "show-diff", false, "Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().

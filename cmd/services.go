@@ -63,6 +63,8 @@ var (
 	serviceClearStackId     bool
 
 	serviceStackId string
+
+	serviceExpectRevision int
 )
 
 var servicesCmd = &cobra.Command{
@@ -163,8 +165,14 @@ and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezon
 alongside either to change the timezone.
 
 Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
---clear-stack-id to remove those configurations entirely.`,
+--clear-stack-id to remove those configurations entirely.
+
+Before applying, the CLI prints the live revision this update replaces to
+stderr, so a deploy based on stale local state is visible before it lands.
+The check fails open and never blocks; use --expect-revision to fail instead
+when the live revision differs from what you expect.`,
 	Example: `  iai services update my-svc --image-tag v2
+  iai services update my-svc --image-tag v2 --expect-revision 47
   iai services update my-svc --memory 1G --cpu 0.5
   iai services update my-svc --replicas 3
   iai services update my-svc --autoscaling-max-replicas 8
@@ -214,6 +222,23 @@ Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update; pass at least one flag")
+		}
+
+		// Deploy awareness: surface the live revision this update replaces.
+		// Fails open unless --expect-revision demands the check.
+		live, liveErr := deployClient.DescribeService(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, serviceName,
+		)
+		var liveRevision int
+		var liveUpdated string
+		if liveErr == nil {
+			liveRevision, liveUpdated = live.Revision, live.Updated
+		}
+		if err := runUpdatePreflight(
+			cmd.ErrOrStderr(), liveRevision, liveUpdated, liveErr,
+			cmd.Flags().Changed("expect-revision"), serviceExpectRevision,
+		); err != nil {
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -829,6 +854,10 @@ The sync command will:
 - Update services that exist in both the config and the project
 - Delete services that exist in the project but not in the config (for the specified stack)
 
+Updates replace the whole live spec of each service. For every service
+updated, the live revision being replaced is printed to stderr so a sync
+from a stale config file is visible before it lands.
+
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
 	Example: `  iai services sync --cfg-file stack.yaml
   iai services sync --cfg-file stack.yaml --project my-project`,
@@ -917,6 +946,7 @@ The project is selected with --project or via 'iai projects select', and the con
 
 		result, err := sync.Services(
 			cmd.Context(),
+			cmd.ErrOrStderr(),
 			deployClient,
 			orgId,
 			projectId,
@@ -1042,6 +1072,8 @@ func init() {
 		StringVar(&serviceStackId, "stack-id", "", "Stack ID to assign the service to")
 	servUCmd.Flags().
 		BoolVar(&serviceClearStackId, "clear-stack-id", false, "Remove the service from its stack")
+	servUCmd.Flags().
+		IntVar(&serviceExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value (opt-in staleness guard)")
 
 	// Flags for "services list"
 	servListCmd.Flags().
