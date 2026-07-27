@@ -40,7 +40,7 @@ func PrintUpdateBanner(w io.Writer, target string, revision int, updated string)
 // PrintFailOpenNote reports that a pre-flight lookup failed and the command
 // is proceeding without it. what describes the lookup, e.g. "fetch live state".
 func PrintFailOpenNote(w io.Writer, what string, err error) {
-	fmt.Fprintf(w, "could not %s (%v) — proceeding without pre-flight check\n", what, err)
+	fmt.Fprintf(w, "⚠ could not %s (%v) — proceeding without pre-flight check\n", what, err)
 }
 
 // PrintTagOverwriteWarning warns that pushing to an already-existing tag
