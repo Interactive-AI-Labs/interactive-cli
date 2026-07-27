@@ -2,12 +2,68 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 )
+
+func TestRouterModelUnmarshalRecommendations(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload string
+		want    map[string]int
+		wantErr bool
+	}{
+		{
+			name:    "ranks decode per category",
+			payload: `{"id":"m-1","recommendations":{"chat":2,"vision":5}}`,
+			want:    map[string]int{"chat": 2, "vision": 5},
+		},
+		{
+			name:    "absent field leaves the map nil",
+			payload: `{"id":"m-1"}`,
+			want:    nil,
+		},
+		{
+			name:    "null decodes to nil",
+			payload: `{"id":"m-1","recommendations":null}`,
+			want:    nil,
+		},
+		{
+			name:    "empty object decodes to empty map",
+			payload: `{"id":"m-1","recommendations":{}}`,
+			want:    map[string]int{},
+		},
+		{
+			name:    "non-numeric rank is rejected",
+			payload: `{"id":"m-1","recommendations":{"chat":"top"}}`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got RouterModel
+			err := json.Unmarshal([]byte(tt.payload), &got)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got %#v", got.Recommendations)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("json.Unmarshal() error = %v", err)
+			}
+			if !reflect.DeepEqual(got.Recommendations, tt.want) {
+				t.Errorf("Recommendations = %#v, want %#v", got.Recommendations, tt.want)
+			}
+		})
+	}
+}
 
 func TestAPIClientListRouterModels(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +91,7 @@ func TestAPIClientListRouterModels(t *testing.T) {
 		}
 		_, _ = io.WriteString(
 			w,
-			`{"models":[{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us","recommendations":{"chat":2}}],"totalCount":1}`,
+			`{"models":[{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us"}],"totalCount":1}`,
 		)
 	}))
 	defer server.Close()
@@ -62,9 +118,6 @@ func TestAPIClientListRouterModels(t *testing.T) {
 	if len(models) != 1 || models[0].ID != "m-1" {
 		t.Fatalf("unexpected models: %#v", models)
 	}
-	if models[0].Recommendations["chat"] != 2 {
-		t.Fatalf("unexpected recommendations: %#v", models[0].Recommendations)
-	}
 	// Page is 1-indexed (opts.Page 2 -> 3); TotalPages = ceil(1/10) = 1.
 	if meta.Page != 3 || meta.TotalItems != 1 || meta.TotalPages != 1 {
 		t.Fatalf("unexpected meta: %#v", meta)
@@ -84,7 +137,7 @@ func TestAPIClientGetRouterModelByID(t *testing.T) {
 		}
 		_, _ = io.WriteString(
 			w,
-			`{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us","prices":{"input":0.01},"recommendations":{"chat":2}}`,
+			`{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us","prices":{"input":0.01}}`,
 		)
 	}))
 	defer server.Close()
@@ -109,8 +162,5 @@ func TestAPIClientGetRouterModelByID(t *testing.T) {
 	}
 	if model.Prices["input"] != 0.01 {
 		t.Fatalf("unexpected prices: %#v", model.Prices)
-	}
-	if model.Recommendations["chat"] != 2 {
-		t.Fatalf("unexpected recommendations: %#v", model.Recommendations)
 	}
 }

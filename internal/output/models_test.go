@@ -69,42 +69,57 @@ func TestPrintRouterModelList(t *testing.T) {
 }
 
 func TestPrintRouterModelDetail(t *testing.T) {
-	var buf bytes.Buffer
-	model := &clients.RouterModel{
-		ID:              "m-1",
-		ModelName:       "gpt-4o",
-		MatchPattern:    "gpt-4o*",
-		Region:          "us",
-		Capabilities:    []string{"text", "vision"},
-		Prices:          map[string]float64{"input": 0.01, "output": 0.03},
-		Recommendations: map[string]int{"chat": 3, "vision": 3},
+	tests := []struct {
+		name        string
+		model       clients.RouterModel
+		contains    []string
+		notContains []string
+	}{
+		{
+			name: "recommended model names each category",
+			model: clients.RouterModel{
+				ID:              "m-1",
+				ModelName:       "gpt-4o",
+				MatchPattern:    "gpt-4o*",
+				Region:          "us",
+				Capabilities:    []string{"text", "vision"},
+				Prices:          map[string]float64{"input": 0.01, "output": 0.03},
+				Recommendations: map[string]int{"chat": 3, "vision": 3},
+			},
+			contains: []string{
+				"ID:             m-1",
+				"Model Name:     gpt-4o",
+				"Capabilities:   text, vision",
+				"Recommended:    chat #3, vision #3",
+				"Prices:",
+				"  input:    0.01",
+				"  output:   0.03",
+			},
+		},
+		{
+			name:        "unrecommended model drops the line rather than printing the list view's placeholder",
+			model:       clients.RouterModel{ID: "m-1", ModelName: "gpt-4o", Region: "us"},
+			notContains: []string{"Recommended:"},
+		},
 	}
-	if err := PrintRouterModelDetail(&buf, model); err != nil {
-		t.Fatalf("PrintRouterModelDetail() error = %v", err)
-	}
-	got := buf.String()
-	for _, want := range []string{
-		"ID:             m-1",
-		"Model Name:     gpt-4o",
-		"Capabilities:   text, vision",
-		"Recommended:    chat #3, vision #3",
-		"Prices:",
-		"  input:    0.01",
-		"  output:   0.03",
-	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("output missing %q\ngot:\n%s", want, got)
-		}
-	}
-}
 
-func TestPrintRouterModelDetailOmitsEmptyRecommendations(t *testing.T) {
-	var buf bytes.Buffer
-	model := &clients.RouterModel{ID: "m-1", ModelName: "gpt-4o", Region: "us"}
-	if err := PrintRouterModelDetail(&buf, model); err != nil {
-		t.Fatalf("PrintRouterModelDetail() error = %v", err)
-	}
-	if strings.Contains(buf.String(), "Recommended:") {
-		t.Errorf("expected no Recommended line\ngot:\n%s", buf.String())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := PrintRouterModelDetail(&buf, &tt.model); err != nil {
+				t.Fatalf("PrintRouterModelDetail() error = %v", err)
+			}
+			got := buf.String()
+			for _, want := range tt.contains {
+				if !strings.Contains(got, want) {
+					t.Errorf("output missing %q\ngot:\n%s", want, got)
+				}
+			}
+			for _, unwanted := range tt.notContains {
+				if strings.Contains(got, unwanted) {
+					t.Errorf("output unexpectedly contains %q\ngot:\n%s", unwanted, got)
+				}
+			}
+		})
 	}
 }
