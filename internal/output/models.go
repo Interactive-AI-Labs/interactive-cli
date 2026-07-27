@@ -85,15 +85,14 @@ func PrintRouterModelDetail(out io.Writer, m *clients.RouterModel) error {
 	return w.Flush()
 }
 
-// formatRecommendations renders {"chat": 1, "vision": 3} as "chat:1 vision:3",
-// category-sorted so table output is stable across calls.
+// Sorted by category so table output is stable across calls.
 func formatRecommendations(recs map[string]int) string {
 	if len(recs) == 0 {
 		return "-"
 	}
 	parts := make([]string, 0, len(recs))
 	for _, k := range slices.Sorted(maps.Keys(recs)) {
-		parts = append(parts, k+":"+strconv.Itoa(recs[k]))
+		parts = append(parts, k+" #"+strconv.Itoa(recs[k]))
 	}
-	return strings.Join(parts, " ")
+	return strings.Join(parts, ", ")
 }

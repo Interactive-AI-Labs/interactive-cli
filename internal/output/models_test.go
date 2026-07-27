@@ -38,19 +38,19 @@ func TestPrintRouterModelList(t *testing.T) {
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 		{
-			name: "recommendation ranks render category-sorted",
+			name: "recommendation ranks name their category, sorted",
 			models: []clients.RouterModel{
 				{
 					ID:              "m-2",
 					ModelName:       "claude-opus-5",
 					ContextLength:   intPtr(200000),
 					Region:          "eu",
-					Recommendations: map[string]int{"vision": 1, "chat": 1},
+					Recommendations: map[string]int{"vision": 3, "chat": 1},
 				},
 			},
 			meta: clients.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
-			want: "NAME            CONTEXT   REGION   RECOMMENDED       ID\n" +
-				"claude-opus-5   200000    eu       chat:1 vision:1   m-2\n" +
+			want: "NAME            CONTEXT   REGION   RECOMMENDED          ID\n" +
+				"claude-opus-5   200000    eu       chat #1, vision #3   m-2\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 	}
@@ -87,7 +87,7 @@ func TestPrintRouterModelDetail(t *testing.T) {
 		"ID:             m-1",
 		"Model Name:     gpt-4o",
 		"Capabilities:   text, vision",
-		"Recommended:    chat:3 vision:3",
+		"Recommended:    chat #3, vision #3",
 		"Prices:",
 		"  input:    0.01",
 		"  output:   0.03",
@@ -98,8 +98,6 @@ func TestPrintRouterModelDetail(t *testing.T) {
 	}
 }
 
-// The detail view omits the line entirely rather than printing the list
-// view's "-" placeholder.
 func TestPrintRouterModelDetailOmitsEmptyRecommendations(t *testing.T) {
 	var buf bytes.Buffer
 	model := &clients.RouterModel{ID: "m-1", ModelName: "gpt-4o", Region: "us"}
