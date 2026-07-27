@@ -35,7 +35,7 @@ func TestAPIClientListRouterModels(t *testing.T) {
 		}
 		_, _ = io.WriteString(
 			w,
-			`{"models":[{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us"}],"totalCount":1}`,
+			`{"models":[{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us","recommendations":{"chat":2}}],"totalCount":1}`,
 		)
 	}))
 	defer server.Close()
@@ -62,6 +62,9 @@ func TestAPIClientListRouterModels(t *testing.T) {
 	if len(models) != 1 || models[0].ID != "m-1" {
 		t.Fatalf("unexpected models: %#v", models)
 	}
+	if models[0].Recommendations["chat"] != 2 {
+		t.Fatalf("unexpected recommendations: %#v", models[0].Recommendations)
+	}
 	// Page is 1-indexed (opts.Page 2 -> 3); TotalPages = ceil(1/10) = 1.
 	if meta.Page != 3 || meta.TotalItems != 1 || meta.TotalPages != 1 {
 		t.Fatalf("unexpected meta: %#v", meta)
@@ -81,7 +84,7 @@ func TestAPIClientGetRouterModelByID(t *testing.T) {
 		}
 		_, _ = io.WriteString(
 			w,
-			`{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us","prices":{"input":0.01}}`,
+			`{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us","prices":{"input":0.01},"recommendations":{"chat":2}}`,
 		)
 	}))
 	defer server.Close()
@@ -106,5 +109,8 @@ func TestAPIClientGetRouterModelByID(t *testing.T) {
 	}
 	if model.Prices["input"] != 0.01 {
 		t.Fatalf("unexpected prices: %#v", model.Prices)
+	}
+	if model.Recommendations["chat"] != 2 {
+		t.Fatalf("unexpected recommendations: %#v", model.Recommendations)
 	}
 }
