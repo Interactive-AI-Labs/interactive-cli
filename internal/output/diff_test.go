@@ -154,3 +154,41 @@ func TestPrintRevisionDiff(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintYAMLDiff(t *testing.T) {
+	tests := []struct {
+		name string
+		a    any
+		b    any
+		want string
+	}{
+		{
+			name: "identical values",
+			a:    map[string]any{"id": "agent"},
+			b:    map[string]any{"id": "agent"},
+			want: "No differences found.\n",
+		},
+		{
+			name: "labels are used verbatim and nothing is stripped",
+			a:    map[string]any{"id": "agent", "status": "ready"},
+			b:    map[string]any{"id": "agent", "status": "failed"},
+			want: "--- live\n+++ incoming\n" +
+				"@@ -1,2 +1,2 @@\n" +
+				" id: agent\n" +
+				"-status: ready\n" +
+				"+status: failed\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := PrintYAMLDiff(&buf, "live", tt.a, "incoming", tt.b); err != nil {
+				t.Fatalf("PrintYAMLDiff() error = %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("diff = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

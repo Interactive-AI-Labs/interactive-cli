@@ -35,6 +35,10 @@ Services are created, updated, or deleted to match the config file.
 Agents are created, updated, or deleted to match the config file.
 Databases are created, updated, or deleted (--allow-delete=databases) to match the config file.
 
+Updates replace the whole live spec of each resource. For every service or
+agent updated, the live revision being replaced is printed to stderr so a
+sync from a stale config file is visible before it lands.
+
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
 	Example: `  iai stacks sync --file stack.yaml
   iai stacks sync --file stack.yaml --project my-project --organization my-org
@@ -128,6 +132,7 @@ The organization and project are read from the config file, flags, or resolved v
 
 			svcResult, err := sync.Services(
 				cmd.Context(),
+				cmd.ErrOrStderr(),
 				deployClient,
 				orgId,
 				projectId,
@@ -167,6 +172,7 @@ The organization and project are read from the config file, flags, or resolved v
 
 			agentResult, err := sync.Agents(
 				cmd.Context(),
+				cmd.ErrOrStderr(),
 				deployClient,
 				orgId,
 				projectId,

@@ -11,6 +11,10 @@ The sync command will:
 - Update services that exist in both the config and the project
 - Delete services that exist in the project but not in the config (for the specified stack)
 
+Updates replace the whole live spec of each service. For every service
+updated, the live revision being replaced is printed to stderr so a sync
+from a stale config file is visible before it lands.
+
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.
 
 ```

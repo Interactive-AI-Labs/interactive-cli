@@ -6,6 +6,11 @@ Push an image for a project
 
 Create a Docker image tarball and push it to the deployment images endpoint for a specific project.
 
+Pushing to a tag that already exists upstream replaces the previous image:
+the old bytes are unrecoverable and nothing records that the code changed.
+The CLI warns on stderr before pushing to an existing tag — prefer a fresh
+tag (or the git SHA) unless replacing is intended.
+
 ```
 iai images push [image_name] [flags]
 ```

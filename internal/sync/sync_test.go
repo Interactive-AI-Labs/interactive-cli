@@ -2,8 +2,14 @@ package sync
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func TestAllowDeleteResource(t *testing.T) {
@@ -161,5 +167,89 @@ func TestPrintResult(t *testing.T) {
 				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
 			}
 		})
+	}
+}
+
+// newTestDeployClient returns a client pointed at a stub deployment server.
+func newTestDeployClient(t *testing.T, handler http.HandlerFunc) *clients.DeploymentClient {
+	t.Helper()
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+	client, err := clients.NewDeploymentClient(server.URL, 5*time.Second, "test-token", "", nil)
+	if err != nil {
+		t.Fatalf("NewDeploymentClient() error = %v", err)
+	}
+	return client
+}
+
+func TestServicesPrintsUpdateBanner(t *testing.T) {
+	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/services":
+			fmt.Fprint(
+				w,
+				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"}]}`,
+			)
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-a":
+			fmt.Fprint(w, `{}`)
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-new":
+			fmt.Fprint(w, `{}`)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	var warn bytes.Buffer
+	desired := map[string]clients.CreateServiceBody{
+		"svc-a":   {},
+		"svc-new": {},
+	}
+	result, err := Services(context.Background(), &warn, client, "o1", "p1", "stack-1", desired)
+	if err != nil {
+		t.Fatalf("Services() error = %v", err)
+	}
+
+	wantWarn := "Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n"
+	if got := warn.String(); got != wantWarn {
+		t.Errorf("banner = %q, want %q", got, wantWarn)
+	}
+	if len(result.Updated) != 1 || result.Updated[0] != "svc-a" {
+		t.Errorf("Updated = %v, want [svc-a]", result.Updated)
+	}
+	if len(result.Created) != 1 || result.Created[0] != "svc-new" {
+		t.Errorf("Created = %v, want [svc-new]", result.Created)
+	}
+}
+
+func TestAgentsPrintsUpdateBanner(t *testing.T) {
+	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/agents":
+			fmt.Fprint(
+				w,
+				`{"agents":[{"name":"agent-a","projectId":"p1","revision":13,"status":"ready","updated":"2026-07-24T11:20:00Z"}]}`,
+			)
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/agents/agent-a":
+			fmt.Fprint(w, `{}`)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	var warn bytes.Buffer
+	desired := map[string]clients.CreateAgentBody{"agent-a": {}}
+	result, err := Agents(context.Background(), &warn, client, "o1", "p1", "stack-1", desired)
+	if err != nil {
+		t.Fatalf("Agents() error = %v", err)
+	}
+
+	wantWarn := "Live: agent agent-a revision 13, last updated 2026-07-24 11:20 UTC — this update creates revision 14\n"
+	if got := warn.String(); got != wantWarn {
+		t.Errorf("banner = %q, want %q", got, wantWarn)
+	}
+	if len(result.Updated) != 1 || result.Updated[0] != "agent-a" {
+		t.Errorf("Updated = %v, want [agent-a]", result.Updated)
 	}
 }

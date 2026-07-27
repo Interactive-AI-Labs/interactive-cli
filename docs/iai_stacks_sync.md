@@ -10,6 +10,10 @@ Services are created, updated, or deleted to match the config file.
 Agents are created, updated, or deleted to match the config file.
 Databases are created, updated, or deleted (--allow-delete=databases) to match the config file.
 
+Updates replace the whole live spec of each resource. For every service or
+agent updated, the live revision being replaced is printed to stderr so a
+sync from a stale config file is visible before it lands.
+
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
 
 ```
