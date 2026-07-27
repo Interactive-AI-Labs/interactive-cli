@@ -216,6 +216,18 @@ live-vs-incoming config diff.`,
 			return err
 		}
 
+		mcpOverlay := (cmd.Flags().Changed("mcp") ||
+			cmd.Flags().Changed("detach-mcp")) &&
+			!cmd.Flags().Changed("file")
+		if len(patch) == 0 && !mcpOverlay {
+			return fmt.Errorf("no fields to update; pass at least one flag")
+		}
+		if agentShowDiff {
+			if _, replacesConfig := patch["agentConfig"]; !replacesConfig && !mcpOverlay {
+				return fmt.Errorf("--show-diff requires --file, --mcp, or --detach-mcp")
+			}
+		}
+
 		// One live read feeds the pre-flight banner, --expect-revision, the
 		// pin summary, --show-diff, and the --mcp overlay below. A failed
 		// read never blocks the update (fail open) — except for the overlay
@@ -224,8 +236,7 @@ live-vs-incoming config diff.`,
 			cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
 		)
 
-		mcpFlagsChanged := cmd.Flags().Changed("mcp") || cmd.Flags().Changed("detach-mcp")
-		if mcpFlagsChanged && !cmd.Flags().Changed("file") {
+		if mcpOverlay {
 			// No --file: overlay onto the agent's current config instead of requiring the whole config resupplied.
 			if liveErr != nil {
 				return liveErr
@@ -250,14 +261,6 @@ live-vs-incoming config diff.`,
 				return fmt.Errorf("failed to encode agent config: %w", marshalErr)
 			}
 			patch["agentConfig"] = json.RawMessage(raw)
-		}
-		if len(patch) == 0 {
-			return fmt.Errorf("no fields to update; pass at least one flag")
-		}
-		if agentShowDiff {
-			if _, ok := patch["agentConfig"]; !ok {
-				return fmt.Errorf("--show-diff requires --file, --mcp, or --detach-mcp")
-			}
 		}
 
 		var liveRevision int

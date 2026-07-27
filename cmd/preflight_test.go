@@ -27,7 +27,7 @@ func TestRunUpdatePreflight(t *testing.T) {
 		{
 			name:    "fails open on describe error",
 			liveErr: errors.New("boom"),
-			wantOut: "could not fetch live state (boom) — proceeding without pre-flight check\n",
+			wantOut: "⚠ could not fetch live state (boom) — proceeding without pre-flight check\n",
 		},
 		{
 			name:           "expect-revision match proceeds",

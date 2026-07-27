@@ -60,7 +60,7 @@ func TestPrintUpdateBanner(t *testing.T) {
 func TestPrintFailOpenNote(t *testing.T) {
 	var buf bytes.Buffer
 	PrintFailOpenNote(&buf, "fetch live state", errors.New("connection refused"))
-	want := "could not fetch live state (connection refused) — proceeding without pre-flight check\n"
+	want := "⚠ could not fetch live state (connection refused) — proceeding without pre-flight check\n"
 	if got := buf.String(); got != want {
 		t.Errorf("note = %q, want %q", got, want)
 	}

@@ -85,7 +85,7 @@ func TestWarnExistingImageTag(t *testing.T) {
 			status:     http.StatusInternalServerError,
 			imagesJSON: `{}`,
 			tag:        "0.2.36",
-			wantPrefix: "could not list existing image tags (",
+			wantPrefix: "⚠ could not list existing image tags (",
 		},
 	}
 
