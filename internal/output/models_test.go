@@ -97,3 +97,16 @@ func TestPrintRouterModelDetail(t *testing.T) {
 		}
 	}
 }
+
+// The detail view omits the line entirely rather than printing the list
+// view's "-" placeholder.
+func TestPrintRouterModelDetailOmitsEmptyRecommendations(t *testing.T) {
+	var buf bytes.Buffer
+	model := &clients.RouterModel{ID: "m-1", ModelName: "gpt-4o", Region: "us"}
+	if err := PrintRouterModelDetail(&buf, model); err != nil {
+		t.Fatalf("PrintRouterModelDetail() error = %v", err)
+	}
+	if strings.Contains(buf.String(), "Recommended:") {
+		t.Errorf("expected no Recommended line\ngot:\n%s", buf.String())
+	}
+}

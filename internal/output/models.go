@@ -55,6 +55,9 @@ func PrintRouterModelDetail(out io.Writer, m *clients.RouterModel) error {
 		otherRegion = "Yes"
 	}
 	fmt.Fprintf(w, "Other Region:\t%s\n", otherRegion)
+	if len(m.Recommendations) > 0 {
+		fmt.Fprintf(w, "Recommended:\t%s\n", formatRecommendations(m.Recommendations))
+	}
 	if m.Description != "" {
 		fmt.Fprintf(w, "Description:\t%s\n", m.Description)
 	}
@@ -72,9 +75,6 @@ func PrintRouterModelDetail(out io.Writer, m *clients.RouterModel) error {
 	}
 	if m.LastUsed != "" {
 		fmt.Fprintf(w, "Last Used:\t%s\n", LocalTime(m.LastUsed))
-	}
-	if len(m.Recommendations) > 0 {
-		fmt.Fprintf(w, "Recommended:\t%s\n", formatRecommendations(m.Recommendations))
 	}
 	if len(m.Prices) > 0 {
 		fmt.Fprintln(w, "Prices:")
