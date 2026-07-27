@@ -21,13 +21,14 @@ func PrintRouterModelList(
 		return nil
 	}
 
-	headers := []string{"NAME", "CONTEXT", "REGION", "ID"}
+	headers := []string{"NAME", "CONTEXT", "REGION", "RECOMMENDED", "ID"}
 	rows := make([][]string, len(models))
 	for i, m := range models {
 		rows[i] = []string{
 			m.ModelName,
 			formatInt(m.ContextLength),
 			m.Region,
+			formatRecommendations(m.Recommendations),
 			m.ID,
 		}
 	}
@@ -72,6 +73,9 @@ func PrintRouterModelDetail(out io.Writer, m *clients.RouterModel) error {
 	if m.LastUsed != "" {
 		fmt.Fprintf(w, "Last Used:\t%s\n", LocalTime(m.LastUsed))
 	}
+	if len(m.Recommendations) > 0 {
+		fmt.Fprintf(w, "Recommended:\t%s\n", formatRecommendations(m.Recommendations))
+	}
 	if len(m.Prices) > 0 {
 		fmt.Fprintln(w, "Prices:")
 		for _, k := range slices.Sorted(maps.Keys(m.Prices)) {
@@ -79,4 +83,17 @@ func PrintRouterModelDetail(out io.Writer, m *clients.RouterModel) error {
 		}
 	}
 	return w.Flush()
+}
+
+// formatRecommendations renders {"chat": 1, "vision": 3} as "chat:1 vision:3",
+// category-sorted so table output is stable across calls.
+func formatRecommendations(recs map[string]int) string {
+	if len(recs) == 0 {
+		return "-"
+	}
+	parts := make([]string, 0, len(recs))
+	for _, k := range slices.Sorted(maps.Keys(recs)) {
+		parts = append(parts, k+":"+strconv.Itoa(recs[k]))
+	}
+	return strings.Join(parts, " ")
 }
