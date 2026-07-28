@@ -1,8 +1,9 @@
 // Package preflight prints deploy-awareness warnings: before a mutating
 // deploy command writes, it surfaces the live state the caller is about to
-// replace (revision, content pin deltas, existing image tags) so the
-// operator — human or LLM agent — can notice a stale-based deploy at the
-// moment it can still be stopped.
+// replace or destroy (revision, content pin deltas, existing image tags,
+// resources a sync will delete, env/secret entries a list replacement
+// drops) so the operator — human or LLM agent — can notice a stale-based
+// deploy at the moment it can still be stopped.
 //
 // Output contract: deterministic plain text intended for stderr, stable "⚠"
 // prefix on warnings, no colors, no prompts. Checks warn but never block;
@@ -50,6 +51,60 @@ func PrintTagOverwriteWarning(w io.Writer, tag string) {
 		w,
 		"⚠ tag %s already exists upstream — pushing replaces it; the previous image is unrecoverable.\n",
 		tag,
+	)
+}
+
+// PrintSyncDeletions announces, before the sync writes anything, the
+// resources it will delete because the config file does not mention them. A
+// stale stack file doesn't say "delete X" — it just stops listing X — so
+// this is the only moment decommissioning looks different from a forgotten
+// pull. Deletes run after creates/updates, so aborting on this warning still
+// prevents them. resource is the singular noun ("service", "agent").
+func PrintSyncDeletions(w io.Writer, resource string, names []string) {
+	if len(names) == 0 {
+		return
+	}
+	plural := ""
+	if len(names) != 1 {
+		plural = "s"
+	}
+	fmt.Fprintf(
+		w,
+		"⚠ sync will DELETE %d %s%s not in the config: %s (deletes run last — Ctrl-C to abort if the config is stale)\n",
+		len(names),
+		resource,
+		plural,
+		strings.Join(names, ", "),
+	)
+}
+
+// PrintDroppedListEntries warns when a full-list replacement flag (--env,
+// --secret) drops entries that exist on the live resource. The flags
+// replace, not merge — the classic mistake is passing just the one new value
+// and silently wiping the rest. Only real disappearances warn: kept and
+// added names print nothing. kind is the plural noun ("env vars",
+// "secret refs"); live and incoming are entry names.
+func PrintDroppedListEntries(w io.Writer, kind, flag string, live, incoming []string) {
+	keep := make(map[string]bool, len(incoming))
+	for _, name := range incoming {
+		keep[name] = true
+	}
+	var dropped []string
+	for _, name := range live {
+		if !keep[name] {
+			dropped = append(dropped, name)
+		}
+	}
+	if len(dropped) == 0 {
+		return
+	}
+	sort.Strings(dropped)
+	fmt.Fprintf(
+		w,
+		"⚠ this update drops live %s: %s (%s replaces the entire list; pass every value you want to keep)\n",
+		kind,
+		strings.Join(dropped, ", "),
+		flag,
 	)
 }
 

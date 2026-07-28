@@ -75,6 +75,98 @@ func TestPrintTagOverwriteWarning(t *testing.T) {
 	}
 }
 
+func TestPrintSyncDeletions(t *testing.T) {
+	tests := []struct {
+		name     string
+		resource string
+		names    []string
+		want     string
+	}{
+		{
+			name:     "no deletions print nothing",
+			resource: "service",
+			names:    nil,
+			want:     "",
+		},
+		{
+			name:     "single deletion",
+			resource: "agent",
+			names:    []string{"chat-agent"},
+			want: "⚠ sync will DELETE 1 agent not in the config: chat-agent" +
+				" (deletes run last — Ctrl-C to abort if the config is stale)\n",
+		},
+		{
+			name:     "multiple deletions",
+			resource: "service",
+			names:    []string{"api-gateway", "worker"},
+			want: "⚠ sync will DELETE 2 services not in the config: api-gateway, worker" +
+				" (deletes run last — Ctrl-C to abort if the config is stale)\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			PrintSyncDeletions(&buf, tt.resource, tt.names)
+			if got := buf.String(); got != tt.want {
+				t.Errorf("announcement = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPrintDroppedListEntries(t *testing.T) {
+	tests := []struct {
+		name     string
+		kind     string
+		flag     string
+		live     []string
+		incoming []string
+		want     string
+	}{
+		{
+			name: "nothing dropped prints nothing",
+			kind: "env vars", flag: "--env",
+			live:     []string{"LOG_LEVEL"},
+			incoming: []string{"LOG_LEVEL", "NEW_VAR"},
+			want:     "",
+		},
+		{
+			name: "empty live list prints nothing",
+			kind: "env vars", flag: "--env",
+			live:     nil,
+			incoming: []string{"LOG_LEVEL"},
+			want:     "",
+		},
+		{
+			name: "dropped env vars listed sorted",
+			kind: "env vars", flag: "--env",
+			live:     []string{"LOG_LEVEL", "DB_HOST"},
+			incoming: []string{"NEW_VAR"},
+			want: "⚠ this update drops live env vars: DB_HOST, LOG_LEVEL" +
+				" (--env replaces the entire list; pass every value you want to keep)\n",
+		},
+		{
+			name: "dropped secret ref",
+			kind: "secret refs", flag: "--secret",
+			live:     []string{"api-keys", "db-creds"},
+			incoming: []string{"db-creds"},
+			want: "⚠ this update drops live secret refs: api-keys" +
+				" (--secret replaces the entire list; pass every value you want to keep)\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			PrintDroppedListEntries(&buf, tt.kind, tt.flag, tt.live, tt.incoming)
+			if got := buf.String(); got != tt.want {
+				t.Errorf("warning = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCheckExpectedRevision(t *testing.T) {
 	if err := CheckExpectedRevision(12, 12); err != nil {
 		t.Errorf("matching revisions: unexpected error %v", err)

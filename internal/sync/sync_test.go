@@ -222,6 +222,84 @@ func TestServicesPrintsUpdateBanner(t *testing.T) {
 	}
 }
 
+func TestServicesAnnouncesDeletions(t *testing.T) {
+	var deleted bool
+	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/services":
+			fmt.Fprint(
+				w,
+				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
+			)
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-a":
+			fmt.Fprint(w, `{}`)
+		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-old":
+			deleted = true
+			fmt.Fprint(w, `{}`)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	var warn bytes.Buffer
+	desired := map[string]clients.CreateServiceBody{"svc-a": {}}
+	result, err := Services(context.Background(), &warn, client, "o1", "p1", "stack-1", desired)
+	if err != nil {
+		t.Fatalf("Services() error = %v", err)
+	}
+
+	// The deletion announcement must come first: it is printed before any
+	// create/update write, so the whole sync is still abortable.
+	wantWarn := "⚠ sync will DELETE 1 service not in the config: svc-old" +
+		" (deletes run last — Ctrl-C to abort if the config is stale)\n" +
+		"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n"
+	if got := warn.String(); got != wantWarn {
+		t.Errorf("warnings = %q, want %q", got, wantWarn)
+	}
+	if !deleted {
+		t.Error("svc-old was announced but not deleted")
+	}
+	if len(result.Deleted) != 1 || result.Deleted[0] != "svc-old" {
+		t.Errorf("Deleted = %v, want [svc-old]", result.Deleted)
+	}
+}
+
+func TestAgentsAnnouncesDeletions(t *testing.T) {
+	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/agents":
+			fmt.Fprint(
+				w,
+				`{"agents":[{"name":"agent-old","projectId":"p1","revision":5,"status":"ready"}]}`,
+			)
+		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/agents/agent-old":
+			fmt.Fprint(w, `{}`)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	var warn bytes.Buffer
+	result, err := Agents(
+		context.Background(), &warn, client, "o1", "p1", "stack-1",
+		map[string]clients.CreateAgentBody{},
+	)
+	if err != nil {
+		t.Fatalf("Agents() error = %v", err)
+	}
+
+	wantWarn := "⚠ sync will DELETE 1 agent not in the config: agent-old" +
+		" (deletes run last — Ctrl-C to abort if the config is stale)\n"
+	if got := warn.String(); got != wantWarn {
+		t.Errorf("warnings = %q, want %q", got, wantWarn)
+	}
+	if len(result.Deleted) != 1 || result.Deleted[0] != "agent-old" {
+		t.Errorf("Deleted = %v, want [agent-old]", result.Deleted)
+	}
+}
+
 func TestAgentsPrintsUpdateBanner(t *testing.T) {
 	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {

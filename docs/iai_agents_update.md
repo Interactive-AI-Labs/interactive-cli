@@ -35,12 +35,14 @@ deleting it — 'iai mcps delete' blocks by default while an agent still
 references it.
 
 Before applying, the CLI prints deploy-awareness output to stderr: the live
-revision this update replaces, and — when the update replaces the agent
-config — a summary of content pin changes, with downgrades and removals
-flagged (a stale local manifest silently reverts colleagues' work). These
-checks fail open and never block; use --expect-revision to fail instead when
-the live revision differs from what you expect, and --show-diff for a full
-live-vs-incoming config diff.
+revision this update replaces; the names of any env vars or secret refs that
+--env/--secret would drop from the live agent (the flags replace the entire
+list); and — when the update replaces the agent config — a summary of
+content pin changes, with downgrades and removals flagged (a stale local
+manifest silently reverts colleagues' work). These checks fail open and
+never block; use --expect-revision to fail instead when the live revision
+differs from what you expect, and --show-diff for a full live-vs-incoming
+config diff.
 
 ```
 iai agents update <agent_name> [flags]

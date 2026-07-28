@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 )
@@ -41,6 +43,43 @@ func runUpdatePreflight(
 	}
 	preflight.PrintUpdateBanner(errW, "", revision, updated)
 	return nil
+}
+
+// printDroppedEnvSecretWarnings warns when a --env / --secret full-list
+// replacement drops names that exist on the live resource (the flags
+// replace, not merge — the documented footgun is passing only the one new
+// value). Callers pass each flag's Changed state so an untouched list never
+// warns; --clear-env / --clear-secret stay silent by design, since clearing
+// is explicit intent. Call only when live state was fetched successfully.
+func printDroppedEnvSecretWarnings(
+	errW io.Writer,
+	envChanged, secretChanged bool,
+	liveEnv []clients.EnvVar,
+	liveRefs []clients.SecretRef,
+	envArgs, secretArgs []string,
+) {
+	if envChanged {
+		live := make([]string, 0, len(liveEnv))
+		for _, e := range liveEnv {
+			live = append(live, e.Name)
+		}
+		incoming := make([]string, 0, len(envArgs))
+		for _, e := range envArgs {
+			incoming = append(incoming, strings.TrimSpace(strings.SplitN(e, "=", 2)[0]))
+		}
+		preflight.PrintDroppedListEntries(errW, "env vars", "--env", live, incoming)
+	}
+	if secretChanged {
+		live := make([]string, 0, len(liveRefs))
+		for _, r := range liveRefs {
+			live = append(live, r.SecretName)
+		}
+		incoming := make([]string, 0, len(secretArgs))
+		for _, s := range secretArgs {
+			incoming = append(incoming, strings.TrimSpace(s))
+		}
+		preflight.PrintDroppedListEntries(errW, "secret refs", "--secret", live, incoming)
+	}
 }
 
 // printConfigPreflight prints the content pin summary — and, with

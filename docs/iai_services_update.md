@@ -22,10 +22,11 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 --clear-stack-id to remove those configurations entirely.
 
-Before applying, the CLI prints the live revision this update replaces to
-stderr, so a deploy based on stale local state is visible before it lands.
-The check fails open and never blocks; use --expect-revision to fail instead
-when the live revision differs from what you expect.
+Before applying, the CLI prints deploy-awareness output to stderr: the live
+revision this update replaces, and the names of any env vars or secret refs
+that --env/--secret would drop from the live service (the flags replace the
+entire list). These checks fail open and never block; use --expect-revision
+to fail instead when the live revision differs from what you expect.
 
 ```
 iai services update <service_name> [flags]

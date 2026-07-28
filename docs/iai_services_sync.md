@@ -13,7 +13,10 @@ The sync command will:
 
 Updates replace the whole live spec of each service. For every service
 updated, the live revision being replaced is printed to stderr so a sync
-from a stale config file is visible before it lands.
+from a stale config file is visible before it lands. Services the config
+file no longer mentions are deleted; those deletions are announced on
+stderr before the sync writes anything, and run last, so an unintended
+delete from a stale config can still be aborted.
 
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.
 
