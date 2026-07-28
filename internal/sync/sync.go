@@ -115,7 +115,7 @@ func PrintResult(
 // deletes ones not present in the desired map. Updates go through PUT and
 // replace the whole live spec, so the live revision each one overwrites is
 // announced on warnW (deploy awareness), and pending deletions are announced
-// there before any write happens.
+// there before any service write happens.
 func Services(
 	ctx context.Context,
 	warnW io.Writer,
@@ -207,7 +207,7 @@ func deletionList[E, D any](existing map[string]E, desired map[string]D) []strin
 // not present in the desired map. Updates go through PUT and replace the
 // whole live spec, so the live revision each one overwrites is announced on
 // warnW (deploy awareness), and pending deletions are announced there before
-// any write happens.
+// any agent write happens.
 func Agents(
 	ctx context.Context,
 	warnW io.Writer,

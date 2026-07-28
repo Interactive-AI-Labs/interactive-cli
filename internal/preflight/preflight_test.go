@@ -93,14 +93,14 @@ func TestPrintSyncDeletions(t *testing.T) {
 			resource: "agent",
 			names:    []string{"chat-agent"},
 			want: "⚠ sync will DELETE 1 agent not in the config: chat-agent" +
-				" (deletes run last — Ctrl-C to abort if the config is stale)\n",
+				" (agent deletes run after agent creates/updates — Ctrl-C to abort if the config is stale)\n",
 		},
 		{
 			name:     "multiple deletions",
 			resource: "service",
 			names:    []string{"api-gateway", "worker"},
 			want: "⚠ sync will DELETE 2 services not in the config: api-gateway, worker" +
-				" (deletes run last — Ctrl-C to abort if the config is stale)\n",
+				" (service deletes run after service creates/updates — Ctrl-C to abort if the config is stale)\n",
 		},
 	}
 

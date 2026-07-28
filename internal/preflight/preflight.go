@@ -54,12 +54,12 @@ func PrintTagOverwriteWarning(w io.Writer, tag string) {
 	)
 }
 
-// PrintSyncDeletions announces, before the sync writes anything, the
-// resources it will delete because the config file does not mention them. A
-// stale stack file doesn't say "delete X" — it just stops listing X — so
-// this is the only moment decommissioning looks different from a forgotten
-// pull. Deletes run after creates/updates, so aborting on this warning still
-// prevents them. resource is the singular noun ("service", "agent").
+// PrintSyncDeletions announces, before that resource type's sync phase
+// writes anything, the resources it will delete because the config file
+// does not mention them. A stale stack file doesn't say "delete X" — it just
+// stops listing X — so this is the only moment decommissioning looks
+// different from a forgotten pull. Deletes run after creates/updates for
+// that resource type. resource is the singular noun ("service", "agent").
 func PrintSyncDeletions(w io.Writer, resource string, names []string) {
 	if len(names) == 0 {
 		return
@@ -70,11 +70,13 @@ func PrintSyncDeletions(w io.Writer, resource string, names []string) {
 	}
 	fmt.Fprintf(
 		w,
-		"⚠ sync will DELETE %d %s%s not in the config: %s (deletes run last — Ctrl-C to abort if the config is stale)\n",
+		"⚠ sync will DELETE %d %s%s not in the config: %s (%s deletes run after %s creates/updates — Ctrl-C to abort if the config is stale)\n",
 		len(names),
 		resource,
 		plural,
 		strings.Join(names, ", "),
+		resource,
+		resource,
 	)
 }
 
