@@ -188,3 +188,79 @@ func TestAgentUpdateValidatesBeforeDescribe(t *testing.T) {
 		})
 	}
 }
+
+// TestAgentUpdateWarnsOnDroppedEnv runs the full update command with an
+// --env replacement that keeps only one of the two live env vars and checks
+// the dropped-name warning on stderr. --env replaces the whole list, so
+// "add one var" passed alone silently wipes the rest — the warning is the
+// only signal. The untouched secret list must stay silent.
+func TestAgentUpdateWarnsOnDroppedEnv(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.Method == http.MethodGet && r.URL.Path == "/api/v1/session/organizations":
+				fmt.Fprint(w, `{"organizations":[{"id":"org-1","name":"acme"}]}`)
+			case r.Method == http.MethodGet &&
+				r.URL.Path == "/api/v1/session/organizations/org-1/projects":
+				fmt.Fprint(w, `{"projects":[{"id":"proj-1","name":"alunafi"}]}`)
+			case r.Method == http.MethodGet &&
+				r.URL.Path == "/v1/organizations/org-1/projects/proj-1/agents/chat-agent":
+				fmt.Fprint(
+					w,
+					`{"name":"chat-agent","projectId":"proj-1","revision":13,"status":"ready",`+
+						`"updated":"2026-07-24T11:20:00Z","id":"interactive-agent","version":"0.0.2",`+
+						`"agentConfig":{},`+
+						`"env":[{"name":"LOG_LEVEL","value":"info"},{"name":"DB_HOST","value":"db"}],`+
+						`"secretRefs":[{"secretName":"api-keys"}]}`,
+				)
+			case r.Method == http.MethodPatch &&
+				r.URL.Path == "/v1/organizations/org-1/projects/proj-1/agents/chat-agent":
+				fmt.Fprint(w, `{"message":"Update submitted"}`)
+			default:
+				t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}),
+	)
+	t.Cleanup(server.Close)
+
+	t.Setenv("HOME", t.TempDir())
+	origHostname, origDeployHostname, origToken, origApiKey := hostname, deploymentHostname, token, apiKey
+	origOrg, origProject := agentOrganization, agentProject
+	t.Cleanup(func() {
+		hostname, deploymentHostname, token, apiKey = origHostname, origDeployHostname, origToken, origApiKey
+		agentOrganization, agentProject = origOrg, origProject
+		agentEnvVars = nil
+		agentUpdateCmd.Flags().Lookup("env").Changed = false
+		agentUpdateCmd.SetOut(nil)
+		agentUpdateCmd.SetErr(nil)
+	})
+	hostname, deploymentHostname, token, apiKey = server.URL, server.URL, "test-token", ""
+	agentOrganization, agentProject = "acme", "alunafi"
+
+	if err := agentUpdateCmd.Flags().Set("env", "LOG_LEVEL=debug"); err != nil {
+		t.Fatalf("set --env: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	agentUpdateCmd.SetOut(&stdout)
+	agentUpdateCmd.SetErr(&stderr)
+	agentUpdateCmd.SetContext(context.Background())
+
+	if err := agentUpdateCmd.RunE(agentUpdateCmd, []string{"chat-agent"}); err != nil {
+		t.Fatalf("agents update: %v", err)
+	}
+
+	errOut := stderr.String()
+	want := "⚠ this update drops live env vars: DB_HOST" +
+		" (--env replaces the entire list; pass every value you want to keep)"
+	if !strings.Contains(errOut, want) {
+		t.Errorf("stderr missing dropped-env warning %q:\n%s", want, errOut)
+	}
+	if strings.Contains(errOut, "secret refs") {
+		t.Errorf("untouched --secret list must not warn:\n%s", errOut)
+	}
+	if !strings.Contains(stdout.String(), "Update submitted") {
+		t.Errorf("update did not go through:\n%s", stdout.String())
+	}
+}

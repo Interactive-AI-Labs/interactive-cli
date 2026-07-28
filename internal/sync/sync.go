@@ -114,7 +114,8 @@ func PrintResult(
 // Services syncs services: creates new ones, updates existing ones, and
 // deletes ones not present in the desired map. Updates go through PUT and
 // replace the whole live spec, so the live revision each one overwrites is
-// announced on warnW (deploy awareness).
+// announced on warnW (deploy awareness), and pending deletions are announced
+// there before any write happens.
 func Services(
 	ctx context.Context,
 	warnW io.Writer,
@@ -137,6 +138,9 @@ func Services(
 	}
 
 	result := &Result{}
+
+	toDelete := deletionList(existingByName, desired)
+	preflight.PrintSyncDeletions(warnW, "service", toDelete)
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -171,33 +175,39 @@ func Services(
 		}
 	}
 
-	existingNames := make([]string, 0, len(existingByName))
-	for name := range existingByName {
-		existingNames = append(existingNames, name)
-	}
-	sort.Strings(existingNames)
-
-	for _, name := range existingNames {
-		if _, ok := desired[name]; !ok {
-			_, err := deployClient.DeleteService(
-				ctx, orgId, projectId, name,
+	for _, name := range toDelete {
+		_, err := deployClient.DeleteService(
+			ctx, orgId, projectId, name,
+		)
+		if err != nil {
+			return result, fmt.Errorf(
+				"failed to delete service %q: %w", name, err,
 			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to delete service %q: %w", name, err,
-				)
-			}
-			result.Deleted = append(result.Deleted, name)
 		}
+		result.Deleted = append(result.Deleted, name)
 	}
 
 	return result, nil
 }
 
+// deletionList returns, sorted, the existing resource names a sync will
+// delete because the desired config no longer mentions them.
+func deletionList[E, D any](existing map[string]E, desired map[string]D) []string {
+	var names []string
+	for name := range existing {
+		if _, ok := desired[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // Agents syncs agents: creates new ones, updates existing ones, and deletes ones
 // not present in the desired map. Updates go through PUT and replace the
 // whole live spec, so the live revision each one overwrites is announced on
-// warnW (deploy awareness).
+// warnW (deploy awareness), and pending deletions are announced there before
+// any write happens.
 func Agents(
 	ctx context.Context,
 	warnW io.Writer,
@@ -220,6 +230,9 @@ func Agents(
 	}
 
 	result := &Result{}
+
+	toDelete := deletionList(existingByName, desired)
+	preflight.PrintSyncDeletions(warnW, "agent", toDelete)
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -254,24 +267,16 @@ func Agents(
 		}
 	}
 
-	existingNames := make([]string, 0, len(existingByName))
-	for name := range existingByName {
-		existingNames = append(existingNames, name)
-	}
-	sort.Strings(existingNames)
-
-	for _, name := range existingNames {
-		if _, ok := desired[name]; !ok {
-			_, err := deployClient.DeleteAgent(
-				ctx, orgId, projectId, name,
+	for _, name := range toDelete {
+		_, err := deployClient.DeleteAgent(
+			ctx, orgId, projectId, name,
+		)
+		if err != nil {
+			return result, fmt.Errorf(
+				"failed to delete agent %q: %w", name, err,
 			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to delete agent %q: %w", name, err,
-				)
-			}
-			result.Deleted = append(result.Deleted, name)
 		}
+		result.Deleted = append(result.Deleted, name)
 	}
 
 	return result, nil

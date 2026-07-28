@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 func TestRunUpdatePreflight(t *testing.T) {
@@ -74,6 +76,74 @@ func TestRunUpdatePreflight(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("error = %q, want it to contain %q", err.Error(), tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
+	liveEnv := []clients.EnvVar{
+		{Name: "LOG_LEVEL", Value: "info"},
+		{Name: "DB_HOST", Value: "db"},
+	}
+	liveRefs := []clients.SecretRef{{SecretName: "api-keys"}}
+
+	tests := []struct {
+		name          string
+		envChanged    bool
+		secretChanged bool
+		envArgs       []string
+		secretArgs    []string
+		want          string
+	}{
+		{
+			name:       "env replacement dropping a live var warns",
+			envChanged: true,
+			envArgs:    []string{"LOG_LEVEL=debug"},
+			want: "⚠ this update drops live env vars: DB_HOST" +
+				" (--env replaces the entire list; pass every value you want to keep)\n",
+		},
+		{
+			name:          "secret replacement dropping a live ref warns",
+			secretChanged: true,
+			secretArgs:    []string{"other-secret"},
+			want: "⚠ this update drops live secret refs: api-keys" +
+				" (--secret replaces the entire list; pass every value you want to keep)\n",
+		},
+		{
+			name:       "full list passed stays silent",
+			envChanged: true,
+			envArgs:    []string{"DB_HOST=db2", "LOG_LEVEL=debug", "EXTRA=1"},
+			want:       "",
+		},
+		{
+			name: "untouched flags stay silent",
+			want: "",
+		},
+		{
+			name:          "both lists dropping warn env first",
+			envChanged:    true,
+			secretChanged: true,
+			envArgs:       []string{"NEW=1"},
+			secretArgs:    []string{"other-secret"},
+			want: "⚠ this update drops live env vars: DB_HOST, LOG_LEVEL" +
+				" (--env replaces the entire list; pass every value you want to keep)\n" +
+				"⚠ this update drops live secret refs: api-keys" +
+				" (--secret replaces the entire list; pass every value you want to keep)\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printDroppedEnvSecretWarnings(
+				&buf,
+				tt.envChanged, tt.secretChanged,
+				liveEnv, liveRefs,
+				tt.envArgs, tt.secretArgs,
+			)
+			if got := buf.String(); got != tt.want {
+				t.Errorf("warnings = %q, want %q", got, tt.want)
 			}
 		})
 	}

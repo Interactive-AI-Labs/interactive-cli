@@ -167,10 +167,11 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 --clear-stack-id to remove those configurations entirely.
 
-Before applying, the CLI prints the live revision this update replaces to
-stderr, so a deploy based on stale local state is visible before it lands.
-The check fails open and never blocks; use --expect-revision to fail instead
-when the live revision differs from what you expect.`,
+Before applying, the CLI prints deploy-awareness output to stderr: the live
+revision this update replaces, and the names of any env vars or secret refs
+that --env/--secret would drop from the live service (the flags replace the
+entire list). These checks fail open and never block; use --expect-revision
+to fail instead when the live revision differs from what you expect.`,
 	Example: `  iai services update my-svc --image-tag v2
   iai services update my-svc --image-tag v2 --expect-revision 47
   iai services update my-svc --memory 1G --cpu 0.5
@@ -239,6 +240,14 @@ when the live revision differs from what you expect.`,
 			cmd.Flags().Changed("expect-revision"), serviceExpectRevision,
 		); err != nil {
 			return err
+		}
+		if liveErr == nil {
+			printDroppedEnvSecretWarnings(
+				cmd.ErrOrStderr(),
+				cmd.Flags().Changed("env"), cmd.Flags().Changed("secret"),
+				live.Env, live.SecretRefs,
+				serviceEnvVars, serviceSecretRefs,
+			)
 		}
 
 		fmt.Fprintln(out)
@@ -856,7 +865,10 @@ The sync command will:
 
 Updates replace the whole live spec of each service. For every service
 updated, the live revision being replaced is printed to stderr so a sync
-from a stale config file is visible before it lands.
+from a stale config file is visible before it lands. Services the config
+file no longer mentions are deleted; those deletions are announced on
+stderr before the sync writes anything, and run last, so an unintended
+delete from a stale config can still be aborted.
 
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
 	Example: `  iai services sync --cfg-file stack.yaml
