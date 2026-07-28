@@ -250,9 +250,9 @@ func TestServicesAnnouncesDeletions(t *testing.T) {
 	}
 
 	// The deletion announcement must come first: it is printed before any
-	// create/update write, so the whole sync is still abortable.
+	// service create/update write, so the service phase is still abortable.
 	wantWarn := "⚠ sync will DELETE 1 service not in the config: svc-old" +
-		" (deletes run last — Ctrl-C to abort if the config is stale)\n" +
+		" (service deletes run after service creates/updates — Ctrl-C to abort if the config is stale)\n" +
 		"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n"
 	if got := warn.String(); got != wantWarn {
 		t.Errorf("warnings = %q, want %q", got, wantWarn)
@@ -291,7 +291,7 @@ func TestAgentsAnnouncesDeletions(t *testing.T) {
 	}
 
 	wantWarn := "⚠ sync will DELETE 1 agent not in the config: agent-old" +
-		" (deletes run last — Ctrl-C to abort if the config is stale)\n"
+		" (agent deletes run after agent creates/updates — Ctrl-C to abort if the config is stale)\n"
 	if got := warn.String(); got != wantWarn {
 		t.Errorf("warnings = %q, want %q", got, wantWarn)
 	}

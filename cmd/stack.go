@@ -39,8 +39,9 @@ Updates replace the whole live spec of each resource. For every service or
 agent updated, the live revision being replaced is printed to stderr so a
 sync from a stale config file is visible before it lands. Services and
 agents the config file no longer mentions are deleted; those deletions are
-announced on stderr before the sync writes anything, and run last, so an
-unintended delete from a stale config can still be aborted.
+announced on stderr before changes to that resource type begin, and run
+after its creates/updates, so an unintended delete from a stale config can
+still be aborted.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
 	Example: `  iai stacks sync --file stack.yaml
