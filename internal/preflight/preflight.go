@@ -305,6 +305,15 @@ func PrintPinChanges(w io.Writer, liveConfig, incomingConfig any) bool {
 		case from.String() == to.String(),
 			from.numeric && to.numeric && from.num == to.num:
 			// unchanged (numeric compare catches "13" vs 13)
+		case from.display != "" && to.display == "":
+			// The entry stays but loses its version: same effect as removing
+			// the pin, so it gates the same way.
+			lines = append(lines, fmt.Sprintf(
+				"%s %s: %s → %s  (REMOVED — this update drops the version pin)",
+				k.section, k.id, from, to,
+			))
+			loud = true
+			blocking = blocking || k.known
 		case from.numeric && to.numeric && to.num < from.num:
 			lines = append(lines, fmt.Sprintf(
 				"%s %s: %s → %s  (DOWNGRADE — if this is an intentional rollback, this is expected)",

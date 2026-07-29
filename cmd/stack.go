@@ -252,6 +252,7 @@ The organization and project are read from the config file, flags, or resolved v
 
 			dbResult, err := sync.Databases(
 				cmd.Context(),
+				cmd.ErrOrStderr(),
 				deployClient,
 				orgId,
 				projectId,
