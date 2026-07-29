@@ -125,9 +125,21 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 		ranSync := false
 
-		// In a dry run the plan on stdout is the deliverable; otherwise
-		// results print as applied, with refused deletions reported.
-		printOutcome := func(label string, result *sync.Result, err error) error {
+		// runPhase runs one resource type's sync with its progress line and
+		// prints the outcome: in a dry run the plan on stdout is the
+		// deliverable; otherwise results print as applied, with refused
+		// deletions reported. label is the plural noun, which is also the
+		// --allow-delete value.
+		runPhase := func(label string, run func(sync.Options) (*sync.Result, error)) error {
+			ranSync = true
+			fmt.Fprint(out, verb+" "+label)
+			done := output.PrintLoadingDots(out)
+			result, err := run(sync.Options{
+				AllowDelete: sync.AllowDeleteResource(stackSyncAllowDelete, label),
+				DryRun:      stackSyncDryRun,
+			})
+			close(done)
+			fmt.Fprintln(out)
 			if stackSyncDryRun {
 				if err != nil {
 					return err
@@ -158,26 +170,19 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(svcBodies) > 0 || hasServices {
-			ranSync = true
-			fmt.Fprint(out, verb+" services")
-			done := output.PrintLoadingDots(out)
-
-			svcResult, err := sync.Services(
-				cmd.Context(),
-				cmd.ErrOrStderr(),
-				deployClient,
-				orgId,
-				projectId,
-				cfg.StackId,
-				svcBodies,
-				sync.Options{
-					AllowDelete: sync.AllowDeleteResource(stackSyncAllowDelete, "services"),
-					DryRun:      stackSyncDryRun,
-				},
-			)
-			close(done)
-			fmt.Fprintln(out)
-			if err := printOutcome("services", svcResult, err); err != nil {
+			err := runPhase("services", func(opts sync.Options) (*sync.Result, error) {
+				return sync.Services(
+					cmd.Context(),
+					cmd.ErrOrStderr(),
+					deployClient,
+					orgId,
+					projectId,
+					cfg.StackId,
+					svcBodies,
+					opts,
+				)
+			})
+			if err != nil {
 				return err
 			}
 		}
@@ -202,26 +207,19 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(agentBodies) > 0 || hasAgents {
-			ranSync = true
-			fmt.Fprint(out, verb+" agents")
-			done := output.PrintLoadingDots(out)
-
-			agentResult, err := sync.Agents(
-				cmd.Context(),
-				cmd.ErrOrStderr(),
-				deployClient,
-				orgId,
-				projectId,
-				cfg.StackId,
-				agentBodies,
-				sync.Options{
-					AllowDelete: sync.AllowDeleteResource(stackSyncAllowDelete, "agents"),
-					DryRun:      stackSyncDryRun,
-				},
-			)
-			close(done)
-			fmt.Fprintln(out)
-			if err := printOutcome("agents", agentResult, err); err != nil {
+			err := runPhase("agents", func(opts sync.Options) (*sync.Result, error) {
+				return sync.Agents(
+					cmd.Context(),
+					cmd.ErrOrStderr(),
+					deployClient,
+					orgId,
+					projectId,
+					cfg.StackId,
+					agentBodies,
+					opts,
+				)
+			})
+			if err != nil {
 				return err
 			}
 		}
@@ -246,26 +244,19 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(dbBodies) > 0 || hasDatabases {
-			ranSync = true
-			fmt.Fprint(out, verb+" databases")
-			done := output.PrintLoadingDots(out)
-
-			dbResult, err := sync.Databases(
-				cmd.Context(),
-				cmd.ErrOrStderr(),
-				deployClient,
-				orgId,
-				projectId,
-				cfg.StackId,
-				dbBodies,
-				sync.Options{
-					AllowDelete: sync.AllowDeleteResource(stackSyncAllowDelete, "databases"),
-					DryRun:      stackSyncDryRun,
-				},
-			)
-			close(done)
-			fmt.Fprintln(out)
-			if err := printOutcome("databases", dbResult, err); err != nil {
+			err := runPhase("databases", func(opts sync.Options) (*sync.Result, error) {
+				return sync.Databases(
+					cmd.Context(),
+					cmd.ErrOrStderr(),
+					deployClient,
+					orgId,
+					projectId,
+					cfg.StackId,
+					dbBodies,
+					opts,
+				)
+			})
+			if err != nil {
 				return err
 			}
 		}

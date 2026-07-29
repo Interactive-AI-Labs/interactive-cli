@@ -117,7 +117,7 @@ func PrintResult(
 				"Use --allow-delete=%s to delete them.\n",
 			label,
 			strings.Join(result.Protected, ", "),
-			strings.ReplaceAll(label, " ", "-"),
+			label,
 		)
 	}
 	return nil
@@ -141,7 +141,7 @@ func PrintPlan(out io.Writer, label string, result *Result) {
 			out,
 			"Would refuse to delete %s (needs --allow-delete=%s): %s\n",
 			label,
-			strings.ReplaceAll(label, " ", "-"),
+			label,
 			strings.Join(result.Protected, ", "),
 		)
 	}
@@ -179,82 +179,32 @@ func Services(
 		existingByName[svc.Name] = svc
 	}
 
-	result := &Result{}
-
-	toDelete := deletionList(existingByName, desired)
-	if !opts.DryRun {
-		preflight.PrintSyncDeletions(warnW, "service", "services", toDelete, opts.AllowDelete)
-	}
-	if !opts.AllowDelete {
-		result.Protected = toDelete
-		toDelete = nil
-	}
-
-	desiredNames := make([]string, 0, len(desired))
-	for name := range desired {
-		desiredNames = append(desiredNames, name)
-	}
-	sort.Strings(desiredNames)
-
-	for _, name := range desiredNames {
-		body := desired[name]
-		if _, exists := existingByName[name]; !exists {
-			if !opts.DryRun {
-				_, err := deployClient.CreateService(
-					ctx, orgId, projectId, name, body,
-				)
-				if err != nil {
-					return result, fmt.Errorf(
-						"failed to create service %q: %w", name, err,
-					)
-				}
-			}
-			result.Created = append(result.Created, name)
-		} else {
-			if !opts.DryRun {
-				svc := existingByName[name]
-				preflight.PrintUpdateBanner(warnW, "service "+name, svc.Revision, svc.Updated)
-				_, err := deployClient.PutService(
-					ctx, orgId, projectId, name, body,
-				)
-				if err != nil {
-					return result, fmt.Errorf(
-						"failed to update service %q: %w", name, err,
-					)
-				}
-			}
-			result.Updated = append(result.Updated, name)
-		}
-	}
-
-	for _, name := range toDelete {
-		if !opts.DryRun {
-			_, err := deployClient.DeleteService(
-				ctx, orgId, projectId, name,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to delete service %q: %w", name, err,
-				)
-			}
-		}
-		result.Deleted = append(result.Deleted, name)
-	}
-
-	return result, nil
-}
-
-// deletionList returns, sorted, the existing resource names a sync will
-// delete because the desired config no longer mentions them.
-func deletionList[E, D any](existing map[string]E, desired map[string]D) []string {
-	var names []string
-	for name := range existing {
-		if _, ok := desired[name]; !ok {
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-	return names
+	return syncResources(
+		ctx,
+		warnW,
+		existingByName,
+		desired,
+		opts,
+		resourceOps[clients.ServiceOutput, clients.CreateServiceBody]{
+			resource:  "service",
+			allowFlag: "services",
+			create: func(name string, body clients.CreateServiceBody) error {
+				_, err := deployClient.CreateService(ctx, orgId, projectId, name, body)
+				return err
+			},
+			update: func(name string, body clients.CreateServiceBody) error {
+				_, err := deployClient.PutService(ctx, orgId, projectId, name, body)
+				return err
+			},
+			delete: func(name string) error {
+				_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
+				return err
+			},
+			banner: func(w io.Writer, svc clients.ServiceOutput) {
+				preflight.PrintUpdateBanner(w, "service "+svc.Name, svc.Revision, svc.Updated)
+			},
+		},
+	)
 }
 
 // Agents syncs agents: creates new ones, updates existing ones, and — only
@@ -285,69 +235,32 @@ func Agents(
 		existingByName[a.Name] = a
 	}
 
-	result := &Result{}
-
-	toDelete := deletionList(existingByName, desired)
-	if !opts.DryRun {
-		preflight.PrintSyncDeletions(warnW, "agent", "agents", toDelete, opts.AllowDelete)
-	}
-	if !opts.AllowDelete {
-		result.Protected = toDelete
-		toDelete = nil
-	}
-
-	desiredNames := make([]string, 0, len(desired))
-	for name := range desired {
-		desiredNames = append(desiredNames, name)
-	}
-	sort.Strings(desiredNames)
-
-	for _, name := range desiredNames {
-		body := desired[name]
-		if _, exists := existingByName[name]; !exists {
-			if !opts.DryRun {
-				_, err := deployClient.CreateAgent(
-					ctx, orgId, projectId, name, body,
-				)
-				if err != nil {
-					return result, fmt.Errorf(
-						"failed to create agent %q: %w", name, err,
-					)
-				}
-			}
-			result.Created = append(result.Created, name)
-		} else {
-			if !opts.DryRun {
-				a := existingByName[name]
-				preflight.PrintUpdateBanner(warnW, "agent "+name, a.Revision, a.Updated)
-				_, err := deployClient.PutAgent(
-					ctx, orgId, projectId, name, body,
-				)
-				if err != nil {
-					return result, fmt.Errorf(
-						"failed to update agent %q: %w", name, err,
-					)
-				}
-			}
-			result.Updated = append(result.Updated, name)
-		}
-	}
-
-	for _, name := range toDelete {
-		if !opts.DryRun {
-			_, err := deployClient.DeleteAgent(
-				ctx, orgId, projectId, name,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to delete agent %q: %w", name, err,
-				)
-			}
-		}
-		result.Deleted = append(result.Deleted, name)
-	}
-
-	return result, nil
+	return syncResources(
+		ctx,
+		warnW,
+		existingByName,
+		desired,
+		opts,
+		resourceOps[clients.AgentOutput, clients.CreateAgentBody]{
+			resource:  "agent",
+			allowFlag: "agents",
+			create: func(name string, body clients.CreateAgentBody) error {
+				_, err := deployClient.CreateAgent(ctx, orgId, projectId, name, body)
+				return err
+			},
+			update: func(name string, body clients.CreateAgentBody) error {
+				_, err := deployClient.PutAgent(ctx, orgId, projectId, name, body)
+				return err
+			},
+			delete: func(name string) error {
+				_, err := deployClient.DeleteAgent(ctx, orgId, projectId, name)
+				return err
+			},
+			banner: func(w io.Writer, a clients.AgentOutput) {
+				preflight.PrintUpdateBanner(w, "agent "+a.Name, a.Revision, a.Updated)
+			},
+		},
+	)
 }
 
 // Databases syncs databases: creates new ones, updates existing ones, and —
@@ -377,11 +290,62 @@ func Databases(
 		existingByName[db.Name] = db
 	}
 
+	return syncResources(
+		ctx,
+		warnW,
+		existingByName,
+		desired,
+		opts,
+		resourceOps[clients.DatabaseOutput, clients.CreateDatabaseBody]{
+			resource:  "database",
+			allowFlag: "databases",
+			create: func(name string, body clients.CreateDatabaseBody) error {
+				_, err := deployClient.CreateDatabase(ctx, orgId, projectId, name, body)
+				return err
+			},
+			update: func(name string, body clients.CreateDatabaseBody) error {
+				_, err := deployClient.PutDatabase(ctx, orgId, projectId, name, body)
+				return err
+			},
+			delete: func(name string) error {
+				_, err := deployClient.DeleteDatabase(ctx, orgId, projectId, name)
+				return err
+			},
+			// Databases carry no revision to announce, so no banner.
+		},
+	)
+}
+
+// resourceOps binds one resource type's API calls and wording for
+// syncResources. banner, when set, announces the live state an update
+// replaces; leave it nil for resources with nothing to announce.
+type resourceOps[E, B any] struct {
+	resource  string // singular noun, e.g. "service"
+	allowFlag string // --allow-delete value, e.g. "services"
+	create    func(name string, body B) error
+	update    func(name string, body B) error
+	delete    func(name string) error
+	banner    func(w io.Writer, existing E)
+}
+
+// syncResources applies the shared sync contract for one resource type:
+// announce the deletion decision on warnW before any write, refuse deletions
+// without opts.AllowDelete (reporting them as Protected), create/update the
+// desired resources in name order, delete last, and — with opts.DryRun —
+// accumulate the same plan into the Result without calling the API at all.
+func syncResources[E, B any](
+	ctx context.Context,
+	warnW io.Writer,
+	existingByName map[string]E,
+	desired map[string]B,
+	opts Options,
+	ops resourceOps[E, B],
+) (*Result, error) {
 	result := &Result{}
 
 	toDelete := deletionList(existingByName, desired)
 	if !opts.DryRun {
-		preflight.PrintSyncDeletions(warnW, "database", "databases", toDelete, opts.AllowDelete)
+		preflight.PrintSyncDeletions(warnW, ops.resource, ops.allowFlag, toDelete, opts.AllowDelete)
 	}
 	if !opts.AllowDelete {
 		result.Protected = toDelete
@@ -396,26 +360,23 @@ func Databases(
 
 	for _, name := range desiredNames {
 		body := desired[name]
-		if _, exists := existingByName[name]; !exists {
+		if existing, exists := existingByName[name]; !exists {
 			if !opts.DryRun {
-				_, err := deployClient.CreateDatabase(
-					ctx, orgId, projectId, name, body,
-				)
-				if err != nil {
+				if err := ops.create(name, body); err != nil {
 					return result, fmt.Errorf(
-						"failed to create database %q: %w", name, err,
+						"failed to create %s %q: %w", ops.resource, name, err,
 					)
 				}
 			}
 			result.Created = append(result.Created, name)
 		} else {
 			if !opts.DryRun {
-				_, err := deployClient.PutDatabase(
-					ctx, orgId, projectId, name, body,
-				)
-				if err != nil {
+				if ops.banner != nil {
+					ops.banner(warnW, existing)
+				}
+				if err := ops.update(name, body); err != nil {
 					return result, fmt.Errorf(
-						"failed to update database %q: %w", name, err,
+						"failed to update %s %q: %w", ops.resource, name, err,
 					)
 				}
 			}
@@ -425,12 +386,9 @@ func Databases(
 
 	for _, name := range toDelete {
 		if !opts.DryRun {
-			_, err := deployClient.DeleteDatabase(
-				ctx, orgId, projectId, name,
-			)
-			if err != nil {
+			if err := ops.delete(name); err != nil {
 				return result, fmt.Errorf(
-					"failed to delete database %q: %w", name, err,
+					"failed to delete %s %q: %w", ops.resource, name, err,
 				)
 			}
 		}
@@ -438,4 +396,17 @@ func Databases(
 	}
 
 	return result, nil
+}
+
+// deletionList returns, sorted, the existing resource names a sync will
+// delete because the desired config no longer mentions them.
+func deletionList[E, D any](existing map[string]E, desired map[string]D) []string {
+	var names []string
+	for name := range existing {
+		if _, ok := desired[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
