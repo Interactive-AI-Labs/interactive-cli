@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -186,6 +188,85 @@ func TestAgentUpdateValidatesBeforeDescribe(t *testing.T) {
 				t.Errorf("DescribeAgent called %d times before validation", describeCalls)
 			}
 		})
+	}
+}
+
+// TestAgentUpdateRefusesUnpinnedRoutine runs the full update command with a
+// --file config that keeps a routine entry but drops its version. Unpinning
+// has the same effect as removing the pin, so the update must be refused
+// before the PATCH unless --force is passed.
+func TestAgentUpdateRefusesUnpinnedRoutine(t *testing.T) {
+	patchCalls := 0
+	server := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.Method == http.MethodGet && r.URL.Path == "/api/v1/session/organizations":
+				fmt.Fprint(w, `{"organizations":[{"id":"org-1","name":"acme"}]}`)
+			case r.Method == http.MethodGet &&
+				r.URL.Path == "/api/v1/session/organizations/org-1/projects":
+				fmt.Fprint(w, `{"projects":[{"id":"proj-1","name":"alunafi"}]}`)
+			case r.Method == http.MethodGet &&
+				r.URL.Path == "/v1/organizations/org-1/projects/proj-1/agents/chat-agent":
+				fmt.Fprint(
+					w,
+					`{"name":"chat-agent","projectId":"proj-1","revision":13,"status":"ready",`+
+						`"updated":"2026-07-24T11:20:00Z","id":"interactive-agent","version":"0.0.2",`+
+						`"agentConfig":{"context":{"routines":[{"id":"welcome","version":13}]}}}`,
+				)
+			case r.Method == http.MethodPatch &&
+				r.URL.Path == "/v1/organizations/org-1/projects/proj-1/agents/chat-agent":
+				patchCalls++
+				fmt.Fprint(w, `{"message":"Update submitted"}`)
+			default:
+				t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}),
+	)
+	t.Cleanup(server.Close)
+
+	configPath := filepath.Join(t.TempDir(), "agent.yaml")
+	config := "context:\n  routines:\n    - id: welcome\n"
+	if err := os.WriteFile(configPath, []byte(config), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("HOME", t.TempDir())
+	origHostname, origDeployHostname, origToken, origApiKey := hostname, deploymentHostname, token, apiKey
+	origOrg, origProject := agentOrganization, agentProject
+	t.Cleanup(func() {
+		hostname, deploymentHostname, token, apiKey = origHostname, origDeployHostname, origToken, origApiKey
+		agentOrganization, agentProject = origOrg, origProject
+		agentFile = ""
+		agentUpdateCmd.Flags().Lookup("file").Changed = false
+		agentUpdateCmd.SetOut(nil)
+		agentUpdateCmd.SetErr(nil)
+	})
+	hostname, deploymentHostname, token, apiKey = server.URL, server.URL, "test-token", ""
+	agentOrganization, agentProject = "acme", "alunafi"
+
+	if err := agentUpdateCmd.Flags().Set("file", configPath); err != nil {
+		t.Fatalf("set --file: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	agentUpdateCmd.SetOut(&stdout)
+	agentUpdateCmd.SetErr(&stderr)
+	agentUpdateCmd.SetContext(context.Background())
+
+	err := agentUpdateCmd.RunE(agentUpdateCmd, []string{"chat-agent"})
+
+	wantErr := "refusing to apply: this update downgrades or removes live content pins" +
+		" (details above) — pass --force if this is intended"
+	if err == nil || err.Error() != wantErr {
+		t.Fatalf("error = %v, want %q", err, wantErr)
+	}
+	if patchCalls != 0 {
+		t.Errorf("PATCH called %d times before the gate, want 0", patchCalls)
+	}
+	wantWarn := "routine welcome: v13 → (unpinned)  (REMOVED — this update drops the version pin)"
+	if !strings.Contains(stderr.String(), wantWarn) {
+		t.Errorf("stderr missing unpin detail %q:\n%s", wantWarn, stderr.String())
 	}
 }
 

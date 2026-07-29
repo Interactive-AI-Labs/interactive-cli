@@ -390,15 +390,27 @@ func TestPrintPinChanges(t *testing.T) {
 			want: "",
 		},
 		{
-			name: "unpinned entries render as (unpinned)",
+			name: "unpinning a known entry gates like a removal",
 			live: configWithPins(nil, nil, []any{
 				map[string]any{"id": "welcome", "version": float64(2)},
 			}),
 			incoming: configWithPins(nil, nil, []any{
 				map[string]any{"id": "welcome"},
 			}),
+			want: "⚠ content pins changed by this update:\n" +
+				"    routine welcome: v2 → (unpinned)  (REMOVED — this update drops the version pin)\n",
+			wantBlocking: true,
+		},
+		{
+			name: "pinning a previously unpinned entry is quiet",
+			live: configWithPins(nil, nil, []any{
+				map[string]any{"id": "welcome"},
+			}),
+			incoming: configWithPins(nil, nil, []any{
+				map[string]any{"id": "welcome", "version": 2},
+			}),
 			want: "content pins changed by this update:\n" +
-				"    routine welcome: v2 → (unpinned)\n",
+				"    routine welcome: (unpinned) → v2\n",
 		},
 		{
 			name:     "non-map configs print nothing",

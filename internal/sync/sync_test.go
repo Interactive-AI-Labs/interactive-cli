@@ -465,6 +465,85 @@ func TestAgentsRefusesDeletionsByDefault(t *testing.T) {
 	}
 }
 
+func TestDatabasesRefusesDeletionsByDefault(t *testing.T) {
+	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/databases":
+			fmt.Fprint(
+				w,
+				`{"databases":[{"name":"old-db","revision":2,"status":"ready"}]}`,
+			)
+		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/databases/old-db":
+			t.Error("old-db was deleted without --allow-delete")
+			fmt.Fprint(w, `{}`)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	var warn bytes.Buffer
+	result, err := Databases(
+		context.Background(), &warn, client, "o1", "p1", "stack-1",
+		map[string]clients.CreateDatabaseBody{}, Options{},
+	)
+	if err != nil {
+		t.Fatalf("Databases() error = %v", err)
+	}
+
+	wantWarn := "⚠ sync will NOT delete 1 database not in the config: old-db" +
+		" (a config that omits a resource looks identical to a stale one — pass --allow-delete=databases to delete)\n"
+	if got := warn.String(); got != wantWarn {
+		t.Errorf("warnings = %q, want %q", got, wantWarn)
+	}
+	if len(result.Deleted) != 0 {
+		t.Errorf("Deleted = %v, want []", result.Deleted)
+	}
+	if len(result.Protected) != 1 || result.Protected[0] != "old-db" {
+		t.Errorf("Protected = %v, want [old-db]", result.Protected)
+	}
+}
+
+func TestDatabasesDeletesWithAllowDelete(t *testing.T) {
+	var deleted bool
+	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/databases":
+			fmt.Fprint(
+				w,
+				`{"databases":[{"name":"old-db","revision":2,"status":"ready"}]}`,
+			)
+		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/databases/old-db":
+			deleted = true
+			fmt.Fprint(w, `{}`)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	var warn bytes.Buffer
+	result, err := Databases(
+		context.Background(), &warn, client, "o1", "p1", "stack-1",
+		map[string]clients.CreateDatabaseBody{}, Options{AllowDelete: true},
+	)
+	if err != nil {
+		t.Fatalf("Databases() error = %v", err)
+	}
+
+	wantWarn := "⚠ sync will DELETE 1 database not in the config: old-db" +
+		" (--allow-delete=databases; database deletes run after database creates/updates)\n"
+	if got := warn.String(); got != wantWarn {
+		t.Errorf("warnings = %q, want %q", got, wantWarn)
+	}
+	if !deleted {
+		t.Error("old-db was announced but not deleted")
+	}
+	if len(result.Deleted) != 1 || result.Deleted[0] != "old-db" {
+		t.Errorf("Deleted = %v, want [old-db]", result.Deleted)
+	}
+}
+
 func TestAgentsDeletesWithAllowDelete(t *testing.T) {
 	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {

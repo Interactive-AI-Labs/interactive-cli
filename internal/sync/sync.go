@@ -350,8 +350,14 @@ func Agents(
 	return result, nil
 }
 
+// Databases syncs databases: creates new ones, updates existing ones, and —
+// only with opts.AllowDelete — deletes ones not present in the desired map;
+// otherwise those are refused and reported as Protected. The deletion
+// decision is announced on warnW (deploy awareness) before any database
+// write happens.
 func Databases(
 	ctx context.Context,
+	warnW io.Writer,
 	deployClient *clients.DeploymentClient,
 	orgId,
 	projectId,
@@ -372,6 +378,15 @@ func Databases(
 	}
 
 	result := &Result{}
+
+	toDelete := deletionList(existingByName, desired)
+	if !opts.DryRun {
+		preflight.PrintSyncDeletions(warnW, "database", "databases", toDelete, opts.AllowDelete)
+	}
+	if !opts.AllowDelete {
+		result.Protected = toDelete
+		toDelete = nil
+	}
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -408,30 +423,18 @@ func Databases(
 		}
 	}
 
-	existingNames := make([]string, 0, len(existingByName))
-	for name := range existingByName {
-		existingNames = append(existingNames, name)
-	}
-	sort.Strings(existingNames)
-
-	for _, name := range existingNames {
-		if _, ok := desired[name]; !ok {
-			if !opts.AllowDelete {
-				result.Protected = append(result.Protected, name)
-				continue
-			}
-			if !opts.DryRun {
-				_, err := deployClient.DeleteDatabase(
-					ctx, orgId, projectId, name,
+	for _, name := range toDelete {
+		if !opts.DryRun {
+			_, err := deployClient.DeleteDatabase(
+				ctx, orgId, projectId, name,
+			)
+			if err != nil {
+				return result, fmt.Errorf(
+					"failed to delete database %q: %w", name, err,
 				)
-				if err != nil {
-					return result, fmt.Errorf(
-						"failed to delete database %q: %w", name, err,
-					)
-				}
 			}
-			result.Deleted = append(result.Deleted, name)
 		}
+		result.Deleted = append(result.Deleted, name)
 	}
 
 	return result, nil
