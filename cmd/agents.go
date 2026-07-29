@@ -43,6 +43,7 @@ var (
 
 	agentExpectRevision int
 	agentShowDiff       bool
+	agentForce          bool
 
 	agentStackId string
 
@@ -173,9 +174,13 @@ Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces; the names of any env vars or secret refs that
 --env/--secret would drop from the live agent (the flags replace the entire
 list); and — when the update replaces the agent config — a summary of
-content pin changes, with downgrades and removals flagged (a stale local
-manifest silently reverts colleagues' work). These checks fail open and
-never block; use --expect-revision to fail instead when the live revision
+content pin changes (a stale local manifest silently reverts colleagues'
+work). The update is refused when it would downgrade or remove a live
+content pin, or drop live env vars or secret refs via --env/--secret; pass
+--force to apply anyway. --clear-env and --clear-secret never trigger the
+gate: clearing is explicit intent. Changes in unrecognized pin-shaped config
+sections warn without blocking. The checks fail open when live state cannot
+be fetched; use --expect-revision to fail instead when the live revision
 differs from what you expect, and --show-diff for a full live-vs-incoming
 config diff.`,
 	Example: `  iai agents update chat-agent --version 0.0.3
@@ -276,8 +281,9 @@ config diff.`,
 		); err != nil {
 			return err
 		}
+		var droppedEntries, pinRollback bool
 		if liveErr == nil {
-			printDroppedEnvSecretWarnings(
+			droppedEntries = printDroppedEnvSecretWarnings(
 				errW,
 				cmd.Flags().Changed("env"), cmd.Flags().Changed("secret"),
 				live.Env, live.SecretRefs,
@@ -285,7 +291,10 @@ config diff.`,
 			)
 		}
 		if rawCfg, ok := patch["agentConfig"]; ok && liveErr == nil {
-			printConfigPreflight(errW, live.AgentConfig, rawCfg, agentShowDiff)
+			pinRollback = printConfigPreflight(errW, live.AgentConfig, rawCfg, agentShowDiff)
+		}
+		if err := checkUpdateGates(agentForce, pinRollback, droppedEntries); err != nil {
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -1044,6 +1053,8 @@ func init() {
 		IntVar(&agentExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value (opt-in staleness guard)")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentShowDiff, "show-diff", false, "Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentForce, "force", false, "Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().

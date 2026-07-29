@@ -95,6 +95,7 @@ func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
 		envArgs       []string
 		secretArgs    []string
 		want          string
+		wantDropped   bool
 	}{
 		{
 			name:       "env replacement dropping a live var warns",
@@ -102,6 +103,7 @@ func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
 			envArgs:    []string{"LOG_LEVEL=debug"},
 			want: "⚠ this update drops live env vars: DB_HOST" +
 				" (--env replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
 		},
 		{
 			name:          "secret replacement dropping a live ref warns",
@@ -109,6 +111,7 @@ func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
 			secretArgs:    []string{"other-secret"},
 			want: "⚠ this update drops live secret refs: api-keys" +
 				" (--secret replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
 		},
 		{
 			name:       "full list passed stays silent",
@@ -130,13 +133,14 @@ func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
 				" (--env replaces the entire list; pass every value you want to keep)\n" +
 				"⚠ this update drops live secret refs: api-keys" +
 				" (--secret replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			printDroppedEnvSecretWarnings(
+			dropped := printDroppedEnvSecretWarnings(
 				&buf,
 				tt.envChanged, tt.secretChanged,
 				liveEnv, liveRefs,
@@ -144,6 +148,67 @@ func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
 			)
 			if got := buf.String(); got != tt.want {
 				t.Errorf("warnings = %q, want %q", got, tt.want)
+			}
+			if dropped != tt.wantDropped {
+				t.Errorf("dropped = %v, want %v", dropped, tt.wantDropped)
+			}
+		})
+	}
+}
+
+func TestCheckUpdateGates(t *testing.T) {
+	tests := []struct {
+		name           string
+		force          bool
+		pinRollback    bool
+		droppedEntries bool
+		wantErr        string
+	}{
+		{
+			name: "nothing detected proceeds",
+		},
+		{
+			name:        "pin rollback refuses",
+			pinRollback: true,
+			wantErr: "refusing to apply: this update downgrades or removes live content pins" +
+				" (details above) — pass --force if this is intended",
+		},
+		{
+			name:           "dropped entries refuse",
+			droppedEntries: true,
+			wantErr: "refusing to apply: this update drops live env vars or secret refs" +
+				" (details above) — pass --force if this is intended",
+		},
+		{
+			name:           "both reasons listed together",
+			pinRollback:    true,
+			droppedEntries: true,
+			wantErr: "refusing to apply: this update downgrades or removes live content pins" +
+				" and drops live env vars or secret refs" +
+				" (details above) — pass --force if this is intended",
+		},
+		{
+			name:           "force overrides everything",
+			force:          true,
+			pinRollback:    true,
+			droppedEntries: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := checkUpdateGates(tt.force, tt.pinRollback, tt.droppedEntries)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			}
+			if err.Error() != tt.wantErr {
+				t.Errorf("error = %q, want %q", err.Error(), tt.wantErr)
 			}
 		})
 	}

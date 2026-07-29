@@ -16,6 +16,7 @@ var (
 	stackSyncProject      string
 	stackSyncOrganization string
 	stackSyncAllowDelete  []string
+	stackSyncDryRun       bool
 )
 
 var stackCmd = &cobra.Command{
@@ -31,22 +32,26 @@ var stackSyncCmd = &cobra.Command{
 	Short: "Sync services, agents, and databases from a stack config file",
 	Long: `Sync services, agents, and databases in a project from a stack configuration file.
 
-Services are created, updated, or deleted to match the config file.
-Agents are created, updated, or deleted to match the config file.
-Databases are created, updated, or deleted (--allow-delete=databases) to match the config file.
+Services, agents, and databases are created and updated to match the config
+file. Resources the config file no longer mentions are NOT deleted by
+default: a config that omits a resource looks identical to a stale one, so
+the sync refuses each deletion, reports it on stderr, and continues with the
+creates and updates. Pass --allow-delete with the resource types you intend
+to decommission (services, agents, databases, or all) to delete them; within
+each resource type, deletes run after that type's creates and updates.
 
 Updates replace the whole live spec of each resource. For every service or
 agent updated, the live revision being replaced is printed to stderr so a
-sync from a stale config file is visible before it lands. Services and
-agents the config file no longer mentions are deleted; those deletions are
-announced on stderr before changes to that resource type begin, and run
-after its creates/updates, so an unintended delete from a stale config can
-still be aborted.
+sync from a stale config file is visible before it lands.
+
+Use --dry-run to print the full plan — creates, updates, deletes, and
+refused deletions — without applying anything.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
 	Example: `  iai stacks sync --file stack.yaml
   iai stacks sync --file stack.yaml --project my-project --organization my-org
-  iai stacks sync --file stack.yaml --allow-delete databases`,
+  iai stacks sync --file stack.yaml --dry-run
+  iai stacks sync --file stack.yaml --allow-delete services,agents`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -107,8 +112,31 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		fmt.Fprintln(out)
-		fmt.Fprintf(out, "Syncing stack %q...\n", cfg.StackId)
+		verb := "Syncing"
+		if stackSyncDryRun {
+			verb = "Planning"
+			fmt.Fprintf(
+				out,
+				"Dry run: planning stack %q — no changes will be applied.\n",
+				cfg.StackId,
+			)
+		} else {
+			fmt.Fprintf(out, "Syncing stack %q...\n", cfg.StackId)
+		}
 		ranSync := false
+
+		// In a dry run the plan on stdout is the deliverable; otherwise
+		// results print as applied, with refused deletions reported.
+		printOutcome := func(label string, result *sync.Result, err error) error {
+			if stackSyncDryRun {
+				if err != nil {
+					return err
+				}
+				sync.PrintPlan(out, label, result)
+				return nil
+			}
+			return sync.PrintResult(out, label, result, err)
+		}
 
 		svcBodies := make(map[string]clients.CreateServiceBody)
 		for name, svcCfg := range cfg.Services {
@@ -131,7 +159,7 @@ The organization and project are read from the config file, flags, or resolved v
 
 		if len(svcBodies) > 0 || hasServices {
 			ranSync = true
-			fmt.Fprint(out, "Syncing services")
+			fmt.Fprint(out, verb+" services")
 			done := output.PrintLoadingDots(out)
 
 			svcResult, err := sync.Services(
@@ -142,10 +170,14 @@ The organization and project are read from the config file, flags, or resolved v
 				projectId,
 				cfg.StackId,
 				svcBodies,
+				sync.Options{
+					AllowDelete: sync.AllowDeleteResource(stackSyncAllowDelete, "services"),
+					DryRun:      stackSyncDryRun,
+				},
 			)
 			close(done)
 			fmt.Fprintln(out)
-			if err := sync.PrintResult(out, "services", svcResult, err); err != nil {
+			if err := printOutcome("services", svcResult, err); err != nil {
 				return err
 			}
 		}
@@ -171,7 +203,7 @@ The organization and project are read from the config file, flags, or resolved v
 
 		if len(agentBodies) > 0 || hasAgents {
 			ranSync = true
-			fmt.Fprint(out, "Syncing agents")
+			fmt.Fprint(out, verb+" agents")
 			done := output.PrintLoadingDots(out)
 
 			agentResult, err := sync.Agents(
@@ -182,10 +214,14 @@ The organization and project are read from the config file, flags, or resolved v
 				projectId,
 				cfg.StackId,
 				agentBodies,
+				sync.Options{
+					AllowDelete: sync.AllowDeleteResource(stackSyncAllowDelete, "agents"),
+					DryRun:      stackSyncDryRun,
+				},
 			)
 			close(done)
 			fmt.Fprintln(out)
-			if err := sync.PrintResult(out, "agents", agentResult, err); err != nil {
+			if err := printOutcome("agents", agentResult, err); err != nil {
 				return err
 			}
 		}
@@ -211,13 +247,9 @@ The organization and project are read from the config file, flags, or resolved v
 
 		if len(dbBodies) > 0 || hasDatabases {
 			ranSync = true
-			fmt.Fprint(out, "Syncing databases")
+			fmt.Fprint(out, verb+" databases")
 			done := output.PrintLoadingDots(out)
 
-			allowDeleteDB := sync.AllowDeleteResource(
-				stackSyncAllowDelete,
-				"databases",
-			)
 			dbResult, err := sync.Databases(
 				cmd.Context(),
 				deployClient,
@@ -225,11 +257,14 @@ The organization and project are read from the config file, flags, or resolved v
 				projectId,
 				cfg.StackId,
 				dbBodies,
-				allowDeleteDB,
+				sync.Options{
+					AllowDelete: sync.AllowDeleteResource(stackSyncAllowDelete, "databases"),
+					DryRun:      stackSyncDryRun,
+				},
 			)
 			close(done)
 			fmt.Fprintln(out)
-			if err := sync.PrintResult(out, "databases", dbResult, err); err != nil {
+			if err := printOutcome("databases", dbResult, err); err != nil {
 				return err
 			}
 		}
@@ -250,7 +285,9 @@ func init() {
 	stackSyncCmd.Flags().
 		StringVarP(&stackSyncOrganization, "organization", "o", "", "Organization name that owns the project")
 	stackSyncCmd.Flags().
-		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types to allow deletion for (e.g. databases)")
+		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services, agents, databases, or all); deletions are refused otherwise")
+	stackSyncCmd.Flags().
+		BoolVar(&stackSyncDryRun, "dry-run", false, "Print the full plan (creates, updates, deletes, refused deletions) without applying anything")
 
 	stackCmd.AddCommand(stackSyncCmd)
 	rootCmd.AddCommand(stackCmd)

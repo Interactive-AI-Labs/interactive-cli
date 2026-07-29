@@ -65,6 +65,7 @@ var (
 	serviceStackId string
 
 	serviceExpectRevision int
+	serviceForce          bool
 )
 
 var servicesCmd = &cobra.Command{
@@ -170,7 +171,10 @@ Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces, and the names of any env vars or secret refs
 that --env/--secret would drop from the live service (the flags replace the
-entire list). These checks fail open and never block; use --expect-revision
+entire list). The update is refused when it would drop live env vars or
+secret refs via --env/--secret; pass --force to apply anyway. --clear-env
+and --clear-secret never trigger the gate: clearing is explicit intent. The
+checks fail open when live state cannot be fetched; use --expect-revision
 to fail instead when the live revision differs from what you expect.`,
 	Example: `  iai services update my-svc --image-tag v2
   iai services update my-svc --image-tag v2 --expect-revision 47
@@ -241,13 +245,17 @@ to fail instead when the live revision differs from what you expect.`,
 		); err != nil {
 			return err
 		}
+		droppedEntries := false
 		if liveErr == nil {
-			printDroppedEnvSecretWarnings(
+			droppedEntries = printDroppedEnvSecretWarnings(
 				cmd.ErrOrStderr(),
 				cmd.Flags().Changed("env"), cmd.Flags().Changed("secret"),
 				live.Env, live.SecretRefs,
 				serviceEnvVars, serviceSecretRefs,
 			)
+		}
+		if err := checkUpdateGates(serviceForce, false, droppedEntries); err != nil {
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -727,6 +735,7 @@ Use the reported field names with 'iai services logs --fields' to include them i
 var (
 	syncProject      string
 	syncOrganization string
+	syncAllowDelete  []string
 )
 
 var servRevisionsCmd = &cobra.Command{
@@ -861,18 +870,19 @@ var servicesSyncCmd = &cobra.Command{
 The sync command will:
 - Create services that exist in the config but not in the project
 - Update services that exist in both the config and the project
-- Delete services that exist in the project but not in the config (for the specified stack)
+- Delete services that exist in the project but not in the config, only
+  with --allow-delete=services; otherwise those deletions are refused and
+  reported on stderr while creates and updates still apply
 
 Updates replace the whole live spec of each service. For every service
 updated, the live revision being replaced is printed to stderr so a sync
-from a stale config file is visible before it lands. Services the config
-file no longer mentions are deleted; those deletions are announced on
-stderr before service changes begin, and run after service creates/updates,
-so an unintended delete from a stale config can still be aborted.
+from a stale config file is visible before it lands. With
+--allow-delete=services, deletes run after service creates/updates.
 
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.`,
 	Example: `  iai services sync --cfg-file stack.yaml
-  iai services sync --cfg-file stack.yaml --project my-project`,
+  iai services sync --cfg-file stack.yaml --project my-project
+  iai services sync --cfg-file stack.yaml --allow-delete services`,
 	Args:       cobra.NoArgs,
 	Deprecated: "use 'iai stack sync' instead",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -964,6 +974,9 @@ The project is selected with --project or via 'iai projects select', and the con
 			projectId,
 			cfg.StackId,
 			svcBodies,
+			sync.Options{
+				AllowDelete: sync.AllowDeleteResource(syncAllowDelete, "services"),
+			},
 		)
 		close(done)
 		fmt.Fprintln(out)
@@ -1086,6 +1099,8 @@ func init() {
 		BoolVar(&serviceClearStackId, "clear-stack-id", false, "Remove the service from its stack")
 	servUCmd.Flags().
 		IntVar(&serviceExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value (opt-in staleness guard)")
+	servUCmd.Flags().
+		BoolVar(&serviceForce, "force", false, "Apply even when the update would drop live env vars or secret refs")
 
 	// Flags for "services list"
 	servListCmd.Flags().
@@ -1208,6 +1223,8 @@ func init() {
 		StringVarP(&syncProject, "project", "p", "", "Project name to sync services in")
 	servicesSyncCmd.Flags().
 		StringVarP(&syncOrganization, "organization", "o", "", "Organization name that owns the project")
+	servicesSyncCmd.Flags().
+		StringSliceVar(&syncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services); deletions are refused otherwise")
 
 	// Register commands
 	rootCmd.AddCommand(servicesCmd)

@@ -1,13 +1,16 @@
-// Package preflight prints deploy-awareness warnings: before a mutating
-// deploy command writes, it surfaces the live state the caller is about to
-// replace or destroy (revision, content pin deltas, existing image tags,
-// resources a sync will delete, env/secret entries a list replacement
-// drops) so the operator — human or LLM agent — can notice a stale-based
-// deploy at the moment it can still be stopped.
+// Package preflight detects deploy accidents: before a mutating deploy
+// command writes, it surfaces the live state the caller is about to replace
+// or destroy (revision, content pin deltas, existing image tags, resources
+// a sync would delete, env/secret entries a list replacement drops) so the
+// operator — human or LLM agent — can notice a stale-based deploy at the
+// moment it can still be stopped.
 //
 // Output contract: deterministic plain text intended for stderr, stable "⚠"
-// prefix on warnings, no colors, no prompts. Checks warn but never block;
-// callers fail open when live state cannot be fetched.
+// prefix on warnings, no colors, no prompts. Destruction implied by
+// omission (a sync deletion, a pin downgrade/removal, a dropped env/secret
+// entry, an occupied image tag) gates: the caller refuses until an explicit
+// flag (--allow-delete, --force) names the intent. Everything ambiguous
+// only warns, and callers fail open when live state cannot be fetched.
 package preflight
 
 import (
@@ -54,13 +57,14 @@ func PrintTagOverwriteWarning(w io.Writer, tag string) {
 	)
 }
 
-// PrintSyncDeletions announces, before that resource type's sync phase
-// writes anything, the resources it will delete because the config file
-// does not mention them. A stale stack file doesn't say "delete X" — it just
-// stops listing X — so this is the only moment decommissioning looks
-// different from a forgotten pull. Deletes run after creates/updates for
-// that resource type. resource is the singular noun ("service", "agent").
-func PrintSyncDeletions(w io.Writer, resource string, names []string) {
+// PrintSyncDeletions reports, before that resource type's sync phase writes
+// anything, the resources the config file no longer mentions. A stale stack
+// file doesn't say "delete X" — it just stops listing X — so deletion is
+// refused unless the matching --allow-delete value was passed; the refusal
+// names the flag that unblocks it. resource is the singular noun
+// ("service", "agent"); allowFlag is the --allow-delete value ("services",
+// "agents").
+func PrintSyncDeletions(w io.Writer, resource, allowFlag string, names []string, allowed bool) {
 	if len(names) == 0 {
 		return
 	}
@@ -68,25 +72,39 @@ func PrintSyncDeletions(w io.Writer, resource string, names []string) {
 	if len(names) != 1 {
 		plural = "s"
 	}
+	if allowed {
+		fmt.Fprintf(
+			w,
+			"⚠ sync will DELETE %d %s%s not in the config: %s (--allow-delete=%s; %s deletes run after %s creates/updates)\n",
+			len(names),
+			resource,
+			plural,
+			strings.Join(names, ", "),
+			allowFlag,
+			resource,
+			resource,
+		)
+		return
+	}
 	fmt.Fprintf(
 		w,
-		"⚠ sync will DELETE %d %s%s not in the config: %s (%s deletes run after %s creates/updates — Ctrl-C to abort if the config is stale)\n",
+		"⚠ sync will NOT delete %d %s%s not in the config: %s (a config that omits a resource looks identical to a stale one — pass --allow-delete=%s to delete)\n",
 		len(names),
 		resource,
 		plural,
 		strings.Join(names, ", "),
-		resource,
-		resource,
+		allowFlag,
 	)
 }
 
 // PrintDroppedListEntries warns when a full-list replacement flag (--env,
-// --secret) drops entries that exist on the live resource. The flags
-// replace, not merge — the classic mistake is passing just the one new value
-// and silently wiping the rest. Only real disappearances warn: kept and
-// added names print nothing. kind is the plural noun ("env vars",
-// "secret refs"); live and incoming are entry names.
-func PrintDroppedListEntries(w io.Writer, kind, flag string, live, incoming []string) {
+// --secret) drops entries that exist on the live resource, and reports
+// whether it did — callers gate on the result. The flags replace, not merge
+// — the classic mistake is passing just the one new value and silently
+// wiping the rest. Only real disappearances warn: kept and added names
+// print nothing. kind is the plural noun ("env vars", "secret refs"); live
+// and incoming are entry names.
+func PrintDroppedListEntries(w io.Writer, kind, flag string, live, incoming []string) bool {
 	keep := make(map[string]bool, len(incoming))
 	for _, name := range incoming {
 		keep[name] = true
@@ -98,7 +116,7 @@ func PrintDroppedListEntries(w io.Writer, kind, flag string, live, incoming []st
 		}
 	}
 	if len(dropped) == 0 {
-		return
+		return false
 	}
 	sort.Strings(dropped)
 	fmt.Fprintf(
@@ -108,6 +126,7 @@ func PrintDroppedListEntries(w io.Writer, kind, flag string, live, incoming []st
 		strings.Join(dropped, ", "),
 		flag,
 	)
+	return true
 }
 
 // CheckExpectedRevision enforces --expect-revision: the update must not be
@@ -135,17 +154,23 @@ func formatUpdated(ts string) string {
 	return t.UTC().Format("2006-01-02 15:04 UTC")
 }
 
-// pinSections maps the agent_config.context keys that pin content versions
-// to their singular display labels.
+// pinSections maps the agent_config.context keys known to pin content
+// versions to their singular display labels. Known sections gate (their
+// downgrades/removals block without --force); any other context section
+// whose entries are {id, version}-shaped is picked up by shape and warns
+// only — never block on guessed semantics.
 var pinSections = map[string]string{
 	"system_prompt": "system_prompt",
 	"policies":      "policy",
 	"routines":      "routine",
+	"glossaries":    "glossary",
+	"macros":        "macro",
 }
 
 type pinKey struct {
 	section string
 	id      string
+	known   bool
 }
 
 type pinVersion struct {
@@ -184,6 +209,9 @@ func parseVersion(v any) pinVersion {
 // extractPins collects (section, id) → version from an agent config's
 // context block. The config schema is server-owned and opaque to the CLI,
 // so anything not shaped like a pin is ignored rather than an error.
+// Sections not in pinSections are scanned by shape: an entry counts as a
+// pin only when it carries both an id and a version, and is marked
+// unknown so its changes warn without gating.
 func extractPins(config any) map[pinKey]pinVersion {
 	pins := map[pinKey]pinVersion{}
 	cfg, ok := config.(map[string]any)
@@ -194,14 +222,18 @@ func extractPins(config any) map[pinKey]pinVersion {
 	if !ok {
 		return pins
 	}
-	for section, label := range pinSections {
-		switch v := ctx[section].(type) {
+	for section, v := range ctx {
+		label, known := pinSections[section]
+		if !known {
+			label = section
+		}
+		switch v := v.(type) {
 		case map[string]any:
-			addPin(pins, label, v)
+			addPin(pins, label, known, v)
 		case []any:
 			for _, entry := range v {
 				if m, ok := entry.(map[string]any); ok {
-					addPin(pins, label, m)
+					addPin(pins, label, known, m)
 				}
 			}
 		}
@@ -209,25 +241,30 @@ func extractPins(config any) map[pinKey]pinVersion {
 	return pins
 }
 
-func addPin(pins map[pinKey]pinVersion, label string, entry map[string]any) {
+func addPin(pins map[pinKey]pinVersion, label string, known bool, entry map[string]any) {
 	id, _ := entry["id"].(string)
 	if id == "" {
 		return
 	}
-	pins[pinKey{section: label, id: id}] = parseVersion(entry["version"])
+	if !known {
+		if _, hasVersion := entry["version"]; !hasVersion {
+			return
+		}
+	}
+	pins[pinKey{section: label, id: id, known: known}] = parseVersion(entry["version"])
 }
 
-// PrintPinChanges compares content pins (system_prompt / policies /
-// routines) between the live agent config and the incoming replacement and
-// prints the delta. A full-config update replaces every pin, so a stale
-// manifest silently reverts colleagues' work: downgrades and removals are
-// the loud cases. Additions and upgrades print quietly, and an unchanged
-// pin set prints nothing at all.
+// PrintPinChanges compares content pins between the live agent config and
+// the incoming replacement and prints the delta. A full-config update
+// replaces every pin, so a stale manifest silently reverts colleagues'
+// work: downgrades and removals are the loud cases. Additions and upgrades
+// print quietly, and an unchanged pin set prints nothing at all.
 //
-// Rollbacks are downgrades by definition, so the downgrade wording is
-// informational, never prohibitive — an agent mid-incident must not refuse
-// the documented recovery procedure.
-func PrintPinChanges(w io.Writer, liveConfig, incomingConfig any) {
+// The return value reports whether a known pin section (pinSections)
+// downgraded or removed a pin — the caller gates on it and refuses without
+// --force. Loud changes in unknown-but-pin-shaped sections warn but never
+// gate: their semantics are guessed from shape alone.
+func PrintPinChanges(w io.Writer, liveConfig, incomingConfig any) bool {
 	livePins := extractPins(liveConfig)
 	incomingPins := extractPins(incomingConfig)
 
@@ -251,6 +288,7 @@ func PrintPinChanges(w io.Writer, liveConfig, incomingConfig any) {
 
 	var lines []string
 	loud := false
+	blocking := false
 	for _, k := range keys {
 		from, inLive := livePins[k]
 		to, inIncoming := incomingPins[k]
@@ -261,6 +299,7 @@ func PrintPinChanges(w io.Writer, liveConfig, incomingConfig any) {
 				k.section, k.id, from,
 			))
 			loud = true
+			blocking = blocking || k.known
 		case !inLive && inIncoming:
 			lines = append(lines, fmt.Sprintf("%s %s: (none) → %s", k.section, k.id, to))
 		case from.String() == to.String(),
@@ -275,12 +314,13 @@ func PrintPinChanges(w io.Writer, liveConfig, incomingConfig any) {
 				to,
 			))
 			loud = true
+			blocking = blocking || k.known
 		default:
 			lines = append(lines, fmt.Sprintf("%s %s: %s → %s", k.section, k.id, from, to))
 		}
 	}
 	if len(lines) == 0 {
-		return
+		return false
 	}
 
 	header := "content pins changed by this update:"
@@ -291,4 +331,5 @@ func PrintPinChanges(w io.Writer, liveConfig, incomingConfig any) {
 	for _, l := range lines {
 		fmt.Fprintln(w, "    "+l)
 	}
+	return blocking
 }
