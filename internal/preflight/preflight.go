@@ -72,28 +72,27 @@ func PrintSyncDeletions(w io.Writer, resource, allowFlag string, names []string,
 	if len(names) != 1 {
 		plural = "s"
 	}
+	verb := "NOT delete"
+	hint := fmt.Sprintf(
+		"a config that omits a resource looks identical to a stale one — pass --allow-delete=%s to delete",
+		allowFlag,
+	)
 	if allowed {
-		fmt.Fprintf(
-			w,
-			"⚠ sync will DELETE %d %s%s not in the config: %s (--allow-delete=%s; %s deletes run after %s creates/updates)\n",
-			len(names),
-			resource,
-			plural,
-			strings.Join(names, ", "),
-			allowFlag,
-			resource,
-			resource,
+		verb = "DELETE"
+		hint = fmt.Sprintf(
+			"--allow-delete=%s; %s deletes run after %s creates/updates",
+			allowFlag, resource, resource,
 		)
-		return
 	}
 	fmt.Fprintf(
 		w,
-		"⚠ sync will NOT delete %d %s%s not in the config: %s (a config that omits a resource looks identical to a stale one — pass --allow-delete=%s to delete)\n",
+		"⚠ sync will %s %d %s%s not in the config: %s (%s)\n",
+		verb,
 		len(names),
 		resource,
 		plural,
 		strings.Join(names, ", "),
-		allowFlag,
+		hint,
 	)
 }
 
@@ -170,7 +169,9 @@ var pinSections = map[string]string{
 type pinKey struct {
 	section string
 	id      string
-	known   bool
+	// known is derived from section alone (pinSections membership), so it is
+	// always identical for the live and incoming sides of the same pin.
+	known bool
 }
 
 type pinVersion struct {

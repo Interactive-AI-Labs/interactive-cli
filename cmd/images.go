@@ -250,23 +250,6 @@ open when the existing tags cannot be listed.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		// Deploy awareness: pushing to an existing tag replaces the previous
-		// image with no way to recover it or tell that the code changed —
-		// the CLI's only unrecoverable operation, so an occupied tag blocks
-		// unless --force names the intent. Fails open when tags can't be
-		// listed.
-		if existingImageTag(
-			cmd.Context(), cmd.ErrOrStderr(), orgId, projectId, imageName, imagePushTag, cookies,
-		) {
-			if !imagePushForce {
-				return fmt.Errorf(
-					"tag %s already exists upstream — pushing would replace it and the previous image is unrecoverable; pick a fresh tag, or pass --force to replace",
-					imagePushTag,
-				)
-			}
-			preflight.PrintTagOverwriteWarning(cmd.ErrOrStderr(), imagePushTag)
-		}
-
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf(
 				"docker CLI not found in PATH; please install Docker and ensure 'docker' is available: %w",
@@ -278,6 +261,24 @@ open when the existing tags cannot be listed.`,
 
 		if err := validateImageArchitecture(imageRef); err != nil {
 			return err
+		}
+
+		// Deploy awareness: pushing to an existing tag replaces the previous
+		// image with no way to recover it or tell that the code changed —
+		// the CLI's only unrecoverable operation, so an occupied tag blocks
+		// unless --force names the intent. Fails open when tags can't be
+		// listed. Runs after the cheap local checks, before anything is
+		// saved or uploaded.
+		if existingImageTag(
+			cmd.Context(), cmd.ErrOrStderr(), orgId, projectId, imageName, imagePushTag, cookies,
+		) {
+			if !imagePushForce {
+				return fmt.Errorf(
+					"tag %s already exists upstream — pushing would replace it and the previous image is unrecoverable; pick a fresh tag, or pass --force to replace",
+					imagePushTag,
+				)
+			}
+			preflight.PrintTagOverwriteWarning(cmd.ErrOrStderr(), imagePushTag)
 		}
 
 		tmpFile, err := os.CreateTemp("", "image-*.tar")
