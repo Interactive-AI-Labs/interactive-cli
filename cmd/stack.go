@@ -125,11 +125,6 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 		ranSync := false
 
-		// runPhase runs one resource type's sync with its progress line and
-		// prints the outcome: in a dry run the plan on stdout is the
-		// deliverable; otherwise results print as applied, with refused
-		// deletions reported. label is the plural noun, which is also the
-		// --allow-delete value.
 		runPhase := func(label string, run func(sync.Options) (*sync.Result, error)) error {
 			ranSync = true
 			fmt.Fprint(out, verb+" "+label)

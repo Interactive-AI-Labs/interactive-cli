@@ -12,11 +12,6 @@ import (
 	"testing"
 )
 
-// TestAgentUpdateMcpOverlayShowDiff runs the full update command for an
-// --mcp overlay (no --file) and checks the pre-flight diff on stderr.
-// Regression test: the overlay helpers mutate the live config map in place,
-// which used to make --show-diff compare the config against itself and
-// print "No differences found." for the very change being applied.
 func TestAgentUpdateMcpOverlayShowDiff(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +40,6 @@ func TestAgentUpdateMcpOverlayShowDiff(t *testing.T) {
 	)
 	t.Cleanup(server.Close)
 
-	// Isolate every global the command reads, and restore afterwards.
 	t.Setenv("HOME", t.TempDir())
 	origHostname, origDeployHostname, origToken, origApiKey := hostname, deploymentHostname, token, apiKey
 	origOrg, origProject := agentOrganization, agentProject
@@ -191,10 +185,6 @@ func TestAgentUpdateValidatesBeforeDescribe(t *testing.T) {
 	}
 }
 
-// TestAgentUpdateRefusesUnpinnedRoutine runs the full update command with a
-// --file config that keeps a routine entry but drops its version. Unpinning
-// has the same effect as removing the pin, so the update must be refused
-// before the PATCH unless --force is passed.
 func TestAgentUpdateRefusesUnpinnedRoutine(t *testing.T) {
 	patchCalls := 0
 	server := httptest.NewServer(
@@ -270,12 +260,6 @@ func TestAgentUpdateRefusesUnpinnedRoutine(t *testing.T) {
 	}
 }
 
-// TestAgentUpdateGatesDroppedEnv runs the full update command with an --env
-// replacement that keeps only one of the two live env vars. --env replaces
-// the whole list, so "add one var" passed alone silently wipes the rest:
-// the update is refused before the PATCH with the dropped names detailed on
-// stderr, and --force is the single override that lets it through. The
-// untouched secret list must stay silent either way.
 func TestAgentUpdateGatesDroppedEnv(t *testing.T) {
 	tests := []struct {
 		name  string

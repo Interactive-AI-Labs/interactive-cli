@@ -26,8 +26,6 @@ func stripRevisionMeta(v any) (map[string]any, error) {
 	return m, nil
 }
 
-// PrintRevisionDiff prints a colored unified diff between two revision snapshots.
-// RevisionMeta fields (revision, updated, status) are excluded.
 func PrintRevisionDiff(out io.Writer, nameA string, a any, nameB string, b any) error {
 	mapA, err := stripRevisionMeta(a)
 	if err != nil {
@@ -40,8 +38,6 @@ func PrintRevisionDiff(out io.Writer, nameA string, a any, nameB string, b any) 
 	return PrintYAMLDiff(out, "revision "+nameA, mapA, "revision "+nameB, mapB)
 }
 
-// PrintYAMLDiff prints a unified diff between the YAML renderings of two
-// values, labeled verbatim.
 func PrintYAMLDiff(out io.Writer, labelA string, a any, labelB string, b any) error {
 	yamlA, err := yaml.Marshal(a)
 	if err != nil {

@@ -218,7 +218,6 @@ func TestPrintPlan(t *testing.T) {
 	}
 }
 
-// newTestDeployClient returns a client pointed at a stub deployment server.
 func newTestDeployClient(t *testing.T, handler http.HandlerFunc) *clients.DeploymentClient {
 	t.Helper()
 	server := httptest.NewServer(handler)
@@ -279,106 +278,193 @@ func TestServicesPrintsUpdateBanner(t *testing.T) {
 	}
 }
 
-func TestServicesRefusesDeletionsByDefault(t *testing.T) {
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/services":
-			fmt.Fprint(
-				w,
-				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
-			)
-		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-a":
-			fmt.Fprint(w, `{}`)
-		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-old":
-			t.Error("svc-old was deleted without --allow-delete")
-			fmt.Fprint(w, `{}`)
-		default:
-			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	desired := map[string]clients.CreateServiceBody{"svc-a": {}}
-	result, err := Services(
-		context.Background(),
-		&warn,
-		client,
-		"o1",
-		"p1",
-		"stack-1",
-		desired,
-		Options{},
-	)
-	if err != nil {
-		t.Fatalf("Services() error = %v", err)
+func TestSyncRefusesDeletionsByDefault(t *testing.T) {
+	tests := []struct {
+		name          string
+		listPath      string
+		listBody      string
+		deletePath    string
+		putPath       string
+		wantWarn      string
+		wantProtected []string
+		wantUpdated   []string
+		run           func(context.Context, *bytes.Buffer, *clients.DeploymentClient) (*Result, error)
+	}{
+		{
+			name:       "services",
+			listPath:   "/v1/organizations/o1/projects/p1/services",
+			listBody:   `{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
+			deletePath: "/v1/organizations/o1/projects/p1/services/svc-old",
+			putPath:    "/v1/organizations/o1/projects/p1/services/svc-a",
+			wantWarn: "⚠ sync will NOT delete 1 service not in the config: svc-old" +
+				" (a config that omits a resource looks identical to a stale one — pass --allow-delete=services to delete)\n" +
+				"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n",
+			wantProtected: []string{"svc-old"},
+			wantUpdated:   []string{"svc-a"},
+			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+				return Services(ctx, warn, client, "o1", "p1", "stack-1",
+					map[string]clients.CreateServiceBody{"svc-a": {}}, Options{})
+			},
+		},
+		{
+			name:       "agents",
+			listPath:   "/v1/organizations/o1/projects/p1/agents",
+			listBody:   `{"agents":[{"name":"agent-old","projectId":"p1","revision":5,"status":"ready"}]}`,
+			deletePath: "/v1/organizations/o1/projects/p1/agents/agent-old",
+			wantWarn: "⚠ sync will NOT delete 1 agent not in the config: agent-old" +
+				" (a config that omits a resource looks identical to a stale one — pass --allow-delete=agents to delete)\n",
+			wantProtected: []string{"agent-old"},
+			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+				return Agents(ctx, warn, client, "o1", "p1", "stack-1",
+					map[string]clients.CreateAgentBody{}, Options{})
+			},
+		},
+		{
+			name:       "databases",
+			listPath:   "/v1/organizations/o1/projects/p1/databases",
+			listBody:   `{"databases":[{"name":"old-db","revision":2,"status":"ready"}]}`,
+			deletePath: "/v1/organizations/o1/projects/p1/databases/old-db",
+			wantWarn: "⚠ sync will NOT delete 1 database not in the config: old-db" +
+				" (a config that omits a resource looks identical to a stale one — pass --allow-delete=databases to delete)\n",
+			wantProtected: []string{"old-db"},
+			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+				return Databases(ctx, warn, client, "o1", "p1", "stack-1",
+					map[string]clients.CreateDatabaseBody{}, Options{})
+			},
+		},
 	}
 
-	// The refusal is reported first, then the update proceeds normally: the
-	// gate blocks only the deletion, never the creates and updates.
-	wantWarn := "⚠ sync will NOT delete 1 service not in the config: svc-old" +
-		" (a config that omits a resource looks identical to a stale one — pass --allow-delete=services to delete)\n" +
-		"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n"
-	if got := warn.String(); got != wantWarn {
-		t.Errorf("warnings = %q, want %q", got, wantWarn)
-	}
-	if len(result.Deleted) != 0 {
-		t.Errorf("Deleted = %v, want []", result.Deleted)
-	}
-	if len(result.Protected) != 1 || result.Protected[0] != "svc-old" {
-		t.Errorf("Protected = %v, want [svc-old]", result.Protected)
-	}
-	if len(result.Updated) != 1 || result.Updated[0] != "svc-a" {
-		t.Errorf("Updated = %v, want [svc-a]", result.Updated)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodGet && r.URL.Path == tt.listPath:
+					fmt.Fprint(w, tt.listBody)
+				case tt.putPath != "" && r.Method == http.MethodPut && r.URL.Path == tt.putPath:
+					fmt.Fprint(w, `{}`)
+				case r.Method == http.MethodDelete && r.URL.Path == tt.deletePath:
+					t.Errorf("%s was deleted without --allow-delete", tt.deletePath)
+					fmt.Fprint(w, `{}`)
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			})
+
+			var warn bytes.Buffer
+			result, err := tt.run(context.Background(), &warn, client)
+			if err != nil {
+				t.Fatalf("sync error = %v", err)
+			}
+			if got := warn.String(); got != tt.wantWarn {
+				t.Errorf("warnings = %q, want %q", got, tt.wantWarn)
+			}
+			if len(result.Deleted) != 0 {
+				t.Errorf("Deleted = %v, want []", result.Deleted)
+			}
+			if len(result.Protected) != len(tt.wantProtected) ||
+				(len(tt.wantProtected) > 0 && result.Protected[0] != tt.wantProtected[0]) {
+				t.Errorf("Protected = %v, want %v", result.Protected, tt.wantProtected)
+			}
+			if len(result.Updated) != len(tt.wantUpdated) ||
+				(len(tt.wantUpdated) > 0 && result.Updated[0] != tt.wantUpdated[0]) {
+				t.Errorf("Updated = %v, want %v", result.Updated, tt.wantUpdated)
+			}
+		})
 	}
 }
 
-func TestServicesDeletesWithAllowDelete(t *testing.T) {
-	var deleted bool
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/services":
-			fmt.Fprint(
-				w,
-				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
-			)
-		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-a":
-			fmt.Fprint(w, `{}`)
-		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-old":
-			deleted = true
-			fmt.Fprint(w, `{}`)
-		default:
-			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	desired := map[string]clients.CreateServiceBody{"svc-a": {}}
-	result, err := Services(
-		context.Background(), &warn, client, "o1", "p1", "stack-1", desired,
-		Options{AllowDelete: true},
-	)
-	if err != nil {
-		t.Fatalf("Services() error = %v", err)
+func TestSyncDeletesWithAllowDelete(t *testing.T) {
+	tests := []struct {
+		name        string
+		listPath    string
+		listBody    string
+		deletePath  string
+		putPath     string
+		wantWarn    string
+		wantDeleted []string
+		run         func(context.Context, *bytes.Buffer, *clients.DeploymentClient) (*Result, error)
+	}{
+		{
+			name:       "services",
+			listPath:   "/v1/organizations/o1/projects/p1/services",
+			listBody:   `{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
+			deletePath: "/v1/organizations/o1/projects/p1/services/svc-old",
+			putPath:    "/v1/organizations/o1/projects/p1/services/svc-a",
+			wantWarn: "⚠ sync will DELETE 1 service not in the config: svc-old" +
+				" (--allow-delete=services; service deletes run after service creates/updates)\n" +
+				"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n",
+			wantDeleted: []string{"svc-old"},
+			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+				return Services(ctx, warn, client, "o1", "p1", "stack-1",
+					map[string]clients.CreateServiceBody{"svc-a": {}}, Options{AllowDelete: true})
+			},
+		},
+		{
+			name:       "agents",
+			listPath:   "/v1/organizations/o1/projects/p1/agents",
+			listBody:   `{"agents":[{"name":"agent-old","projectId":"p1","revision":5,"status":"ready"}]}`,
+			deletePath: "/v1/organizations/o1/projects/p1/agents/agent-old",
+			wantWarn: "⚠ sync will DELETE 1 agent not in the config: agent-old" +
+				" (--allow-delete=agents; agent deletes run after agent creates/updates)\n",
+			wantDeleted: []string{"agent-old"},
+			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+				return Agents(ctx, warn, client, "o1", "p1", "stack-1",
+					map[string]clients.CreateAgentBody{}, Options{AllowDelete: true})
+			},
+		},
+		{
+			name:       "databases",
+			listPath:   "/v1/organizations/o1/projects/p1/databases",
+			listBody:   `{"databases":[{"name":"old-db","revision":2,"status":"ready"}]}`,
+			deletePath: "/v1/organizations/o1/projects/p1/databases/old-db",
+			wantWarn: "⚠ sync will DELETE 1 database not in the config: old-db" +
+				" (--allow-delete=databases; database deletes run after database creates/updates)\n",
+			wantDeleted: []string{"old-db"},
+			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+				return Databases(ctx, warn, client, "o1", "p1", "stack-1",
+					map[string]clients.CreateDatabaseBody{}, Options{AllowDelete: true})
+			},
+		},
 	}
 
-	// The deletion announcement must come first: it is printed before any
-	// service create/update write, so the service phase is still abortable.
-	wantWarn := "⚠ sync will DELETE 1 service not in the config: svc-old" +
-		" (--allow-delete=services; service deletes run after service creates/updates)\n" +
-		"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n"
-	if got := warn.String(); got != wantWarn {
-		t.Errorf("warnings = %q, want %q", got, wantWarn)
-	}
-	if !deleted {
-		t.Error("svc-old was announced but not deleted")
-	}
-	if len(result.Deleted) != 1 || result.Deleted[0] != "svc-old" {
-		t.Errorf("Deleted = %v, want [svc-old]", result.Deleted)
-	}
-	if len(result.Protected) != 0 {
-		t.Errorf("Protected = %v, want []", result.Protected)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var deleted bool
+			client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodGet && r.URL.Path == tt.listPath:
+					fmt.Fprint(w, tt.listBody)
+				case tt.putPath != "" && r.Method == http.MethodPut && r.URL.Path == tt.putPath:
+					fmt.Fprint(w, `{}`)
+				case r.Method == http.MethodDelete && r.URL.Path == tt.deletePath:
+					deleted = true
+					fmt.Fprint(w, `{}`)
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			})
+
+			var warn bytes.Buffer
+			result, err := tt.run(context.Background(), &warn, client)
+			if err != nil {
+				t.Fatalf("sync error = %v", err)
+			}
+			if got := warn.String(); got != tt.wantWarn {
+				t.Errorf("warnings = %q, want %q", got, tt.wantWarn)
+			}
+			if !deleted {
+				t.Errorf("%s was announced but not deleted", tt.deletePath)
+			}
+			if len(result.Deleted) != len(tt.wantDeleted) ||
+				(len(tt.wantDeleted) > 0 && result.Deleted[0] != tt.wantDeleted[0]) {
+				t.Errorf("Deleted = %v, want %v", result.Deleted, tt.wantDeleted)
+			}
+			if len(result.Protected) != 0 {
+				t.Errorf("Protected = %v, want []", result.Protected)
+			}
+		})
 	}
 }
 
@@ -423,159 +509,6 @@ func TestServicesDryRunPlansWithoutWriting(t *testing.T) {
 	}
 	if len(result.Deleted) != 0 {
 		t.Errorf("Deleted = %v, want []", result.Deleted)
-	}
-}
-
-func TestAgentsRefusesDeletionsByDefault(t *testing.T) {
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/agents":
-			fmt.Fprint(
-				w,
-				`{"agents":[{"name":"agent-old","projectId":"p1","revision":5,"status":"ready"}]}`,
-			)
-		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/agents/agent-old":
-			t.Error("agent-old was deleted without --allow-delete")
-			fmt.Fprint(w, `{}`)
-		default:
-			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	result, err := Agents(
-		context.Background(), &warn, client, "o1", "p1", "stack-1",
-		map[string]clients.CreateAgentBody{}, Options{},
-	)
-	if err != nil {
-		t.Fatalf("Agents() error = %v", err)
-	}
-
-	wantWarn := "⚠ sync will NOT delete 1 agent not in the config: agent-old" +
-		" (a config that omits a resource looks identical to a stale one — pass --allow-delete=agents to delete)\n"
-	if got := warn.String(); got != wantWarn {
-		t.Errorf("warnings = %q, want %q", got, wantWarn)
-	}
-	if len(result.Deleted) != 0 {
-		t.Errorf("Deleted = %v, want []", result.Deleted)
-	}
-	if len(result.Protected) != 1 || result.Protected[0] != "agent-old" {
-		t.Errorf("Protected = %v, want [agent-old]", result.Protected)
-	}
-}
-
-func TestDatabasesRefusesDeletionsByDefault(t *testing.T) {
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/databases":
-			fmt.Fprint(
-				w,
-				`{"databases":[{"name":"old-db","revision":2,"status":"ready"}]}`,
-			)
-		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/databases/old-db":
-			t.Error("old-db was deleted without --allow-delete")
-			fmt.Fprint(w, `{}`)
-		default:
-			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	result, err := Databases(
-		context.Background(), &warn, client, "o1", "p1", "stack-1",
-		map[string]clients.CreateDatabaseBody{}, Options{},
-	)
-	if err != nil {
-		t.Fatalf("Databases() error = %v", err)
-	}
-
-	wantWarn := "⚠ sync will NOT delete 1 database not in the config: old-db" +
-		" (a config that omits a resource looks identical to a stale one — pass --allow-delete=databases to delete)\n"
-	if got := warn.String(); got != wantWarn {
-		t.Errorf("warnings = %q, want %q", got, wantWarn)
-	}
-	if len(result.Deleted) != 0 {
-		t.Errorf("Deleted = %v, want []", result.Deleted)
-	}
-	if len(result.Protected) != 1 || result.Protected[0] != "old-db" {
-		t.Errorf("Protected = %v, want [old-db]", result.Protected)
-	}
-}
-
-func TestDatabasesDeletesWithAllowDelete(t *testing.T) {
-	var deleted bool
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/databases":
-			fmt.Fprint(
-				w,
-				`{"databases":[{"name":"old-db","revision":2,"status":"ready"}]}`,
-			)
-		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/databases/old-db":
-			deleted = true
-			fmt.Fprint(w, `{}`)
-		default:
-			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	result, err := Databases(
-		context.Background(), &warn, client, "o1", "p1", "stack-1",
-		map[string]clients.CreateDatabaseBody{}, Options{AllowDelete: true},
-	)
-	if err != nil {
-		t.Fatalf("Databases() error = %v", err)
-	}
-
-	wantWarn := "⚠ sync will DELETE 1 database not in the config: old-db" +
-		" (--allow-delete=databases; database deletes run after database creates/updates)\n"
-	if got := warn.String(); got != wantWarn {
-		t.Errorf("warnings = %q, want %q", got, wantWarn)
-	}
-	if !deleted {
-		t.Error("old-db was announced but not deleted")
-	}
-	if len(result.Deleted) != 1 || result.Deleted[0] != "old-db" {
-		t.Errorf("Deleted = %v, want [old-db]", result.Deleted)
-	}
-}
-
-func TestAgentsDeletesWithAllowDelete(t *testing.T) {
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/agents":
-			fmt.Fprint(
-				w,
-				`{"agents":[{"name":"agent-old","projectId":"p1","revision":5,"status":"ready"}]}`,
-			)
-		case r.Method == http.MethodDelete && r.URL.Path == "/v1/organizations/o1/projects/p1/agents/agent-old":
-			fmt.Fprint(w, `{}`)
-		default:
-			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	result, err := Agents(
-		context.Background(), &warn, client, "o1", "p1", "stack-1",
-		map[string]clients.CreateAgentBody{}, Options{AllowDelete: true},
-	)
-	if err != nil {
-		t.Fatalf("Agents() error = %v", err)
-	}
-
-	wantWarn := "⚠ sync will DELETE 1 agent not in the config: agent-old" +
-		" (--allow-delete=agents; agent deletes run after agent creates/updates)\n"
-	if got := warn.String(); got != wantWarn {
-		t.Errorf("warnings = %q, want %q", got, wantWarn)
-	}
-	if len(result.Deleted) != 1 || result.Deleted[0] != "agent-old" {
-		t.Errorf("Deleted = %v, want [agent-old]", result.Deleted)
 	}
 }
 

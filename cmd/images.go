@@ -270,28 +270,21 @@ open when the existing tags cannot be listed.`,
 			return err
 		}
 
-		// Deploy awareness: pushing to an existing tag replaces the previous
-		// image with no way to recover it or tell that the code changed —
-		// the CLI's only unrecoverable operation, so an occupied tag blocks
-		// unless --force names the intent. Fails open when tags can't be
-		// listed. Runs after the cheap local checks, before anything is
-		// saved or uploaded.
-		if existingImageTag(
-			cmd.Context(),
+		if err := refuseTagOverwrite(
 			cmd.ErrOrStderr(),
-			deployClient,
-			orgId,
-			projectId,
-			imageName,
 			imagePushTag,
-		) {
-			if !imagePushForce {
-				return fmt.Errorf(
-					"tag %s already exists upstream — pushing would replace it and the previous image is unrecoverable; pick a fresh tag, or pass --force to replace",
-					imagePushTag,
-				)
-			}
-			preflight.PrintTagOverwriteWarning(cmd.ErrOrStderr(), imagePushTag)
+			existingImageTag(
+				cmd.Context(),
+				cmd.ErrOrStderr(),
+				deployClient,
+				orgId,
+				projectId,
+				imageName,
+				imagePushTag,
+			),
+			imagePushForce,
+		); err != nil {
+			return err
 		}
 
 		tmpFile, err := os.CreateTemp("", "image-*.tar")
@@ -383,9 +376,24 @@ open when the existing tags cannot be listed.`,
 	},
 }
 
-// existingImageTag reports whether the tag is already present upstream for
-// the image. A failed lookup fails open (note on errW, false) — the gate
-// must not add a new way for a legitimate push to break.
+func refuseTagOverwrite(errW io.Writer, tag string, exists, force bool) error {
+	if !exists {
+		return nil
+	}
+	if !force {
+		return fmt.Errorf(
+			"tag %s already exists upstream — pushing would replace it and the previous image is unrecoverable; pick a fresh tag, or pass --force to replace",
+			tag,
+		)
+	}
+	fmt.Fprintf(
+		errW,
+		"⚠ tag %s already exists upstream — pushing replaces it; the previous image is unrecoverable.\n",
+		tag,
+	)
+	return nil
+}
+
 func existingImageTag(
 	ctx context.Context,
 	errW io.Writer,

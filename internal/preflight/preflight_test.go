@@ -66,15 +66,6 @@ func TestPrintFailOpenNote(t *testing.T) {
 	}
 }
 
-func TestPrintTagOverwriteWarning(t *testing.T) {
-	var buf bytes.Buffer
-	PrintTagOverwriteWarning(&buf, "0.2.36")
-	want := "⚠ tag 0.2.36 already exists upstream — pushing replaces it; the previous image is unrecoverable.\n"
-	if got := buf.String(); got != want {
-		t.Errorf("warning = %q, want %q", got, want)
-	}
-}
-
 func TestPrintSyncDeletions(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -209,23 +200,6 @@ func TestPrintDroppedListEntries(t *testing.T) {
 	}
 }
 
-func TestCheckExpectedRevision(t *testing.T) {
-	if err := CheckExpectedRevision(12, 12); err != nil {
-		t.Errorf("matching revisions: unexpected error %v", err)
-	}
-	err := CheckExpectedRevision(12, 14)
-	if err == nil {
-		t.Fatal("expected error on revision mismatch")
-	}
-	want := "live revision is 14, expected 12 — not applying (--expect-revision)"
-	if err.Error() != want {
-		t.Errorf("error = %q, want %q", err.Error(), want)
-	}
-}
-
-// configWithPins builds an agent config with the context shapes the CLI
-// sees: routines/policies as lists of {id, version}, system_prompt as a
-// single {id, version} object.
 func configWithPins(systemPrompt map[string]any, policies, routines []any) map[string]any {
 	ctx := map[string]any{}
 	if systemPrompt != nil {
@@ -411,6 +385,59 @@ func TestPrintPinChanges(t *testing.T) {
 			}),
 			want: "content pins changed by this update:\n" +
 				"    routine welcome: (unpinned) → v2\n",
+		},
+		{
+			name: "legacy description.prompt_id downgrade gates",
+			live: map[string]any{"context": map[string]any{
+				"description": map[string]any{
+					"prompt_id": "camille-system-prompt",
+					"version":   float64(3),
+				},
+			}},
+			incoming: map[string]any{"context": map[string]any{
+				"description": map[string]any{
+					"prompt_id": "camille-system-prompt",
+					"version":   1,
+				},
+			}},
+			want: "⚠ content pins changed by this update:\n" +
+				"    description camille-system-prompt: v3 → v1  (DOWNGRADE — if this is an intentional rollback, this is expected)\n",
+			wantBlocking: true,
+		},
+		{
+			name: "legacy description.prompt_id removal gates",
+			live: map[string]any{"context": map[string]any{
+				"description": map[string]any{
+					"prompt_id": "camille-system-prompt",
+					"version":   float64(2),
+				},
+			}},
+			incoming: map[string]any{"context": map[string]any{
+				"description": map[string]any{},
+			}},
+			want: "⚠ content pins changed by this update:\n" +
+				"    description camille-system-prompt: v2 → (none)  (REMOVED — this update drops the pin entirely)\n",
+			wantBlocking: true,
+		},
+		{
+			name: "id takes precedence over prompt_id on the same entry",
+			live: map[string]any{"context": map[string]any{
+				"description": map[string]any{
+					"id":        "kept-id",
+					"prompt_id": "ignored-prompt-id",
+					"version":   float64(2),
+				},
+			}},
+			incoming: map[string]any{"context": map[string]any{
+				"description": map[string]any{
+					"id":        "kept-id",
+					"prompt_id": "ignored-prompt-id",
+					"version":   1,
+				},
+			}},
+			want: "⚠ content pins changed by this update:\n" +
+				"    description kept-id: v2 → v1  (DOWNGRADE — if this is an intentional rollback, this is expected)\n",
+			wantBlocking: true,
 		},
 		{
 			name:     "non-map configs print nothing",

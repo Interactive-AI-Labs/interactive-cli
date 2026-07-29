@@ -133,3 +133,45 @@ func TestExistingImageTag(t *testing.T) {
 		})
 	}
 }
+
+func TestRefuseTagOverwrite(t *testing.T) {
+	tests := []struct {
+		name     string
+		exists   bool
+		force    bool
+		wantErr  string
+		wantWarn string
+	}{
+		{
+			name: "absent tag proceeds",
+		},
+		{
+			name:    "existing tag without force refuses",
+			exists:  true,
+			wantErr: "tag 0.2.36 already exists upstream — pushing would replace it and the previous image is unrecoverable; pick a fresh tag, or pass --force to replace",
+		},
+		{
+			name:     "existing tag with force warns and proceeds",
+			exists:   true,
+			force:    true,
+			wantWarn: "⚠ tag 0.2.36 already exists upstream — pushing replaces it; the previous image is unrecoverable.\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := refuseTagOverwrite(&buf, "0.2.36", tt.exists, tt.force)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			} else if err == nil || err.Error() != tt.wantErr {
+				t.Fatalf("error = %v, want %q", err, tt.wantErr)
+			}
+			if got := buf.String(); got != tt.wantWarn {
+				t.Errorf("warn = %q, want %q", got, tt.wantWarn)
+			}
+		})
+	}
+}
