@@ -1098,7 +1098,7 @@ func init() {
 	servUCmd.Flags().
 		BoolVar(&serviceClearStackId, "clear-stack-id", false, "Remove the service from its stack")
 	servUCmd.Flags().
-		IntVar(&serviceExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value (opt-in staleness guard)")
+		IntVar(&serviceExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated service (opt-in staleness guard)")
 	servUCmd.Flags().
 		BoolVar(&serviceForce, "force", false, "Apply even when the update would drop live env vars or secret refs")
 

@@ -1050,7 +1050,7 @@ func init() {
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)")
 	agentUpdateCmd.Flags().
-		IntVar(&agentExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value (opt-in staleness guard)")
+		IntVar(&agentExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentShowDiff, "show-diff", false, "Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp")
 	agentUpdateCmd.Flags().

@@ -233,6 +233,13 @@ open when the existing tags cannot be listed.`,
 			return err
 		}
 
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname, defaultHTTPTimeout, token, apiKey, cookies,
+		)
+		if err != nil {
+			return err
+		}
+
 		sess := session.NewSession(cfgDirName)
 
 		orgName, err := sess.ResolveOrganization(cfg.Organization, imageOrganization)
@@ -270,7 +277,13 @@ open when the existing tags cannot be listed.`,
 		// listed. Runs after the cheap local checks, before anything is
 		// saved or uploaded.
 		if existingImageTag(
-			cmd.Context(), cmd.ErrOrStderr(), orgId, projectId, imageName, imagePushTag, cookies,
+			cmd.Context(),
+			cmd.ErrOrStderr(),
+			deployClient,
+			orgId,
+			projectId,
+			imageName,
+			imagePushTag,
 		) {
 			if !imagePushForce {
 				return fmt.Errorf(
@@ -376,16 +389,9 @@ open when the existing tags cannot be listed.`,
 func existingImageTag(
 	ctx context.Context,
 	errW io.Writer,
+	deployClient *clients.DeploymentClient,
 	orgId, projectId, imageName, tag string,
-	cookies []*http.Cookie,
 ) bool {
-	deployClient, err := clients.NewDeploymentClient(
-		deploymentHostname, defaultHTTPTimeout, token, apiKey, cookies,
-	)
-	if err != nil {
-		preflight.PrintFailOpenNote(errW, "list existing image tags", err)
-		return false
-	}
 	images, err := deployClient.ListImages(ctx, orgId, projectId)
 	if err != nil {
 		preflight.PrintFailOpenNote(errW, "list existing image tags", err)

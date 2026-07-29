@@ -139,10 +139,10 @@ func PrintPlan(out io.Writer, label string, result *Result) {
 	if len(result.Protected) > 0 {
 		fmt.Fprintf(
 			out,
-			"Would refuse to delete %s (needs --allow-delete=%s): %s\n",
-			label,
+			"Would refuse to delete %s: %s (a config that omits a resource looks identical to a stale one — pass --allow-delete=%s to delete)\n",
 			label,
 			strings.Join(result.Protected, ", "),
+			label,
 		)
 	}
 	if len(result.Created) == 0 && len(result.Updated) == 0 &&

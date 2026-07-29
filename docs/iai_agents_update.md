@@ -78,7 +78,7 @@ iai agents update <agent_name> [flags]
       --detach-mcp stringArray     Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)
       --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
-      --expect-revision int        Fail without applying unless the live revision equals this value (opt-in staleness guard)
+      --expect-revision int        Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
       --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
   -h, --help                       help for update
