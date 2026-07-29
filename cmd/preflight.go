@@ -48,7 +48,8 @@ func runUpdatePreflight(
 // printDroppedEnvSecretWarnings warns when a --env / --secret full-list
 // replacement drops names that exist on the live resource (the flags
 // replace, not merge — the documented footgun is passing only the one new
-// value). Callers pass each flag's Changed state so an untouched list never
+// value), and reports whether anything was dropped so the caller can gate
+// on it. Callers pass each flag's Changed state so an untouched list never
 // warns; --clear-env / --clear-secret stay silent by design, since clearing
 // is explicit intent. Call only when live state was fetched successfully.
 func printDroppedEnvSecretWarnings(
@@ -57,7 +58,8 @@ func printDroppedEnvSecretWarnings(
 	liveEnv []clients.EnvVar,
 	liveRefs []clients.SecretRef,
 	envArgs, secretArgs []string,
-) {
+) bool {
+	dropped := false
 	if envChanged {
 		live := make([]string, 0, len(liveEnv))
 		for _, e := range liveEnv {
@@ -67,7 +69,9 @@ func printDroppedEnvSecretWarnings(
 		for _, e := range envArgs {
 			incoming = append(incoming, strings.TrimSpace(strings.SplitN(e, "=", 2)[0]))
 		}
-		preflight.PrintDroppedListEntries(errW, "env vars", "--env", live, incoming)
+		if preflight.PrintDroppedListEntries(errW, "env vars", "--env", live, incoming) {
+			dropped = true
+		}
 	}
 	if secretChanged {
 		live := make([]string, 0, len(liveRefs))
@@ -78,28 +82,55 @@ func printDroppedEnvSecretWarnings(
 		for _, s := range secretArgs {
 			incoming = append(incoming, strings.TrimSpace(s))
 		}
-		preflight.PrintDroppedListEntries(errW, "secret refs", "--secret", live, incoming)
+		if preflight.PrintDroppedListEntries(errW, "secret refs", "--secret", live, incoming) {
+			dropped = true
+		}
 	}
+	return dropped
+}
+
+// checkUpdateGates refuses an update whose pre-flight detected destruction
+// implied by omission — a content pin downgrade/removal versus live, or
+// env/secret entries a full-list replacement drops. The details were already
+// printed to stderr; --force is the single explicit override, so the first
+// attempt fails before any mutation and a deliberate second command applies.
+func checkUpdateGates(force, pinRollback, droppedEntries bool) error {
+	var reasons []string
+	if pinRollback {
+		reasons = append(reasons, "downgrades or removes live content pins")
+	}
+	if droppedEntries {
+		reasons = append(reasons, "drops live env vars or secret refs")
+	}
+	if len(reasons) == 0 || force {
+		return nil
+	}
+	return fmt.Errorf(
+		"refusing to apply: this update %s (details above) — pass --force if this is intended",
+		strings.Join(reasons, " and "),
+	)
 }
 
 // printConfigPreflight prints the content pin summary — and, with
 // --show-diff, the full live-vs-incoming diff — for an update that replaces
-// the whole agent config. rawIncoming is the config as it will be PATCHed.
-// Best-effort like all pre-flight output: rendering problems never block.
+// the whole agent config, and reports whether a known pin section downgraded
+// or removed a pin (the caller gates on it). rawIncoming is the config as it
+// will be PATCHed. Rendering problems never block.
 func printConfigPreflight(
 	errW io.Writer,
 	liveConfig any,
 	rawIncoming json.RawMessage,
 	showDiff bool,
-) {
+) bool {
 	var incoming any
 	if err := json.Unmarshal(rawIncoming, &incoming); err != nil {
-		return
+		return false
 	}
-	preflight.PrintPinChanges(errW, liveConfig, incoming)
+	pinRollback := preflight.PrintPinChanges(errW, liveConfig, incoming)
 	if showDiff {
 		if err := output.PrintYAMLDiff(errW, "live", liveConfig, "incoming", incoming); err != nil {
 			preflight.PrintFailOpenNote(errW, "render config diff", err)
 		}
 	}
+	return pinRollback
 }

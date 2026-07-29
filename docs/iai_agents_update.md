@@ -38,9 +38,13 @@ Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces; the names of any env vars or secret refs that
 --env/--secret would drop from the live agent (the flags replace the entire
 list); and — when the update replaces the agent config — a summary of
-content pin changes, with downgrades and removals flagged (a stale local
-manifest silently reverts colleagues' work). These checks fail open and
-never block; use --expect-revision to fail instead when the live revision
+content pin changes (a stale local manifest silently reverts colleagues'
+work). The update is refused when it would downgrade or remove a live
+content pin, or drop live env vars or secret refs via --env/--secret; pass
+--force to apply anyway. --clear-env and --clear-secret never trigger the
+gate: clearing is explicit intent. Changes in unrecognized pin-shaped config
+sections warn without blocking. The checks fail open when live state cannot
+be fetched; use --expect-revision to fail instead when the live revision
 differs from what you expect, and --show-diff for a full live-vs-incoming
 config diff.
 
@@ -76,6 +80,7 @@ iai agents update <agent_name> [flags]
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
       --expect-revision int        Fail without applying unless the live revision equals this value (opt-in staleness guard)
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
+      --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
   -h, --help                       help for update
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
       --mcp stringArray            Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps

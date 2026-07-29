@@ -27,6 +27,7 @@ var (
 	imageBuildContext  string
 	imageBuildPlatform string
 	imagePushTag       string
+	imagePushForce     bool
 	imageDeleteTag     string
 	imageDeleteForce   bool
 	imageOrganization  string
@@ -200,9 +201,11 @@ var imagePushCmd = &cobra.Command{
 
 Pushing to a tag that already exists upstream replaces the previous image:
 the old bytes are unrecoverable and nothing records that the code changed.
-The CLI warns on stderr before pushing to an existing tag — prefer a fresh
-tag (or the git SHA) unless replacing is intended.`,
+The push is refused when the tag already exists — prefer a fresh tag (or
+the git SHA), or pass --force when replacing is intended. The check fails
+open when the existing tags cannot be listed.`,
 	Example: `  iai images push my-service --tag 1.2.3
+  iai images push my-service --tag 1.2.3 --force
   iai images push my-service --tag 1.2.3 --organization my-org --project my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -248,11 +251,21 @@ tag (or the git SHA) unless replacing is intended.`,
 		}
 
 		// Deploy awareness: pushing to an existing tag replaces the previous
-		// image with no way to recover it or tell that the code changed.
-		// Warn before doing the work; fails open, never blocks the push.
-		warnExistingImageTag(
+		// image with no way to recover it or tell that the code changed —
+		// the CLI's only unrecoverable operation, so an occupied tag blocks
+		// unless --force names the intent. Fails open when tags can't be
+		// listed.
+		if existingImageTag(
 			cmd.Context(), cmd.ErrOrStderr(), orgId, projectId, imageName, imagePushTag, cookies,
-		)
+		) {
+			if !imagePushForce {
+				return fmt.Errorf(
+					"tag %s already exists upstream — pushing would replace it and the previous image is unrecoverable; pick a fresh tag, or pass --force to replace",
+					imagePushTag,
+				)
+			}
+			preflight.PrintTagOverwriteWarning(cmd.ErrOrStderr(), imagePushTag)
+		}
 
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf(
@@ -356,30 +369,33 @@ tag (or the git SHA) unless replacing is intended.`,
 	},
 }
 
-func warnExistingImageTag(
+// existingImageTag reports whether the tag is already present upstream for
+// the image. A failed lookup fails open (note on errW, false) — the gate
+// must not add a new way for a legitimate push to break.
+func existingImageTag(
 	ctx context.Context,
 	errW io.Writer,
 	orgId, projectId, imageName, tag string,
 	cookies []*http.Cookie,
-) {
+) bool {
 	deployClient, err := clients.NewDeploymentClient(
 		deploymentHostname, defaultHTTPTimeout, token, apiKey, cookies,
 	)
 	if err != nil {
 		preflight.PrintFailOpenNote(errW, "list existing image tags", err)
-		return
+		return false
 	}
 	images, err := deployClient.ListImages(ctx, orgId, projectId)
 	if err != nil {
 		preflight.PrintFailOpenNote(errW, "list existing image tags", err)
-		return
+		return false
 	}
 	for _, img := range images {
 		if img.Name == imageName && slices.Contains(img.Tags, tag) {
-			preflight.PrintTagOverwriteWarning(errW, tag)
-			return
+			return true
 		}
 	}
+	return false
 }
 
 func validateImageArchitecture(imageRef string) error {
@@ -438,6 +454,8 @@ func init() {
 		StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
 	imagePushCmd.Flags().
 		StringVarP(&imageProject, "project", "p", "", "Project name the image belongs to")
+	imagePushCmd.Flags().
+		BoolVar(&imagePushForce, "force", false, "Push even when the tag already exists upstream, replacing the previous image (unrecoverable)")
 	_ = imagePushCmd.MarkFlagRequired("tag")
 
 	rootCmd.AddCommand(imageCmd)

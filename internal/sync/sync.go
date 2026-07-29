@@ -28,6 +28,18 @@ type Result struct {
 	Protected []string // would be deleted but deletion was not allowed
 }
 
+// Options controls how a sync applies its computed diff.
+type Options struct {
+	// AllowDelete permits deleting resources the config file no longer
+	// mentions. Off by default: a stale config is indistinguishable from a
+	// decommissioning one, so omitted resources are reported as Protected
+	// instead of deleted.
+	AllowDelete bool
+	// DryRun computes the full plan (creates, updates, deletes, protected)
+	// without writing anything.
+	DryRun bool
+}
+
 func HasServices(
 	ctx context.Context,
 	deployClient *clients.DeploymentClient,
@@ -111,11 +123,40 @@ func PrintResult(
 	return nil
 }
 
-// Services syncs services: creates new ones, updates existing ones, and
-// deletes ones not present in the desired map. Updates go through PUT and
-// replace the whole live spec, so the live revision each one overwrites is
-// announced on warnW (deploy awareness), and pending deletions are announced
-// there before any service write happens.
+// PrintPlan renders a dry-run Result as the changes a real run would make,
+// without implying anything was written. label is the plural noun, which is
+// also the --allow-delete value ("services", "agents", "databases").
+func PrintPlan(out io.Writer, label string, result *Result) {
+	if len(result.Created) > 0 {
+		fmt.Fprintf(out, "Would create %s: %s\n", label, strings.Join(result.Created, ", "))
+	}
+	if len(result.Updated) > 0 {
+		fmt.Fprintf(out, "Would update %s: %s\n", label, strings.Join(result.Updated, ", "))
+	}
+	if len(result.Deleted) > 0 {
+		fmt.Fprintf(out, "Would delete %s: %s\n", label, strings.Join(result.Deleted, ", "))
+	}
+	if len(result.Protected) > 0 {
+		fmt.Fprintf(
+			out,
+			"Would refuse to delete %s (needs --allow-delete=%s): %s\n",
+			label,
+			strings.ReplaceAll(label, " ", "-"),
+			strings.Join(result.Protected, ", "),
+		)
+	}
+	if len(result.Created) == 0 && len(result.Updated) == 0 &&
+		len(result.Deleted) == 0 && len(result.Protected) == 0 {
+		fmt.Fprintf(out, "No changes required; %s already match config.\n", label)
+	}
+}
+
+// Services syncs services: creates new ones, updates existing ones, and —
+// only with opts.AllowDelete — deletes ones not present in the desired map;
+// otherwise those are refused and reported as Protected. Updates go through
+// PUT and replace the whole live spec, so the live revision each one
+// overwrites is announced on warnW (deploy awareness), and the deletion
+// decision is announced there before any service write happens.
 func Services(
 	ctx context.Context,
 	warnW io.Writer,
@@ -124,6 +165,7 @@ func Services(
 	projectId,
 	stackId string,
 	desired map[string]clients.CreateServiceBody,
+	opts Options,
 ) (*Result, error) {
 	existing, err := deployClient.ListServices(
 		ctx, orgId, projectId, stackId,
@@ -140,7 +182,13 @@ func Services(
 	result := &Result{}
 
 	toDelete := deletionList(existingByName, desired)
-	preflight.PrintSyncDeletions(warnW, "service", toDelete)
+	if !opts.DryRun {
+		preflight.PrintSyncDeletions(warnW, "service", "services", toDelete, opts.AllowDelete)
+	}
+	if !opts.AllowDelete {
+		result.Protected = toDelete
+		toDelete = nil
+	}
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -151,38 +199,44 @@ func Services(
 	for _, name := range desiredNames {
 		body := desired[name]
 		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateService(
-				ctx, orgId, projectId, name, body,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to create service %q: %w", name, err,
+			if !opts.DryRun {
+				_, err := deployClient.CreateService(
+					ctx, orgId, projectId, name, body,
 				)
+				if err != nil {
+					return result, fmt.Errorf(
+						"failed to create service %q: %w", name, err,
+					)
+				}
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			svc := existingByName[name]
-			preflight.PrintUpdateBanner(warnW, "service "+name, svc.Revision, svc.Updated)
-			_, err := deployClient.PutService(
-				ctx, orgId, projectId, name, body,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to update service %q: %w", name, err,
+			if !opts.DryRun {
+				svc := existingByName[name]
+				preflight.PrintUpdateBanner(warnW, "service "+name, svc.Revision, svc.Updated)
+				_, err := deployClient.PutService(
+					ctx, orgId, projectId, name, body,
 				)
+				if err != nil {
+					return result, fmt.Errorf(
+						"failed to update service %q: %w", name, err,
+					)
+				}
 			}
 			result.Updated = append(result.Updated, name)
 		}
 	}
 
 	for _, name := range toDelete {
-		_, err := deployClient.DeleteService(
-			ctx, orgId, projectId, name,
-		)
-		if err != nil {
-			return result, fmt.Errorf(
-				"failed to delete service %q: %w", name, err,
+		if !opts.DryRun {
+			_, err := deployClient.DeleteService(
+				ctx, orgId, projectId, name,
 			)
+			if err != nil {
+				return result, fmt.Errorf(
+					"failed to delete service %q: %w", name, err,
+				)
+			}
 		}
 		result.Deleted = append(result.Deleted, name)
 	}
@@ -203,11 +257,12 @@ func deletionList[E, D any](existing map[string]E, desired map[string]D) []strin
 	return names
 }
 
-// Agents syncs agents: creates new ones, updates existing ones, and deletes ones
-// not present in the desired map. Updates go through PUT and replace the
-// whole live spec, so the live revision each one overwrites is announced on
-// warnW (deploy awareness), and pending deletions are announced there before
-// any agent write happens.
+// Agents syncs agents: creates new ones, updates existing ones, and — only
+// with opts.AllowDelete — deletes ones not present in the desired map;
+// otherwise those are refused and reported as Protected. Updates go through
+// PUT and replace the whole live spec, so the live revision each one
+// overwrites is announced on warnW (deploy awareness), and the deletion
+// decision is announced there before any agent write happens.
 func Agents(
 	ctx context.Context,
 	warnW io.Writer,
@@ -216,6 +271,7 @@ func Agents(
 	projectId,
 	stackId string,
 	desired map[string]clients.CreateAgentBody,
+	opts Options,
 ) (*Result, error) {
 	existing, err := deployClient.ListAgents(
 		ctx, orgId, projectId, stackId,
@@ -232,7 +288,13 @@ func Agents(
 	result := &Result{}
 
 	toDelete := deletionList(existingByName, desired)
-	preflight.PrintSyncDeletions(warnW, "agent", toDelete)
+	if !opts.DryRun {
+		preflight.PrintSyncDeletions(warnW, "agent", "agents", toDelete, opts.AllowDelete)
+	}
+	if !opts.AllowDelete {
+		result.Protected = toDelete
+		toDelete = nil
+	}
 
 	desiredNames := make([]string, 0, len(desired))
 	for name := range desired {
@@ -243,38 +305,44 @@ func Agents(
 	for _, name := range desiredNames {
 		body := desired[name]
 		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateAgent(
-				ctx, orgId, projectId, name, body,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to create agent %q: %w", name, err,
+			if !opts.DryRun {
+				_, err := deployClient.CreateAgent(
+					ctx, orgId, projectId, name, body,
 				)
+				if err != nil {
+					return result, fmt.Errorf(
+						"failed to create agent %q: %w", name, err,
+					)
+				}
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			a := existingByName[name]
-			preflight.PrintUpdateBanner(warnW, "agent "+name, a.Revision, a.Updated)
-			_, err := deployClient.PutAgent(
-				ctx, orgId, projectId, name, body,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to update agent %q: %w", name, err,
+			if !opts.DryRun {
+				a := existingByName[name]
+				preflight.PrintUpdateBanner(warnW, "agent "+name, a.Revision, a.Updated)
+				_, err := deployClient.PutAgent(
+					ctx, orgId, projectId, name, body,
 				)
+				if err != nil {
+					return result, fmt.Errorf(
+						"failed to update agent %q: %w", name, err,
+					)
+				}
 			}
 			result.Updated = append(result.Updated, name)
 		}
 	}
 
 	for _, name := range toDelete {
-		_, err := deployClient.DeleteAgent(
-			ctx, orgId, projectId, name,
-		)
-		if err != nil {
-			return result, fmt.Errorf(
-				"failed to delete agent %q: %w", name, err,
+		if !opts.DryRun {
+			_, err := deployClient.DeleteAgent(
+				ctx, orgId, projectId, name,
 			)
+			if err != nil {
+				return result, fmt.Errorf(
+					"failed to delete agent %q: %w", name, err,
+				)
+			}
 		}
 		result.Deleted = append(result.Deleted, name)
 	}
@@ -289,7 +357,7 @@ func Databases(
 	projectId,
 	stackId string,
 	desired map[string]clients.CreateDatabaseBody,
-	allowDelete bool,
+	opts Options,
 ) (*Result, error) {
 	existing, err := deployClient.ListDatabases(
 		ctx, orgId, projectId, stackId,
@@ -314,23 +382,27 @@ func Databases(
 	for _, name := range desiredNames {
 		body := desired[name]
 		if _, exists := existingByName[name]; !exists {
-			_, err := deployClient.CreateDatabase(
-				ctx, orgId, projectId, name, body,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to create database %q: %w", name, err,
+			if !opts.DryRun {
+				_, err := deployClient.CreateDatabase(
+					ctx, orgId, projectId, name, body,
 				)
+				if err != nil {
+					return result, fmt.Errorf(
+						"failed to create database %q: %w", name, err,
+					)
+				}
 			}
 			result.Created = append(result.Created, name)
 		} else {
-			_, err := deployClient.PutDatabase(
-				ctx, orgId, projectId, name, body,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to update database %q: %w", name, err,
+			if !opts.DryRun {
+				_, err := deployClient.PutDatabase(
+					ctx, orgId, projectId, name, body,
 				)
+				if err != nil {
+					return result, fmt.Errorf(
+						"failed to update database %q: %w", name, err,
+					)
+				}
 			}
 			result.Updated = append(result.Updated, name)
 		}
@@ -344,17 +416,19 @@ func Databases(
 
 	for _, name := range existingNames {
 		if _, ok := desired[name]; !ok {
-			if !allowDelete {
+			if !opts.AllowDelete {
 				result.Protected = append(result.Protected, name)
 				continue
 			}
-			_, err := deployClient.DeleteDatabase(
-				ctx, orgId, projectId, name,
-			)
-			if err != nil {
-				return result, fmt.Errorf(
-					"failed to delete database %q: %w", name, err,
+			if !opts.DryRun {
+				_, err := deployClient.DeleteDatabase(
+					ctx, orgId, projectId, name,
 				)
+				if err != nil {
+					return result, fmt.Errorf(
+						"failed to delete database %q: %w", name, err,
+					)
+				}
 			}
 			result.Deleted = append(result.Deleted, name)
 		}

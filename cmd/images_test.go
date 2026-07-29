@@ -50,41 +50,42 @@ func TestImageDeleteValidation(t *testing.T) {
 	}
 }
 
-func TestWarnExistingImageTag(t *testing.T) {
+func TestExistingImageTag(t *testing.T) {
 	tests := []struct {
 		name       string
 		status     int
 		imagesJSON string
 		tag        string
-		want       string
+		wantExists bool
 		wantPrefix string
 	}{
 		{
-			name:       "existing tag warns",
+			name:       "existing tag detected",
 			status:     http.StatusOK,
 			imagesJSON: `{"images":[{"name":"app","tags":["0.2.35","0.2.36"]}]}`,
 			tag:        "0.2.36",
-			want:       "⚠ tag 0.2.36 already exists upstream — pushing replaces it; the previous image is unrecoverable.\n",
+			wantExists: true,
 		},
 		{
-			name:       "new tag stays silent",
+			name:       "new tag reports absent",
 			status:     http.StatusOK,
 			imagesJSON: `{"images":[{"name":"app","tags":["0.2.35"]}]}`,
 			tag:        "0.2.36",
-			want:       "",
+			wantExists: false,
 		},
 		{
-			name:       "same tag on another image stays silent",
+			name:       "same tag on another image reports absent",
 			status:     http.StatusOK,
 			imagesJSON: `{"images":[{"name":"other","tags":["0.2.36"]}]}`,
 			tag:        "0.2.36",
-			want:       "",
+			wantExists: false,
 		},
 		{
 			name:       "list failure fails open with a note",
 			status:     http.StatusInternalServerError,
 			imagesJSON: `{}`,
 			tag:        "0.2.36",
+			wantExists: false,
 			wantPrefix: "⚠ could not list existing image tags (",
 		},
 	}
@@ -104,8 +105,11 @@ func TestWarnExistingImageTag(t *testing.T) {
 			deploymentHostname, token = server.URL, "test-token"
 
 			var buf bytes.Buffer
-			warnExistingImageTag(context.Background(), &buf, "o1", "p1", "app", tt.tag, nil)
+			exists := existingImageTag(context.Background(), &buf, "o1", "p1", "app", tt.tag, nil)
 
+			if exists != tt.wantExists {
+				t.Errorf("exists = %v, want %v", exists, tt.wantExists)
+			}
 			got := buf.String()
 			if tt.wantPrefix != "" {
 				if !strings.HasPrefix(got, tt.wantPrefix) ||
@@ -114,8 +118,11 @@ func TestWarnExistingImageTag(t *testing.T) {
 				}
 				return
 			}
-			if got != tt.want {
-				t.Errorf("output = %q, want %q", got, tt.want)
+			if got != "" {
+				t.Errorf(
+					"output = %q, want none (the caller decides whether to warn or refuse)",
+					got,
+				)
 			}
 		})
 	}

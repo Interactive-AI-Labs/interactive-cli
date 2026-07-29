@@ -25,7 +25,10 @@ Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces, and the names of any env vars or secret refs
 that --env/--secret would drop from the live service (the flags replace the
-entire list). These checks fail open and never block; use --expect-revision
+entire list). The update is refused when it would drop live env vars or
+secret refs via --env/--secret; pass --force to apply anyway. --clear-env
+and --clear-secret never trigger the gate: clearing is explicit intent. The
+checks fail open when live state cannot be fetched; use --expect-revision
 to fail instead when the live revision differs from what you expect.
 
 ```
@@ -62,6 +65,7 @@ iai services update <service_name> [flags]
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
       --expect-revision int                 Fail without applying unless the live revision equals this value (opt-in staleness guard)
+      --force                               Apply even when the update would drop live env vars or secret refs
       --healthcheck-initial-delay int       Initial delay in seconds before starting healthchecks
       --healthcheck-path string             HTTP path for healthcheck endpoint (e.g. /health)
   -h, --help                                help for update

@@ -77,37 +77,73 @@ func TestPrintTagOverwriteWarning(t *testing.T) {
 
 func TestPrintSyncDeletions(t *testing.T) {
 	tests := []struct {
-		name     string
-		resource string
-		names    []string
-		want     string
+		name      string
+		resource  string
+		allowFlag string
+		names     []string
+		allowed   bool
+		want      string
 	}{
 		{
-			name:     "no deletions print nothing",
-			resource: "service",
-			names:    nil,
-			want:     "",
+			name:      "no deletions print nothing",
+			resource:  "service",
+			allowFlag: "services",
+			names:     nil,
+			allowed:   false,
+			want:      "",
 		},
 		{
-			name:     "single deletion",
-			resource: "agent",
-			names:    []string{"chat-agent"},
+			name:      "no deletions print nothing even when allowed",
+			resource:  "service",
+			allowFlag: "services",
+			names:     nil,
+			allowed:   true,
+			want:      "",
+		},
+		{
+			name:      "refused single deletion names the unblocking flag",
+			resource:  "agent",
+			allowFlag: "agents",
+			names:     []string{"chat-agent"},
+			allowed:   false,
+			want: "⚠ sync will NOT delete 1 agent not in the config: chat-agent" +
+				" (a config that omits a resource looks identical to a stale one" +
+				" — pass --allow-delete=agents to delete)\n",
+		},
+		{
+			name:      "refused multiple deletions",
+			resource:  "service",
+			allowFlag: "services",
+			names:     []string{"api-gateway", "worker"},
+			allowed:   false,
+			want: "⚠ sync will NOT delete 2 services not in the config: api-gateway, worker" +
+				" (a config that omits a resource looks identical to a stale one" +
+				" — pass --allow-delete=services to delete)\n",
+		},
+		{
+			name:      "allowed single deletion",
+			resource:  "agent",
+			allowFlag: "agents",
+			names:     []string{"chat-agent"},
+			allowed:   true,
 			want: "⚠ sync will DELETE 1 agent not in the config: chat-agent" +
-				" (agent deletes run after agent creates/updates — Ctrl-C to abort if the config is stale)\n",
+				" (--allow-delete=agents; agent deletes run after agent creates/updates)\n",
 		},
 		{
-			name:     "multiple deletions",
-			resource: "service",
-			names:    []string{"api-gateway", "worker"},
+			name:      "allowed multiple deletions",
+			resource:  "service",
+			allowFlag: "services",
+			names:     []string{"api-gateway", "worker"},
+			allowed:   true,
 			want: "⚠ sync will DELETE 2 services not in the config: api-gateway, worker" +
-				" (service deletes run after service creates/updates — Ctrl-C to abort if the config is stale)\n",
+				" (--allow-delete=services; service deletes run after service creates/updates)\n",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			PrintSyncDeletions(&buf, tt.resource, tt.names)
+			PrintSyncDeletions(&buf, tt.resource, tt.allowFlag, tt.names, tt.allowed)
 			if got := buf.String(); got != tt.want {
 				t.Errorf("announcement = %q, want %q", got, tt.want)
 			}
@@ -117,12 +153,13 @@ func TestPrintSyncDeletions(t *testing.T) {
 
 func TestPrintDroppedListEntries(t *testing.T) {
 	tests := []struct {
-		name     string
-		kind     string
-		flag     string
-		live     []string
-		incoming []string
-		want     string
+		name        string
+		kind        string
+		flag        string
+		live        []string
+		incoming    []string
+		want        string
+		wantDropped bool
 	}{
 		{
 			name: "nothing dropped prints nothing",
@@ -145,6 +182,7 @@ func TestPrintDroppedListEntries(t *testing.T) {
 			incoming: []string{"NEW_VAR"},
 			want: "⚠ this update drops live env vars: DB_HOST, LOG_LEVEL" +
 				" (--env replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
 		},
 		{
 			name: "dropped secret ref",
@@ -153,15 +191,19 @@ func TestPrintDroppedListEntries(t *testing.T) {
 			incoming: []string{"db-creds"},
 			want: "⚠ this update drops live secret refs: api-keys" +
 				" (--secret replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			PrintDroppedListEntries(&buf, tt.kind, tt.flag, tt.live, tt.incoming)
+			dropped := PrintDroppedListEntries(&buf, tt.kind, tt.flag, tt.live, tt.incoming)
 			if got := buf.String(); got != tt.want {
 				t.Errorf("warning = %q, want %q", got, tt.want)
+			}
+			if dropped != tt.wantDropped {
+				t.Errorf("dropped = %v, want %v", dropped, tt.wantDropped)
 			}
 		})
 	}
@@ -200,10 +242,11 @@ func configWithPins(systemPrompt map[string]any, policies, routines []any) map[s
 
 func TestPrintPinChanges(t *testing.T) {
 	tests := []struct {
-		name     string
-		live     any
-		incoming any
-		want     string
+		name         string
+		live         any
+		incoming     any
+		want         string
+		wantBlocking bool
 	}{
 		{
 			name: "downgrade is loud with rollback-aware wording",
@@ -215,6 +258,7 @@ func TestPrintPinChanges(t *testing.T) {
 			}),
 			want: "⚠ content pins changed by this update:\n" +
 				"    routine notify-welcome-dev: v13 → v12  (DOWNGRADE — if this is an intentional rollback, this is expected)\n",
+			wantBlocking: true,
 		},
 		{
 			name: "removal is loud",
@@ -224,6 +268,7 @@ func TestPrintPinChanges(t *testing.T) {
 			incoming: configWithPins(nil, []any{}, nil),
 			want: "⚠ content pins changed by this update:\n" +
 				"    policy handoff: v4 → (none)  (REMOVED — this update drops the pin entirely)\n",
+			wantBlocking: true,
 		},
 		{
 			name: "upgrade and addition are quiet",
@@ -289,6 +334,60 @@ func TestPrintPinChanges(t *testing.T) {
 			want: "⚠ content pins changed by this update:\n" +
 				"    routine goodbye: v8 → v7  (DOWNGRADE — if this is an intentional rollback, this is expected)\n" +
 				"    routine welcome: v12 → v13\n",
+			wantBlocking: true,
+		},
+		{
+			name: "glossary and macro sections gate like the original three",
+			live: map[string]any{"context": map[string]any{
+				"glossaries": []any{
+					map[string]any{"id": "billing-terms", "version": float64(6)},
+				},
+				"macros": []any{
+					map[string]any{"id": "refund-flow", "version": float64(3)},
+				},
+			}},
+			incoming: map[string]any{"context": map[string]any{
+				"glossaries": []any{
+					map[string]any{"id": "billing-terms", "version": 5},
+				},
+				"macros": []any{
+					map[string]any{"id": "refund-flow", "version": 3},
+				},
+			}},
+			want: "⚠ content pins changed by this update:\n" +
+				"    glossary billing-terms: v6 → v5  (DOWNGRADE — if this is an intentional rollback, this is expected)\n",
+			wantBlocking: true,
+		},
+		{
+			name: "unknown pin-shaped section warns loudly but never blocks",
+			live: map[string]any{"context": map[string]any{
+				"playbooks": []any{
+					map[string]any{"id": "escalation", "version": float64(9)},
+				},
+			}},
+			incoming: map[string]any{"context": map[string]any{
+				"playbooks": []any{
+					map[string]any{"id": "escalation", "version": 8},
+				},
+			}},
+			want: "⚠ content pins changed by this update:\n" +
+				"    playbooks escalation: v9 → v8  (DOWNGRADE — if this is an intentional rollback, this is expected)\n",
+			wantBlocking: false,
+		},
+		{
+			name: "unknown section entries without a version key are not pins",
+			live: map[string]any{"context": map[string]any{
+				"tools": []any{
+					map[string]any{"id": "github"},
+					map[string]any{"id": "stripe"},
+				},
+			}},
+			incoming: map[string]any{"context": map[string]any{
+				"tools": []any{
+					map[string]any{"id": "github"},
+				},
+			}},
+			want: "",
 		},
 		{
 			name: "unpinned entries render as (unpinned)",
@@ -320,9 +419,12 @@ func TestPrintPinChanges(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			PrintPinChanges(&buf, tt.live, tt.incoming)
+			blocking := PrintPinChanges(&buf, tt.live, tt.incoming)
 			if got := buf.String(); got != tt.want {
 				t.Errorf("pin changes = %q, want %q", got, tt.want)
+			}
+			if blocking != tt.wantBlocking {
+				t.Errorf("blocking = %v, want %v", blocking, tt.wantBlocking)
 			}
 		})
 	}
