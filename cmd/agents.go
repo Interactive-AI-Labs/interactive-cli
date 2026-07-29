@@ -235,22 +235,15 @@ config diff.`,
 			}
 		}
 
-		// One live read feeds the pre-flight banner, --expect-revision, the
-		// pin summary, --show-diff, and the --mcp overlay below. A failed
-		// read never blocks the update (fail open) — except for the overlay
-		// and --expect-revision, which cannot proceed without it.
 		live, liveErr := deployClient.DescribeAgent(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
 		)
 
 		if mcpOverlay {
-			// No --file: overlay onto the agent's current config instead of requiring the whole config resupplied.
 			if liveErr != nil {
 				return liveErr
 			}
-			// The overlay helpers mutate the config map in place; give them a
-			// copy so the pin summary and --show-diff below still compare
-			// against the true live state.
+			// Overlay mutates in place; copy so pin/diff still see live state.
 			liveCopy, copyErr := cloneJSON(live.AgentConfig)
 			if copyErr != nil {
 				return fmt.Errorf("failed to copy agent config: %w", copyErr)
@@ -967,7 +960,6 @@ Use the reported field names with 'iai agents logs --fields' to include them in 
 	},
 }
 
-// cloneJSON deep-copies a JSON-decoded value via a marshal/unmarshal round trip.
 func cloneJSON(v any) (any, error) {
 	raw, err := json.Marshal(v)
 	if err != nil {

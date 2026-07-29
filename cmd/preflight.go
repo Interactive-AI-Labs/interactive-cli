@@ -11,11 +11,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 )
 
-// runUpdatePreflight prints the deploy-awareness banner for a pending
-// agent/service update — or the fail-open note when live state could not be
-// fetched — and enforces --expect-revision when set. Everything goes to errW
-// (stderr) so stdout and exit codes stay identical for scripts; the only new
-// error path is the opt-in --expect-revision mismatch.
 func runUpdatePreflight(
 	errW io.Writer,
 	revision int,
@@ -24,8 +19,6 @@ func runUpdatePreflight(
 	expectSet bool,
 	expectRevision int,
 ) error {
-	// --expect-revision runs first: an update that will be refused must not
-	// print "proceeding" or "this update creates revision N+1" beforehand.
 	if expectSet {
 		if liveErr != nil {
 			return fmt.Errorf(
@@ -33,8 +26,11 @@ func runUpdatePreflight(
 				expectRevision, liveErr,
 			)
 		}
-		if err := preflight.CheckExpectedRevision(expectRevision, revision); err != nil {
-			return err
+		if revision != expectRevision {
+			return fmt.Errorf(
+				"live revision is %d, expected %d — not applying (--expect-revision)",
+				revision, expectRevision,
+			)
 		}
 	}
 	if liveErr != nil {
@@ -45,13 +41,6 @@ func runUpdatePreflight(
 	return nil
 }
 
-// printDroppedEnvSecretWarnings warns when a --env / --secret full-list
-// replacement drops names that exist on the live resource (the flags
-// replace, not merge — the documented footgun is passing only the one new
-// value), and reports whether anything was dropped so the caller can gate
-// on it. Callers pass each flag's Changed state so an untouched list never
-// warns; --clear-env / --clear-secret stay silent by design, since clearing
-// is explicit intent. Call only when live state was fetched successfully.
 func printDroppedEnvSecretWarnings(
 	errW io.Writer,
 	envChanged, secretChanged bool,
@@ -89,11 +78,6 @@ func printDroppedEnvSecretWarnings(
 	return dropped
 }
 
-// checkUpdateGates refuses an update whose pre-flight detected destruction
-// implied by omission — a content pin downgrade/removal versus live, or
-// env/secret entries a full-list replacement drops. The details were already
-// printed to stderr; --force is the single explicit override, so the first
-// attempt fails before any mutation and a deliberate second command applies.
 func checkUpdateGates(force, pinRollback, droppedEntries bool) error {
 	var reasons []string
 	if pinRollback {
@@ -111,11 +95,6 @@ func checkUpdateGates(force, pinRollback, droppedEntries bool) error {
 	)
 }
 
-// printConfigPreflight prints the content pin summary — and, with
-// --show-diff, the full live-vs-incoming diff — for an update that replaces
-// the whole agent config, and reports whether a known pin section downgraded
-// or removed a pin (the caller gates on it). rawIncoming is the config as it
-// will be PATCHed. Rendering problems never block.
 func printConfigPreflight(
 	errW io.Writer,
 	liveConfig any,

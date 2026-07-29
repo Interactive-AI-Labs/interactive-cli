@@ -28,16 +28,9 @@ type Result struct {
 	Protected []string // would be deleted but deletion was not allowed
 }
 
-// Options controls how a sync applies its computed diff.
 type Options struct {
-	// AllowDelete permits deleting resources the config file no longer
-	// mentions. Off by default: a stale config is indistinguishable from a
-	// decommissioning one, so omitted resources are reported as Protected
-	// instead of deleted.
 	AllowDelete bool
-	// DryRun computes the full plan (creates, updates, deletes, protected)
-	// without writing anything.
-	DryRun bool
+	DryRun      bool
 }
 
 func HasServices(
@@ -123,9 +116,6 @@ func PrintResult(
 	return nil
 }
 
-// PrintPlan renders a dry-run Result as the changes a real run would make,
-// without implying anything was written. label is the plural noun, which is
-// also the --allow-delete value ("services", "agents", "databases").
 func PrintPlan(out io.Writer, label string, result *Result) {
 	if len(result.Created) > 0 {
 		fmt.Fprintf(out, "Would create %s: %s\n", label, strings.Join(result.Created, ", "))
@@ -151,12 +141,6 @@ func PrintPlan(out io.Writer, label string, result *Result) {
 	}
 }
 
-// Services syncs services: creates new ones, updates existing ones, and —
-// only with opts.AllowDelete — deletes ones not present in the desired map;
-// otherwise those are refused and reported as Protected. Updates go through
-// PUT and replace the whole live spec, so the live revision each one
-// overwrites is announced on warnW (deploy awareness), and the deletion
-// decision is announced there before any service write happens.
 func Services(
 	ctx context.Context,
 	warnW io.Writer,
@@ -180,7 +164,6 @@ func Services(
 	}
 
 	return syncResources(
-		ctx,
 		warnW,
 		existingByName,
 		desired,
@@ -207,12 +190,6 @@ func Services(
 	)
 }
 
-// Agents syncs agents: creates new ones, updates existing ones, and — only
-// with opts.AllowDelete — deletes ones not present in the desired map;
-// otherwise those are refused and reported as Protected. Updates go through
-// PUT and replace the whole live spec, so the live revision each one
-// overwrites is announced on warnW (deploy awareness), and the deletion
-// decision is announced there before any agent write happens.
 func Agents(
 	ctx context.Context,
 	warnW io.Writer,
@@ -236,7 +213,6 @@ func Agents(
 	}
 
 	return syncResources(
-		ctx,
 		warnW,
 		existingByName,
 		desired,
@@ -263,11 +239,6 @@ func Agents(
 	)
 }
 
-// Databases syncs databases: creates new ones, updates existing ones, and —
-// only with opts.AllowDelete — deletes ones not present in the desired map;
-// otherwise those are refused and reported as Protected. The deletion
-// decision is announced on warnW (deploy awareness) before any database
-// write happens.
 func Databases(
 	ctx context.Context,
 	warnW io.Writer,
@@ -291,7 +262,6 @@ func Databases(
 	}
 
 	return syncResources(
-		ctx,
 		warnW,
 		existingByName,
 		desired,
@@ -311,30 +281,20 @@ func Databases(
 				_, err := deployClient.DeleteDatabase(ctx, orgId, projectId, name)
 				return err
 			},
-			// Databases carry no revision to announce, so no banner.
 		},
 	)
 }
 
-// resourceOps binds one resource type's API calls and wording for
-// syncResources. banner, when set, announces the live state an update
-// replaces; leave it nil for resources with nothing to announce.
 type resourceOps[E, B any] struct {
-	resource  string // singular noun, e.g. "service"
-	allowFlag string // --allow-delete value, e.g. "services"
+	resource  string
+	allowFlag string
 	create    func(name string, body B) error
 	update    func(name string, body B) error
 	delete    func(name string) error
 	banner    func(w io.Writer, existing E)
 }
 
-// syncResources applies the shared sync contract for one resource type:
-// announce the deletion decision on warnW before any write, refuse deletions
-// without opts.AllowDelete (reporting them as Protected), create/update the
-// desired resources in name order, delete last, and — with opts.DryRun —
-// accumulate the same plan into the Result without calling the API at all.
 func syncResources[E, B any](
-	ctx context.Context,
 	warnW io.Writer,
 	existingByName map[string]E,
 	desired map[string]B,
@@ -343,7 +303,13 @@ func syncResources[E, B any](
 ) (*Result, error) {
 	result := &Result{}
 
-	toDelete := deletionList(existingByName, desired)
+	var toDelete []string
+	for name := range existingByName {
+		if _, ok := desired[name]; !ok {
+			toDelete = append(toDelete, name)
+		}
+	}
+	sort.Strings(toDelete)
 	if !opts.DryRun {
 		preflight.PrintSyncDeletions(warnW, ops.resource, ops.allowFlag, toDelete, opts.AllowDelete)
 	}
@@ -396,17 +362,4 @@ func syncResources[E, B any](
 	}
 
 	return result, nil
-}
-
-// deletionList returns, sorted, the existing resource names a sync will
-// delete because the desired config no longer mentions them.
-func deletionList[E, D any](existing map[string]E, desired map[string]D) []string {
-	var names []string
-	for name := range existing {
-		if _, ok := desired[name]; !ok {
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-	return names
 }

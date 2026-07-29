@@ -229,8 +229,6 @@ to fail instead when the live revision differs from what you expect.`,
 			return fmt.Errorf("no fields to update; pass at least one flag")
 		}
 
-		// Deploy awareness: surface the live revision this update replaces.
-		// Fails open unless --expect-revision demands the check.
 		live, liveErr := deployClient.DescribeService(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, serviceName,
 		)
