@@ -189,7 +189,7 @@ func TestPrintPlan(t *testing.T) {
 			want: "Would create services: svc-new\n" +
 				"Would update services: svc-a, svc-b\n" +
 				"Would delete services: svc-gone\n" +
-				"Would refuse to delete services (needs --allow-delete=services): svc-old\n",
+				"Would refuse to delete services: svc-old (a config that omits a resource looks identical to a stale one — pass --allow-delete=services to delete)\n",
 		},
 		{
 			name:   "no changes",
@@ -203,7 +203,7 @@ func TestPrintPlan(t *testing.T) {
 			result: &Result{
 				Protected: []string{"old-db"},
 			},
-			want: "Would refuse to delete databases (needs --allow-delete=databases): old-db\n",
+			want: "Would refuse to delete databases: old-db (a config that omits a resource looks identical to a stale one — pass --allow-delete=databases to delete)\n",
 		},
 	}
 

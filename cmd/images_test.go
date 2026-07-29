@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -100,12 +101,17 @@ func TestExistingImageTag(t *testing.T) {
 			)
 			t.Cleanup(server.Close)
 
-			origHostname, origToken := deploymentHostname, token
-			t.Cleanup(func() { deploymentHostname, token = origHostname, origToken })
-			deploymentHostname, token = server.URL, "test-token"
+			deployClient, err := clients.NewDeploymentClient(
+				server.URL, defaultHTTPTimeout, "test-token", "", nil,
+			)
+			if err != nil {
+				t.Fatalf("NewDeploymentClient: %v", err)
+			}
 
 			var buf bytes.Buffer
-			exists := existingImageTag(context.Background(), &buf, "o1", "p1", "app", tt.tag, nil)
+			exists := existingImageTag(
+				context.Background(), &buf, deployClient, "o1", "p1", "app", tt.tag,
+			)
 
 			if exists != tt.wantExists {
 				t.Errorf("exists = %v, want %v", exists, tt.wantExists)
