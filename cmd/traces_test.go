@@ -41,7 +41,7 @@ func tracesListSummaryServer(t *testing.T) *httptest.Server {
 				fmt.Fprint(w, `{"success":true,"data":{"observations":[
 					{"id":"it1","parent_observation_id":"","type":"CHAIN","name":"Iteration: 1"},
 					{"id":"ec1","parent_observation_id":"it1","type":"CHAIN","name":"Evaluate: Context",
-					 "output":{"matches":[{"type":"routine","routine_id":"bonus-chat","condition":"c","score":10}]}},
+					 "output":"{\"matches\":[{\"type\":\"routine\",\"routine_id\":\"bonus-chat\",\"condition\":\"c\",\"score\":10}]}"},
 					{"id":"ex1","parent_observation_id":"it1","type":"CHAIN","name":"Execute: Tools"},
 					{"id":"tc1","parent_observation_id":"ex1","type":"TOOL","name":"get_bonus_eligibility",
 					 "input":{"party_id":"1"},"output":{"eligible":true}}
@@ -109,6 +109,10 @@ func TestTracesListSummaryJSON(t *testing.T) {
 	}
 	if items[0].Summary == nil || len(items[0].Summary.Iterations) != 1 {
 		t.Fatalf("t1 summary missing display-name iteration: %+v", items[0].Summary)
+	}
+	if routines := items[0].Summary.Iterations[0].Routines; len(routines) != 1 ||
+		routines[0] != "bonus-chat" {
+		t.Errorf("t1 routines = %v, want [bonus-chat] parsed from string-wrapped output", routines)
 	}
 	tools := items[0].Summary.Iterations[0].Tools
 	if len(tools) != 1 || tools[0].Name != "get_bonus_eligibility" {
