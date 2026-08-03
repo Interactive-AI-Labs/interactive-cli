@@ -215,7 +215,9 @@ func indexTraceObservations(
 
 // statusLine renders an ERROR or WARNING observation as one report line;
 // warnings count as findings too (e.g. "no routine matched"), so the compact
-// path can't report a false all-clear.
+// path can't report a false all-clear. Every span is intentionally covered:
+// the engine sets failure status on group spans (e.g. "Execute: Tools") as
+// well as on the failing child, and both lines are wanted in the report.
 func statusLine(o clients.ObservationInfo) string {
 	switch {
 	case strings.EqualFold(o.Level, "ERROR"):

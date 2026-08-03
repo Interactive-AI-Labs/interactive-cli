@@ -313,7 +313,12 @@ func traceSummariesFor(
 		wg.Add(1)
 		go func(i int, traceID string) {
 			defer wg.Done()
-			sem <- struct{}{}
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				items[i] = summary.TraceSummaryItem{TraceID: traceID, Error: ctx.Err().Error()}
+				return
+			}
 			defer func() { <-sem }()
 			model, err := traceSummaryFor(ctx, apiClient, orgID, projectID, traceID)
 			if err != nil {
