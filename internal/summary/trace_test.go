@@ -23,6 +23,12 @@ func obs(id, parent, typ, name, level, status string, in, out string) clients.Ob
 	return o
 }
 
+func obsAt(id, parent, name, start string) clients.ObservationInfo {
+	o := obs(id, parent, "CHAIN", name, "", "", "", "")
+	o.StartTime = start
+	return o
+}
+
 // assertJSON compares got to wantJSON structurally, ignoring key order and whitespace.
 func assertJSON(t *testing.T, got any, wantJSON string) {
 	t.Helper()
@@ -237,6 +243,125 @@ func TestTraceSummary(t *testing.T) {
 				"iterations":[{"number":1,
 					"tools":[{"name":"create_booking","args":{},"result":{"ok":false},"errored":true,"error":"upstream 500"}]}],
 				"errors":["create_booking: upstream 500"]
+			}`,
+		},
+		{
+			name: "display names: chat iteration with context matches and next step",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name:   "agent-chat: 406867 (turn: 4)",
+				Level:  "DEFAULT",
+				Input:  json.RawMessage(`"kyc status?"`),
+				Output: json.RawMessage(`"[\"checking\"]"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs(
+					"kb",
+					"",
+					"RETRIEVER",
+					"Search: Documents",
+					"",
+					"",
+					"",
+					`{"has_results":true,"article_count":2,"articles":[{"name":"Documents refusés"},{"name":"Vérification KYC"}]}`,
+				),
+				obs("it1", "", "CHAIN", "Iteration: 1", "", "", "", ""),
+				obs("ec1", "it1", "CHAIN", "Evaluate: Context", "", "", "", `{"match_count":2,"matches":[
+					{"type":"routine","routine_id":"kyc-status-update-chat","condition":"customer asks about KYC","score":10},
+					{"type":"routine_node","routine_id":"kyc-status-update-chat","step_id":"check_status","condition":"player_info available","score":10},
+					{"type":"policy","id":"handoff","condition":"Always applies.","score":10}
+				]}`),
+				obs("ns1", "ec1", "GENERATION", "Next step: KYC Status Update", "", "", "",
+					`{"applied_condition_id":"2","next_step_rationale":"player is authenticated, check the status"}`),
+			},
+			want: `{
+				"name":"agent-chat: 406867 (turn: 4)","level":"DEFAULT","input":"kyc status?","reply":"checking",
+				"knowledge_base":{"docs":["Documents refusés","Vérification KYC"],"count":2},
+				"iterations":[{"number":1,
+					"routines":["kyc-status-update-chat"],
+					"journey":[{"routine":"kyc-status-update-chat","step":"check_status","condition":"player_info available"}],
+					"conditions":[{"text":"Always applies.","score":10}],
+					"decisions":["player is authenticated, check the status"]
+				}]
+			}`,
+		},
+		{
+			name: "display names: routine steps and tool execution",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name:  "agent-kyc",
+				Level: "DEFAULT",
+				Input: json.RawMessage(`"{\"applicantId\":\"a1\"}"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs("it2", "agent", "CHAIN", "Iteration: 2", "", "", "", ""),
+				obs("es1", "it2", "CHAIN", "Evaluate: Routine steps", "", "", "", `{"matches":[
+					{"type":"routine_node","routine_id":"verify-kyc-l1","step_id":"l1_name_check","condition":"rejectLabels does NOT contain WRONG_ADDRESS","score":10}
+				]}`),
+				obs("ns1", "es1", "GENERATION", "Next step: Verify KYC — Level 1", "", "", "",
+					`{"applied_condition_id":"1","next_step_rationale":"proceed to name validation"}`),
+				obs("ex1", "it2", "CHAIN", "Execute: Tools", "", "", "", ""),
+				obs(
+					"t1",
+					"ex1",
+					"TOOL",
+					"get_applicant_data",
+					"",
+					"",
+					`{"party_id":"302110"}`,
+					`{"data":{"ok":true},"metadata":{},"control":{},"canned_responses":[],"canned_response_fields":{},"guidelines":[]}`,
+				),
+			},
+			want: `{
+				"name":"agent-kyc","level":"DEFAULT","input":"{\"applicantId\":\"a1\"}",
+				"iterations":[{"number":2,
+					"journey":[{"routine":"verify-kyc-l1","step":"l1_name_check","condition":"rejectLabels does NOT contain WRONG_ADDRESS"}],
+					"decisions":["proceed to name validation"],
+					"tools":[{"name":"get_applicant_data","args":{"party_id":"302110"},"result":{"ok":true}}]
+				}]
+			}`,
+		},
+		{
+			name: "warning status surfaces alongside errors",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name: "agent-kyc", Level: "WARNING",
+				Input:  json.RawMessage(`"{\"type\":\"applicantOnHold\"}"`),
+				Output: json.RawMessage(`"{\"matched\":[]}"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obs("wh1", "", "CHAIN", "sumsub-kyc", "WARNING", "no routine matched", "", ""),
+				obs("wh2", "", "CHAIN", "silent-warning", "WARNING", "", "", ""),
+			},
+			want: `{
+				"name":"agent-kyc","level":"WARNING",
+				"input":"{\"type\":\"applicantOnHold\"}","reply":"{\"matched\":[]}",
+				"errors":[
+					"WARNING — sumsub-kyc: no routine matched",
+					"WARNING — silent-warning: warning"
+				]
+			}`,
+		},
+		{
+			name: "repeated iteration numbers keep chronological order",
+			trace: &clients.TraceDetail{TraceInfo: clients.TraceInfo{
+				Name: "agent-kyc", Level: "ERROR", Input: json.RawMessage(`"go"`),
+			}},
+			obs: []clients.ObservationInfo{
+				obsAt("r2i2", "", "Iteration: 2", "2026-08-03T12:00:02+02:00"),
+				obsAt("r1i1", "", "Iteration: 1", "2026-08-03T10:00:00Z"),
+				obsAt("r2i1", "", "Iteration: 1", "2026-08-03T09:00:01-01:00"),
+				obsAt("r1i2", "", "Iteration: 2", "2026-08-03T10:00:00.1Z"),
+				obs("ex1", "r1i2", "CHAIN", "Execute: Tools", "", "", "", ""),
+				obs("t1", "ex1", "TOOL", "emit_output", "ERROR", "output_validation_failed",
+					`{}`, `{"ok":false}`),
+			},
+			want: `{
+				"name":"agent-kyc","level":"ERROR","input":"go",
+				"iterations":[
+					{"number":1},
+					{"number":2,"tools":[{"name":"emit_output","args":{},"result":{"ok":false},"errored":true,"error":"output_validation_failed"}]},
+					{"number":1},
+					{"number":2}
+				],
+				"errors":["emit_output: output_validation_failed"]
 			}`,
 		},
 		{
