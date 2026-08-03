@@ -5,8 +5,39 @@ import (
 	"io"
 	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 )
+
+// PrintTraceSummaryList renders a batch of turn summaries with the standard
+// pagination footer, so truncation to one page stays visible.
+func PrintTraceSummaryList(
+	out io.Writer,
+	items []summary.TraceSummaryItem,
+	meta clients.TraceMeta,
+) error {
+	if len(items) == 0 {
+		_, err := fmt.Fprintln(out, "No traces found.")
+		return err
+	}
+	var b strings.Builder
+	for i, item := range items {
+		if i > 0 {
+			b.WriteString("\n" + strings.Repeat("─", 72) + "\n\n")
+		}
+		fmt.Fprintf(&b, "Trace %s\n", item.TraceID)
+		if item.Error != "" {
+			fmt.Fprintf(&b, "  (summary unavailable: %s)\n", item.Error)
+			continue
+		}
+		if err := PrintTraceSummary(&b, item.Summary); err != nil {
+			return err
+		}
+	}
+	PrintPageMeta(&b, meta.Page, meta.TotalPages, meta.TotalItems)
+	_, err := io.WriteString(out, b.String())
+	return err
+}
 
 // PrintTraceSummary renders one turn as a compact, LLM-readable narrative.
 func PrintTraceSummary(out io.Writer, m *summary.TraceSummaryModel) error {
