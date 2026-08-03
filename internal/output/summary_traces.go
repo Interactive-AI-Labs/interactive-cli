@@ -9,8 +9,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 )
 
-// PrintTraceSummaryList renders a batch of turn summaries with the standard
-// pagination footer, so truncation to one page stays visible.
 func PrintTraceSummaryList(
 	out io.Writer,
 	items []summary.TraceSummaryItem,
