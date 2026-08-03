@@ -13,8 +13,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 )
 
-// tracesListSummaryServer serves a three-trace page where t2 always fails,
-// exercising order preservation and per-item errors in the batch summary.
 func tracesListSummaryServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	base := "/api/platform/v1/organizations/org-1/projects/proj-1"

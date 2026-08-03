@@ -296,9 +296,6 @@ Uses the platform API with dual authentication (API key or session).`,
 	},
 }
 
-// traceSummariesFor builds compact summaries for the listed traces with a
-// bounded number of concurrent fetches. Order follows the input list, and a
-// failed trace yields an error item instead of aborting the batch.
 func traceSummariesFor(
 	ctx context.Context,
 	apiClient *clients.APIClient,
@@ -475,8 +472,6 @@ func init() {
 	// --tags and --environment use StringArrayVar to avoid splitting values that may contain commas.
 	tracesListCmd.Flags().
 		StringSliceVar(&tracesColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,name,timestamp,latency,cost,tags). Cannot be used with --json or --yaml.\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level")
-	// --summary is a view, not a format: it replaces both the table and the raw
-	// list payload, so --columns and --fields don't apply.
 	tracesListCmd.MarkFlagsMutuallyExclusive("summary", "columns")
 	tracesListCmd.MarkFlagsMutuallyExclusive("summary", "fields")
 

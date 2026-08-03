@@ -54,8 +54,6 @@ type KBRetrieval struct {
 	Count int      `json:"count"`
 }
 
-// TraceSummaryItem is one trace's entry in a batch summary; Error is set
-// (and Summary nil) when fetching that trace failed.
 type TraceSummaryItem struct {
 	TraceID string             `json:"trace_id"`
 	Summary *TraceSummaryModel `json:"summary,omitempty"`
@@ -76,8 +74,6 @@ type TraceSummaryModel struct {
 	Errors     []string     `json:"errors,omitempty"`
 }
 
-// Span names per engine role: each set holds the legacy engine name plus the
-// current display name. Payload shapes are identical across the two schemes.
 var (
 	guidelineMatchSpans = map[string]bool{
 		"match_guidelines":        true,
@@ -99,7 +95,7 @@ func isNextStepSpan(name string) bool {
 	return name == "next-step" || strings.HasPrefix(name, "Next step: ")
 }
 
-// Guideline match types the engine emits in guideline-match span output.
+// Guideline match types the engine emits in match_guidelines output.
 const (
 	matchTypeRoutine     = "routine"      // a routine activation
 	matchTypeRoutineNode = "routine_node" // a selected journey follow-up
@@ -180,8 +176,8 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 	return m
 }
 
-// indexTraceObservations groups observations by parent, collects error and
-// warning lines, and returns the iteration nodes in chronological order.
+// indexTraceObservations groups observations by parent, collects error lines, and
+// returns the preparation-iteration nodes in ascending order.
 func indexTraceObservations(
 	obs []clients.ObservationInfo,
 ) (children map[string][]clients.ObservationInfo, iters []iterNode, errs []string) {
@@ -199,8 +195,6 @@ func indexTraceObservations(
 			})
 		}
 	}
-	// Parallel sub-runs and engine restarts repeat iteration numbers within one
-	// trace, so order by RFC3339 start time first and number only as fallback.
 	sort.SliceStable(iters, func(i, j int) bool {
 		if iters[i].hasStart && iters[j].hasStart && !iters[i].start.Equal(iters[j].start) {
 			return iters[i].start.Before(iters[j].start)
@@ -213,11 +207,6 @@ func indexTraceObservations(
 	return children, iters, errs
 }
 
-// statusLine renders an ERROR or WARNING observation as one report line;
-// warnings count as findings too (e.g. "no routine matched"), so the compact
-// path can't report a false all-clear. Every span is intentionally covered:
-// the engine sets failure status on group spans (e.g. "Execute: Tools") as
-// well as on the failing child, and both lines are wanted in the report.
 func statusLine(o clients.ObservationInfo) string {
 	switch {
 	case strings.EqualFold(o.Level, "ERROR"):
