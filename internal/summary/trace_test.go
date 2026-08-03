@@ -265,13 +265,30 @@ func TestTraceSummary(t *testing.T) {
 					`{"has_results":true,"article_count":2,"articles":[{"name":"Documents refusés"},{"name":"Vérification KYC"}]}`,
 				),
 				obs("it1", "", "CHAIN", "Iteration: 1", "", "", "", ""),
-				obs("ec1", "it1", "CHAIN", "Evaluate: Context", "", "", "", `{"match_count":2,"matches":[
+				obs(
+					"ec1",
+					"it1",
+					"CHAIN",
+					"Evaluate: Context",
+					"",
+					"",
+					"",
+					`{"match_count":2,"matches":[
 					{"type":"routine","routine_id":"kyc-status-update-chat","condition":"customer asks about KYC","score":10},
 					{"type":"routine_node","routine_id":"kyc-status-update-chat","step_id":"check_status","condition":"player_info available","score":10},
 					{"type":"policy","id":"handoff","condition":"Always applies.","score":10}
-				]}`),
-				obs("ns1", "ec1", "GENERATION", "Next step: KYC Status Update", "", "", "",
-					`{"applied_condition_id":"2","next_step_rationale":"player is authenticated, check the status"}`),
+				]}`,
+				),
+				obs(
+					"ns1",
+					"ec1",
+					"GENERATION",
+					"Next step: KYC Status Update",
+					"",
+					"",
+					"",
+					`{"applied_condition_id":"2","next_step_rationale":"player is authenticated, check the status"}`,
+				),
 			},
 			want: `{
 				"name":"agent-chat: 406867 (turn: 4)","level":"DEFAULT","input":"kyc status?","reply":"checking",
@@ -296,8 +313,16 @@ func TestTraceSummary(t *testing.T) {
 				obs("es1", "it2", "CHAIN", "Evaluate: Routine steps", "", "", "", `{"matches":[
 					{"type":"routine_node","routine_id":"verify-kyc-l1","step_id":"l1_name_check","condition":"rejectLabels does NOT contain WRONG_ADDRESS","score":10}
 				]}`),
-				obs("ns1", "es1", "GENERATION", "Next step: Verify KYC — Level 1", "", "", "",
-					`{"applied_condition_id":"1","next_step_rationale":"proceed to name validation"}`),
+				obs(
+					"ns1",
+					"es1",
+					"GENERATION",
+					"Next step: Verify KYC — Level 1",
+					"",
+					"",
+					"",
+					`{"applied_condition_id":"1","next_step_rationale":"proceed to name validation"}`,
+				),
 				obs("ex1", "it2", "CHAIN", "Execute: Tools", "", "", "", ""),
 				obs(
 					"t1",
