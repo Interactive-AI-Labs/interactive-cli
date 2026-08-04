@@ -333,7 +333,7 @@ open when the existing tags cannot be listed.`,
 			return fmt.Errorf("failed to create request: %w", err)
 		}
 
-		if err := clients.ApplyAuth(req, token, apiKey, cookies); err != nil {
+		if err := clients.ApplyRequestHeaders(req, token, apiKey, cookies); err != nil {
 			return err
 		}
 

@@ -12,5 +12,5 @@ tag_name = "v{new_version}"
 
 [[tool.bumpversion.files]]
 filename = "internal/buildinfo/version.go"
-search = "Version   = \"{current_version}\""
-replace = "Version   = \"{new_version}\""
+search = "\"{current_version}\""
+replace = "\"{new_version}\""

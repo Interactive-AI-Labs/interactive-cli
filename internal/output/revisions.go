@@ -71,8 +71,10 @@ func formatRevisionActor(actor *clients.RevisionActor) string {
 		return fmt.Sprintf("%s (service)", name)
 	case "system":
 		return fmt.Sprintf("%s (system)", name)
-	default:
+	case "unknown":
 		return "unknown"
+	default:
+		return name
 	}
 }
 
