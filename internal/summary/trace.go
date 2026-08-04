@@ -91,10 +91,6 @@ var (
 	}
 )
 
-func isNextStepSpan(name string) bool {
-	return name == "next-step" || strings.HasPrefix(name, "Next step: ")
-}
-
 // Guideline match types the engine emits in match_guidelines output.
 const (
 	matchTypeRoutine     = "routine"      // a routine activation
@@ -176,8 +172,6 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 	return m
 }
 
-// indexTraceObservations groups observations by parent, collects error lines, and
-// returns the preparation-iteration nodes in ascending order.
 func indexTraceObservations(
 	obs []clients.ObservationInfo,
 ) (children map[string][]clients.ObservationInfo, iters []iterNode, errs []string) {
@@ -273,7 +267,7 @@ func summarizeIteration(children map[string][]clients.ObservationInfo, it iterNo
 					condScore[cond] = mm.Score
 				}
 			}
-		case isNextStepSpan(d.Name):
+		case d.Name == "next-step" || strings.HasPrefix(d.Name, "Next step: "):
 			decisions = append(decisions, decisionRationale(d.Output))
 		case toolExecutionSpans[d.Name]:
 			for _, tool := range children[d.ID] {

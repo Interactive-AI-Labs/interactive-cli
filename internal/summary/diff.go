@@ -127,27 +127,35 @@ func journeyDiff(a, b *TraceSummaryModel) []JourneyDiff {
 
 	out := make([]JourneyDiff, 0, len(ordered))
 	for _, n := range ordered {
-		al, bl := aByNum[n], bByNum[n]
-		out = append(out, JourneyDiff{
-			Iteration: n,
-			A:         al,
-			B:         bl,
-			Diverged:  !equalStringSets(al, bl),
-		})
+		aOccurrences, bOccurrences := aByNum[n], bByNum[n]
+		for i := range max(len(aOccurrences), len(bOccurrences)) {
+			var al, bl []string
+			if i < len(aOccurrences) {
+				al = aOccurrences[i]
+			}
+			if i < len(bOccurrences) {
+				bl = bOccurrences[i]
+			}
+			out = append(out, JourneyDiff{
+				Iteration: n,
+				A:         al,
+				B:         bl,
+				Diverged:  !equalStringSets(al, bl),
+			})
+		}
 	}
 	return out
 }
 
-// journeyLabelsByIter maps iteration number to "routine/step" labels, skipping iterations with none.
-func journeyLabelsByIter(m *TraceSummaryModel) map[int][]string {
-	out := map[int][]string{}
+func journeyLabelsByIter(m *TraceSummaryModel) map[int][][]string {
+	out := map[int][][]string{}
 	for _, it := range m.Iterations {
 		var labels []string
 		for _, j := range it.Journey {
 			labels = append(labels, j.Routine+"/"+j.Step)
 		}
 		if len(labels) > 0 {
-			out[it.Number] = labels
+			out[it.Number] = append(out[it.Number], labels)
 		}
 	}
 	return out

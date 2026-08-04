@@ -176,9 +176,12 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 		}
 
 		if tracesListSummary {
-			items := traceSummariesFor(
+			items, err := traceSummariesFor(
 				cmd.Context(), apiClient, pCtx.orgId, pCtx.projectId, traces,
 			)
+			if err != nil {
+				return err
+			}
 			if tracesJSON {
 				return output.PrintStructuredJSON(out, items)
 			}
@@ -301,7 +304,7 @@ func traceSummariesFor(
 	apiClient *clients.APIClient,
 	orgID, projectID string,
 	traces []clients.TraceInfo,
-) []summary.TraceSummaryItem {
+) ([]summary.TraceSummaryItem, error) {
 	const workers = 8
 	items := make([]summary.TraceSummaryItem, len(traces))
 	sem := make(chan struct{}, workers)
@@ -326,7 +329,10 @@ func traceSummariesFor(
 		}(i, t.ID)
 	}
 	wg.Wait()
-	return items
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 // traceSummaryFor fetches a trace plus its observations and builds the summary
@@ -466,7 +472,7 @@ func init() {
 	tracesListCmd.Flags().BoolVar(&tracesJSON, "json", false, "Output raw API response as JSON")
 	tracesListCmd.Flags().BoolVar(&tracesYAML, "yaml", false, "Output raw API response as YAML")
 	tracesListCmd.Flags().BoolVar(&tracesListSummary, "summary", false,
-		"Render a compact, LLM-readable summary of each listed turn; with --json/--yaml, emits structured summary models instead of the raw API response")
+		"Show conditions, decisions, tools, and results for each listed turn")
 	tracesListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	// StringSliceVar (not StringArrayVar) so users can pass --columns id,name,cost as a comma-separated list.
 	// --tags and --environment use StringArrayVar to avoid splitting values that may contain commas.

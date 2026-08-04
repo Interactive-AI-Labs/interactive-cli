@@ -131,6 +131,29 @@ func TestTraceDiff(t *testing.T) {
 				"routines":{},"tools":{}
 			}`,
 		},
+		{
+			name: "repeated iteration numbers preserve every journey occurrence",
+			a: &TraceSummaryModel{Iterations: []Iteration{
+				{Number: 1, Journey: []JourneyStep{{Routine: "checkout", Step: "collect"}}},
+				{Number: 2, Journey: []JourneyStep{{Routine: "payment", Step: "charge"}}},
+				{Number: 1, Journey: []JourneyStep{{Routine: "checkout", Step: "confirm"}}},
+			}},
+			b: &TraceSummaryModel{Iterations: []Iteration{
+				{Number: 1, Journey: []JourneyStep{{Routine: "checkout", Step: "skip"}}},
+				{Number: 2, Journey: []JourneyStep{{Routine: "payment", Step: "charge"}}},
+				{Number: 1, Journey: []JourneyStep{{Routine: "checkout", Step: "confirm"}}},
+			}},
+			want: `{
+				"a":{"id":"A","iterations":3},
+				"b":{"id":"B","iterations":3},
+				"routines":{},"tools":{},
+				"journey":[
+					{"iteration":1,"a":["checkout/collect"],"b":["checkout/skip"],"diverged":true},
+					{"iteration":1,"a":["checkout/confirm"],"b":["checkout/confirm"]},
+					{"iteration":2,"a":["payment/charge"],"b":["payment/charge"]}
+				]
+			}`,
+		},
 	}
 
 	for _, tc := range cases {
