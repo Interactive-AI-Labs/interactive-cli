@@ -119,32 +119,6 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 	return w.Flush()
 }
 
-func PrintServiceRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
-	if len(revisions) == 0 {
-		fmt.Fprintln(out, "No revisions found.")
-		return nil
-	}
-
-	latest := 0
-	for _, r := range revisions {
-		if r.Revision > latest {
-			latest = r.Revision
-		}
-	}
-
-	headers := []string{"", "REVISION", "UPDATED"}
-	rows := make([][]string, len(revisions))
-	for i, r := range revisions {
-		marker := ""
-		if r.Revision == latest {
-			marker = "*"
-		}
-		rows[i] = []string{marker, fmt.Sprintf("%d", r.Revision), LocalTime(r.Updated)}
-	}
-
-	return PrintTable(out, headers, rows)
-}
-
 func PrintServiceRevision(out io.Writer, rev *clients.ServiceRevisionResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
@@ -155,6 +129,7 @@ func PrintServiceRevision(out io.Writer, rev *clients.ServiceRevisionResponse) e
 	if rev.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(rev.Updated))
 	}
+	printRevisionAttribution(w, rev.RevisionMeta)
 
 	fmt.Fprintf(w, "Port:\t%d\n", rev.ServicePort)
 	fmt.Fprintln(w, "Image:")

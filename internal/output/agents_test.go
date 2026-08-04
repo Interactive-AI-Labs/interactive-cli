@@ -111,53 +111,6 @@ func TestPrintAgentList(t *testing.T) {
 	}
 }
 
-func TestPrintAgentRevisions(t *testing.T) {
-	tests := []struct {
-		name      string
-		revisions []clients.RevisionMeta
-		want      string
-	}{
-		{
-			name:      "empty list prints message",
-			revisions: []clients.RevisionMeta{},
-			want:      "No revisions found.\n",
-		},
-		{
-			name: "single revision gets star marker",
-			revisions: []clients.RevisionMeta{
-				{Revision: 1, Updated: "2024-01-01"},
-			},
-			want: "    REVISION   UPDATED\n" +
-				"*   1          2024-01-01\n",
-		},
-		{
-			name: "latest revision gets star marker",
-			revisions: []clients.RevisionMeta{
-				{Revision: 1, Updated: "2024-01-01"},
-				{Revision: 3, Updated: "2024-03-01"},
-				{Revision: 2, Updated: "2024-02-01"},
-			},
-			want: "    REVISION   UPDATED\n" +
-				"    1          2024-01-01\n" +
-				"*   3          2024-03-01\n" +
-				"    2          2024-02-01\n",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			err := PrintAgentRevisions(&buf, tt.revisions)
-			if err != nil {
-				t.Fatalf("PrintAgentRevisions() error = %v", err)
-			}
-			if got := buf.String(); got != tt.want {
-				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestPrintAgentRevision(t *testing.T) {
 	tests := []struct {
 		name string
@@ -173,6 +126,8 @@ func TestPrintAgentRevision(t *testing.T) {
 			},
 			want: "Revision:   3\n" +
 				"Status:     deployed\n" +
+				"By:         —\n" +
+				"Source:     —\n" +
 				"Id:         interactive-agent\n" +
 				"Version:    1.0.0\n",
 		},
@@ -183,6 +138,11 @@ func TestPrintAgentRevision(t *testing.T) {
 					Revision: 5,
 					Status:   "deployed",
 					Updated:  "2024-06-01",
+					Actor: &clients.RevisionActor{
+						Type:        "api_key",
+						DisplayName: "silverspin-release",
+					},
+					Source: &clients.RevisionSource{Type: "cli", Version: "0.39.0"},
 				},
 				Id:       "interactive-agent",
 				Version:  "2.0.0",
@@ -194,6 +154,8 @@ func TestPrintAgentRevision(t *testing.T) {
 			want: "Revision:   5\n" +
 				"Status:     deployed\n" +
 				"Updated:    2024-06-01\n" +
+				"By:         silverspin-release (API key)\n" +
+				"Source:     iai 0.39.0\n" +
 				"Id:         interactive-agent\n" +
 				"Version:    2.0.0\n" +
 				"Endpoint:   my-agent.interactive.ai\n" +

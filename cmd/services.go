@@ -344,9 +344,10 @@ var servDescribeCmd = &cobra.Command{
 	Short:   "Describe a service in detail",
 	Long: `Show detailed information about a specific service including its configuration.
 
-Use --version to view a specific past version instead of the current state.`,
+Use --revision to view a specific past revision instead of the current state.
+Past revision output includes server-recorded actor and source attribution when available.`,
 	Example: `  iai services describe my-service
-  iai services describe my-service --version 3
+  iai services describe my-service --revision 3
   iai services describe my-service --json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -741,7 +742,8 @@ var servRevisionsCmd = &cobra.Command{
 	Aliases: []string{"revs"},
 	Short:   "List revisions of a service",
 	Long: `Show past revisions of a service, sorted newest-first.
-Up to 50 revisions are retained per service.`,
+Up to 50 revisions are retained per service. Server-recorded actor and source
+metadata is shown when available.`,
 	Example: `  iai services revisions my-service`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -767,7 +769,7 @@ Up to 50 revisions are retained per service.`,
 			return err
 		}
 
-		return output.PrintServiceRevisions(out, revisions)
+		return output.PrintRevisions(out, revisions)
 	},
 }
 

@@ -329,53 +329,6 @@ func TestPrintServiceDescribe(t *testing.T) {
 	}
 }
 
-func TestPrintServiceRevisions(t *testing.T) {
-	tests := []struct {
-		name      string
-		revisions []clients.RevisionMeta
-		want      string
-	}{
-		{
-			name:      "empty list prints message",
-			revisions: []clients.RevisionMeta{},
-			want:      "No revisions found.\n",
-		},
-		{
-			name: "single revision gets star marker",
-			revisions: []clients.RevisionMeta{
-				{Revision: 1, Updated: "2024-01-01"},
-			},
-			want: "    REVISION   UPDATED\n" +
-				"*   1          2024-01-01\n",
-		},
-		{
-			name: "latest revision gets star marker",
-			revisions: []clients.RevisionMeta{
-				{Revision: 1, Updated: "2024-01-01"},
-				{Revision: 3, Updated: "2024-03-01"},
-				{Revision: 2, Updated: "2024-02-01"},
-			},
-			want: "    REVISION   UPDATED\n" +
-				"    1          2024-01-01\n" +
-				"*   3          2024-03-01\n" +
-				"    2          2024-02-01\n",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			err := PrintServiceRevisions(&buf, tt.revisions)
-			if err != nil {
-				t.Fatalf("PrintServiceRevisions() error = %v", err)
-			}
-			if got := buf.String(); got != tt.want {
-				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestPrintServiceRevision(t *testing.T) {
 	tests := []struct {
 		name string
@@ -393,6 +346,8 @@ func TestPrintServiceRevision(t *testing.T) {
 			},
 			want: "Revision:   2\n" +
 				"Status:     deployed\n" +
+				"By:         —\n" +
+				"Source:     —\n" +
 				"Port:       8080\n" +
 				"Image:\n" +
 				"  Type:   external\n" +
@@ -410,6 +365,11 @@ func TestPrintServiceRevision(t *testing.T) {
 					Revision: 5,
 					Status:   "deployed",
 					Updated:  "2024-06-01",
+					Actor: &clients.RevisionActor{
+						Type:        "service",
+						DisplayName: "deployment-controller",
+					},
+					Source: &clients.RevisionSource{Type: "controller"},
 				},
 				ServicePort: 443,
 				Image: clients.ImageSpec{
@@ -427,6 +387,8 @@ func TestPrintServiceRevision(t *testing.T) {
 			want: "Revision:   5\n" +
 				"Status:     deployed\n" +
 				"Updated:    2024-06-01\n" +
+				"By:         deployment-controller (service)\n" +
+				"Source:     controller\n" +
 				"Port:       443\n" +
 				"Image:\n" +
 				"  Type:         platform\n" +

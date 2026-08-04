@@ -358,9 +358,10 @@ var agentDescribeCmd = &cobra.Command{
 	Short:   "Describe an agent in detail",
 	Long: `Show detailed information about a specific agent including its configuration.
 
-Use --version to view a specific past version instead of the current state.`,
+Use --revision to view a specific past revision instead of the current state.
+Past revision output includes server-recorded actor and source attribution when available.`,
 	Example: `  iai agents describe my-agent
-  iai agents describe my-agent --version 3
+  iai agents describe my-agent --revision 3
   iai agents describe my-agent --yaml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -795,7 +796,8 @@ var agentRevisionsCmd = &cobra.Command{
 	Aliases: []string{"revs"},
 	Short:   "List revisions of an agent",
 	Long: `Show past revisions of an agent, sorted newest-first.
-Up to 50 revisions are retained per agent.`,
+Up to 50 revisions are retained per agent. Server-recorded actor and source
+metadata is shown when available.`,
 	Example: `  iai agents revisions my-agent`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -817,7 +819,7 @@ Up to 50 revisions are retained per agent.`,
 			return err
 		}
 
-		return output.PrintAgentRevisions(out, revisions)
+		return output.PrintRevisions(out, revisions)
 	},
 }
 
