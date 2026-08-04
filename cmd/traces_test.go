@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
+	"github.com/google/go-cmp/cmp"
 )
 
 func tracesListSummaryServer(t *testing.T) *httptest.Server {
@@ -96,31 +100,43 @@ func TestTracesListSummaryJSON(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &items); err != nil {
 		t.Fatalf("output is not a summary item array: %v\n%s", err, stdout.String())
 	}
-	if len(items) != 3 {
-		t.Fatalf("items = %d, want 3", len(items))
+	want := []summary.TraceSummaryItem{
+		{
+			TraceID: "t1",
+			Summary: &summary.TraceSummaryModel{
+				Name:  "turn-t1",
+				Level: "DEFAULT",
+				Input: `"hi"`,
+				Iterations: []summary.Iteration{{
+					Number:   1,
+					Routines: []string{"bonus-chat"},
+					Tools: []summary.ToolCall{{
+						Name:   "get_bonus_eligibility",
+						Args:   json.RawMessage(`{"party_id":"1"}`),
+						Result: json.RawMessage(`{"eligible":true}`),
+					}},
+				}},
+				Reply: "yo",
+			},
+		},
+		{TraceID: "t2", Error: "trace exploded"},
+		{
+			TraceID: "t3",
+			Summary: &summary.TraceSummaryModel{
+				Name: "turn-t3", Level: "DEFAULT", Input: `"hi"`, Reply: "yo",
+			},
+		},
 	}
-	for i, wantID := range []string{"t1", "t2", "t3"} {
-		if items[i].TraceID != wantID {
-			t.Errorf("items[%d].TraceID = %q, want %q (order must follow the list)",
-				i, items[i].TraceID, wantID)
+	canonicalJSON := cmp.Transformer("CanonicalJSON", func(raw json.RawMessage) string {
+		var value any
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return string(raw)
 		}
-	}
-	if items[0].Summary == nil || len(items[0].Summary.Iterations) != 1 {
-		t.Fatalf("t1 summary missing display-name iteration: %+v", items[0].Summary)
-	}
-	if routines := items[0].Summary.Iterations[0].Routines; len(routines) != 1 ||
-		routines[0] != "bonus-chat" {
-		t.Errorf("t1 routines = %v, want [bonus-chat] parsed from string-wrapped output", routines)
-	}
-	tools := items[0].Summary.Iterations[0].Tools
-	if len(tools) != 1 || tools[0].Name != "get_bonus_eligibility" {
-		t.Errorf("t1 tools = %+v, want get_bonus_eligibility", tools)
-	}
-	if items[1].Summary != nil || !strings.Contains(items[1].Error, "trace exploded") {
-		t.Errorf("t2 = %+v, want error item carrying the server message", items[1])
-	}
-	if items[2].Summary == nil || items[2].Error != "" {
-		t.Errorf("t3 = %+v, want summary despite t2 failing", items[2])
+		canonical, _ := json.Marshal(value)
+		return string(canonical)
+	})
+	if diff := cmp.Diff(want, items, canonicalJSON); diff != "" {
+		t.Errorf("summary items mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -139,18 +155,63 @@ func TestTracesListSummaryHuman(t *testing.T) {
 		t.Fatalf("traces list --summary: %v", err)
 	}
 
-	got := stdout.String()
-	for _, want := range []string{
-		"Trace t1",
-		"→ get_bonus_eligibility",
-		"Trace t2",
-		"summary unavailable: trace exploded",
-		"Trace t3",
-		"Page 1 of 1 (3 total items)",
-	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("human output missing %q:\n%s", want, got)
-		}
+	want := `Trace t1
+Turn — turn-t1 · 1 iteration
+
+Customer:
+  "hi"
+
+Iteration 1
+  Routines: bonus-chat
+  Tools called:
+    → get_bonus_eligibility(party_id="1")
+      Result:
+        {"eligible":true}
+
+Agent:
+  yo
+
+────────────────────────────────────────────────────────────────────────
+
+Trace t2
+  (summary unavailable: trace exploded)
+
+────────────────────────────────────────────────────────────────────────
+
+Trace t3
+Turn — turn-t3 · 0 iterations
+
+Customer:
+  "hi"
+
+Agent:
+  yo
+
+Page 1 of 1 (3 total items)
+`
+	if diff := cmp.Diff(want, stdout.String()); diff != "" {
+		t.Errorf("human summary mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestTraceSummariesForReturnsCancellation(t *testing.T) {
+	apiClient, err := clients.NewAPIClient("http://invalid", time.Second, "token", "", nil)
+	if err != nil {
+		t.Fatalf("new API client: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	traces := make([]clients.TraceInfo, 100)
+	for i := range traces {
+		traces[i].ID = fmt.Sprintf("t%d", i)
+	}
+	items, err := traceSummariesFor(ctx, apiClient, "org-1", "proj-1", traces)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("traceSummariesFor error = %v, want context.Canceled", err)
+	}
+	if items != nil {
+		t.Fatalf("traceSummariesFor items = %v, want nil on cancellation", items)
 	}
 }
 

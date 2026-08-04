@@ -62,7 +62,7 @@ iai traces list [flags]
       --release string            Filter by release
       --search string             Search in trace name (max 200 characters)
       --session-id string         Filter by session ID
-      --summary                   Render a compact, LLM-readable summary of each listed turn; with --json/--yaml, emits structured summary models instead of the raw API response
+      --summary                   Show conditions, decisions, tools, and results for each listed turn
       --tags stringArray          Filter by tags (repeatable)
       --to-timestamp string       Filter traces to this timestamp (ISO 8601)
       --user-id string            Filter by user ID
