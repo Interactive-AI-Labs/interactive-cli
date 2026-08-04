@@ -44,9 +44,25 @@ func TestFormatRevisionActor(t *testing.T) {
 			want:  "system",
 		},
 		{
+			name: "named system",
+			actor: &clients.RevisionActor{
+				Type:        "system",
+				DisplayName: "platform-auto-rollback",
+			},
+			want: "platform-auto-rollback (system)",
+		},
+		{
 			name:  "unknown",
 			actor: &clients.RevisionActor{Type: "unknown"},
 			want:  "unknown",
+		},
+		{
+			name: "future actor type",
+			actor: &clients.RevisionActor{
+				Type:        "workload",
+				DisplayName: "release-job",
+			},
+			want: "release-job",
 		},
 	}
 

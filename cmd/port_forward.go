@@ -238,7 +238,7 @@ func authHeaders() (http.Header, error) {
 	}
 
 	req := &http.Request{Header: http.Header{}}
-	if err := clients.ApplyAuth(req, token, apiKey, cookies); err != nil {
+	if err := clients.ApplyRequestHeaders(req, token, apiKey, cookies); err != nil {
 		return nil, err
 	}
 

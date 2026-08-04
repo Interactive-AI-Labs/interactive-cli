@@ -121,7 +121,7 @@ func NewDeploymentClient(
 }
 
 func (c *DeploymentClient) do(req *http.Request) (*http.Response, error) {
-	if err := ApplyAuth(req, c.token, c.apiKey, c.cookies); err != nil {
+	if err := ApplyRequestHeaders(req, c.token, c.apiKey, c.cookies); err != nil {
 		return nil, err
 	}
 	resp, err := c.httpClient.Do(req)
