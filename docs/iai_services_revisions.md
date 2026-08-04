@@ -5,7 +5,8 @@ List revisions of a service
 ### Synopsis
 
 Show past revisions of a service, sorted newest-first.
-Up to 50 revisions are retained per service.
+Up to 50 revisions are retained per service. Server-recorded actor and source
+metadata is shown when available.
 
 ```
 iai services revisions <service_name> [flags]

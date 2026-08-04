@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/buildinfo"
 )
 
 type deploymentError struct {
@@ -127,6 +129,8 @@ func ExtractServerMessage(body []byte) string {
 // Priority: Bearer token > API key (Basic) > session cookies.
 // Returns an error if no authentication method is available.
 func ApplyAuth(req *http.Request, token string, apiKey string, cookies []*http.Cookie) error {
+	req.Header.Set("User-Agent", buildinfo.UserAgent)
+
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 		return nil

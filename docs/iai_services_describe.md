@@ -6,7 +6,8 @@ Describe a service in detail
 
 Show detailed information about a specific service including its configuration.
 
-Use --version to view a specific past version instead of the current state.
+Use --revision to view a specific past revision instead of the current state.
+Past revision output includes server-recorded actor and source attribution when available.
 
 ```
 iai services describe <service_name> [flags]
@@ -16,7 +17,7 @@ iai services describe <service_name> [flags]
 
 ```
   iai services describe my-service
-  iai services describe my-service --version 3
+  iai services describe my-service --revision 3
   iai services describe my-service --json
 ```
 

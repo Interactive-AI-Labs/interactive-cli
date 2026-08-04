@@ -370,7 +370,8 @@ var mcpRevisionsCmd = &cobra.Command{
 	Short:   "List revisions of an mcp",
 	Long: `Show past revisions of an mcp, sorted newest-first. Up to 50 revisions are
 retained per mcp. Every spec change — update, credential rotation, agent
-attach/detach — creates a revision.`,
+attach/detach — creates a revision. Server-recorded actor and source metadata is
+shown when available.`,
 	Example: `  iai mcps revisions my-tool`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -388,7 +389,7 @@ attach/detach — creates a revision.`,
 		if err != nil {
 			return err
 		}
-		return output.PrintServiceRevisions(out, revisions)
+		return output.PrintRevisions(out, revisions)
 	},
 }
 

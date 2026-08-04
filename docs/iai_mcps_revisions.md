@@ -6,7 +6,8 @@ List revisions of an mcp
 
 Show past revisions of an mcp, sorted newest-first. Up to 50 revisions are
 retained per mcp. Every spec change — update, credential rotation, agent
-attach/detach — creates a revision.
+attach/detach — creates a revision. Server-recorded actor and source metadata is
+shown when available.
 
 ```
 iai mcps revisions <mcp_name> [flags]

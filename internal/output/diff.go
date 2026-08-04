@@ -9,7 +9,7 @@ import (
 	"znkr.io/diff/textdiff"
 )
 
-var revisionMetaKeys = []string{"revision", "updated", "status"}
+var revisionMetaKeys = []string{"revision", "updated", "status", "actor", "source", "requestId"}
 
 func stripRevisionMeta(v any) (map[string]any, error) {
 	raw, err := json.Marshal(v)
