@@ -9,12 +9,12 @@ import (
 )
 
 type StackConfig struct {
-	Organization string                    `yaml:"organization"`
-	Project      string                    `yaml:"project"`
-	StackId      string                    `yaml:"stack-id"`
-	Services     map[string]ServiceConfig  `yaml:"services"`
-	Agents       map[string]AgentConfig    `yaml:"agents"`
-	Databases    map[string]DatabaseConfig `yaml:"databases"`
+	Organization string                    `yaml:"organization" json:"organization"`
+	Project      string                    `yaml:"project"      json:"project"`
+	StackId      string                    `yaml:"stack-id"     json:"stackId"`
+	Services     map[string]ServiceConfig  `yaml:"services"     json:"services"`
+	Agents       map[string]AgentConfig    `yaml:"agents"       json:"agents"`
+	Databases    map[string]DatabaseConfig `yaml:"databases"    json:"databases"`
 }
 
 type ServiceConfig struct {
