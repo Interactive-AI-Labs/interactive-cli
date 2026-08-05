@@ -5,8 +5,7 @@ Show differences between local config and live stack
 ### Synopsis
 
 Compare a local stack configuration file against the live state of a
-stack and show creates, updates, deletes, and
-field-level changes.
+stack and show creates, updates, deletes, and field-level changes.
 
 The local file is read from --file or --cfg-file. The live state is fetched
 from the deployment API using --stack-id.
