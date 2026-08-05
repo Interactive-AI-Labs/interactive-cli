@@ -18,36 +18,36 @@ type StackConfig struct {
 }
 
 type ServiceConfig struct {
-	Version     string               `yaml:"version,omitempty"      json:"version,omitempty"`
-	ServicePort int                  `yaml:"servicePort"             json:"servicePort"`
-	Image       clients.ImageSpec    `yaml:"image"                  json:"image"`
-	Resources   clients.Resources    `yaml:"resources"              json:"resources"`
-	Env         []clients.EnvVar     `yaml:"env,omitempty"          json:"env,omitempty"`
-	SecretRefs  []clients.SecretRef  `yaml:"secretRefs,omitempty"   json:"secretRefs,omitempty"`
-	Endpoint    bool                 `yaml:"endpoint,omitempty"     json:"endpoint,omitempty"`
-	Replicas    int                  `yaml:"replicas,omitempty"     json:"replicas,omitempty"`
-	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"  json:"autoscaling,omitempty"`
-	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty"  json:"healthcheck,omitempty"`
-	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"     json:"schedule,omitempty"`
+	Version     string               `yaml:"version,omitempty"     json:"version,omitempty"`
+	ServicePort int                  `yaml:"servicePort"           json:"servicePort"`
+	Image       clients.ImageSpec    `yaml:"image"                 json:"image"`
+	Resources   clients.Resources    `yaml:"resources"             json:"resources"`
+	Env         []clients.EnvVar     `yaml:"env,omitempty"         json:"env,omitempty"`
+	SecretRefs  []clients.SecretRef  `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
+	Endpoint    bool                 `yaml:"endpoint,omitempty"    json:"endpoint,omitempty"`
+	Replicas    int                  `yaml:"replicas,omitempty"    json:"replicas,omitempty"`
+	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty" json:"autoscaling,omitempty"`
+	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty" json:"healthcheck,omitempty"`
+	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"    json:"schedule,omitempty"`
 }
 
 type DatabaseConfig struct {
 	Instances       int                           `yaml:"instances"                 json:"instances"`
 	PostgresVersion string                        `yaml:"postgresVersion,omitempty" json:"postgresVersion,omitempty"`
-	Resources       clients.Resources             `yaml:"resources"                json:"resources"`
-	Storage         clients.DatabaseStorageConfig `yaml:"storage"                  json:"storage"`
-	Extensions      []string                      `yaml:"extensions,omitempty"     json:"extensions,omitempty"`
-	Backup          *clients.DatabaseBackupConfig `yaml:"backup,omitempty"         json:"backup,omitempty"`
+	Resources       clients.Resources             `yaml:"resources"                 json:"resources"`
+	Storage         clients.DatabaseStorageConfig `yaml:"storage"                   json:"storage"`
+	Extensions      []string                      `yaml:"extensions,omitempty"      json:"extensions,omitempty"`
+	Backup          *clients.DatabaseBackupConfig `yaml:"backup,omitempty"          json:"backup,omitempty"`
 }
 
 type AgentConfig struct {
-	Id          string              `yaml:"id"                    json:"id"`
-	Version     string              `yaml:"version"               json:"version"`
-	AgentConfig any                 `yaml:"agentConfig"           json:"agentConfig"`
-	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
-	Endpoint    bool                `yaml:"endpoint,omitempty"    json:"endpoint,omitempty"`
-	Schedule    *clients.Schedule   `yaml:"schedule,omitempty"    json:"schedule,omitempty"`
-	Env         []clients.EnvVar    `yaml:"env,omitempty"         json:"env,omitempty"`
+	Id          string              `yaml:"id"                   json:"id"`
+	Version     string              `yaml:"version"              json:"version"`
+	AgentConfig any                 `yaml:"agentConfig"          json:"agentConfig"`
+	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty" json:"secretRefs,omitempty"`
+	Endpoint    bool                `yaml:"endpoint,omitempty"   json:"endpoint,omitempty"`
+	Schedule    *clients.Schedule   `yaml:"schedule,omitempty"   json:"schedule,omitempty"`
+	Env         []clients.EnvVar    `yaml:"env,omitempty"        json:"env,omitempty"`
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {

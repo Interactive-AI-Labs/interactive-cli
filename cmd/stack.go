@@ -19,18 +19,18 @@ var (
 	stackSyncAllowDelete  []string
 	stackSyncDryRun       bool
 
-	stackGetStackID      string
-	stackGetFile         string
-	stackGetOrg          string
-	stackGetProject      string
-	stackGetJSON         bool
-	stackGetYAML         bool
+	stackGetStackID string
+	stackGetFile    string
+	stackGetOrg     string
+	stackGetProject string
+	stackGetJSON    bool
+	stackGetYAML    bool
 
-	stackDiffFile        string
-	stackDiffStackID     string
-	stackDiffOrg         string
-	stackDiffProject     string
-	stackDiffJSON        bool
+	stackDiffFile    string
+	stackDiffStackID string
+	stackDiffOrg     string
+	stackDiffProject string
+	stackDiffJSON    bool
 
 	stackListJSON bool
 	stackListOrg  string
@@ -344,7 +344,7 @@ changes. The organization and project are read from flags or resolved via
 		}
 
 		if stackGetFile != "" {
-			if err := os.WriteFile(stackGetFile, yamlData, 0644); err != nil {
+			if err := os.WriteFile(stackGetFile, yamlData, 0o644); err != nil {
 				return err
 			}
 			fmt.Fprintf(out, "Stack configuration written to %s\n", stackGetFile)
