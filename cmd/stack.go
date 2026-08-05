@@ -356,8 +356,7 @@ var stackDiffCmd = &cobra.Command{
 	Use:   "diff",
 	Short: "Show differences between local config and live stack",
 	Long: `Compare a local stack configuration file against the live state of a
-stack and show creates, updates, deletes, and
-field-level changes.
+stack and show creates, updates, deletes, and field-level changes.
 
 The local file is read from --file or --cfg-file. The live state is fetched
 from the deployment API using --stack-id.
@@ -504,6 +503,7 @@ func init() {
 		BoolVar(&stackGetJSON, "json", false, "Output as JSON")
 	stackGetCmd.Flags().
 		BoolVar(&stackGetYAML, "yaml", false, "Output as YAML")
+	stackGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	stackDiffCmd.Flags().
 		StringVarP(&stackDiffFile, "file", "f", "", "Path to local stack configuration file")
