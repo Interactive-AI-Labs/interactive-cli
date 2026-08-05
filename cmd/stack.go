@@ -284,9 +284,9 @@ The organization and project are read from the config file, flags, or resolved v
 
 var stackGetCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Export live stack configuration as a stack YAML file",
+	Short: "Export live stack configuration",
 	Long: `Fetch the live services, agents, and databases for a stack and write
-them as a stack configuration YAML file.
+them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making
 changes. The organization and project are read from flags or resolved via
