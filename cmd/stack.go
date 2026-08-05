@@ -302,11 +302,7 @@ changes. The organization and project are read from flags or resolved via
 			return fmt.Errorf("--stack-id is required")
 		}
 
-		if stackGetJSON || stackGetYAML {
-			fmt.Fprintf(cmd.ErrOrStderr(), "Exporting stack %q...\n", stackGetStackID)
-		} else {
-			fmt.Fprintf(out, "Exporting stack %q...\n", stackGetStackID)
-		}
+		fmt.Fprintf(cmd.ErrOrStderr(), "Exporting stack %q...\n", stackGetStackID)
 
 		pCtx, _, deployClient, err := resolveProject(
 			cmd.Context(),
