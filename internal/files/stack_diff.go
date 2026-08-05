@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-
-	"gopkg.in/yaml.v3"
 )
 
 // StackDiff holds the result of comparing two StackConfig values.
@@ -42,7 +40,6 @@ type fieldChange struct {
 	new  string
 }
 
-// DiffStackConfigs compares local (desired) against live and returns a diff.
 func DiffStackConfigs(local, live *StackConfig) *StackDiff {
 	d := &StackDiff{StackID: live.StackId}
 	d.Services = diffResourceMap(
@@ -60,7 +57,6 @@ func DiffStackConfigs(local, live *StackConfig) *StackDiff {
 	return d
 }
 
-// HasChanges reports whether the diff contains any changes.
 func (d *StackDiff) HasChanges() bool {
 	return len(d.Services.Created)+len(d.Services.Updated)+len(d.Services.Deleted)+
 		len(d.Agents.Created)+len(d.Agents.Updated)+len(d.Agents.Deleted)+
@@ -106,26 +102,6 @@ func diffResourceMap[T any](
 	return d
 }
 
-func serviceConfigEqual(a, b ServiceConfig) bool {
-	ya, _ := yaml.Marshal(a)
-	yb, _ := yaml.Marshal(b)
-	return string(ya) == string(yb)
-}
-
-func agentConfigEqual(a, b AgentConfig) bool {
-	ya, _ := yaml.Marshal(a)
-	yb, _ := yaml.Marshal(b)
-	return string(ya) == string(yb)
-}
-
-func databaseConfigEqual(a, b DatabaseConfig) bool {
-	ya, _ := yaml.Marshal(a)
-	yb, _ := yaml.Marshal(b)
-	return string(ya) == string(yb)
-}
-
-// PrintStackDiffDetailed writes a human-readable plan with field-level changes
-// for each updated resource.
 func PrintStackDiffDetailed(
 	out io.Writer,
 	local, live *StackConfig,
@@ -138,6 +114,8 @@ func PrintStackDiffDetailed(
 
 	fmt.Fprintf(out, "Stack: %s\n", d.StackID)
 
+	// Re-computes diffFields for display ordering; the sorted
+	// []fieldChange gives stable human output unlike the map in ResourceChange.
 	printSection(out, "service", d.Services, func(name string) []fieldChange {
 		return diffFields(live.Services[name], local.Services[name])
 	})
@@ -256,4 +234,3 @@ func flatten(out map[string]string, prefix string, v any) {
 		out[prefix] = fmt.Sprintf("%v", val)
 	}
 }
-

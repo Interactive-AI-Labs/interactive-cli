@@ -3,6 +3,7 @@ package files
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -17,6 +18,9 @@ type StackInfo struct {
 
 // ListStacks discovers stacks and their resource counts from live services,
 // agents, and databases. Resources without a stackId are skipped.
+//
+// ponytail: N+1 describe calls per resource; ServiceOutput/AgentOutput/DatabaseOutput
+// don't expose StackId. Add a stackId field to list responses to avoid this.
 func ListStacks(
 	ctx context.Context,
 	deployClient *clients.DeploymentClient,
@@ -88,5 +92,8 @@ func ListStacks(
 	for _, s := range stacks {
 		result = append(result, *s)
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].StackID < result[j].StackID
+	})
 	return result, nil
 }
