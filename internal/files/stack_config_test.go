@@ -455,3 +455,99 @@ func TestDatabaseConfigToCreateRequest(t *testing.T) {
 		})
 	}
 }
+
+func TestServiceConfigFromDescribe(t *testing.T) {
+	tests := []struct {
+		name     string
+		desc     *clients.DescribeServiceResponse
+		want     ServiceConfig
+	}{
+		{
+			name: "with endpoint",
+			desc: &clients.DescribeServiceResponse{
+				ServicePort: 8080,
+				Image:       clients.ImageSpec{Type: "external", Repository: "docker.io", Name: "nginx", Tag: "latest"},
+				Resources:   clients.Resources{Memory: "512M", CPU: "1"},
+				Env:         []clients.EnvVar{{Name: "K", Value: "V"}},
+				SecretRefs:  []clients.SecretRef{{SecretName: "s"}},
+				Endpoint:    "example.com",
+				Replicas:    3,
+			},
+			want: ServiceConfig{
+				ServicePort: 8080,
+				Image:       clients.ImageSpec{Type: "external", Repository: "docker.io", Name: "nginx", Tag: "latest"},
+				Resources:   clients.Resources{Memory: "512M", CPU: "1"},
+				Env:         []clients.EnvVar{{Name: "K", Value: "V"}},
+				SecretRefs:  []clients.SecretRef{{SecretName: "s"}},
+				Endpoint:    true,
+				Replicas:    3,
+			},
+		},
+		{
+			name: "without endpoint",
+			desc: &clients.DescribeServiceResponse{ServicePort: 8080},
+			want: ServiceConfig{ServicePort: 8080},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ServiceConfigFromDescribe(tt.desc)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("ServiceConfigFromDescribe() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestDatabaseConfigFromDescribe(t *testing.T) {
+	tests := []struct {
+		name string
+		desc *clients.DescribeDatabaseResponse
+		want DatabaseConfig
+	}{
+		{
+			name: "backup enabled",
+			desc: &clients.DescribeDatabaseResponse{
+				Replicas:        2,
+				PostgresVersion: "16",
+				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
+				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Extensions:      []string{"vector"},
+				Backup: clients.DatabaseBackupStatus{
+					Enabled: true,
+					DatabaseBackupConfig: clients.DatabaseBackupConfig{
+						Schedule:        "0 0 2 * * *",
+						RetentionPolicy: "30d",
+					},
+				},
+			},
+			want: DatabaseConfig{
+				Instances:       2,
+				PostgresVersion: "16",
+				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
+				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Extensions:      []string{"vector"},
+				Backup: &clients.DatabaseBackupConfig{
+					Schedule:        "0 0 2 * * *",
+					RetentionPolicy: "30d",
+				},
+			},
+		},
+		{
+			name: "backup disabled",
+			desc: &clients.DescribeDatabaseResponse{
+				Replicas: 1,
+				Backup:   clients.DatabaseBackupStatus{Enabled: false},
+			},
+			want: DatabaseConfig{Instances: 1},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DatabaseConfigFromDescribe(tt.desc)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("DatabaseConfigFromDescribe() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}

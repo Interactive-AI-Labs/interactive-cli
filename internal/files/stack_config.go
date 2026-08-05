@@ -18,36 +18,36 @@ type StackConfig struct {
 }
 
 type ServiceConfig struct {
-	Version     string               `yaml:"version,omitempty"`
-	ServicePort int                  `yaml:"servicePort"`
-	Image       clients.ImageSpec    `yaml:"image"`
-	Resources   clients.Resources    `yaml:"resources"`
-	Env         []clients.EnvVar     `yaml:"env,omitempty"`
-	SecretRefs  []clients.SecretRef  `yaml:"secretRefs,omitempty"`
-	Endpoint    bool                 `yaml:"endpoint,omitempty"`
-	Replicas    int                  `yaml:"replicas,omitempty"`
-	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"`
-	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty"`
-	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"`
+	Version     string               `yaml:"version,omitempty"      json:"version,omitempty"`
+	ServicePort int                  `yaml:"servicePort"             json:"servicePort"`
+	Image       clients.ImageSpec    `yaml:"image"                  json:"image"`
+	Resources   clients.Resources    `yaml:"resources"              json:"resources"`
+	Env         []clients.EnvVar     `yaml:"env,omitempty"          json:"env,omitempty"`
+	SecretRefs  []clients.SecretRef  `yaml:"secretRefs,omitempty"   json:"secretRefs,omitempty"`
+	Endpoint    bool                 `yaml:"endpoint,omitempty"     json:"endpoint,omitempty"`
+	Replicas    int                  `yaml:"replicas,omitempty"     json:"replicas,omitempty"`
+	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty"  json:"autoscaling,omitempty"`
+	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty"  json:"healthcheck,omitempty"`
+	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"     json:"schedule,omitempty"`
 }
 
 type DatabaseConfig struct {
-	Instances       int                           `yaml:"instances"`
-	PostgresVersion string                        `yaml:"postgresVersion,omitempty"`
-	Resources       clients.Resources             `yaml:"resources"`
-	Storage         clients.DatabaseStorageConfig `yaml:"storage"`
-	Extensions      []string                      `yaml:"extensions,omitempty"`
-	Backup          *clients.DatabaseBackupConfig `yaml:"backup,omitempty"`
+	Instances       int                           `yaml:"instances"                 json:"instances"`
+	PostgresVersion string                        `yaml:"postgresVersion,omitempty" json:"postgresVersion,omitempty"`
+	Resources       clients.Resources             `yaml:"resources"                json:"resources"`
+	Storage         clients.DatabaseStorageConfig `yaml:"storage"                  json:"storage"`
+	Extensions      []string                      `yaml:"extensions,omitempty"     json:"extensions,omitempty"`
+	Backup          *clients.DatabaseBackupConfig `yaml:"backup,omitempty"         json:"backup,omitempty"`
 }
 
 type AgentConfig struct {
-	Id          string              `yaml:"id"`
-	Version     string              `yaml:"version"`
-	AgentConfig any                 `yaml:"agentConfig"`
-	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"`
-	Endpoint    bool                `yaml:"endpoint,omitempty"`
-	Schedule    *clients.Schedule   `yaml:"schedule,omitempty"`
-	Env         []clients.EnvVar    `yaml:"env,omitempty"`
+	Id          string              `yaml:"id"                    json:"id"`
+	Version     string              `yaml:"version"               json:"version"`
+	AgentConfig any                 `yaml:"agentConfig"           json:"agentConfig"`
+	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
+	Endpoint    bool                `yaml:"endpoint,omitempty"    json:"endpoint,omitempty"`
+	Schedule    *clients.Schedule   `yaml:"schedule,omitempty"    json:"schedule,omitempty"`
+	Env         []clients.EnvVar    `yaml:"env,omitempty"         json:"env,omitempty"`
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
@@ -108,6 +108,54 @@ func (d DatabaseConfig) ToCreateRequest(stackId string) clients.CreateDatabaseBo
 		Extensions:      d.Extensions,
 		Backup:          d.Backup,
 		StackId:         stackId,
+	}
+}
+
+// ServiceConfigFromDescribe converts a DescribeServiceResponse to a ServiceConfig.
+func ServiceConfigFromDescribe(svc *clients.DescribeServiceResponse) ServiceConfig {
+	return ServiceConfig{
+		ServicePort: svc.ServicePort,
+		Image:       svc.Image,
+		Resources:   svc.Resources,
+		Env:         svc.Env,
+		SecretRefs:  svc.SecretRefs,
+		Endpoint:    svc.Endpoint != "",
+		Replicas:    svc.Replicas,
+		Autoscaling: svc.Autoscaling,
+		Healthcheck: svc.Healthcheck,
+		Schedule:    svc.Schedule,
+	}
+}
+
+// AgentConfigFromDescribe converts a DescribeAgentResponse to an AgentConfig.
+func AgentConfigFromDescribe(agent *clients.DescribeAgentResponse) AgentConfig {
+	return AgentConfig{
+		Id:          agent.Id,
+		Version:     agent.Version,
+		AgentConfig: agent.AgentConfig,
+		SecretRefs:  agent.SecretRefs,
+		Endpoint:    agent.Endpoint != "",
+		Schedule:    agent.Schedule,
+		Env:         agent.Env,
+	}
+}
+
+// DatabaseConfigFromDescribe converts a DescribeDatabaseResponse to a DatabaseConfig.
+func DatabaseConfigFromDescribe(db *clients.DescribeDatabaseResponse) DatabaseConfig {
+	var backup *clients.DatabaseBackupConfig
+	if db.Backup.Enabled {
+		backup = &clients.DatabaseBackupConfig{
+			Schedule:        db.Backup.Schedule,
+			RetentionPolicy: db.Backup.RetentionPolicy,
+		}
+	}
+	return DatabaseConfig{
+		Instances:       db.Replicas,
+		PostgresVersion: db.PostgresVersion,
+		Resources:       db.Resources,
+		Storage:         db.Storage,
+		Extensions:      db.Extensions,
+		Backup:          backup,
 	}
 }
 
