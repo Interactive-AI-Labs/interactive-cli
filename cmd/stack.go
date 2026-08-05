@@ -331,11 +331,7 @@ changes. The organization and project are read from flags or resolved via
 		}
 
 		if stackGetFile != "" {
-			data, err := files.MarshalStackConfig(liveCfg)
-			if err != nil {
-				return err
-			}
-			if err := os.WriteFile(stackGetFile, data, 0644); err != nil {
+			if err := os.WriteFile(stackGetFile, yamlData, 0644); err != nil {
 				return err
 			}
 			fmt.Fprintf(out, "Stack configuration written to %s\n", stackGetFile)
@@ -351,7 +347,7 @@ var stackDiffCmd = &cobra.Command{
 	Use:   "diff",
 	Short: "Show differences between local config and live stack",
 	Long: `Compare a local stack configuration file against the live state of a
-stack (or against another file) and show creates, updates, deletes, and
+stack and show creates, updates, deletes, and
 field-level changes.
 
 The local file is read from --file or --cfg-file. The live state is fetched
