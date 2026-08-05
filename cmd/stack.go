@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
@@ -17,6 +18,21 @@ var (
 	stackSyncOrganization string
 	stackSyncAllowDelete  []string
 	stackSyncDryRun       bool
+
+	stackGetStackID      string
+	stackGetFile         string
+	stackGetOrg          string
+	stackGetProject      string
+
+	stackDiffFile        string
+	stackDiffStackID     string
+	stackDiffOrg         string
+	stackDiffProject     string
+	stackDiffJSON        bool
+
+	stackListJSON bool
+	stackListOrg  string
+	stackListProj string
 )
 
 var stackCmd = &cobra.Command{
@@ -264,6 +280,201 @@ The organization and project are read from the config file, flags, or resolved v
 	},
 }
 
+var stackGetCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Export live stack configuration as a stack YAML file",
+	Long: `Fetch the live services, agents, and databases for a stack and write
+them as a stack configuration YAML file.
+
+Use this to rebase your local stack config on the live state before making
+changes. The organization and project are read from flags or resolved via
+'iai organizations select' / 'iai projects select'.`,
+	Example: `  iai stacks get --stack-id my-stack
+  iai stacks get --stack-id my-stack -f live-stack.yaml
+  iai stacks get --stack-id my-stack -o my-org -p my-project`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		if stackGetStackID == "" {
+			return fmt.Errorf("--stack-id is required")
+		}
+
+		fmt.Fprintf(out, "Exporting stack %q...\n", stackGetStackID)
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			stackGetOrg,
+			stackGetProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		liveCfg, err := files.FetchLiveStack(
+			cmd.Context(),
+			deployClient,
+			pCtx.orgId,
+			pCtx.projectId,
+			stackGetStackID,
+		)
+		if err != nil {
+			return err
+		}
+
+		liveCfg.Organization = pCtx.orgName
+		liveCfg.Project = pCtx.projectName
+
+		yamlData, err := files.MarshalStackConfig(liveCfg)
+		if err != nil {
+			return err
+		}
+
+		if stackGetFile != "" {
+			data, err := files.MarshalStackConfig(liveCfg)
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(stackGetFile, data, 0644); err != nil {
+				return err
+			}
+			fmt.Fprintf(out, "Stack configuration written to %s\n", stackGetFile)
+			return nil
+		}
+
+		fmt.Fprint(out, string(yamlData))
+		return nil
+	},
+}
+
+var stackDiffCmd = &cobra.Command{
+	Use:   "diff",
+	Short: "Show differences between local config and live stack",
+	Long: `Compare a local stack configuration file against the live state of a
+stack (or against another file) and show creates, updates, deletes, and
+field-level changes.
+
+The local file is read from --file or --cfg-file. The live state is fetched
+from the deployment API using --stack-id.
+
+Use --json for machine-readable output in CI pipelines.`,
+	Example: `  iai stacks diff --file stack.yaml --stack-id my-stack
+  iai stacks diff --file stack.yaml --stack-id my-stack --json
+  iai stacks diff --file stack.yaml --stack-id my-stack -o my-org -p my-project`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		filePath := stackDiffFile
+		if filePath == "" {
+			filePath = cfgFilePath
+		}
+		if filePath == "" {
+			return fmt.Errorf("config file is required; please provide --file or --cfg-file")
+		}
+
+		localCfg, err := files.LoadStackConfig(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to load local config: %w", err)
+		}
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			stackDiffOrg,
+			stackDiffProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		stackID := stackDiffStackID
+		if stackID == "" {
+			stackID = localCfg.StackId
+		}
+		if stackID == "" {
+			return fmt.Errorf("--stack-id is required")
+		}
+
+		liveCfg, err := files.FetchLiveStack(
+			cmd.Context(),
+			deployClient,
+			pCtx.orgId,
+			pCtx.projectId,
+			stackID,
+		)
+		if err != nil {
+			return err
+		}
+
+		d := files.DiffStackConfigs(localCfg, liveCfg)
+
+		if stackDiffJSON {
+			return output.PrintStructuredJSON(out, d)
+		}
+
+		return files.PrintStackDiffDetailed(out, localCfg, liveCfg, d)
+	},
+}
+
+var stackListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List stacks in a project",
+	Long: `List stacks and their resource counts (services, agents, databases)
+in a project. Stacks are discovered from the live resources that belong
+to them.
+
+The organization and project are read from flags or resolved via
+'iai organizations select' / 'iai projects select'.`,
+	Example: `  iai stacks list
+  iai stacks list --json
+  iai stacks list -o my-org -p my-project`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		pCtx, _, deployClient, err := resolveProject(
+			cmd.Context(),
+			stackListOrg,
+			stackListProj,
+		)
+		if err != nil {
+			return err
+		}
+
+		stacks, err := files.ListStacks(
+			cmd.Context(),
+			deployClient,
+			pCtx.orgId,
+			pCtx.projectId,
+		)
+		if err != nil {
+			return err
+		}
+
+		if stackListJSON {
+			return output.PrintStructuredJSON(out, stacks)
+		}
+
+		if len(stacks) == 0 {
+			fmt.Fprintln(out, "No stacks found.")
+			return nil
+		}
+
+		headers := []string{"STACK ID", "SERVICES", "AGENTS", "DATABASES"}
+		rows := make([][]string, len(stacks))
+		for i, s := range stacks {
+			rows[i] = []string{
+				s.StackID,
+				fmt.Sprintf("%d", s.ServiceCount),
+				fmt.Sprintf("%d", s.AgentCount),
+				fmt.Sprintf("%d", s.DatabaseCount),
+			}
+		}
+		return output.PrintTable(out, headers, rows)
+	},
+}
+
 func init() {
 	stackSyncCmd.Flags().
 		StringVarP(&stackSyncFile, "file", "f", "", "Path to stack configuration file")
@@ -276,6 +487,36 @@ func init() {
 	stackSyncCmd.Flags().
 		BoolVar(&stackSyncDryRun, "dry-run", false, "Print the full plan (creates, updates, deletes, refused deletions) without applying anything")
 
+	stackGetCmd.Flags().
+		StringVar(&stackGetStackID, "stack-id", "", "Stack ID to export")
+	stackGetCmd.Flags().
+		StringVarP(&stackGetFile, "file", "f", "", "Write output to file instead of stdout")
+	stackGetCmd.Flags().
+		StringVarP(&stackGetOrg, "organization", "o", "", "Organization name")
+	stackGetCmd.Flags().
+		StringVarP(&stackGetProject, "project", "p", "", "Project name")
+
+	stackDiffCmd.Flags().
+		StringVarP(&stackDiffFile, "file", "f", "", "Path to local stack configuration file")
+	stackDiffCmd.Flags().
+		StringVar(&stackDiffStackID, "stack-id", "", "Stack ID to compare against live")
+	stackDiffCmd.Flags().
+		StringVarP(&stackDiffOrg, "organization", "o", "", "Organization name")
+	stackDiffCmd.Flags().
+		StringVarP(&stackDiffProject, "project", "p", "", "Project name")
+	stackDiffCmd.Flags().
+		BoolVar(&stackDiffJSON, "json", false, "Output diff as JSON")
+
+	stackListCmd.Flags().
+		BoolVar(&stackListJSON, "json", false, "Output as JSON")
+	stackListCmd.Flags().
+		StringVarP(&stackListOrg, "organization", "o", "", "Organization name")
+	stackListCmd.Flags().
+		StringVarP(&stackListProj, "project", "p", "", "Project name")
+
 	stackCmd.AddCommand(stackSyncCmd)
+	stackCmd.AddCommand(stackListCmd)
+	stackCmd.AddCommand(stackGetCmd)
+	stackCmd.AddCommand(stackDiffCmd)
 	rootCmd.AddCommand(stackCmd)
 }
