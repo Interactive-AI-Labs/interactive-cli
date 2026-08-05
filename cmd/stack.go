@@ -23,6 +23,8 @@ var (
 	stackGetFile         string
 	stackGetOrg          string
 	stackGetProject      string
+	stackGetJSON         bool
+	stackGetYAML         bool
 
 	stackDiffFile        string
 	stackDiffStackID     string
@@ -300,7 +302,11 @@ changes. The organization and project are read from flags or resolved via
 			return fmt.Errorf("--stack-id is required")
 		}
 
-		fmt.Fprintf(out, "Exporting stack %q...\n", stackGetStackID)
+		if stackGetJSON || stackGetYAML {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Exporting stack %q...\n", stackGetStackID)
+		} else {
+			fmt.Fprintf(out, "Exporting stack %q...\n", stackGetStackID)
+		}
 
 		pCtx, _, deployClient, err := resolveProject(
 			cmd.Context(),
@@ -328,6 +334,13 @@ changes. The organization and project are read from flags or resolved via
 		yamlData, err := files.MarshalStackConfig(liveCfg)
 		if err != nil {
 			return err
+		}
+
+		if stackGetJSON {
+			return output.PrintStructuredJSON(out, liveCfg)
+		}
+		if stackGetYAML {
+			return output.PrintStructuredYAML(out, liveCfg)
 		}
 
 		if stackGetFile != "" {
@@ -491,6 +504,10 @@ func init() {
 		StringVarP(&stackGetOrg, "organization", "o", "", "Organization name")
 	stackGetCmd.Flags().
 		StringVarP(&stackGetProject, "project", "p", "", "Project name")
+	stackGetCmd.Flags().
+		BoolVar(&stackGetJSON, "json", false, "Output as JSON")
+	stackGetCmd.Flags().
+		BoolVar(&stackGetYAML, "yaml", false, "Output as YAML")
 
 	stackDiffCmd.Flags().
 		StringVarP(&stackDiffFile, "file", "f", "", "Path to local stack configuration file")
