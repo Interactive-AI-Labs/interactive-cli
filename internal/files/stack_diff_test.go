@@ -125,9 +125,9 @@ func TestDiffStackConfigs(t *testing.T) {
 	live := &StackConfig{
 		StackId: "test-stack",
 		Services: map[string]ServiceConfig{
-			"keep":    svc1,
-			"update":  svc1,
-			"delete":  svc1,
+			"keep":   svc1,
+			"update": svc1,
+			"delete": svc1,
 		},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},

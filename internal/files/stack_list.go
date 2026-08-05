@@ -10,17 +10,14 @@ import (
 
 // StackInfo holds summary info for a stack discovered from live resources.
 type StackInfo struct {
-	StackID        string `json:"stackId"`
-	ServiceCount   int    `json:"serviceCount"`
-	AgentCount     int    `json:"agentCount"`
-	DatabaseCount  int    `json:"databaseCount"`
+	StackID       string `json:"stackId"`
+	ServiceCount  int    `json:"serviceCount"`
+	AgentCount    int    `json:"agentCount"`
+	DatabaseCount int    `json:"databaseCount"`
 }
 
 // ListStacks discovers stacks and their resource counts from live services,
 // agents, and databases. Resources without a stackId are skipped.
-//
-// ponytail: N+1 describe calls per resource; ServiceOutput/AgentOutput/DatabaseOutput
-// don't expose StackId. Add a stackId field to list responses to avoid this.
 func ListStacks(
 	ctx context.Context,
 	deployClient *clients.DeploymentClient,

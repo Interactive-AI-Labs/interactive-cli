@@ -458,29 +458,39 @@ func TestDatabaseConfigToCreateRequest(t *testing.T) {
 
 func TestServiceConfigFromDescribe(t *testing.T) {
 	tests := []struct {
-		name     string
-		desc     *clients.DescribeServiceResponse
-		want     ServiceConfig
+		name string
+		desc *clients.DescribeServiceResponse
+		want ServiceConfig
 	}{
 		{
 			name: "with endpoint",
 			desc: &clients.DescribeServiceResponse{
 				ServicePort: 8080,
-				Image:       clients.ImageSpec{Type: "external", Repository: "docker.io", Name: "nginx", Tag: "latest"},
-				Resources:   clients.Resources{Memory: "512M", CPU: "1"},
-				Env:         []clients.EnvVar{{Name: "K", Value: "V"}},
-				SecretRefs:  []clients.SecretRef{{SecretName: "s"}},
-				Endpoint:    "example.com",
-				Replicas:    3,
+				Image: clients.ImageSpec{
+					Type:       "external",
+					Repository: "docker.io",
+					Name:       "nginx",
+					Tag:        "latest",
+				},
+				Resources:  clients.Resources{Memory: "512M", CPU: "1"},
+				Env:        []clients.EnvVar{{Name: "K", Value: "V"}},
+				SecretRefs: []clients.SecretRef{{SecretName: "s"}},
+				Endpoint:   "example.com",
+				Replicas:   3,
 			},
 			want: ServiceConfig{
 				ServicePort: 8080,
-				Image:       clients.ImageSpec{Type: "external", Repository: "docker.io", Name: "nginx", Tag: "latest"},
-				Resources:   clients.Resources{Memory: "512M", CPU: "1"},
-				Env:         []clients.EnvVar{{Name: "K", Value: "V"}},
-				SecretRefs:  []clients.SecretRef{{SecretName: "s"}},
-				Endpoint:    true,
-				Replicas:    3,
+				Image: clients.ImageSpec{
+					Type:       "external",
+					Repository: "docker.io",
+					Name:       "nginx",
+					Tag:        "latest",
+				},
+				Resources:  clients.Resources{Memory: "512M", CPU: "1"},
+				Env:        []clients.EnvVar{{Name: "K", Value: "V"}},
+				SecretRefs: []clients.SecretRef{{SecretName: "s"}},
+				Endpoint:   true,
+				Replicas:   3,
 			},
 		},
 		{
