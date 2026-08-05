@@ -112,7 +112,6 @@ func (d DatabaseConfig) ToCreateRequest(stackId string) clients.CreateDatabaseBo
 	}
 }
 
-// ServiceConfigFromDescribe converts a DescribeServiceResponse to a ServiceConfig.
 func ServiceConfigFromDescribe(svc *clients.DescribeServiceResponse) ServiceConfig {
 	return ServiceConfig{
 		ServicePort: svc.ServicePort,
@@ -128,7 +127,6 @@ func ServiceConfigFromDescribe(svc *clients.DescribeServiceResponse) ServiceConf
 	}
 }
 
-// AgentConfigFromDescribe converts a DescribeAgentResponse to an AgentConfig.
 func AgentConfigFromDescribe(agent *clients.DescribeAgentResponse) AgentConfig {
 	return AgentConfig{
 		Id:          agent.Id,
@@ -141,7 +139,6 @@ func AgentConfigFromDescribe(agent *clients.DescribeAgentResponse) AgentConfig {
 	}
 }
 
-// DatabaseConfigFromDescribe converts a DescribeDatabaseResponse to a DatabaseConfig.
 func DatabaseConfigFromDescribe(db *clients.DescribeDatabaseResponse) DatabaseConfig {
 	var backup *clients.DatabaseBackupConfig
 	if db.Backup.Enabled {
