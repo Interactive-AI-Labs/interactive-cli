@@ -14,7 +14,7 @@ func TestPrintMcpCatalog(t *testing.T) {
 		want    string
 	}{
 		{
-			name: "single entry",
+			name: "static key entry has no sign-in details to show",
 			entries: []clients.McpCatalogEntry{
 				{
 					ID:          "e1",
@@ -24,8 +24,43 @@ func TestPrintMcpCatalog(t *testing.T) {
 					AuthMethods: []string{"api_key"},
 				},
 			},
-			want: "ID   NAME     CATEGORY   TYPE       AUTH\n" +
-				"e1   GitHub   dev        platform   api_key\n",
+			want: "ID   NAME     CATEGORY   SIGN-IN   PERMISSIONS   RENEWAL\n" +
+				"e1   GitHub   dev        api_key   —             —\n",
+		},
+		{
+			name: "self-registering provider whose permissions are all-or-nothing",
+			entries: []clients.McpCatalogEntry{
+				{
+					ID:                  "dropbox",
+					Name:                "Dropbox",
+					Category:            "Productivity",
+					Type:                "platform",
+					AuthMethods:         []string{"oauth"},
+					ScopesSupported:     []string{"files.metadata.read", "files.content.read"},
+					PermissionsAreAMenu: boolPtr(false),
+					SelfRegisters:       boolPtr(true),
+					TokenRenewal:        "automatic",
+				},
+			},
+			want: "ID        NAME      CATEGORY       SIGN-IN                     PERMISSIONS                                              RENEWAL\n" +
+				"dropbox   Dropbox   Productivity   oauth · automatic sign-up   files.metadata.read, files.content.read (all required)   automatic\n",
+		},
+		{
+			name: "provider needing our app, that also takes a plain token",
+			entries: []clients.McpCatalogEntry{
+				{
+					ID:              "github",
+					Name:            "GitHub",
+					Category:        "Development",
+					Type:            "platform",
+					AuthMethods:     []string{"oauth", "bearer"},
+					ScopesSupported: []string{"repo", "read:org"},
+					SelfRegisters:   boolPtr(false),
+					TokenRenewal:    "never_expires",
+				},
+			},
+			want: "ID       NAME     CATEGORY      SIGN-IN                                 PERMISSIONS      RENEWAL\n" +
+				"github   GitHub   Development   oauth · we create the app (or bearer)   repo, read:org   never expires\n",
 		},
 	}
 
@@ -102,3 +137,7 @@ func TestPrintMcpTools(t *testing.T) {
 		})
 	}
 }
+
+// boolPtr is for catalog fields where nil means "not established yet", which
+// must stay distinct from false.
+func boolPtr(b bool) *bool { return &b }

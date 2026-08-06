@@ -17,6 +17,14 @@ type McpCatalogEntry struct {
 	EndpointURL string   `json:"endpoint_url,omitempty"`
 	DocsURL     string   `json:"docs_url,omitempty"`
 	AuthMethods []string `json:"auth_methods"`
+	// Account sign-in details. Absent on static-key entries.
+	GrantsAllowed   []string `json:"grants_allowed,omitempty"`
+	ScopesSupported []string `json:"scopes_supported,omitempty"`
+	// Nil when unknown, so "not established" stays distinct from "false".
+	PermissionsAreAMenu *bool `json:"permissions_are_a_menu,omitempty"`
+	// False means an operator registers an app before anyone can connect.
+	SelfRegisters *bool  `json:"self_registers,omitempty"`
+	TokenRenewal  string `json:"token_renewal,omitempty"`
 }
 
 type McpCatalogListData struct {
