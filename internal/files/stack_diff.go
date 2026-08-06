@@ -168,6 +168,9 @@ func diffFields(live, local any) []fieldChange {
 	for k, v := range localMap {
 		oldV, exists := liveMap[k]
 		if !exists {
+			if k == "version" {
+				continue
+			}
 			changes = append(changes, fieldChange{path: k, new: v})
 		} else if oldV != v {
 			changes = append(changes, fieldChange{path: k, old: oldV, new: v})

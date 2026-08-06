@@ -382,6 +382,13 @@ Use --json for machine-readable output in CI pipelines.`,
 			return fmt.Errorf("failed to load local config: %w", err)
 		}
 
+		if stackDiffOrg == "" {
+			stackDiffOrg = localCfg.Organization
+		}
+		if stackDiffProject == "" {
+			stackDiffProject = localCfg.Project
+		}
+
 		pCtx, _, deployClient, err := resolveProject(
 			cmd.Context(),
 			stackDiffOrg,

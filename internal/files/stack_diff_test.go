@@ -232,6 +232,17 @@ func TestPrintStackDiffDetailedNoChanges(t *testing.T) {
 	}
 }
 
+func TestDiffFieldsVersionFiltered(t *testing.T) {
+	// version is a config-only field the API never returns.
+	// It should not appear as a diff even when present in local only.
+	live := ServiceConfig{ServicePort: 8080}
+	local := ServiceConfig{ServicePort: 8080, Version: "v1"}
+	changes := diffFields(live, local)
+	if len(changes) != 0 {
+		t.Errorf("expected no changes, got %+v", changes)
+	}
+}
+
 func clientsImageSpec(name, tag string) clients.ImageSpec {
 	return clients.ImageSpec{Type: "external", Repository: "docker.io", Name: name, Tag: tag}
 }
