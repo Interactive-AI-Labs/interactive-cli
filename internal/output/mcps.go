@@ -42,12 +42,83 @@ func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
 		fmt.Fprintln(out, "No catalog entries found.")
 		return nil
 	}
-	headers := []string{"ID", "NAME", "CATEGORY", "TYPE", "AUTH"}
+	headers := []string{"ID", "NAME", "CATEGORY", "SIGN-IN", "PERMISSIONS", "RENEWAL"}
 	rows := make([][]string, len(entries))
 	for i, e := range entries {
-		rows[i] = []string{e.ID, e.Name, e.Category, e.Type, TruncateList(e.AuthMethods, 3)}
+		rows[i] = []string{
+			e.ID, e.Name, e.Category,
+			mcpSignIn(e), mcpPermissions(e), mcpRenewal(e.TokenRenewal),
+		}
 	}
 	return PrintTable(out, headers, rows)
+}
+
+// mcpSignIn describes how a user connects, and whether an operator has to
+// register an app with the provider first — the difference between an entry
+// anyone can connect today and one that needs setup.
+func mcpSignIn(e clients.McpCatalogEntry) string {
+	oauth := false
+	others := make([]string, 0, len(e.AuthMethods))
+	for _, m := range e.AuthMethods {
+		if m == "oauth" {
+			oauth = true
+			continue
+		}
+		others = append(others, m)
+	}
+	if !oauth {
+		return TruncateList(others, 3)
+	}
+	signIn := "oauth"
+	switch {
+	case e.SelfRegisters == nil:
+		// Nothing established yet; don't imply either way.
+	case *e.SelfRegisters:
+		signIn += " · automatic sign-up"
+	default:
+		signIn += " · we create the app"
+	}
+	if len(others) > 0 {
+		signIn += " (or " + strings.Join(others, "/") + ")"
+	}
+	return signIn
+}
+
+// mcpPermissions shows what a connection can reach. When a provider refuses a
+// narrower request, say so rather than listing options a user cannot pick:
+// asking Dropbox for two of its eight yields a connection whose every call
+// fails.
+func mcpPermissions(e clients.McpCatalogEntry) string {
+	if len(e.ScopesSupported) == 0 {
+		return "—"
+	}
+	short := make([]string, 0, len(e.ScopesSupported))
+	for _, s := range e.ScopesSupported {
+		if i := strings.LastIndex(s, "/"); i >= 0 && i < len(s)-1 {
+			s = s[i+1:] // Google publishes full URLs
+		}
+		short = append(short, s)
+	}
+	listed := TruncateList(short, 3)
+	if e.PermissionsAreAMenu != nil && !*e.PermissionsAreAMenu {
+		return listed + " (all required)"
+	}
+	return listed
+}
+
+// mcpRenewal never renders a deadline. The stored expiry moves forward on every
+// silent renewal, so a countdown reads as an end date that never arrives.
+func mcpRenewal(renewal string) string {
+	switch renewal {
+	case "automatic":
+		return "automatic"
+	case "never_expires":
+		return "never expires"
+	case "manual":
+		return "needs re-approval"
+	default:
+		return "—"
+	}
 }
 
 func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
