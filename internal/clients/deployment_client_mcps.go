@@ -238,6 +238,34 @@ func (c *DeploymentClient) DeleteMcp(
 	return decodeMcpMessage(respBody), nil
 }
 
+// DeactivateMcp stops an internal MCP workload while preserving its configuration.
+func (c *DeploymentClient) DeactivateMcp(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+) (string, error) {
+	respBody, err := c.sendJSONRequest(
+		ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName)+"/deactivate", nil,
+	)
+	if err != nil {
+		return "", err
+	}
+	return ExtractServerMessage(respBody), nil
+}
+
+// ActivateMcp restores a deactivated internal MCP workload.
+func (c *DeploymentClient) ActivateMcp(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+) (string, error) {
+	respBody, err := c.sendJSONRequest(
+		ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName)+"/activate", nil,
+	)
+	if err != nil {
+		return "", err
+	}
+	return ExtractServerMessage(respBody), nil
+}
+
 func (c *DeploymentClient) ListMcps(
 	ctx context.Context,
 	orgId, projectId string,

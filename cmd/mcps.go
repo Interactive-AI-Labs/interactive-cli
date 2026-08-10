@@ -518,6 +518,73 @@ reported and the command exits non-zero.`,
 	},
 }
 
+var mcpDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <mcp_name>",
+	Short: "Deactivate an internal mcp in a project",
+	Long: `Deactivate an internal mcp, stopping all running instances. The current
+configuration is preserved and will be restored when the mcp is activated again.
+External mcps run no workload and cannot be deactivated.`,
+	Example: `  iai mcps deactivate my-mcp
+  iai mcps deactivate my-mcp --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting mcp deactivate request...")
+
+		serverMessage, err := deployClient.DeactivateMcp(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName,
+		)
+		if err != nil {
+			return err
+		}
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+		return nil
+	},
+}
+
+var mcpActivateCmd = &cobra.Command{
+	Use:   "activate <mcp_name>",
+	Short: "Activate a deactivated internal mcp in a project",
+	Long: `Activate a deactivated internal mcp, restoring it to its previous
+configuration. External mcps run no workload and cannot be activated.`,
+	Example: `  iai mcps activate my-mcp
+  iai mcps activate my-mcp --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Submitting mcp activate request...")
+
+		serverMessage, err := deployClient.ActivateMcp(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName,
+		)
+		if err != nil {
+			return err
+		}
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+		return nil
+	},
+}
+
 // confirmDeletion tolerates io.EOF so input without a trailing newline (echo -n y) still counts.
 func confirmDeletion(in io.Reader, out io.Writer, target string) (bool, error) {
 	fmt.Fprintf(out, "This will delete %s. Continue? [y/N] ", target)
@@ -680,6 +747,8 @@ func init() {
 		mcpDiffCmd,
 		mcpVerifyCmd,
 		mcpRunToolCmd,
+		mcpDeactivateCmd,
+		mcpActivateCmd,
 		mcpDeleteCmd,
 	)
 }
