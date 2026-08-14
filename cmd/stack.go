@@ -42,24 +42,24 @@ var stackCmd = &cobra.Command{
 	Aliases: []string{"stack", "st"},
 	Short:   "Declarative resource sync from config files",
 	GroupID: groupInfra,
-	Long:    `Manage stacks and their resources (services, agents, databases) from stack configuration files.`,
+	Long:    `Manage stacks and their resources (services, agents, databases, mcps) from stack configuration files.`,
 }
 
 var stackSyncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync services, agents, and databases from a stack config file",
-	Long: `Sync services, agents, and databases in a project from a stack configuration file.
+	Short: "Sync services, agents, databases, and mcps from a stack config file",
+	Long: `Sync services, agents, databases, and mcps in a project from a stack configuration file.
 
-Services, agents, and databases are created and updated to match the config
+Services, agents, databases, and mcps are created and updated to match the config
 file. Resources the config file no longer mentions are NOT deleted by
 default: a config that omits a resource looks identical to a stale one, so
 the sync refuses each deletion, reports it on stderr, and continues with the
 creates and updates. Pass --allow-delete with the resource types you intend
-to decommission (services, agents, databases, or all) to delete them; within
+to decommission (services, agents, databases, mcps, or all) to delete them; within
 each resource type, deletes run after that type's creates and updates.
 
-Updates replace the whole live spec of each resource. For every service or
-agent updated, the live revision being replaced is printed to stderr so a
+Updates replace the whole live spec of each resource. For every service, agent,
+or mcp updated, the live revision being replaced is printed to stderr so a
 sync from a stale config file is visible before it lands.
 
 Use --dry-run to print the full plan — creates, updates, deletes, and
@@ -274,6 +274,43 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
+		mcpBodies := make(map[string]clients.CreateMcpBody)
+		for name, mcpCfg := range cfg.Mcps {
+			mcpBodies[name] = mcpCfg.ToCreateRequest(cfg.StackId)
+		}
+
+		hasMcps := false
+		if len(mcpBodies) == 0 {
+			hasMcps, err = sync.HasMcps(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(mcpBodies) > 0 || hasMcps {
+			err := runPhase("mcps", func(opts sync.Options) (*sync.Result, error) {
+				return sync.Mcps(
+					cmd.Context(),
+					cmd.ErrOrStderr(),
+					deployClient,
+					orgId,
+					projectId,
+					cfg.StackId,
+					mcpBodies,
+					opts,
+				)
+			})
+			if err != nil {
+				return err
+			}
+		}
+
 		if !ranSync {
 			fmt.Fprintf(out, "No resources to sync for stack %q.\n", cfg.StackId)
 		}
@@ -285,12 +322,15 @@ The organization and project are read from the config file, flags, or resolved v
 var stackGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Export live stack configuration",
-	Long: `Fetch the live services, agents, and databases for a stack and write
+	Long: `Fetch the live services, agents, databases, and mcps for a stack and write
 them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making
-changes. The organization and project are read from flags or resolved via
-'iai organizations select' / 'iai projects select'.`,
+changes. MCP credentials are never exported; include auth.credential before
+syncing credentialed MCPs.
+
+The organization and project are read from flags or resolved via 'iai
+organizations select' / 'iai projects select'.`,
 	Example: `  iai stacks get --stack-id my-stack
   iai stacks get --stack-id my-stack -f live-stack.yaml
   iai stacks get --stack-id my-stack -o my-org -p my-project`,
@@ -431,7 +471,7 @@ var stackListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List stacks in a project",
-	Long: `List stacks and their resource counts (services, agents, databases)
+	Long: `List stacks and their resource counts (services, agents, databases, mcps)
 in a project. Stacks are discovered from the live resources that belong
 to them.
 
@@ -472,7 +512,7 @@ The organization and project are read from flags or resolved via
 			return nil
 		}
 
-		headers := []string{"STACK ID", "SERVICES", "AGENTS", "DATABASES"}
+		headers := []string{"STACK ID", "SERVICES", "AGENTS", "DATABASES", "MCPS"}
 		rows := make([][]string, len(stacks))
 		for i, s := range stacks {
 			rows[i] = []string{
@@ -480,6 +520,7 @@ The organization and project are read from flags or resolved via
 				fmt.Sprintf("%d", s.ServiceCount),
 				fmt.Sprintf("%d", s.AgentCount),
 				fmt.Sprintf("%d", s.DatabaseCount),
+				fmt.Sprintf("%d", s.McpCount),
 			}
 		}
 		return output.PrintTable(out, headers, rows)
@@ -494,7 +535,7 @@ func init() {
 	stackSyncCmd.Flags().
 		StringVarP(&stackSyncOrganization, "organization", "o", "", "Organization name that owns the project")
 	stackSyncCmd.Flags().
-		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services, agents, databases, or all); deletions are refused otherwise")
+		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services, agents, databases, mcps, or all); deletions are refused otherwise")
 	stackSyncCmd.Flags().
 		BoolVar(&stackSyncDryRun, "dry-run", false, "Print the full plan (creates, updates, deletes, refused deletions) without applying anything")
 

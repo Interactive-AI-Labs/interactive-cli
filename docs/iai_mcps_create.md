@@ -58,6 +58,7 @@ iai mcps create <mcp_name> [flags]
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume
       --port int                    Port the mcp server listens on (internal)
       --secret stringArray          Existing secret to load as env vars; can be repeated (internal)
+      --stack-id string             Stack ID to assign the mcp to
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```
 
