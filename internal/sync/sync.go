@@ -78,6 +78,21 @@ func HasDatabases(
 	return len(existing) > 0, nil
 }
 
+func HasMcps(
+	ctx context.Context,
+	deployClient *clients.DeploymentClient,
+	orgId,
+	projectId,
+	stackId string,
+) (bool, error) {
+	existing, err := deployClient.ListMcps(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return false, fmt.Errorf("failed to list mcps: %w", err)
+	}
+
+	return len(existing) > 0, nil
+}
+
 func PrintResult(
 	out io.Writer,
 	label string,
@@ -280,6 +295,55 @@ func Databases(
 			delete: func(name string) error {
 				_, err := deployClient.DeleteDatabase(ctx, orgId, projectId, name)
 				return err
+			},
+		},
+	)
+}
+
+func Mcps(
+	ctx context.Context,
+	warnW io.Writer,
+	deployClient *clients.DeploymentClient,
+	orgId,
+	projectId,
+	stackId string,
+	desired map[string]clients.CreateMcpBody,
+	opts Options,
+) (*Result, error) {
+	existing, err := deployClient.ListMcps(
+		ctx, orgId, projectId, stackId,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list mcps: %w", err)
+	}
+
+	existingByName := make(map[string]clients.McpOutput)
+	for _, mcp := range existing {
+		existingByName[mcp.Name] = mcp
+	}
+
+	return syncResources(
+		warnW,
+		existingByName,
+		desired,
+		opts,
+		resourceOps[clients.McpOutput, clients.CreateMcpBody]{
+			resource:  "mcp",
+			allowFlag: "mcps",
+			create: func(name string, body clients.CreateMcpBody) error {
+				_, err := deployClient.CreateMcp(ctx, orgId, projectId, name, body)
+				return err
+			},
+			update: func(name string, body clients.CreateMcpBody) error {
+				_, err := deployClient.PutMcp(ctx, orgId, projectId, name, body)
+				return err
+			},
+			delete: func(name string) error {
+				_, err := deployClient.DeleteMcp(ctx, orgId, projectId, name, false)
+				return err
+			},
+			banner: func(w io.Writer, mcp clients.McpOutput) {
+				preflight.PrintUpdateBanner(w, "mcp "+mcp.Name, mcp.Revision, mcp.Updated)
 			},
 		},
 	)

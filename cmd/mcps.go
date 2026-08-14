@@ -37,12 +37,14 @@ var (
 	mcpAuthHeader      string
 	mcpAuthHeaderPfx   string
 	mcpHeaders         []string
+	mcpStackId         string
 )
 
 var (
 	mcpClearEnv     bool
 	mcpClearSecret  bool
 	mcpClearHeaders bool
+	mcpClearStackId bool
 )
 
 var mcpForce bool
@@ -162,6 +164,7 @@ and the create fails if the server is unreachable or rejects the credential.`,
 			AuthHeader:       mcpAuthHeader,
 			AuthHeaderPrefix: mcpAuthHeaderPfx,
 			Headers:          mcpHeaders,
+			StackId:          mcpStackId,
 		})
 		if err != nil {
 			return err
@@ -198,7 +201,7 @@ var mcpUpdateCmd = &cobra.Command{
 	Long: `Partial update — only the fields whose flags you pass are changed; everything
 else keeps its current value. port/path/image/memory/cpu/env/secret only apply
 to internal mcps. Use --clear-env, --clear-secret, or --clear-headers to remove
-those entirely. The type (internal/external) and, for external mcps, the
+those entirely. Use --clear-stack-id to remove the mcp from its stack. The type (internal/external) and, for external mcps, the
 endpoint/catalog cannot change — delete and recreate instead.
 
 Changing --credential, or switching --auth-type to "none", rotates the mcp's
@@ -207,7 +210,8 @@ to it. Auth routing cannot change while agents are attached — detach them firs
 	Example: `  iai mcps update my-tool --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update acme --credential "$NEW_TOKEN"
-  iai mcps update my-tool --clear-headers`,
+  iai mcps update my-tool --clear-headers
+  iai mcps update my-tool --stack-id my-stack`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -234,7 +238,8 @@ to it. Auth routing cannot change while agents are attached — detach them firs
 			AuthHeader:       mcpAuthHeader,
 			AuthHeaderPrefix: mcpAuthHeaderPfx,
 			Headers:          mcpHeaders,
-		}, mcpClearEnv, mcpClearSecret, mcpClearHeaders, cmd.Flags().Changed)
+			StackId:          mcpStackId,
+		}, mcpClearEnv, mcpClearSecret, mcpClearHeaders, mcpClearStackId, cmd.Flags().Changed)
 		if err != nil {
 			return err
 		}
@@ -282,7 +287,7 @@ var mcpListCmd = &cobra.Command{
 			return err
 		}
 
-		mcps, err := deployClient.ListMcps(cmd.Context(), pCtx.orgId, pCtx.projectId)
+		mcps, err := deployClient.ListMcps(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
 		if err != nil {
 			return err
 		}
@@ -618,6 +623,8 @@ func init() {
 			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", `Credential value prefix — only valid with --auth-type custom`)
 		c.Flags().
 			StringArrayVar(&mcpHeaders, "header", nil, "Extra non-secret request header (NAME=VALUE); can be repeated")
+		c.Flags().
+			StringVar(&mcpStackId, "stack-id", "", "Stack ID to assign the mcp to")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 	}
 
@@ -641,6 +648,9 @@ func init() {
 		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp")
 	mcpUpdateCmd.Flags().
 		BoolVar(&mcpClearHeaders, "clear-headers", false, "Remove all extra request headers from the mcp")
+	mcpUpdateCmd.Flags().
+		BoolVar(&mcpClearStackId, "clear-stack-id", false, "Remove the mcp from its stack")
+	mcpUpdateCmd.MarkFlagsMutuallyExclusive("stack-id", "clear-stack-id")
 
 	mcpRunToolCmd.Flags().
 		StringVar(&mcpArgsJSON, "args", "", "Tool arguments as an inline JSON object")

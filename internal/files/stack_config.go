@@ -16,6 +16,7 @@ type StackConfig struct {
 	Services     map[string]ServiceConfig  `yaml:"services"     json:"services"`
 	Agents       map[string]AgentConfig    `yaml:"agents"       json:"agents"`
 	Databases    map[string]DatabaseConfig `yaml:"databases"    json:"databases"`
+	Mcps         map[string]McpConfig      `yaml:"mcps"         json:"mcps"`
 }
 
 type ServiceConfig struct {
@@ -51,6 +52,20 @@ type AgentConfig struct {
 	Env         []clients.EnvVar    `yaml:"env,omitempty"        json:"env,omitempty"`
 }
 
+type McpConfig struct {
+	Type        string              `yaml:"type,omitempty"        json:"type,omitempty"`
+	Port        int                 `yaml:"port,omitempty"        json:"port,omitempty"`
+	Path        string              `yaml:"path,omitempty"        json:"path,omitempty"`
+	Image       clients.ImageSpec   `yaml:"image,omitempty"       json:"image,omitempty"`
+	Resources   clients.Resources   `yaml:"resources,omitempty"   json:"resources,omitempty"`
+	Env         []clients.EnvVar    `yaml:"env,omitempty"         json:"env,omitempty"`
+	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
+	EndpointURL string              `yaml:"endpointUrl,omitempty" json:"endpointUrl,omitempty"`
+	CatalogID   string              `yaml:"catalogId,omitempty"   json:"catalogId,omitempty"`
+	Auth        clients.McpAuthBody `yaml:"auth"                 json:"auth"`
+	Headers     map[string]string   `yaml:"headers,omitempty"     json:"headers,omitempty"`
+}
+
 func LoadStackConfig(path string) (*StackConfig, error) {
 	if path == "" {
 		return &StackConfig{}, nil
@@ -65,10 +80,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	if (len(cfg.Services) > 0 || len(cfg.Agents) > 0 || len(cfg.Databases) > 0) &&
+	if (len(cfg.Services) > 0 || len(cfg.Agents) > 0 || len(cfg.Databases) > 0 || len(cfg.Mcps) > 0) &&
 		cfg.StackId == "" {
 		return nil, fmt.Errorf(
-			"stack-id is required when services, agents, or databases are defined in config file",
+			"stack-id is required when services, agents, databases, or mcps are defined in config file",
 		)
 	}
 
@@ -82,6 +97,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 
 	if cfg.Databases == nil {
 		cfg.Databases = make(map[string]DatabaseConfig)
+	}
+
+	if cfg.Mcps == nil {
+		cfg.Mcps = make(map[string]McpConfig)
 	}
 
 	return &cfg, nil
@@ -109,6 +128,23 @@ func (d DatabaseConfig) ToCreateRequest(stackId string) clients.CreateDatabaseBo
 		Extensions:      d.Extensions,
 		Backup:          d.Backup,
 		StackId:         stackId,
+	}
+}
+
+func (m McpConfig) ToCreateRequest(stackId string) clients.CreateMcpBody {
+	return clients.CreateMcpBody{
+		Type:        m.Type,
+		Port:        m.Port,
+		Path:        m.Path,
+		Image:       m.Image,
+		Resources:   m.Resources,
+		Env:         m.Env,
+		SecretRefs:  m.SecretRefs,
+		EndpointURL: m.EndpointURL,
+		CatalogID:   m.CatalogID,
+		Auth:        m.Auth,
+		Headers:     m.Headers,
+		StackId:     stackId,
 	}
 }
 
@@ -157,6 +193,26 @@ func DatabaseConfigFromDescribe(db *clients.DescribeDatabaseResponse) DatabaseCo
 	}
 }
 
+func McpConfigFromDescribe(mcp *clients.DescribeMcpResponse) McpConfig {
+	endpointURL := ""
+	if mcp.Type == "external" {
+		endpointURL = mcp.EndpointURL
+	}
+	return McpConfig{
+		Type:        mcp.Type,
+		Port:        mcp.Port,
+		Path:        mcp.Path,
+		Image:       mcp.Image,
+		Resources:   mcp.Resources,
+		Env:         mcp.Env,
+		SecretRefs:  mcp.SecretRefs,
+		EndpointURL: endpointURL,
+		CatalogID:   mcp.CatalogID,
+		Auth:        clients.McpAuthBody{Type: mcp.Auth.Type, Header: mcp.Auth.Header, HeaderPrefix: mcp.Auth.HeaderPrefix},
+		Headers:     mcp.Headers,
+	}
+}
+
 func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody {
 	body := clients.CreateServiceBody{
 		ServicePort: s.ServicePort,
@@ -192,6 +248,7 @@ func FetchLiveStack(
 		Services:  make(map[string]ServiceConfig),
 		Agents:    make(map[string]AgentConfig),
 		Databases: make(map[string]DatabaseConfig),
+		Mcps:      make(map[string]McpConfig),
 	}
 
 	svcs, err := deployClient.ListServices(ctx, orgId, projectId, stackId)
@@ -228,6 +285,18 @@ func FetchLiveStack(
 			return nil, fmt.Errorf("failed to describe database %q: %w", db.Name, err)
 		}
 		cfg.Databases[db.Name] = DatabaseConfigFromDescribe(desc)
+	}
+
+	mcps, err := deployClient.ListMcps(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list mcps: %w", err)
+	}
+	for _, mcp := range mcps {
+		desc, err := deployClient.DescribeMcp(ctx, orgId, projectId, mcp.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe mcp %q: %w", mcp.Name, err)
+		}
+		cfg.Mcps[mcp.Name] = McpConfigFromDescribe(desc)
 	}
 
 	return cfg, nil

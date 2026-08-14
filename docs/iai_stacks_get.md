@@ -4,7 +4,7 @@ Export live stack configuration
 
 ### Synopsis
 
-Fetch the live services, agents, and databases for a stack and write
+Fetch the live services, agents, databases, and mcps for a stack and write
 them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making

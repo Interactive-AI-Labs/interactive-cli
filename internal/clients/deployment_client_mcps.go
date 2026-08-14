@@ -29,6 +29,7 @@ type CreateMcpBody struct {
 	Auth McpAuthBody `json:"auth"`
 	// Headers are extra non-secret request headers.
 	Headers map[string]string `json:"headers,omitempty"`
+	StackId string            `json:"stackId,omitempty"`
 }
 
 // McpAuthBody is the auth block of a create/update request.
@@ -68,6 +69,7 @@ type McpOutput struct {
 	EndpointURL    string         `json:"endpointUrl"`
 	Slug           string         `json:"slug"`
 	CatalogID      string         `json:"catalogId,omitempty"`
+	StackId        string         `json:"stackId,omitempty"`
 	Status         string         `json:"status,omitempty"` // internal only
 	Verify         McpVerifyState `json:"verify"`
 	AttachedAgents []string       `json:"attachedAgents,omitempty"`
@@ -80,6 +82,10 @@ type DescribeMcpResponse struct {
 	Path          string            `json:"path"`
 	Headers       map[string]string `json:"headers,omitempty"`
 	HasCredential bool              `json:"hasCredential"`
+	Port          int               `json:"port,omitempty"`
+	Image         ImageSpec         `json:"image,omitempty"`
+	Resources     Resources         `json:"resources,omitempty"`
+	Env           []EnvVar          `json:"env,omitempty"`
 	SecretRefs    []SecretRef       `json:"secretRefs,omitempty"`
 	// Tool count is in Verify.ToolCount; the full list comes from GetMcpTools.
 }
@@ -240,9 +246,13 @@ func (c *DeploymentClient) DeleteMcp(
 
 func (c *DeploymentClient) ListMcps(
 	ctx context.Context,
-	orgId, projectId string,
+	orgId, projectId, stackId string,
 ) ([]McpOutput, error) {
-	respBody, err := c.sendJSONRequest(ctx, http.MethodGet, mcpsPath(orgId, projectId, ""), nil)
+	path := mcpsPath(orgId, projectId, "")
+	if stackId != "" {
+		path += "?stackId=" + url.QueryEscape(stackId)
+	}
+	respBody, err := c.sendJSONRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -298,6 +298,7 @@ func TestBuildMcpUpdatePatch(t *testing.T) {
 		clearEnv     bool
 		clearSecret  bool
 		clearHeaders bool
+		clearStackId bool
 		changed      []string
 		want         map[string]any
 		wantErr      string
@@ -365,12 +366,30 @@ func TestBuildMcpUpdatePatch(t *testing.T) {
 			changed:      []string{"header"},
 			wantErr:      "--clear-headers cannot be combined with --header",
 		},
+		{
+			name:    "stack-id set",
+			input:   McpInput{StackId: "my-stack"},
+			changed: []string{"stack-id"},
+			want:    map[string]any{"stackId": "my-stack"},
+		},
+		{
+			name:         "clear-stack-id clears",
+			clearStackId: true,
+			want:         map[string]any{"stackId": nil},
+		},
+		{
+			name:         "clear-stack-id combined with stack-id errors",
+			input:        McpInput{StackId: "my-stack"},
+			clearStackId: true,
+			changed:      []string{"stack-id"},
+			wantErr:      "--clear-stack-id cannot be combined with --stack-id",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			patch, err := BuildMcpUpdatePatch(
-				tt.input, tt.clearEnv, tt.clearSecret, tt.clearHeaders, changedFunc(tt.changed...),
+				tt.input, tt.clearEnv, tt.clearSecret, tt.clearHeaders, tt.clearStackId, changedFunc(tt.changed...),
 			)
 			if tt.wantErr != "" {
 				if err == nil || err.Error() != tt.wantErr {

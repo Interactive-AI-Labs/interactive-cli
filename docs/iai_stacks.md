@@ -4,7 +4,7 @@ Declarative resource sync from config files
 
 ### Synopsis
 
-Manage stacks and their resources (services, agents, databases) from stack configuration files.
+Manage stacks and their resources (services, agents, databases, mcps) from stack configuration files.
 
 ### Options
 
@@ -27,5 +27,5 @@ Manage stacks and their resources (services, agents, databases) from stack confi
 * [iai stacks diff](iai_stacks_diff.md)	 - Show differences between local config and live stack
 * [iai stacks get](iai_stacks_get.md)	 - Export live stack configuration
 * [iai stacks list](iai_stacks_list.md)	 - List stacks in a project
-* [iai stacks sync](iai_stacks_sync.md)	 - Sync services, agents, and databases from a stack config file
+* [iai stacks sync](iai_stacks_sync.md)	 - Sync services, agents, databases, and mcps from a stack config file
 

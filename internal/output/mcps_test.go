@@ -77,6 +77,25 @@ func TestPrintMcpCatalog(t *testing.T) {
 	}
 }
 
+func TestPrintMcpListIncludesStack(t *testing.T) {
+	var buf bytes.Buffer
+	err := PrintMcpList(&buf, []clients.McpOutput{{
+		Name:    "tools",
+		Type:    "internal",
+		Status:  "healthy",
+		StackId: "stack-123",
+		Verify:  clients.McpVerifyState{Status: "ok", ToolCount: 3},
+	}})
+	if err != nil {
+		t.Fatalf("PrintMcpList() error = %v", err)
+	}
+	want := "NAME    TYPE       STATUS    VERIFY   TOOLS   STACK       UPDATED\n" +
+		"tools   internal   healthy   ok       3       stack-123   -\n"
+	if got := buf.String(); got != want {
+		t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, want)
+	}
+}
+
 func TestPrintMcpTools(t *testing.T) {
 	tests := []struct {
 		name        string

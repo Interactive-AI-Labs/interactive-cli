@@ -7,7 +7,7 @@ Update an mcp's spec
 Partial update — only the fields whose flags you pass are changed; everything
 else keeps its current value. port/path/image/memory/cpu/env/secret only apply
 to internal mcps. Use --clear-env, --clear-secret, or --clear-headers to remove
-those entirely. The type (internal/external) and, for external mcps, the
+those entirely. Use --clear-stack-id to remove the mcp from its stack. The type (internal/external) and, for external mcps, the
 endpoint/catalog cannot change — delete and recreate instead.
 
 Changing --credential, or switching --auth-type to "none", rotates the mcp's
@@ -25,6 +25,7 @@ iai mcps update <mcp_name> [flags]
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update acme --credential "$NEW_TOKEN"
   iai mcps update my-tool --clear-headers
+  iai mcps update my-tool --stack-id my-stack
 ```
 
 ### Options
@@ -36,6 +37,7 @@ iai mcps update <mcp_name> [flags]
       --clear-env                   Remove all environment variables from the mcp
       --clear-headers               Remove all extra request headers from the mcp
       --clear-secret                Remove all secret references from the mcp
+      --clear-stack-id              Remove the mcp from its stack
       --cpu string                  CPU request/limit, e.g. 250m (required for internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
@@ -50,6 +52,7 @@ iai mcps update <mcp_name> [flags]
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume
       --port int                    Port the mcp server listens on (internal)
       --secret stringArray          Existing secret to load as env vars; can be repeated (internal)
+      --stack-id string             Stack ID to assign the mcp to
 ```
 
 ### Options inherited from parent commands

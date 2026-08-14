@@ -13,6 +13,7 @@ type StackDiff struct {
 	Services  ResourceTypeDiff `json:"services"`
 	Agents    ResourceTypeDiff `json:"agents"`
 	Databases ResourceTypeDiff `json:"databases"`
+	Mcps      ResourceTypeDiff `json:"mcps"`
 }
 
 // ResourceTypeDiff records which resources were created, updated, or deleted.
@@ -54,13 +55,18 @@ func DiffStackConfigs(local, live *StackConfig) *StackDiff {
 		local.Databases, live.Databases,
 		func(a, b DatabaseConfig) []fieldChange { return diffFields(a, b) },
 	)
+	d.Mcps = diffResourceMap(
+		local.Mcps, live.Mcps,
+		func(a, b McpConfig) []fieldChange { return diffFields(a, b) },
+	)
 	return d
 }
 
 func (d *StackDiff) HasChanges() bool {
 	return len(d.Services.Created)+len(d.Services.Updated)+len(d.Services.Deleted)+
 		len(d.Agents.Created)+len(d.Agents.Updated)+len(d.Agents.Deleted)+
-		len(d.Databases.Created)+len(d.Databases.Updated)+len(d.Databases.Deleted) > 0
+		len(d.Databases.Created)+len(d.Databases.Updated)+len(d.Databases.Deleted)+
+		len(d.Mcps.Created)+len(d.Mcps.Updated)+len(d.Mcps.Deleted) > 0
 }
 
 func diffResourceMap[T any](
@@ -124,6 +130,9 @@ func PrintStackDiffDetailed(
 	})
 	printSection(out, "database", d.Databases, func(name string) []fieldChange {
 		return diffFields(live.Databases[name], local.Databases[name])
+	})
+	printSection(out, "mcp", d.Mcps, func(name string) []fieldChange {
+		return diffFields(live.Mcps[name], local.Mcps[name])
 	})
 
 	return nil
