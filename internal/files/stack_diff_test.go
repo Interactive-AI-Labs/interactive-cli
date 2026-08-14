@@ -131,6 +131,7 @@ func TestDiffStackConfigs(t *testing.T) {
 		},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},
+		Mcps:      map[string]McpConfig{},
 	}
 	local := &StackConfig{
 		StackId: "test-stack",
@@ -141,6 +142,7 @@ func TestDiffStackConfigs(t *testing.T) {
 		},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},
+		Mcps:      map[string]McpConfig{},
 	}
 
 	d := DiffStackConfigs(local, live)
@@ -169,12 +171,14 @@ func TestDiffStackConfigsNoChanges(t *testing.T) {
 		Services:  map[string]ServiceConfig{},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},
+		Mcps:      map[string]McpConfig{},
 	}
 	local := &StackConfig{
 		StackId:   "t",
 		Services:  map[string]ServiceConfig{},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},
+		Mcps:      map[string]McpConfig{},
 	}
 	d := DiffStackConfigs(local, live)
 	if d.HasChanges() {
@@ -190,6 +194,7 @@ func TestPrintStackDiffDetailed(t *testing.T) {
 		},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},
+		Mcps:      map[string]McpConfig{},
 	}
 	local := &StackConfig{
 		StackId: "t",
@@ -198,6 +203,7 @@ func TestPrintStackDiffDetailed(t *testing.T) {
 		},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},
+		Mcps:      map[string]McpConfig{},
 	}
 
 	d := DiffStackConfigs(local, live)
@@ -221,6 +227,7 @@ func TestPrintStackDiffDetailedNoChanges(t *testing.T) {
 		Services:  map[string]ServiceConfig{},
 		Agents:    map[string]AgentConfig{},
 		Databases: map[string]DatabaseConfig{},
+		Mcps:      map[string]McpConfig{},
 	}
 	d := DiffStackConfigs(cfg, cfg)
 	var buf bytes.Buffer

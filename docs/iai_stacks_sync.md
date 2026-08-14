@@ -1,21 +1,21 @@
 ## iai stacks sync
 
-Sync services, agents, and databases from a stack config file
+Sync services, agents, databases, and mcps from a stack config file
 
 ### Synopsis
 
-Sync services, agents, and databases in a project from a stack configuration file.
+Sync services, agents, databases, and mcps in a project from a stack configuration file.
 
-Services, agents, and databases are created and updated to match the config
+Services, agents, databases, and mcps are created and updated to match the config
 file. Resources the config file no longer mentions are NOT deleted by
 default: a config that omits a resource looks identical to a stale one, so
 the sync refuses each deletion, reports it on stderr, and continues with the
 creates and updates. Pass --allow-delete with the resource types you intend
-to decommission (services, agents, databases, or all) to delete them; within
+to decommission (services, agents, databases, mcps, or all) to delete them; within
 each resource type, deletes run after that type's creates and updates.
 
-Updates replace the whole live spec of each resource. For every service or
-agent updated, the live revision being replaced is printed to stderr so a
+Updates replace the whole live spec of each resource. For every service, agent,
+or mcp updated, the live revision being replaced is printed to stderr so a
 sync from a stale config file is visible before it lands.
 
 Use --dry-run to print the full plan — creates, updates, deletes, and
@@ -85,7 +85,7 @@ services:
 ### Options
 
 ```
-      --allow-delete strings   Resource types the sync may delete when the config omits them (services, agents, databases, or all); deletions are refused otherwise
+      --allow-delete strings   Resource types the sync may delete when the config omits them (services, agents, databases, mcps, or all); deletions are refused otherwise
       --dry-run                Print the full plan (creates, updates, deletes, refused deletions) without applying anything
   -f, --file string            Path to stack configuration file
   -h, --help                   help for sync

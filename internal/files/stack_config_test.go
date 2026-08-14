@@ -9,6 +9,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"github.com/google/go-cmp/cmp"
+	"gopkg.in/yaml.v3"
 )
 
 func TestLoadStackConfig(t *testing.T) {
@@ -62,6 +63,7 @@ services:
 				},
 				Agents:    map[string]AgentConfig{},
 				Databases: map[string]DatabaseConfig{},
+				Mcps:      map[string]McpConfig{},
 			},
 		},
 		{
@@ -113,6 +115,7 @@ services:
 				},
 				Agents:    map[string]AgentConfig{},
 				Databases: map[string]DatabaseConfig{},
+				Mcps:      map[string]McpConfig{},
 			},
 		},
 		{
@@ -153,6 +156,46 @@ databases:
 							Schedule:        "0 0 2 * * *",
 							RetentionPolicy: "30d",
 						},
+					},
+				},
+				Mcps: map[string]McpConfig{},
+			},
+		},
+		{
+			name: "valid config with mcps",
+			content: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  tools:
+    type: internal
+    port: 8080
+    path: /mcp
+    image:
+      type: internal
+      name: my-mcp
+      tag: v1
+    resources:
+      cpu: "250m"
+      memory: "512M"
+    auth:
+      type: none
+`,
+			want: &StackConfig{
+				Organization: "test-org",
+				Project:      "test-project",
+				StackId:      "stack-123",
+				Services:     map[string]ServiceConfig{},
+				Agents:       map[string]AgentConfig{},
+				Databases:    map[string]DatabaseConfig{},
+				Mcps: map[string]McpConfig{
+					"tools": {
+						Type:      "internal",
+						Port:      8080,
+						Path:      "/mcp",
+						Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+						Resources: clients.Resources{CPU: "250m", Memory: "512M"},
+						Auth:      clients.McpAuthBody{Type: "none"},
 					},
 				},
 			},
@@ -456,6 +499,58 @@ func TestDatabaseConfigToCreateRequest(t *testing.T) {
 	}
 }
 
+func TestMcpConfigToCreateRequest(t *testing.T) {
+	tests := []struct {
+		name  string
+		input McpConfig
+		want  clients.CreateMcpBody
+	}{
+		{
+			name: "internal",
+			input: McpConfig{
+				Type:      "internal",
+				Port:      8080,
+				Path:      "/mcp",
+				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
+				Auth:      clients.McpAuthBody{Type: "none"},
+			},
+			want: clients.CreateMcpBody{
+				Type:      "internal",
+				Port:      8080,
+				Path:      "/mcp",
+				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
+				Auth:      clients.McpAuthBody{Type: "none"},
+				StackId:   "stack-123",
+			},
+		},
+		{
+			name: "external with bearer auth",
+			input: McpConfig{
+				Type:        "external",
+				EndpointURL: "https://example.com/mcp",
+				Auth:        clients.McpAuthBody{Type: "bearer", Credential: "token"},
+			},
+			want: clients.CreateMcpBody{
+				Type:        "external",
+				EndpointURL: "https://example.com/mcp",
+				Auth:        clients.McpAuthBody{Type: "bearer", Credential: "token"},
+				StackId:     "stack-123",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.ToCreateRequest("stack-123")
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("ToCreateRequest() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestServiceConfigFromDescribe(t *testing.T) {
 	tests := []struct {
 		name string
@@ -559,5 +654,105 @@ func TestDatabaseConfigFromDescribe(t *testing.T) {
 				t.Errorf("DatabaseConfigFromDescribe() mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestMcpConfigFromDescribe(t *testing.T) {
+	tests := []struct {
+		name string
+		desc *clients.DescribeMcpResponse
+		want McpConfig
+	}{
+		{
+			name: "internal hides generated endpoint",
+			desc: &clients.DescribeMcpResponse{
+				McpOutput: clients.McpOutput{
+					Type:        "internal",
+					EndpointURL: "http://tools.p1.svc.cluster.local:8080/mcp",
+					Auth:        clients.McpAuthInfo{Type: "none"},
+				},
+				Port:      8080,
+				Path:      "/mcp",
+				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
+				Env:       []clients.EnvVar{{Name: "K", Value: "V"}},
+			},
+			want: McpConfig{
+				Type:      "internal",
+				Port:      8080,
+				Path:      "/mcp",
+				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
+				Env:       []clients.EnvVar{{Name: "K", Value: "V"}},
+				Auth:      clients.McpAuthBody{Type: "none"},
+			},
+		},
+		{
+			name: "external keeps endpoint and auth routing",
+			desc: &clients.DescribeMcpResponse{
+				McpOutput: clients.McpOutput{
+					Type:        "external",
+					EndpointURL: "https://example.com/mcp",
+					CatalogID:   "github",
+					Auth: clients.McpAuthInfo{
+						Type:         "custom",
+						Header:       "X-Token",
+						HeaderPrefix: "Token ",
+					},
+				},
+				Headers: map[string]string{"X-Team": "dev"},
+			},
+			want: McpConfig{
+				Type:        "external",
+				EndpointURL: "https://example.com/mcp",
+				CatalogID:   "github",
+				Auth: clients.McpAuthBody{
+					Type:         "custom",
+					Header:       "X-Token",
+					HeaderPrefix: "Token ",
+				},
+				Headers: map[string]string{"X-Team": "dev"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := McpConfigFromDescribe(tt.desc)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("McpConfigFromDescribe() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMcpAuthYAMLOmitsEmptyFields(t *testing.T) {
+	config := StackConfig{
+		Organization: "test-org",
+		Project:      "test-project",
+		StackId:      "stack-123",
+		Mcps: map[string]McpConfig{
+			"tools": {Auth: clients.McpAuthBody{Type: "none"}},
+		},
+	}
+
+	got, err := yaml.Marshal(config)
+	if err != nil {
+		t.Fatalf("yaml.Marshal() unexpected error = %v", err)
+	}
+
+	want := `organization: test-org
+project: test-project
+stack-id: stack-123
+services: {}
+agents: {}
+databases: {}
+mcps:
+    tools:
+        auth:
+            type: none
+`
+	if diff := cmp.Diff(want, string(got)); diff != "" {
+		t.Errorf("yaml.Marshal() mismatch (-want +got):\n%s", diff)
 	}
 }

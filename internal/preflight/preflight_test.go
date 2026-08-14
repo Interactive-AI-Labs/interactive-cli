@@ -291,14 +291,16 @@ func TestPrintPinChanges(t *testing.T) {
 		},
 		{
 			name: "mixed delta sorts by section then id and flags only the loud lines",
-			live: configWithPins(nil,
+			live: configWithPins(
+				nil,
 				[]any{map[string]any{"id": "guard", "version": float64(3)}},
 				[]any{
 					map[string]any{"id": "goodbye", "version": float64(8)},
 					map[string]any{"id": "welcome", "version": float64(12)},
 				},
 			),
-			incoming: configWithPins(nil,
+			incoming: configWithPins(
+				nil,
 				[]any{map[string]any{"id": "guard", "version": 3}},
 				[]any{
 					map[string]any{"id": "goodbye", "version": 7},
