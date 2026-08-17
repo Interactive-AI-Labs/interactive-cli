@@ -26,6 +26,11 @@ func TestValidateQueueListOptions(t *testing.T) {
 			false,
 		},
 		{
+			"sort order without sort field",
+			clients.AnnotationQueueListOptions{Page: 1, SortOrder: "asc"},
+			false,
+		},
+		{
 			"unknown sort field",
 			clients.AnnotationQueueListOptions{Page: 1, SortBy: "status"},
 			true,
