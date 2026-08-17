@@ -4,7 +4,9 @@ List annotation queues
 
 ### Synopsis
 
-List annotation queues with pagination.
+List annotation queues with pagination and sorting.
+
+Results are sorted by created_at descending unless --sort-by/--sort-order say otherwise.
 
 ```
 iai queues list [flags]
@@ -15,6 +17,8 @@ iai queues list [flags]
 ```
   iai queues list
   iai queues list --page 2 --limit 50
+  iai queues list --sort-by name --sort-order asc
+  iai queues list --sort-by count_pending_items --sort-order desc
   iai queues list --columns id,name,description
   iai queues list -o my-org -p my-project --json
 ```
@@ -29,6 +33,8 @@ iai queues list [flags]
   -o, --organization string   Organization name that owns the project
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
+      --sort-by string        Sort by field: name, description, created_at, updated_at, count_completed_items, count_pending_items (default: created_at)
+      --sort-order string     Sort direction: asc or desc (default: desc)
       --yaml                  Output raw API response as YAML
 ```
 

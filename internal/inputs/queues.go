@@ -22,8 +22,20 @@ var AllQueueColumns = []string{
 	"updated_at",
 }
 
+var QueueSortFields = []string{
+	"name",
+	"description",
+	"created_at",
+	"updated_at",
+	"count_completed_items",
+	"count_pending_items",
+}
+
 func ValidateQueueListOptions(opts clients.AnnotationQueueListOptions) error {
-	return ValidatePagination(opts.Page, opts.Limit)
+	if err := ValidatePagination(opts.Page, opts.Limit); err != nil {
+		return err
+	}
+	return ValidateSorting(opts.SortBy, opts.SortOrder, QueueSortFields)
 }
 
 func BuildQueueCreateBody(
