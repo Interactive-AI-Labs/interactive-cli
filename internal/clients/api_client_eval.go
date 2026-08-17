@@ -555,8 +555,10 @@ type AnnotationQueueInfo struct {
 }
 
 type AnnotationQueueListOptions struct {
-	Page  int `url:"page,omitempty"`
-	Limit int `url:"limit,omitempty"`
+	Page      int    `url:"page,omitempty"`
+	Limit     int    `url:"limit,omitempty"`
+	SortBy    string `url:"sort_by,omitempty"`
+	SortOrder string `url:"sort_order,omitempty"`
 }
 
 type AnnotationQueueCreateBody struct {
@@ -701,9 +703,11 @@ type QueueItemInfo struct {
 }
 
 type QueueItemListOptions struct {
-	Status string `url:"status,omitempty"`
-	Page   int    `url:"page,omitempty"`
-	Limit  int    `url:"limit,omitempty"`
+	Status    string `url:"status,omitempty"`
+	Page      int    `url:"page,omitempty"`
+	Limit     int    `url:"limit,omitempty"`
+	SortBy    string `url:"sort_by,omitempty"`
+	SortOrder string `url:"sort_order,omitempty"`
 }
 
 type QueueItemCreateBody struct {

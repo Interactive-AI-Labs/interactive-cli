@@ -6,6 +6,8 @@ List queue items
 
 List items in an annotation queue.
 
+Results are sorted by created_at descending unless --sort-by/--sort-order say otherwise.
+
 ```
 iai queue-items list [flags]
 ```
@@ -16,6 +18,8 @@ iai queue-items list [flags]
   iai queue-items list --queue-id queue-123
   iai queue-items list --queue-id queue-123 --status PENDING
   iai queue-items list --queue-id queue-123 --page 2 --limit 50
+  iai queue-items list --queue-id queue-123 --sort-by created_at --sort-order asc
+  iai queue-items list --queue-id queue-123 --sort-by status --sort-order desc
   iai queue-items list --queue-id queue-123 --json
 ```
 
@@ -30,6 +34,8 @@ iai queue-items list [flags]
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
       --queue-id string       Queue ID (required)
+      --sort-by string        Sort by field: created_at, completed_at, status, object_id, updated_at (default: created_at)
+      --sort-order string     Sort direction: asc or desc (default: desc)
       --status string         Filter by status (PENDING/COMPLETED)
       --yaml                  Output raw API response as YAML
 ```

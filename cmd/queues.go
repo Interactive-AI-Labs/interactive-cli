@@ -10,13 +10,15 @@ import (
 )
 
 var (
-	queuesListPage    int
-	queuesListLimit   int
-	queuesListColumns []string
-	queuesListJSON    bool
-	queuesListYAML    bool
-	queuesListOrg     string
-	queuesListProject string
+	queuesListPage      int
+	queuesListLimit     int
+	queuesListSortBy    string
+	queuesListSortOrder string
+	queuesListColumns   []string
+	queuesListJSON      bool
+	queuesListYAML      bool
+	queuesListOrg       string
+	queuesListProject   string
 
 	queuesGetJSON    bool
 	queuesGetYAML    bool
@@ -52,9 +54,13 @@ var queuesListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List annotation queues",
-	Long:    `List annotation queues with pagination.`,
+	Long: `List annotation queues with pagination and sorting.
+
+Results are sorted by created_at descending unless --sort-by/--sort-order say otherwise.`,
 	Example: `  iai queues list
   iai queues list --page 2 --limit 50
+  iai queues list --sort-by name --sort-order asc
+  iai queues list --sort-by count_pending_items --sort-order desc
   iai queues list --columns id,name,description
   iai queues list -o my-org -p my-project --json`,
 	Args: cobra.NoArgs,
@@ -75,8 +81,10 @@ var queuesListCmd = &cobra.Command{
 		}
 
 		opts := clients.AnnotationQueueListOptions{
-			Page:  queuesListPage,
-			Limit: queuesListLimit,
+			Page:      queuesListPage,
+			Limit:     queuesListLimit,
+			SortBy:    queuesListSortBy,
+			SortOrder: queuesListSortOrder,
 		}
 		if err := inputs.ValidateQueueListOptions(opts); err != nil {
 			return err
@@ -282,6 +290,10 @@ This command requires API key authentication.`,
 func init() {
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
+	queuesListCmd.Flags().
+		StringVar(&queuesListSortBy, "sort-by", "", "Sort by field: name, description, created_at, updated_at, count_completed_items, count_pending_items (default: created_at)")
+	queuesListCmd.Flags().
+		StringVar(&queuesListSortOrder, "sort-order", "", "Sort direction: asc or desc (default: desc)")
 	queuesListCmd.Flags().
 		StringSliceVar(&queuesListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	queuesListCmd.Flags().
