@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -31,6 +32,14 @@ var queueColumnMap = map[string]struct {
 	"updated_at": {
 		"UPDATED AT",
 		func(q *clients.AnnotationQueueInfo) string { return LocalTime(q.UpdatedAt) },
+	},
+	"count_completed_items": {
+		"COMPLETED ITEMS",
+		func(q *clients.AnnotationQueueInfo) string { return strconv.Itoa(q.CountCompletedItems) },
+	},
+	"count_pending_items": {
+		"PENDING ITEMS",
+		func(q *clients.AnnotationQueueInfo) string { return strconv.Itoa(q.CountPendingItems) },
 	},
 }
 

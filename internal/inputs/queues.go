@@ -20,6 +20,8 @@ var AllQueueColumns = []string{
 	"score_config_ids",
 	"created_at",
 	"updated_at",
+	"count_completed_items",
+	"count_pending_items",
 }
 
 var QueueSortFields = []string{

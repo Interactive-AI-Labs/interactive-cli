@@ -546,12 +546,14 @@ func (c *APIClient) CreateDatasetRunItem(
 // ---------------------------------------------------------------------------
 
 type AnnotationQueueInfo struct {
-	ID             string   `json:"id"`
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	ScoreConfigIDs []string `json:"score_config_ids"`
-	CreatedAt      string   `json:"created_at"`
-	UpdatedAt      string   `json:"updated_at"`
+	ID                  string   `json:"id"`
+	Name                string   `json:"name"`
+	Description         string   `json:"description"`
+	ScoreConfigIDs      []string `json:"score_config_ids"`
+	CreatedAt           string   `json:"created_at"`
+	UpdatedAt           string   `json:"updated_at"`
+	CountCompletedItems int      `json:"count_completed_items"`
+	CountPendingItems   int      `json:"count_pending_items"`
 }
 
 type AnnotationQueueListOptions struct {
