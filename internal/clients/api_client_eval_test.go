@@ -203,6 +203,9 @@ func TestAPIClientDeleteQueueItemWithoutAPIKey(t *testing.T) {
 	wantPath := "/api/platform/v1/organizations/org-1/projects/proj-1/" +
 		"annotation-queues/q-1/items/i-1"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("method = %s, want DELETE", r.Method)
+		}
 		if r.URL.Path != wantPath {
 			t.Errorf("path = %s, want %s", r.URL.Path, wantPath)
 		}
