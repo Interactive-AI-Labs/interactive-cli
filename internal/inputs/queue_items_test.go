@@ -16,19 +16,9 @@ func TestValidateQueueItemListOptions(t *testing.T) {
 		{"invalid page", clients.QueueItemListOptions{Page: 0}, true},
 		{"negative limit", clients.QueueItemListOptions{Page: 1, Limit: -1}, true},
 		{
-			"valid sort",
-			clients.QueueItemListOptions{Page: 1, SortBy: "completed_at", SortOrder: "desc"},
+			"sorting is delegated to the server",
+			clients.QueueItemListOptions{Page: 1, SortBy: "bogus", SortOrder: "sideways"},
 			false,
-		},
-		{
-			"unknown sort field",
-			clients.QueueItemListOptions{Page: 1, SortBy: "name"},
-			true,
-		},
-		{
-			"unknown sort order",
-			clients.QueueItemListOptions{Page: 1, SortOrder: "down"},
-			true,
 		},
 	}
 

@@ -16,29 +16,9 @@ func TestValidateQueueListOptions(t *testing.T) {
 		{"invalid page", clients.AnnotationQueueListOptions{Page: 0}, true},
 		{"negative limit", clients.AnnotationQueueListOptions{Page: 1, Limit: -1}, true},
 		{
-			"valid sort",
-			clients.AnnotationQueueListOptions{Page: 1, SortBy: "name", SortOrder: "asc"},
+			"sorting is delegated to the server",
+			clients.AnnotationQueueListOptions{Page: 1, SortBy: "bogus", SortOrder: "sideways"},
 			false,
-		},
-		{
-			"count column sort",
-			clients.AnnotationQueueListOptions{Page: 1, SortBy: "count_pending_items"},
-			false,
-		},
-		{
-			"sort order without sort field",
-			clients.AnnotationQueueListOptions{Page: 1, SortOrder: "asc"},
-			false,
-		},
-		{
-			"unknown sort field",
-			clients.AnnotationQueueListOptions{Page: 1, SortBy: "status"},
-			true,
-		},
-		{
-			"unknown sort order",
-			clients.AnnotationQueueListOptions{Page: 1, SortBy: "name", SortOrder: "ascending"},
-			true,
 		},
 	}
 
