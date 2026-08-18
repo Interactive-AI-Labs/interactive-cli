@@ -17,14 +17,17 @@ func TestStripRevisionMeta(t *testing.T) {
 		{
 			name: "strips revision meta fields",
 			input: map[string]any{
-				"revision": 5,
-				"updated":  "2026-01-01T00:00:00Z",
-				"status":   "deployed",
-				"id":       "my-agent",
-				"version":  "1.0.0",
+				"revision":  5,
+				"updated":   "2026-01-01T00:00:00Z",
+				"status":    "deployed",
+				"actor":     map[string]any{"type": "user", "displayName": "Oliver"},
+				"source":    map[string]any{"type": "cli", "version": "0.39.0"},
+				"requestId": "req_123",
+				"id":        "my-agent",
+				"version":   "1.0.0",
 			},
 			wantKeys: []string{"id", "version"},
-			dropKeys: []string{"revision", "updated", "status"},
+			dropKeys: []string{"revision", "updated", "status", "actor", "source", "requestId"},
 		},
 		{
 			name: "preserves all fields when no meta present",
@@ -83,18 +86,24 @@ func TestPrintRevisionDiff(t *testing.T) {
 		{
 			name: "revision meta excluded from diff",
 			a: map[string]any{
-				"revision": 1,
-				"status":   "superseded",
-				"updated":  "2026-01-01",
-				"id":       "agent",
-				"version":  "1.0",
+				"revision":  1,
+				"status":    "superseded",
+				"updated":   "2026-01-01",
+				"actor":     map[string]any{"type": "user", "displayName": "Oliver"},
+				"source":    map[string]any{"type": "cli", "version": "0.38.7"},
+				"requestId": "req_old",
+				"id":        "agent",
+				"version":   "1.0",
 			},
 			b: map[string]any{
-				"revision": 2,
-				"status":   "deployed",
-				"updated":  "2026-01-02",
-				"id":       "agent",
-				"version":  "1.0",
+				"revision":  2,
+				"status":    "deployed",
+				"updated":   "2026-01-02",
+				"actor":     map[string]any{"type": "api_key", "displayName": "release"},
+				"source":    map[string]any{"type": "cli", "version": "0.39.0"},
+				"requestId": "req_new",
+				"id":        "agent",
+				"version":   "1.0",
 			},
 			want: "No differences found.\n",
 		},
@@ -150,6 +159,44 @@ func TestPrintRevisionDiff(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.want, buf.String()); diff != "" {
 				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestPrintYAMLDiff(t *testing.T) {
+	tests := []struct {
+		name string
+		a    any
+		b    any
+		want string
+	}{
+		{
+			name: "identical values",
+			a:    map[string]any{"id": "agent"},
+			b:    map[string]any{"id": "agent"},
+			want: "No differences found.\n",
+		},
+		{
+			name: "labels are used verbatim and nothing is stripped",
+			a:    map[string]any{"id": "agent", "status": "ready"},
+			b:    map[string]any{"id": "agent", "status": "failed"},
+			want: "--- live\n+++ incoming\n" +
+				"@@ -1,2 +1,2 @@\n" +
+				" id: agent\n" +
+				"-status: ready\n" +
+				"+status: failed\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := PrintYAMLDiff(&buf, "live", tt.a, "incoming", tt.b); err != nil {
+				t.Fatalf("PrintYAMLDiff() error = %v", err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("diff = %q, want %q", got, tt.want)
 			}
 		})
 	}

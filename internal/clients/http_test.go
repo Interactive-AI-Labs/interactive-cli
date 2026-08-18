@@ -102,16 +102,16 @@ func TestExtractServerMessage(t *testing.T) {
 	}
 }
 
-func TestApplyAuth(t *testing.T) {
+func TestApplyRequestHeaders(t *testing.T) {
 	t.Run("applies Bearer token auth", func(t *testing.T) {
 		req, err := newTestRequest()
 		if err != nil {
 			t.Fatalf("failed to create test request: %v", err)
 		}
 
-		err = ApplyAuth(req, "test-jwt-token", "", nil)
+		err = ApplyRequestHeaders(req, "test-jwt-token", "", nil)
 		if err != nil {
-			t.Fatalf("ApplyAuth() error = %v", err)
+			t.Fatalf("ApplyRequestHeaders() error = %v", err)
 		}
 
 		authHeader := req.Header.Get("Authorization")
@@ -126,9 +126,9 @@ func TestApplyAuth(t *testing.T) {
 			t.Fatalf("failed to create test request: %v", err)
 		}
 
-		err = ApplyAuth(req, "", "test-api-key", nil)
+		err = ApplyRequestHeaders(req, "", "test-api-key", nil)
 		if err != nil {
-			t.Fatalf("ApplyAuth() error = %v", err)
+			t.Fatalf("ApplyRequestHeaders() error = %v", err)
 		}
 
 		authHeader := req.Header.Get("Authorization")
@@ -151,9 +151,9 @@ func TestApplyAuth(t *testing.T) {
 			{Name: "token", Value: "xyz789"},
 		}
 
-		err = ApplyAuth(req, "", "", cookies)
+		err = ApplyRequestHeaders(req, "", "", cookies)
 		if err != nil {
-			t.Fatalf("ApplyAuth() error = %v", err)
+			t.Fatalf("ApplyRequestHeaders() error = %v", err)
 		}
 
 		reqCookies := req.Cookies()
@@ -172,9 +172,9 @@ func TestApplyAuth(t *testing.T) {
 			{Name: "session", Value: "abc123"},
 		}
 
-		err = ApplyAuth(req, "test-jwt-token", "test-api-key", cookies)
+		err = ApplyRequestHeaders(req, "test-jwt-token", "test-api-key", cookies)
 		if err != nil {
-			t.Fatalf("ApplyAuth() error = %v", err)
+			t.Fatalf("ApplyRequestHeaders() error = %v", err)
 		}
 
 		authHeader := req.Header.Get("Authorization")
@@ -198,9 +198,9 @@ func TestApplyAuth(t *testing.T) {
 			{Name: "session", Value: "abc123"},
 		}
 
-		err = ApplyAuth(req, "", "test-api-key", cookies)
+		err = ApplyRequestHeaders(req, "", "test-api-key", cookies)
 		if err != nil {
-			t.Fatalf("ApplyAuth() error = %v", err)
+			t.Fatalf("ApplyRequestHeaders() error = %v", err)
 		}
 
 		authHeader := req.Header.Get("Authorization")
@@ -220,9 +220,9 @@ func TestApplyAuth(t *testing.T) {
 			t.Fatalf("failed to create test request: %v", err)
 		}
 
-		err = ApplyAuth(req, "", "", nil)
+		err = ApplyRequestHeaders(req, "", "", nil)
 		if err == nil {
-			t.Fatal("ApplyAuth() expected error, got nil")
+			t.Fatal("ApplyRequestHeaders() expected error, got nil")
 		}
 
 		if !strings.Contains(err.Error(), "no authentication method available") {
@@ -242,9 +242,9 @@ func TestApplyAuth(t *testing.T) {
 			nil,
 		}
 
-		err = ApplyAuth(req, "", "", cookies)
+		err = ApplyRequestHeaders(req, "", "", cookies)
 		if err != nil {
-			t.Fatalf("ApplyAuth() error = %v", err)
+			t.Fatalf("ApplyRequestHeaders() error = %v", err)
 		}
 
 		reqCookies := req.Cookies()

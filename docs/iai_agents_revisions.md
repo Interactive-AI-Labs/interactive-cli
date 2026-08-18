@@ -5,7 +5,8 @@ List revisions of an agent
 ### Synopsis
 
 Show past revisions of an agent, sorted newest-first.
-Up to 50 revisions are retained per agent.
+Up to 50 revisions are retained per agent. Server-recorded actor and source
+metadata is shown when available.
 
 ```
 iai agents revisions <agent_name> [flags]

@@ -22,6 +22,15 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-healthcheck, --clear-schedule, or
 --clear-stack-id to remove those configurations entirely.
 
+Before applying, the CLI prints deploy-awareness output to stderr: the live
+revision this update replaces, and the names of any env vars or secret refs
+that --env/--secret would drop from the live service (the flags replace the
+entire list). The update is refused when it would drop live env vars or
+secret refs via --env/--secret; pass --force to apply anyway. --clear-env
+and --clear-secret never trigger the gate: clearing is explicit intent. The
+checks fail open when live state cannot be fetched; use --expect-revision
+to fail instead when the live revision differs from what you expect.
+
 ```
 iai services update <service_name> [flags]
 ```
@@ -30,6 +39,7 @@ iai services update <service_name> [flags]
 
 ```
   iai services update my-svc --image-tag v2
+  iai services update my-svc --image-tag v2 --expect-revision 47
   iai services update my-svc --memory 1G --cpu 0.5
   iai services update my-svc --replicas 3
   iai services update my-svc --autoscaling-max-replicas 8
@@ -54,6 +64,8 @@ iai services update <service_name> [flags]
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
       --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
+      --expect-revision int                 Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated service (opt-in staleness guard)
+      --force                               Apply even when the update would drop live env vars or secret refs
       --healthcheck-initial-delay int       Initial delay in seconds before starting healthchecks
       --healthcheck-path string             HTTP path for healthcheck endpoint (e.g. /health)
   -h, --help                                help for update

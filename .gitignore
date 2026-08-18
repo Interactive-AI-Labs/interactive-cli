@@ -31,6 +31,9 @@ go.work.sum
 # OS
 .DS_Store
 
+# Local working docs
+*.local.md
+
 # Editor/IDE
 # .idea/
 # .vscode/

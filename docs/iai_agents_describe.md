@@ -6,7 +6,8 @@ Describe an agent in detail
 
 Show detailed information about a specific agent including its configuration.
 
-Use --version to view a specific past version instead of the current state.
+Use --revision to view a specific past revision instead of the current state.
+Past revision output includes server-recorded actor and source attribution when available.
 
 ```
 iai agents describe <agent_name> [flags]
@@ -16,7 +17,7 @@ iai agents describe <agent_name> [flags]
 
 ```
   iai agents describe my-agent
-  iai agents describe my-agent --version 3
+  iai agents describe my-agent --revision 3
   iai agents describe my-agent --yaml
 ```
 

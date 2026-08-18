@@ -70,6 +70,7 @@ type McpInput struct {
 	AuthHeader       string
 	AuthHeaderPrefix string
 	Headers          []string // raw KEY=VALUE pairs
+	StackId          string
 }
 
 func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
@@ -131,6 +132,7 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 			HeaderPrefix: in.AuthHeaderPrefix,
 		},
 		Headers: headers,
+		StackId: strings.TrimSpace(in.StackId),
 	}
 
 	switch mcpType {
@@ -209,6 +211,7 @@ var McpUpdateFlags = struct {
 	AuthHeader       string
 	AuthHeaderPrefix string
 	Header           string
+	StackId          string
 }{
 	Port:             "port",
 	Path:             "path",
@@ -225,12 +228,13 @@ var McpUpdateFlags = struct {
 	AuthHeader:       "auth-header",
 	AuthHeaderPrefix: "auth-header-prefix",
 	Header:           "header",
+	StackId:          "stack-id",
 }
 
 // BuildMcpUpdatePatch produces a partial-update body containing only the fields whose flags the user explicitly set.
 func BuildMcpUpdatePatch(
 	in McpInput,
-	clearEnv, clearSecret, clearHeaders bool,
+	clearEnv, clearSecret, clearHeaders, clearStackId bool,
 	changed func(string) bool,
 ) (clients.UpdatePatch, error) {
 	f := McpUpdateFlags
@@ -321,6 +325,17 @@ func BuildMcpUpdatePatch(
 			return nil, err
 		}
 		if err := setJSON(patch, "headers", headers); err != nil {
+			return nil, err
+		}
+	}
+
+	switch {
+	case clearStackId && changed(f.StackId):
+		return nil, fmt.Errorf("--clear-stack-id cannot be combined with --stack-id")
+	case clearStackId:
+		patch["stackId"] = json.RawMessage("null")
+	case changed(f.StackId):
+		if err := setJSON(patch, "stackId", strings.TrimSpace(in.StackId)); err != nil {
 			return nil, err
 		}
 	}

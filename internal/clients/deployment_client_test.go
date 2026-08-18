@@ -1,9 +1,16 @@
 package clients
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/buildinfo"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNewDeploymentClient(t *testing.T) {
@@ -82,6 +89,98 @@ func TestNewDeploymentClient(t *testing.T) {
 			t.Errorf("hostname = %q, want %q", client.hostname, hostname)
 		}
 	})
+}
+
+func TestListRevisionsWithAttribution(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("User-Agent"); got != buildinfo.UserAgent {
+			t.Errorf("User-Agent = %q, want %q", got, buildinfo.UserAgent)
+		}
+		fmt.Fprint(w, `{"revisions":[{"revision":48,"updated":"2026-07-28T14:56:00Z",`+
+			`"status":"deployed","actor":{"type":"api_key","id":"key_123",`+
+			`"displayName":"silverspin-release"},"source":{"type":"cli",`+
+			`"version":"0.39.0"},"requestId":"req_abc123"}]}`)
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := NewDeploymentClient(server.URL, 5*time.Second, "test-token", "", nil)
+	if err != nil {
+		t.Fatalf("NewDeploymentClient() error = %v", err)
+	}
+	want := RevisionMeta{
+		Revision: 48,
+		Updated:  "2026-07-28T14:56:00Z",
+		Status:   "deployed",
+		Actor: &RevisionActor{
+			Type:        "api_key",
+			ID:          "key_123",
+			DisplayName: "silverspin-release",
+		},
+		Source:    &RevisionSource{Type: "cli", Version: "0.39.0"},
+		RequestID: "req_abc123",
+	}
+
+	tests := []struct {
+		name string
+		list func(context.Context, string, string, string) ([]RevisionMeta, error)
+	}{
+		{name: "agents", list: client.ListAgentRevisions},
+		{name: "services", list: client.ListServiceRevisions},
+		{name: "mcps", list: client.ListMcpRevisions},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			revisions, err := tt.list(t.Context(), "org-1", "project-1", "resource-1")
+			if err != nil {
+				t.Fatalf("list revisions: %v", err)
+			}
+			if len(revisions) != 1 {
+				t.Fatalf("len(revisions) = %d, want 1", len(revisions))
+			}
+
+			if diff := cmp.Diff(want, revisions[0]); diff != "" {
+				t.Errorf("revision mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestRevisionResponsesWithoutAttribution(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload string
+	}{
+		{
+			name:    "fields omitted",
+			payload: `{"revision":47,"updated":"2026-07-24T10:20:00Z","status":"deployed"}`,
+		},
+		{
+			name: "null historical fields",
+			payload: `{"revision":47,"updated":"2026-07-24T10:20:00Z",` +
+				`"status":"deployed","actor":null,"source":null}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var revision AgentRevisionResponse
+			if err := json.Unmarshal([]byte(tt.payload), &revision); err != nil {
+				t.Fatalf("decode old backend response: %v", err)
+			}
+			if revision.Revision != 47 {
+				t.Errorf("Revision = %d, want 47", revision.Revision)
+			}
+			if revision.Actor != nil || revision.Source != nil || revision.RequestID != "" {
+				t.Errorf(
+					"attribution = (%#v, %#v, %q), want empty",
+					revision.Actor,
+					revision.Source,
+					revision.RequestID,
+				)
+			}
+		})
+	}
 }
 
 func TestFormatAgentValidationError(t *testing.T) {

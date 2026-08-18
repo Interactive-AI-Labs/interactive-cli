@@ -29,6 +29,8 @@ iai traces list [flags]
   iai traces list --fields core,io,metrics
   iai traces list --json | jq '.data.traces[].name'
   iai traces list --columns id,name,latency,total_tokens,level
+  iai traces list --limit 50 --summary
+  iai traces list --level ERROR --summary --json
 ```
 
 ### Options
@@ -60,6 +62,7 @@ iai traces list [flags]
       --release string            Filter by release
       --search string             Search in trace name (max 200 characters)
       --session-id string         Filter by session ID
+      --summary                   Show conditions, decisions, tools, and results for each listed turn
       --tags stringArray          Filter by tags (repeatable)
       --to-timestamp string       Filter traces to this timestamp (ISO 8601)
       --user-id string            Filter by user ID

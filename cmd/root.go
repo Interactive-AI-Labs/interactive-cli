@@ -6,13 +6,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/buildinfo"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/versioncheck"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
 const (
-	version            = "0.38.7"
+	version            = buildinfo.Version
 	cfgDirName         = ".interactiveai"
 	sessionFileName    = "session_cookies.json"
 	defaultHTTPTimeout = 30 * time.Second

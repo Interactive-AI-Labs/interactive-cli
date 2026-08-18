@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,12 +9,14 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
@@ -24,6 +27,7 @@ var (
 	imageBuildContext  string
 	imageBuildPlatform string
 	imagePushTag       string
+	imagePushForce     bool
 	imageDeleteTag     string
 	imageDeleteForce   bool
 	imageOrganization  string
@@ -193,8 +197,15 @@ var imagePushCmd = &cobra.Command{
 	Use:     "push [image_name]",
 	Aliases: []string{"p"},
 	Short:   "Push an image for a project",
-	Long:    `Create a Docker image tarball and push it to the deployment images endpoint for a specific project.`,
+	Long: `Create a Docker image tarball and push it to the deployment images endpoint for a specific project.
+
+Pushing to a tag that already exists upstream replaces the previous image:
+the old bytes are unrecoverable and nothing records that the code changed.
+The push is refused when the tag already exists — prefer a fresh tag (or
+the git SHA), or pass --force when replacing is intended. The check fails
+open when the existing tags cannot be listed.`,
 	Example: `  iai images push my-service --tag 1.2.3
+  iai images push my-service --tag 1.2.3 --force
   iai images push my-service --tag 1.2.3 --organization my-org --project my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -218,6 +229,13 @@ var imagePushCmd = &cobra.Command{
 		}
 
 		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		if err != nil {
+			return err
+		}
+
+		deployClient, err := clients.NewDeploymentClient(
+			deploymentHostname, defaultHTTPTimeout, token, apiKey, cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -249,6 +267,23 @@ var imagePushCmd = &cobra.Command{
 		imageRef := fmt.Sprintf("%s:%s", imageName, imagePushTag)
 
 		if err := validateImageArchitecture(imageRef); err != nil {
+			return err
+		}
+
+		if err := refuseTagOverwrite(
+			cmd.ErrOrStderr(),
+			imagePushTag,
+			existingImageTag(
+				cmd.Context(),
+				cmd.ErrOrStderr(),
+				deployClient,
+				orgId,
+				projectId,
+				imageName,
+				imagePushTag,
+			),
+			imagePushForce,
+		); err != nil {
 			return err
 		}
 
@@ -298,7 +333,7 @@ var imagePushCmd = &cobra.Command{
 			return fmt.Errorf("failed to create request: %w", err)
 		}
 
-		if err := clients.ApplyAuth(req, token, apiKey, cookies); err != nil {
+		if err := clients.ApplyRequestHeaders(req, token, apiKey, cookies); err != nil {
 			return err
 		}
 
@@ -339,6 +374,43 @@ var imagePushCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func refuseTagOverwrite(errW io.Writer, tag string, exists, force bool) error {
+	if !exists {
+		return nil
+	}
+	if !force {
+		return fmt.Errorf(
+			"tag %s already exists upstream — pushing would replace it and the previous image is unrecoverable; pick a fresh tag, or pass --force to replace",
+			tag,
+		)
+	}
+	fmt.Fprintf(
+		errW,
+		"⚠ tag %s already exists upstream — pushing replaces it; the previous image is unrecoverable.\n",
+		tag,
+	)
+	return nil
+}
+
+func existingImageTag(
+	ctx context.Context,
+	errW io.Writer,
+	deployClient *clients.DeploymentClient,
+	orgId, projectId, imageName, tag string,
+) bool {
+	images, err := deployClient.ListImages(ctx, orgId, projectId)
+	if err != nil {
+		preflight.PrintFailOpenNote(errW, "list existing image tags", err)
+		return false
+	}
+	for _, img := range images {
+		if img.Name == imageName && slices.Contains(img.Tags, tag) {
+			return true
+		}
+	}
+	return false
 }
 
 func validateImageArchitecture(imageRef string) error {
@@ -397,6 +469,8 @@ func init() {
 		StringVarP(&imageOrganization, "organization", "o", "", "Organization name that owns the project")
 	imagePushCmd.Flags().
 		StringVarP(&imageProject, "project", "p", "", "Project name the image belongs to")
+	imagePushCmd.Flags().
+		BoolVar(&imagePushForce, "force", false, "Push even when the tag already exists upstream, replacing the previous image (unrecoverable)")
 	_ = imagePushCmd.MarkFlagRequired("tag")
 
 	rootCmd.AddCommand(imageCmd)

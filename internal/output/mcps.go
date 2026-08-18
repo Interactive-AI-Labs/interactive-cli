@@ -14,7 +14,7 @@ func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
 		fmt.Fprintln(out, "No mcps found.")
 		return nil
 	}
-	headers := []string{"NAME", "TYPE", "STATUS", "VERIFY", "TOOLS", "UPDATED"}
+	headers := []string{"NAME", "TYPE", "STATUS", "VERIFY", "TOOLS", "STACK", "UPDATED"}
 	rows := make([][]string, len(mcps))
 	for i, m := range mcps {
 		status := m.Status
@@ -31,6 +31,7 @@ func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
 			status,
 			verify,
 			fmt.Sprintf("%d", m.Verify.ToolCount),
+			m.StackId,
 			LocalTime(m.Updated),
 		}
 	}
@@ -54,6 +55,9 @@ func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", m.Name)
 	fmt.Fprintf(w, "Type:\t%s\n", m.Type)
+	if m.StackId != "" {
+		fmt.Fprintf(w, "Stack:\t%s\n", m.StackId)
+	}
 	fmt.Fprintf(w, "External URL:\t%s\n", m.EndpointURL)
 	fmt.Fprintf(w, "Path:\t%s\n", m.Path)
 	fmt.Fprintf(w, "Transport:\t%s\n", m.Transport)

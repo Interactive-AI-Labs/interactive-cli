@@ -94,32 +94,6 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 	return w.Flush()
 }
 
-func PrintAgentRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
-	if len(revisions) == 0 {
-		fmt.Fprintln(out, "No revisions found.")
-		return nil
-	}
-
-	latest := 0
-	for _, r := range revisions {
-		if r.Revision > latest {
-			latest = r.Revision
-		}
-	}
-
-	headers := []string{"", "REVISION", "UPDATED"}
-	rows := make([][]string, len(revisions))
-	for i, r := range revisions {
-		marker := ""
-		if r.Revision == latest {
-			marker = "*"
-		}
-		rows[i] = []string{marker, fmt.Sprintf("%d", r.Revision), LocalTime(r.Updated)}
-	}
-
-	return PrintTable(out, headers, rows)
-}
-
 func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
@@ -130,6 +104,7 @@ func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error
 	if rev.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(rev.Updated))
 	}
+	printRevisionAttribution(w, rev.RevisionMeta)
 
 	fmt.Fprintf(w, "Id:\t%s\n", rev.Id)
 	fmt.Fprintf(w, "Version:\t%s\n", rev.Version)

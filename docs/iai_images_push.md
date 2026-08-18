@@ -6,6 +6,12 @@ Push an image for a project
 
 Create a Docker image tarball and push it to the deployment images endpoint for a specific project.
 
+Pushing to a tag that already exists upstream replaces the previous image:
+the old bytes are unrecoverable and nothing records that the code changed.
+The push is refused when the tag already exists — prefer a fresh tag (or
+the git SHA), or pass --force when replacing is intended. The check fails
+open when the existing tags cannot be listed.
+
 ```
 iai images push [image_name] [flags]
 ```
@@ -14,12 +20,14 @@ iai images push [image_name] [flags]
 
 ```
   iai images push my-service --tag 1.2.3
+  iai images push my-service --tag 1.2.3 --force
   iai images push my-service --tag 1.2.3 --organization my-org --project my-project
 ```
 
 ### Options
 
 ```
+      --force                 Push even when the tag already exists upstream, replacing the previous image (unrecoverable)
   -h, --help                  help for push
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name the image belongs to

@@ -9,7 +9,14 @@ Sync services in a specific project from a stack configuration file.
 The sync command will:
 - Create services that exist in the config but not in the project
 - Update services that exist in both the config and the project
-- Delete services that exist in the project but not in the config (for the specified stack)
+- Delete services that exist in the project but not in the config, only
+  with --allow-delete=services; otherwise those deletions are refused and
+  reported on stderr while creates and updates still apply
+
+Updates replace the whole live spec of each service. For every service
+updated, the live revision being replaced is printed to stderr so a sync
+from a stale config file is visible before it lands. With
+--allow-delete=services, deletes run after service creates/updates.
 
 The project is selected with --project or via 'iai projects select', and the config file with --cfg-file.
 
@@ -67,9 +74,10 @@ services:
 ### Options
 
 ```
-  -h, --help                  help for sync
-  -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name to sync services in
+      --allow-delete strings   Resource types the sync may delete when the config omits them (services); deletions are refused otherwise
+  -h, --help                   help for sync
+  -o, --organization string    Organization name that owns the project
+  -p, --project string         Project name to sync services in
 ```
 
 ### Options inherited from parent commands
@@ -84,4 +92,3 @@ services:
 ### SEE ALSO
 
 * [iai services](iai_services.md)	 - Manage services
-

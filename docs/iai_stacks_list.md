@@ -1,27 +1,33 @@
-## iai services revisions
+## iai stacks list
 
-List revisions of a service
+List stacks in a project
 
 ### Synopsis
 
-Show past revisions of a service, sorted newest-first.
-Up to 50 revisions are retained per service. Server-recorded actor and source
-metadata is shown when available.
+List stacks and their resource counts (services, agents, databases, mcps)
+in a project. Stacks are discovered from the live resources that belong
+to them.
+
+The organization and project are read from flags or resolved via
+'iai organizations select' / 'iai projects select'.
 
 ```
-iai services revisions <service_name> [flags]
+iai stacks list [flags]
 ```
 
 ### Examples
 
 ```
-  iai services revisions my-service
+  iai stacks list
+  iai stacks list --json
+  iai stacks list -o my-org -p my-project
 ```
 
 ### Options
 
 ```
-  -h, --help                  help for revisions
+  -h, --help                  help for list
+      --json                  Output as JSON
   -o, --organization string   Organization name
   -p, --project string        Project name
 ```
@@ -37,5 +43,5 @@ iai services revisions <service_name> [flags]
 
 ### SEE ALSO
 
-* [iai services](iai_services.md)	 - Deploy and manage HTTP services
+* [iai stacks](iai_stacks.md)	 - Declarative resource sync from config files
 

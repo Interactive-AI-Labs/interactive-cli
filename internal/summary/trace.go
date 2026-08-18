@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -53,6 +54,12 @@ type KBRetrieval struct {
 	Count int      `json:"count"`
 }
 
+type TraceSummaryItem struct {
+	TraceID string             `json:"trace_id"`
+	Summary *TraceSummaryModel `json:"summary,omitempty"`
+	Error   string             `json:"error,omitempty"`
+}
+
 // TraceSummaryModel is the compact view of a single turn (one trace).
 type TraceSummaryModel struct {
 	Name       string       `json:"name"`
@@ -67,13 +74,21 @@ type TraceSummaryModel struct {
 	Errors     []string     `json:"errors,omitempty"`
 }
 
-// Observation span names the engine emits, matched when walking a turn's tree.
-const (
-	spanMatchGuidelines  = "match_guidelines"
-	spanExecuteToolCalls = "execute_tool_calls"
-	spanKBRetriever      = "retriever:knowledge_base"
-	spanFindSimilarDocs  = "find_similar_documents"
-	spanNextStep         = "next-step"
+var (
+	guidelineMatchSpans = map[string]bool{
+		"match_guidelines":        true,
+		"Evaluate: Context":       true,
+		"Evaluate: Routine steps": true,
+	}
+	toolExecutionSpans = map[string]bool{
+		"execute_tool_calls": true,
+		"Execute: Tools":     true,
+	}
+	kbRetrievalSpans = map[string]bool{
+		"retriever:knowledge_base": true,
+		"find_similar_documents":   true,
+		"Search: Documents":        true,
+	}
 )
 
 // Guideline match types the engine emits in match_guidelines output.
@@ -82,7 +97,7 @@ const (
 	matchTypeRoutineNode = "routine_node" // a selected journey follow-up
 )
 
-var iterationNameRe = regexp.MustCompile(`^preparation_iteration_(\d+)$`)
+var iterationNameRe = regexp.MustCompile(`^(?:preparation_iteration_|Iteration: )(\d+)$`)
 
 // Tool results are wrapped with engine metadata siblings around data.
 // Treat only known siblings as an envelope so real payload fields are preserved.
@@ -131,8 +146,10 @@ type nextStepOutput struct {
 }
 
 type iterNode struct {
-	num int
-	id  string
+	num      int
+	id       string
+	start    time.Time
+	hasStart bool
 }
 
 // TraceSummary builds a compact turn summary from trace observations.
@@ -155,28 +172,50 @@ func TraceSummary(trace *clients.TraceDetail, obs []clients.ObservationInfo) *Tr
 	return m
 }
 
-// indexTraceObservations groups observations by parent, collects error lines, and
-// returns the preparation-iteration nodes in ascending order.
 func indexTraceObservations(
 	obs []clients.ObservationInfo,
 ) (children map[string][]clients.ObservationInfo, iters []iterNode, errs []string) {
 	children = make(map[string][]clients.ObservationInfo, len(obs))
 	for _, o := range obs {
 		children[o.ParentObservationID] = append(children[o.ParentObservationID], o)
-		if strings.EqualFold(o.Level, "ERROR") {
-			msg := o.StatusMessage
-			if msg == "" {
-				msg = "error"
-			}
-			errs = append(errs, o.Name+": "+msg)
+		if line := statusLine(o); line != "" {
+			errs = append(errs, line)
 		}
 		if sm := iterationNameRe.FindStringSubmatch(o.Name); sm != nil {
 			n, _ := strconv.Atoi(sm[1])
-			iters = append(iters, iterNode{num: n, id: o.ID})
+			start, err := time.Parse(time.RFC3339Nano, o.StartTime)
+			iters = append(iters, iterNode{
+				num: n, id: o.ID, start: start, hasStart: err == nil,
+			})
 		}
 	}
-	sort.Slice(iters, func(i, j int) bool { return iters[i].num < iters[j].num })
+	sort.SliceStable(iters, func(i, j int) bool {
+		if iters[i].hasStart && iters[j].hasStart && !iters[i].start.Equal(iters[j].start) {
+			return iters[i].start.Before(iters[j].start)
+		}
+		if iters[i].hasStart != iters[j].hasStart {
+			return iters[i].hasStart
+		}
+		return iters[i].num < iters[j].num
+	})
 	return children, iters, errs
+}
+
+func statusLine(o clients.ObservationInfo) string {
+	switch {
+	case strings.EqualFold(o.Level, "ERROR"):
+		return o.Name + ": " + valueOr(o.StatusMessage, "error")
+	case strings.EqualFold(o.Level, "WARNING"):
+		return "WARNING — " + o.Name + ": " + valueOr(o.StatusMessage, "warning")
+	}
+	return ""
+}
+
+func valueOr(s, fallback string) string {
+	if s == "" {
+		return fallback
+	}
+	return s
 }
 
 // summarizeIteration builds one iteration from the observation subtree rooted at it.
@@ -190,8 +229,8 @@ func summarizeIteration(children map[string][]clients.ObservationInfo, it iterNo
 	var routines, decisions []string
 
 	for _, d := range descendants(children, it.id) {
-		switch d.Name {
-		case spanMatchGuidelines:
+		switch {
+		case guidelineMatchSpans[d.Name]:
 			if len(d.Output) == 0 {
 				continue
 			}
@@ -228,9 +267,9 @@ func summarizeIteration(children map[string][]clients.ObservationInfo, it iterNo
 					condScore[cond] = mm.Score
 				}
 			}
-		case spanNextStep:
+		case d.Name == "next-step" || strings.HasPrefix(d.Name, "Next step: "):
 			decisions = append(decisions, decisionRationale(d.Output))
-		case spanExecuteToolCalls:
+		case toolExecutionSpans[d.Name]:
 			for _, tool := range children[d.ID] {
 				tc := ToolCall{
 					Name:   tool.Name,
@@ -268,7 +307,7 @@ func knowledgeBase(obs []clients.ObservationInfo) *KBRetrieval {
 	rawMax := 0       // largest untitled (find_similar) retrieval
 	used := false
 	for _, o := range obs {
-		if o.Name != spanKBRetriever && o.Name != spanFindSimilarDocs {
+		if !kbRetrievalSpans[o.Name] {
 			continue
 		}
 		used = true

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
@@ -42,6 +43,7 @@ var (
 	tracesFields        string
 	tracesJSON          bool
 	tracesYAML          bool
+	tracesListSummary   bool
 	tracesGetFields     string
 	tracesGetJSON       bool
 	tracesGetYAML       bool
@@ -89,7 +91,9 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
   iai traces list --search "my query"
   iai traces list --fields core,io,metrics
   iai traces list --json | jq '.data.traces[].name'
-  iai traces list --columns id,name,latency,total_tokens,level`,
+  iai traces list --columns id,name,latency,total_tokens,level
+  iai traces list --limit 50 --summary
+  iai traces list --level ERROR --summary --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -169,6 +173,22 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 		)
 		if err != nil {
 			return err
+		}
+
+		if tracesListSummary {
+			items, err := traceSummariesFor(
+				cmd.Context(), apiClient, pCtx.orgId, pCtx.projectId, traces,
+			)
+			if err != nil {
+				return err
+			}
+			if tracesJSON {
+				return output.PrintStructuredJSON(out, items)
+			}
+			if tracesYAML {
+				return output.PrintStructuredYAML(out, items)
+			}
+			return output.PrintTraceSummaryList(out, items, meta)
 		}
 
 		if tracesJSON {
@@ -277,6 +297,42 @@ Uses the platform API with dual authentication (API key or session).`,
 		}
 		return output.PrintTraceDiff(out, model)
 	},
+}
+
+func traceSummariesFor(
+	ctx context.Context,
+	apiClient *clients.APIClient,
+	orgID, projectID string,
+	traces []clients.TraceInfo,
+) ([]summary.TraceSummaryItem, error) {
+	const workers = 8
+	items := make([]summary.TraceSummaryItem, len(traces))
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+	for i, t := range traces {
+		wg.Add(1)
+		go func(i int, traceID string) {
+			defer wg.Done()
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				items[i] = summary.TraceSummaryItem{TraceID: traceID, Error: ctx.Err().Error()}
+				return
+			}
+			defer func() { <-sem }()
+			model, err := traceSummaryFor(ctx, apiClient, orgID, projectID, traceID)
+			if err != nil {
+				items[i] = summary.TraceSummaryItem{TraceID: traceID, Error: err.Error()}
+				return
+			}
+			items[i] = summary.TraceSummaryItem{TraceID: traceID, Summary: model}
+		}(i, t.ID)
+	}
+	wg.Wait()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 // traceSummaryFor fetches a trace plus its observations and builds the summary
@@ -415,11 +471,15 @@ func init() {
 	// Output flags
 	tracesListCmd.Flags().BoolVar(&tracesJSON, "json", false, "Output raw API response as JSON")
 	tracesListCmd.Flags().BoolVar(&tracesYAML, "yaml", false, "Output raw API response as YAML")
+	tracesListCmd.Flags().BoolVar(&tracesListSummary, "summary", false,
+		"Show conditions, decisions, tools, and results for each listed turn")
 	tracesListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	// StringSliceVar (not StringArrayVar) so users can pass --columns id,name,cost as a comma-separated list.
 	// --tags and --environment use StringArrayVar to avoid splitting values that may contain commas.
 	tracesListCmd.Flags().
 		StringSliceVar(&tracesColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,name,timestamp,latency,cost,tags). Cannot be used with --json or --yaml.\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level")
+	tracesListCmd.MarkFlagsMutuallyExclusive("summary", "columns")
+	tracesListCmd.MarkFlagsMutuallyExclusive("summary", "fields")
 
 	// Org/project flags
 	tracesListCmd.Flags().

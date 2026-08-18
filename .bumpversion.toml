@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "0.38.7"
+current_version = "0.41.1"
 commit = true
 tag = false
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(-beta\\.(?P<dev>\\d+))?"
@@ -11,6 +11,6 @@ message = "Bump: {current_version} → {new_version}"
 tag_name = "v{new_version}"
 
 [[tool.bumpversion.files]]
-filename = "cmd/root.go"
-search = "version            = \"{current_version}\""
-replace = "version            = \"{new_version}\""
+filename = "internal/buildinfo/version.go"
+search = "\"{current_version}\""
+replace = "\"{new_version}\""

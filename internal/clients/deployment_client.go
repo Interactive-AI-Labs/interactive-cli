@@ -121,7 +121,7 @@ func NewDeploymentClient(
 }
 
 func (c *DeploymentClient) do(req *http.Request) (*http.Response, error) {
-	if err := ApplyAuth(req, c.token, c.apiKey, c.cookies); err != nil {
+	if err := ApplyRequestHeaders(req, c.token, c.apiKey, c.cookies); err != nil {
 		return nil, err
 	}
 	resp, err := c.httpClient.Do(req)
@@ -1243,10 +1243,24 @@ func (c *DeploymentClient) fetchLogs(
 // Agents
 // ---------------------------------------------------------------------------
 
+type RevisionActor struct {
+	Type        string `json:"type"`
+	ID          string `json:"id,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+}
+
+type RevisionSource struct {
+	Type    string `json:"type"`
+	Version string `json:"version,omitempty"`
+}
+
 type RevisionMeta struct {
-	Revision int    `json:"revision"`
-	Updated  string `json:"updated,omitempty"`
-	Status   string `json:"status"`
+	Revision  int             `json:"revision"`
+	Updated   string          `json:"updated,omitempty"`
+	Status    string          `json:"status"`
+	Actor     *RevisionActor  `json:"actor,omitempty"`
+	Source    *RevisionSource `json:"source,omitempty"`
+	RequestID string          `json:"requestId,omitempty"`
 }
 
 type revisionsResponse struct {

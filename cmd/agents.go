@@ -41,6 +41,10 @@ var (
 	agentClearSecret   bool
 	agentClearStackId  bool
 
+	agentExpectRevision int
+	agentShowDiff       bool
+	agentForce          bool
+
 	agentStackId string
 
 	agentListJSON      bool
@@ -164,9 +168,25 @@ remove those configurations entirely.
 --detach-mcp removes an mcp reference (bare or resolved) by name; combine
 with --mcp in the same command to swap one for another. Detach an mcp before
 deleting it — 'iai mcps delete' blocks by default while an agent still
-references it.`,
+references it.
+
+Before applying, the CLI prints deploy-awareness output to stderr: the live
+revision this update replaces; the names of any env vars or secret refs that
+--env/--secret would drop from the live agent (the flags replace the entire
+list); and — when the update replaces the agent config — a summary of
+content pin changes (a stale local manifest silently reverts colleagues'
+work). The update is refused when it would downgrade or remove a live
+content pin, or drop live env vars or secret refs via --env/--secret; pass
+--force to apply anyway. --clear-env and --clear-secret never trigger the
+gate: clearing is explicit intent. Changes in unrecognized pin-shaped config
+sections warn without blocking. The checks fail open when live state cannot
+be fetched; use --expect-revision to fail instead when the live revision
+differs from what you expect, and --show-diff for a full live-vs-incoming
+config diff.`,
 	Example: `  iai agents update chat-agent --version 0.0.3
   iai agents update chat-agent --file agent-config.yaml
+  iai agents update chat-agent --file agent-config.yaml --expect-revision 13
+  iai agents update chat-agent --file agent-config.yaml --show-diff
   iai agents update chat-agent --endpoint=false
   iai agents update chat-agent --schedule-uptime "Mon-Fri 07:30-20:30" --schedule-timezone Europe/Berlin
   iai agents update chat-agent --clear-schedule
@@ -177,6 +197,7 @@ references it.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
+		errW := cmd.ErrOrStderr()
 		agentName := strings.TrimSpace(args[0])
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
@@ -202,16 +223,32 @@ references it.`,
 			return err
 		}
 
-		mcpFlagsChanged := cmd.Flags().Changed("mcp") || cmd.Flags().Changed("detach-mcp")
-		if mcpFlagsChanged && !cmd.Flags().Changed("file") {
-			// No --file: overlay onto the agent's current config instead of requiring the whole config resupplied.
-			current, describeErr := deployClient.DescribeAgent(
-				cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
-			)
-			if describeErr != nil {
-				return describeErr
+		mcpOverlay := (cmd.Flags().Changed("mcp") ||
+			cmd.Flags().Changed("detach-mcp")) &&
+			!cmd.Flags().Changed("file")
+		if len(patch) == 0 && !mcpOverlay {
+			return fmt.Errorf("no fields to update; pass at least one flag")
+		}
+		if agentShowDiff {
+			if _, replacesConfig := patch["agentConfig"]; !replacesConfig && !mcpOverlay {
+				return fmt.Errorf("--show-diff requires --file, --mcp, or --detach-mcp")
 			}
-			detached, detachErr := inputs.DetachMcpRefs(current.AgentConfig, agentDetachMcpNames)
+		}
+
+		live, liveErr := deployClient.DescribeAgent(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
+		)
+
+		if mcpOverlay {
+			if liveErr != nil {
+				return liveErr
+			}
+			// Overlay mutates in place; copy so pin/diff still see live state.
+			liveCopy, copyErr := cloneJSON(live.AgentConfig)
+			if copyErr != nil {
+				return fmt.Errorf("failed to copy agent config: %w", copyErr)
+			}
+			detached, detachErr := inputs.DetachMcpRefs(liveCopy, agentDetachMcpNames)
 			if detachErr != nil {
 				return detachErr
 			}
@@ -225,8 +262,32 @@ references it.`,
 			}
 			patch["agentConfig"] = json.RawMessage(raw)
 		}
-		if len(patch) == 0 {
-			return fmt.Errorf("no fields to update; pass at least one flag")
+
+		var liveRevision int
+		var liveUpdated string
+		if liveErr == nil {
+			liveRevision, liveUpdated = live.Revision, live.Updated
+		}
+		if err := runUpdatePreflight(
+			errW, liveRevision, liveUpdated, liveErr,
+			cmd.Flags().Changed("expect-revision"), agentExpectRevision,
+		); err != nil {
+			return err
+		}
+		var droppedEntries, pinRollback bool
+		if liveErr == nil {
+			droppedEntries = printDroppedEnvSecretWarnings(
+				errW,
+				cmd.Flags().Changed("env"), cmd.Flags().Changed("secret"),
+				live.Env, live.SecretRefs,
+				agentEnvVars, agentSecretRefs,
+			)
+		}
+		if rawCfg, ok := patch["agentConfig"]; ok && liveErr == nil {
+			pinRollback = printConfigPreflight(errW, live.AgentConfig, rawCfg, agentShowDiff)
+		}
+		if err := checkUpdateGates(agentForce, pinRollback, droppedEntries); err != nil {
+			return err
 		}
 
 		fmt.Fprintln(out)
@@ -297,9 +358,10 @@ var agentDescribeCmd = &cobra.Command{
 	Short:   "Describe an agent in detail",
 	Long: `Show detailed information about a specific agent including its configuration.
 
-Use --version to view a specific past version instead of the current state.`,
+Use --revision to view a specific past revision instead of the current state.
+Past revision output includes server-recorded actor and source attribution when available.`,
 	Example: `  iai agents describe my-agent
-  iai agents describe my-agent --version 3
+  iai agents describe my-agent --revision 3
   iai agents describe my-agent --yaml`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -734,7 +796,8 @@ var agentRevisionsCmd = &cobra.Command{
 	Aliases: []string{"revs"},
 	Short:   "List revisions of an agent",
 	Long: `Show past revisions of an agent, sorted newest-first.
-Up to 50 revisions are retained per agent.`,
+Up to 50 revisions are retained per agent. Server-recorded actor and source
+metadata is shown when available.`,
 	Example: `  iai agents revisions my-agent`,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -756,7 +819,7 @@ Up to 50 revisions are retained per agent.`,
 			return err
 		}
 
-		return output.PrintAgentRevisions(out, revisions)
+		return output.PrintRevisions(out, revisions)
 	},
 }
 
@@ -899,6 +962,18 @@ Use the reported field names with 'iai agents logs --fields' to include them in 
 	},
 }
 
+func cloneJSON(v any) (any, error) {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var out any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func init() {
 	// Flags for "agents create"
 	agentCreateCmd.Flags().
@@ -968,6 +1043,12 @@ func init() {
 		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps")
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)")
+	agentUpdateCmd.Flags().
+		IntVar(&agentExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentShowDiff, "show-diff", false, "Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentForce, "force", false, "Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().
