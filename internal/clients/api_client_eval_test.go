@@ -168,69 +168,63 @@ func TestAPIClientListQueueItems(t *testing.T) {
 	}
 }
 
-func TestAPIClientDeleteAnnotationQueue(t *testing.T) {
-	wantPath := "/api/platform/v1/organizations/org-1/projects/proj-1/annotation-queues/q-1"
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			t.Errorf("method = %s, want DELETE", r.Method)
-		}
-		if r.URL.Path != wantPath {
-			t.Errorf("path = %s, want %s", r.URL.Path, wantPath)
-		}
-		_, _ = io.WriteString(
-			w,
-			`{"success":true,"data":{"message":"Annotation queue deleted"}}`,
-		)
-	}))
-	defer server.Close()
+func TestAPIClientDeleteQueueResources(t *testing.T) {
+	const base = "/api/platform/v1/organizations/org-1/projects/proj-1/annotation-queues"
 
-	client := newEvalTestClient(t, server.URL)
-	message, err := client.DeleteAnnotationQueue(
-		context.Background(),
-		"org-1",
-		"proj-1",
-		"q-1",
-	)
-	if err != nil {
-		t.Fatalf("DeleteAnnotationQueue() error = %v", err)
+	tests := []struct {
+		name        string
+		wantPath    string
+		body        string
+		wantMessage string
+		call        func(*APIClient) (string, error)
+	}{
+		{
+			name:        "delete annotation queue",
+			wantPath:    base + "/q-1",
+			body:        `{"success":true,"data":{"message":"Annotation queue deleted"}}`,
+			wantMessage: "Annotation queue deleted",
+			call: func(c *APIClient) (string, error) {
+				return c.DeleteAnnotationQueue(context.Background(), "org-1", "proj-1", "q-1")
+			},
+		},
+		{
+			name:        "delete queue item without an API key",
+			wantPath:    base + "/q-1/items/i-1",
+			body:        `{"success":true,"data":{"message":"Annotation queue item deleted"}}`,
+			wantMessage: "Annotation queue item deleted",
+			call: func(c *APIClient) (string, error) {
+				return c.DeleteQueueItem(context.Background(), "org-1", "proj-1", "q-1", "i-1")
+			},
+		},
 	}
-	if message != "Annotation queue deleted" {
-		t.Fatalf("message = %q, want %q", message, "Annotation queue deleted")
-	}
-}
 
-func TestAPIClientDeleteQueueItemWithoutAPIKey(t *testing.T) {
-	wantPath := "/api/platform/v1/organizations/org-1/projects/proj-1/" +
-		"annotation-queues/q-1/items/i-1"
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			t.Errorf("method = %s, want DELETE", r.Method)
-		}
-		if r.URL.Path != wantPath {
-			t.Errorf("path = %s, want %s", r.URL.Path, wantPath)
-		}
-		_, _ = io.WriteString(
-			w,
-			`{"success":true,"data":{"message":"Annotation queue item deleted"}}`,
-		)
-	}))
-	defer server.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Method != http.MethodDelete {
+						t.Errorf("method = %s, want DELETE", r.Method)
+					}
+					if r.URL.Path != tt.wantPath {
+						t.Errorf("path = %s, want %s", r.URL.Path, tt.wantPath)
+					}
+					_, _ = io.WriteString(w, tt.body)
+				}),
+			)
+			defer server.Close()
 
-	client := newEvalTestClient(t, server.URL)
-	if client.isApiKeyMode {
-		t.Fatal("test client should be in bearer-token mode")
-	}
-	message, err := client.DeleteQueueItem(
-		context.Background(),
-		"org-1",
-		"proj-1",
-		"q-1",
-		"i-1",
-	)
-	if err != nil {
-		t.Fatalf("DeleteQueueItem() error = %v", err)
-	}
-	if message != "Annotation queue item deleted" {
-		t.Fatalf("message = %q, want %q", message, "Annotation queue item deleted")
+			client := newEvalTestClient(t, server.URL)
+			if client.isApiKeyMode {
+				t.Fatal("test client should be in bearer-token mode")
+			}
+
+			message, err := tt.call(client)
+			if err != nil {
+				t.Fatalf("delete error = %v", err)
+			}
+			if message != tt.wantMessage {
+				t.Fatalf("message = %q, want %q", message, tt.wantMessage)
+			}
+		})
 	}
 }
