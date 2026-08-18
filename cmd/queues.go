@@ -39,6 +39,9 @@ var (
 	queuesUnassignUserID  string
 	queuesUnassignOrg     string
 	queuesUnassignProject string
+
+	queuesDeleteOrg     string
+	queuesDeleteProject string
 )
 
 var queuesCmd = &cobra.Command{
@@ -287,6 +290,44 @@ This command requires API key authentication.`,
 	},
 }
 
+var queuesDeleteCmd = &cobra.Command{
+	Use:     "delete <id>",
+	Aliases: []string{"rm"},
+	Short:   "Delete an annotation queue",
+	Long: `Delete an annotation queue and every item in it.
+
+This command requires Cookie or Bearer authentication; API keys are rejected by the API.`,
+	Example: `  iai queues delete queue-123
+  iai queues delete queue-123 -o my-org -p my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		queueID := strings.TrimSpace(args[0])
+
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			queuesDeleteOrg,
+			queuesDeleteProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		message, err := apiClient.DeleteAnnotationQueue(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			queueID,
+		)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintDeleteSuccess(out, queueID, "annotation queue", message)
+	},
+}
+
 func init() {
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
@@ -349,10 +390,16 @@ func init() {
 	queuesUnassignCmd.Flags().
 		StringVarP(&queuesUnassignProject, "project", "p", "", "Project name")
 
+	queuesDeleteCmd.Flags().
+		StringVarP(&queuesDeleteOrg, "organization", "o", "", "Organization name that owns the project")
+	queuesDeleteCmd.Flags().
+		StringVarP(&queuesDeleteProject, "project", "p", "", "Project name")
+
 	queuesCmd.AddCommand(
 		queuesListCmd,
 		queuesGetCmd,
 		queuesCreateCmd,
+		queuesDeleteCmd,
 		queuesAssignCmd,
 		queuesUnassignCmd,
 	)

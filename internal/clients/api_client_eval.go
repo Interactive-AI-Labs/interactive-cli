@@ -606,6 +606,15 @@ func (c *APIClient) GetAnnotationQueue(
 	return &data.Queue, raw, nil
 }
 
+func (c *APIClient) DeleteAnnotationQueue(
+	ctx context.Context,
+	orgID, projectID, queueID string,
+) (string, error) {
+	path := evalBasePath(orgID, projectID) + "/annotation-queues/" +
+		url.PathEscape(queueID)
+	return c.doDelete(ctx, path, "delete annotation queue")
+}
+
 func (c *APIClient) CreateAnnotationQueue(
 	ctx context.Context,
 	orgID, projectID string,
@@ -797,9 +806,6 @@ func (c *APIClient) DeleteQueueItem(
 	ctx context.Context,
 	orgID, projectID, queueID, itemID string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return "", err
-	}
 	path := queueItemsPath(orgID, projectID, queueID) + "/" + url.PathEscape(itemID)
 	return c.doDelete(ctx, path, "delete queue item")
 }
