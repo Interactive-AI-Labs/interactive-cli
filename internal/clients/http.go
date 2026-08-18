@@ -118,6 +118,17 @@ func ExtractServerMessage(body []byte) string {
 		}
 	}
 
+	var pm struct {
+		Data struct {
+			Message string `json:"message"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &pm); err == nil {
+		if msg := strings.TrimSpace(pm.Data.Message); msg != "" {
+			return msg
+		}
+	}
+
 	if msg := strings.TrimSpace(string(body)); msg != "" {
 		return msg
 	}
