@@ -30,23 +30,3 @@ func ValidatePagination(page, limit int) error {
 	}
 	return nil
 }
-
-var validSortOrders = []string{"asc", "desc"}
-
-func ValidateSorting(sortBy, sortOrder string, allowedFields []string) error {
-	if sortBy != "" && !slices.Contains(allowedFields, sortBy) {
-		return fmt.Errorf(
-			"invalid sort-by %q: must be one of %s",
-			sortBy,
-			strings.Join(allowedFields, ", "),
-		)
-	}
-	if sortOrder != "" && !slices.Contains(validSortOrders, sortOrder) {
-		return fmt.Errorf(
-			"invalid sort-order %q: must be one of %s",
-			sortOrder,
-			strings.Join(validSortOrders, ", "),
-		)
-	}
-	return nil
-}
