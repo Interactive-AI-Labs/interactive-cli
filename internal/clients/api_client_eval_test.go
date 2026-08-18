@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -21,7 +23,7 @@ func newEvalTestClient(t *testing.T, baseURL string) *APIClient {
 func newListTestServer(
 	t *testing.T,
 	wantPath string,
-	wantQuery map[string]string,
+	wantQuery url.Values,
 	body string,
 ) *httptest.Server {
 	t.Helper()
@@ -32,11 +34,8 @@ func newListTestServer(
 		if r.URL.Path != wantPath {
 			t.Errorf("path = %s, want %s", r.URL.Path, wantPath)
 		}
-		query := r.URL.Query()
-		for key, want := range wantQuery {
-			if got := query.Get(key); got != want {
-				t.Errorf("%s = %q, want %q", key, got, want)
-			}
+		if got := r.URL.Query(); !reflect.DeepEqual(got, wantQuery) {
+			t.Errorf("query = %v, want %v", got, wantQuery)
 		}
 		_, _ = io.WriteString(w, body)
 	}))
@@ -51,22 +50,29 @@ func TestAPIClientListAnnotationQueues(t *testing.T) {
 	tests := []struct {
 		name      string
 		opts      AnnotationQueueListOptions
-		wantQuery map[string]string
+		wantQuery url.Values
 	}{
 		{
 			name:      "omits sorting when unset",
 			opts:      AnnotationQueueListOptions{Page: 1},
-			wantQuery: map[string]string{"sort_by": "", "sort_order": ""},
+			wantQuery: url.Values{"page": {"1"}},
 		},
 		{
-			name:      "sends sort_by alone",
-			opts:      AnnotationQueueListOptions{Page: 1, SortBy: "name"},
-			wantQuery: map[string]string{"sort_by": "name", "sort_order": ""},
+			name: "sends sort_by alone",
+			opts: AnnotationQueueListOptions{Page: 1, SortBy: "name"},
+			wantQuery: url.Values{
+				"page":    {"1"},
+				"sort_by": {"name"},
+			},
 		},
 		{
-			name:      "sends sort_by and sort_order",
-			opts:      AnnotationQueueListOptions{Page: 1, SortBy: "name", SortOrder: "asc"},
-			wantQuery: map[string]string{"sort_by": "name", "sort_order": "asc"},
+			name: "sends sort_by and sort_order",
+			opts: AnnotationQueueListOptions{Page: 1, SortBy: "name", SortOrder: "asc"},
+			wantQuery: url.Values{
+				"page":       {"1"},
+				"sort_by":    {"name"},
+				"sort_order": {"asc"},
+			},
 		},
 	}
 
@@ -107,17 +113,20 @@ func TestAPIClientListQueueItems(t *testing.T) {
 	tests := []struct {
 		name      string
 		opts      QueueItemListOptions
-		wantQuery map[string]string
+		wantQuery url.Values
 	}{
 		{
-			name:      "omits sorting when unset",
+			name:      "omits sorting and status when unset",
 			opts:      QueueItemListOptions{Page: 1},
-			wantQuery: map[string]string{"status": "", "sort_by": "", "sort_order": ""},
+			wantQuery: url.Values{"page": {"1"}},
 		},
 		{
-			name:      "sends sort_by alone",
-			opts:      QueueItemListOptions{Page: 1, SortBy: "status"},
-			wantQuery: map[string]string{"sort_by": "status", "sort_order": ""},
+			name: "sends sort_by alone",
+			opts: QueueItemListOptions{Page: 1, SortBy: "status"},
+			wantQuery: url.Values{
+				"page":    {"1"},
+				"sort_by": {"status"},
+			},
 		},
 		{
 			name: "sends status alongside sorting",
@@ -127,10 +136,11 @@ func TestAPIClientListQueueItems(t *testing.T) {
 				SortBy:    "completed_at",
 				SortOrder: "desc",
 			},
-			wantQuery: map[string]string{
-				"status":     "PENDING",
-				"sort_by":    "completed_at",
-				"sort_order": "desc",
+			wantQuery: url.Values{
+				"page":       {"1"},
+				"status":     {"PENDING"},
+				"sort_by":    {"completed_at"},
+				"sort_order": {"desc"},
 			},
 		},
 	}
