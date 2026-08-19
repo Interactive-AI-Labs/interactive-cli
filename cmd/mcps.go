@@ -2,11 +2,15 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/auth"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -15,6 +19,7 @@ import (
 var (
 	mcpProject      string
 	mcpOrganization string
+	mcpDescription  string
 )
 
 var (
@@ -55,16 +60,17 @@ var (
 )
 
 var (
-	mcpListJSON     bool
-	mcpListYAML     bool
-	mcpDescribeJSON bool
-	mcpDescribeYAML bool
-	mcpCatalogJSON  bool
-	mcpCatalogYAML  bool
-	mcpVerifyJSON   bool
-	mcpVerifyYAML   bool
-	mcpToolsJSON    bool
-	mcpToolsYAML    bool
+	mcpListJSON         bool
+	mcpListYAML         bool
+	mcpDescribeJSON     bool
+	mcpDescribeYAML     bool
+	mcpCatalogJSON      bool
+	mcpCatalogYAML      bool
+	mcpConnectNoBrowser bool
+	mcpVerifyJSON       bool
+	mcpVerifyYAML       bool
+	mcpToolsJSON        bool
+	mcpToolsYAML        bool
 )
 
 var mcpsCmd = &cobra.Command{
@@ -123,18 +129,23 @@ configured, don't assume).
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
-derived from the catalog entry. Pass an auth type the entry supports; catalog
-entries provide their own credential header and prefix.
+derived from the catalog entry, which provides its own credential header and
+prefix. The entry decides the auth type — omit --auth-type unless it accepts
+more than one, in which case the error names the options.
 
 The mcp is verified against the live server before it's kept: an internal mcp
 is verified once its status is healthy (checked in the background — see 'iai
 mcps describe'); an external mcp (custom or catalog) is verified immediately,
-and the create fails if the server is unreachable or rejects the credential.`,
+and the create fails if the server is unreachable or rejects the credential.
+An --auth-type oauth mcp is the exception: there is no credential until the
+user signs in, so it is created unverified and reports no tools until then.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
-  iai mcps create github --catalog-id github --credential-stdin < token.txt`,
+  iai mcps create github --catalog-id github --credential-stdin < token.txt
+  iai mcps create notion --catalog-id notion
+  iai mcps create newrelic --catalog-id newrelic --auth-type oauth`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -145,54 +156,139 @@ and the create fails if the server is unreachable or rejects the credential.`,
 			return err
 		}
 
-		reqBody, err := inputs.BuildMcpRequestBody(inputs.McpInput{
-			Type:             mcpType,
-			Port:             mcpPort,
-			Path:             mcpPath,
-			ImageType:        mcpImageType,
-			ImageRepository:  mcpImageRepository,
-			ImageName:        mcpImageName,
-			ImageTag:         mcpImageTag,
-			Memory:           mcpMemory,
-			CPU:              mcpCPU,
-			EnvVars:          mcpEnvVars,
-			SecretRefs:       mcpSecretRefs,
-			EndpointURL:      mcpEndpointURL,
-			CatalogID:        mcpCatalogID,
-			AuthType:         mcpAuthType,
-			Credential:       cred,
-			AuthHeader:       mcpAuthHeader,
-			AuthHeaderPrefix: mcpAuthHeaderPfx,
-			Headers:          mcpHeaders,
-			StackId:          mcpStackId,
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		backend := clients.McpBackendExternal
+		if mcpImageName != "" {
+			backend = clients.McpBackendInternal
+		}
+		if mcpCatalogID != "" && cred == "" {
+			entry, catErr := catalogEntry(cmd.Context(), apiClient, pCtx, mcpCatalogID)
+			if catErr != nil {
+				return catErr
+			}
+			if len(entry.GrantsAllowed) > 0 && len(entry.AuthMethods) == 0 {
+				return fmt.Errorf(
+					"catalog entry %q requires a sign-in; run create, then 'iai mcps connect %s'",
+					mcpCatalogID, mcpName,
+				)
+			}
+			if mcpAuthType == "" && len(entry.AuthMethods) == 1 {
+				mcpAuthType = entry.AuthMethods[0]
+			}
+		}
+
+		endpointURL := mcpEndpointURL
+		if mcpCatalogID != "" {
+			endpointURL = "" // the catalog entry owns the endpoint
+		}
+		var workload *clients.McpWorkload
+		if backend == clients.McpBackendInternal {
+			if mcpImageTag == "" {
+				return fmt.Errorf("internal mcp requires --image-tag")
+			}
+			port := mcpPort
+			if port == 0 {
+				port = 3000
+			}
+			path := mcpPath
+			if path == "" {
+				path = "/mcp"
+			}
+			memory := mcpMemory
+			if memory == "" {
+				memory = "128M"
+			}
+			cpu := mcpCPU
+			if cpu == "" {
+				cpu = "100m"
+			}
+			workload = &clients.McpWorkload{
+				Image:  mcpImageName + ":" + mcpImageTag,
+				Port:   port,
+				Path:   path,
+				Memory: memory,
+				CPU:    cpu,
+			}
+		}
+
+		auth := clients.McpAuth{Type: mcpAuthTypeOr(backend, mcpAuthType, cred)}
+		if cred != "" {
+			auth.Credential = &cred
+		}
+		res, raw, err := apiClient.CreateMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, clients.McpCreateRequest{
+			Name:        mcpName,
+			Backend:     backend,
+			CatalogID:   strPtr(mcpCatalogID),
+			EndpointURL: strPtr(endpointURL),
+			Transport:   "streamable_http",
+			Auth:        auth,
+			Workload:    workload,
 		})
 		if err != nil {
 			return err
 		}
+		_ = raw
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
-		if err != nil {
-			return err
-		}
-
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting mcp creation request...")
-
-		serverMessage, err := deployClient.CreateMcp(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			mcpName,
-			reqBody,
-		)
-		if err != nil {
-			return err
-		}
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
+		if mcpAuthType == "oauth" || (mcpCatalogID != "" && cred == "") {
+			fmt.Fprintf(out, "Created %s — it needs a sign-in before it can be used.\n  iai mcps connect %s\n", mcpName, mcpName)
+		} else {
+			fmt.Fprintf(out, "Created %s — %s\n", mcpName, res.Data.Mcp.Backend)
 		}
 		return nil
 	},
+}
+
+// helpers shared by the migrated mcps commands
+
+func strPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func ptrOr[T any](p *T, fallback T) T {
+	if p == nil {
+		return fallback
+	}
+	return *p
+}
+
+func mcpAuthTypeOr(backend clients.McpBackend, explicit string, cred string) string {
+	if explicit != "" {
+		return explicit
+	}
+	if backend == clients.McpBackendInternal {
+		return "none"
+	}
+	if cred != "" {
+		return "bearer"
+	}
+	return "none"
+}
+
+func mcpWorkloadFrom(imageName, imageTag string, port int, path, memory, cpu string) *clients.McpWorkload {
+	if imageName == "" && imageTag == "" && port == 0 && path == "" && memory == "" && cpu == "" {
+		return nil
+	}
+	w := &clients.McpWorkload{Image: imageName + ":" + imageTag, Port: port, Path: path, Memory: memory, CPU: cpu}
+	if w.Port == 0 {
+		w.Port = 3000
+	}
+	if w.Path == "" {
+		w.Path = "/mcp"
+	}
+	if w.Memory == "" {
+		w.Memory = "128M"
+	}
+	if w.CPU == "" {
+		w.CPU = "100m"
+	}
+	return w
 }
 
 var mcpUpdateCmd = &cobra.Command{
@@ -222,52 +318,40 @@ to it. Auth routing cannot change while agents are attached — detach them firs
 			return err
 		}
 
-		patch, err := inputs.BuildMcpUpdatePatch(inputs.McpInput{
-			Port:             mcpPort,
-			Path:             mcpPath,
-			ImageType:        mcpImageType,
-			ImageRepository:  mcpImageRepository,
-			ImageName:        mcpImageName,
-			ImageTag:         mcpImageTag,
-			Memory:           mcpMemory,
-			CPU:              mcpCPU,
-			EnvVars:          mcpEnvVars,
-			SecretRefs:       mcpSecretRefs,
-			AuthType:         mcpAuthType,
-			Credential:       cred,
-			AuthHeader:       mcpAuthHeader,
-			AuthHeaderPrefix: mcpAuthHeaderPfx,
-			Headers:          mcpHeaders,
-			StackId:          mcpStackId,
-		}, mcpClearEnv, mcpClearSecret, mcpClearHeaders, mcpClearStackId, cmd.Flags().Changed)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
 			return err
+		}
+
+		// The unified API patches the same halves the create body covers:
+		// description, endpoint_url, auth, or the internal workload.
+		patch := map[string]any{}
+
+		if mcpDescription != "" {
+			patch["description"] = mcpDescription
+		}
+		if mcpEndpointURL != "" && mcpCatalogID == "" {
+			patch["endpoint_url"] = mcpEndpointURL
+		}
+		if mcpAuthType != "" {
+			auth := clients.McpAuth{Type: mcpAuthType}
+			if cred != "" {
+				auth.Credential = &cred
+			}
+			patch["auth"] = auth
+		}
+		if workload := mcpWorkloadFrom(mcpImageName, mcpImageTag, mcpPort, mcpPath, mcpMemory, mcpCPU); workload != nil {
+			patch["workload"] = workload
 		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update; pass at least one flag")
 		}
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		res, _, err := apiClient.UpdateMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, patch)
 		if err != nil {
 			return err
 		}
-
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, "Submitting mcp update request...")
-
-		serverMessage, err := deployClient.PatchMcp(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			mcpName,
-			patch,
-		)
-		if err != nil {
-			return err
-		}
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
-		}
+		fmt.Fprintf(out, "Updated %s — %s\n", mcpName, res.Data.Mcp.Backend)
 		return nil
 	},
 }
@@ -282,23 +366,23 @@ var mcpListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
 			return err
 		}
 
-		mcps, err := deployClient.ListMcps(cmd.Context(), pCtx.orgId, pCtx.projectId, "")
+		res, raw, err := apiClient.ListMcps(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
 		}
 
 		if mcpListJSON {
-			return output.PrintStructuredJSON(out, mcps)
+			return output.PrintRawJSON(out, raw)
 		}
 		if mcpListYAML {
-			return output.PrintStructuredYAML(out, mcps)
+			return output.PrintRawYAML(out, raw)
 		}
-		return output.PrintMcpList(out, mcps)
+		return output.PrintMcpList(out, res.Data.Mcps)
 	},
 }
 
@@ -315,23 +399,23 @@ verify result — a tool count, not the tool list itself (see 'iai mcps tools').
 		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
 			return err
 		}
 
-		res, err := deployClient.DescribeMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		res, raw, err := apiClient.DescribeMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
 		if err != nil {
 			return err
 		}
 
 		if mcpDescribeJSON {
-			return output.PrintStructuredJSON(out, res)
+			return output.PrintRawJSON(out, raw)
 		}
 		if mcpDescribeYAML {
-			return output.PrintStructuredYAML(out, res)
+			return output.PrintRawYAML(out, raw)
 		}
-		return output.PrintMcpDetail(out, res)
+		return output.PrintMcpDetail(out, &res.Data.Mcp)
 	},
 }
 
@@ -347,25 +431,22 @@ describe' only shows a count; use this to see the tools themselves.`,
 		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
 			return err
 		}
 
-		res, err := deployClient.GetMcpTools(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		res, raw, err := apiClient.ListMcpTools(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
 		if err != nil {
 			return err
 		}
 		if mcpToolsJSON {
-			return output.PrintStructuredJSON(out, res.Tools)
+			return output.PrintRawJSON(out, raw)
 		}
 		if mcpToolsYAML {
-			return output.PrintStructuredYAML(out, res.Tools)
+			return output.PrintRawYAML(out, raw)
 		}
-		return output.PrintMcpTools(
-			out, res.Tools,
-			res.ToolsAdded, res.ToolsRemoved, res.ChangedFromRevision,
-		)
+		return output.PrintMcpTools(out, res.Data.Tools)
 	},
 }
 
@@ -440,6 +521,97 @@ what changed since the previous verify.`,
 	},
 }
 
+// catalogEntry finds the entry so create can act on what it accepts.
+func catalogEntry(
+	ctx context.Context, apiClient *clients.APIClient, pCtx *projectContext, catalogID string,
+) (*clients.McpCatalogEntry, error) {
+	catalog, _, err := apiClient.ListMcpCatalog(ctx, pCtx.orgId, pCtx.projectId)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range catalog.Entries {
+		if entry.ID == catalogID {
+			return &entry, nil
+		}
+	}
+	return nil, fmt.Errorf("no catalog entry %q — see 'iai mcps catalog'", catalogID)
+}
+
+var mcpConnectCmd = &cobra.Command{
+	Use:   "connect <mcp_name>",
+	Short: "Sign in to an mcp that authenticates with your account",
+	Long: `Open a browser and approve access, so the mcp can be used.
+
+The sign-in runs against the gateway that fronts the provider: it keeps the
+token and renews it, so this is normally needed once. Run it again if access is
+revoked at the provider, or to approve different permissions.
+
+The account you sign in with is shared — every agent and everyone in the project
+uses this connection, the provider's audit log shows your name, and the
+connection stops working if your access does.`,
+	Example: `  iai mcps connect notion-demo
+  iai mcps connect notion-demo --no-browser`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+
+		started, _, err := apiClient.BeginMcpSignIn(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		if err != nil {
+			return err
+		}
+		if mcpConnectNoBrowser {
+			fmt.Fprintf(out, "Open this to sign in:\n  %s\n", started.AuthorizeURL)
+			return fmt.Errorf("waiting for approval — re-run without --no-browser once signed in")
+		}
+
+		fmt.Fprintln(out, "Opening your browser to approve access...")
+		_ = auth.OpenBrowser(started.AuthorizeURL)
+		fmt.Fprintf(out, "If it did not open, visit:\n  %s\n\n", started.AuthorizeURL)
+
+		connected, err := waitForSignIn(cmd.Context(), apiClient, pCtx, mcpName)
+		if err != nil {
+			return err
+		}
+		if !connected {
+			return fmt.Errorf(
+				"timed out waiting for approval — run 'iai mcps connect %s' to try again",
+				mcpName,
+			)
+		}
+
+		res, _, err := apiClient.DescribeMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "Connected %s — %d tool(s) available.\n", mcpName, res.Data.Mcp.ToolCount)
+		return nil
+	},
+}
+
+// waitForSignIn polls until the gateway reports a credential. Nothing calls back
+// to the CLI — the browser's redirect lands on the gateway, not on us.
+func waitForSignIn(
+	ctx context.Context, apiClient *clients.APIClient, pCtx *projectContext, mcpName string,
+) (bool, error) {
+	for i := 0; i < 100; i++ {
+		time.Sleep(3 * time.Second)
+		connected, err := apiClient.ConnectionStatus(ctx, pCtx.orgId, pCtx.projectId, mcpName)
+		if err != nil {
+			return false, err
+		}
+		if connected {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 var mcpVerifyCmd = &cobra.Command{
 	Use:   "verify <mcp_name>",
 	Short: "Re-verify an external mcp and refresh its cached tools",
@@ -453,30 +625,36 @@ healthy (background reconciler; see 'iai mcps describe') and reject a manual ver
 		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
 			return err
 		}
 
-		res, err := deployClient.VerifyMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		res, raw, err := apiClient.VerifyMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
 		if err != nil {
 			return err
 		}
 
 		if mcpVerifyJSON {
-			return output.PrintStructuredJSON(out, res)
+			return output.PrintRawJSON(out, raw)
 		}
 		if mcpVerifyYAML {
-			return output.PrintStructuredYAML(out, res)
+			return output.PrintRawYAML(out, raw)
 		}
-		fmt.Fprintf(out, "Verified — %d tool(s) discovered", res.ToolCount)
-		if res.ProtocolVersion != "" {
-			fmt.Fprintf(out, " (protocol %s)", res.ProtocolVersion)
+		// A provider that refuses is data, not a transport failure: Platform
+		// answers 200 with a reason from a fixed vocabulary.
+		if res.Data.Status != "ok" {
+			reason := res.Data.Status
+			if res.Data.ErrorClass != nil {
+				reason = *res.Data.ErrorClass
+			}
+			return fmt.Errorf("mcp %q did not verify: %s", mcpName, reason)
 		}
-		fmt.Fprintln(out)
-		if res.Truncated {
-			fmt.Fprintln(out, "Warning: tool list truncated to fit the cache size limit.")
+		count := 0
+		if res.Data.ToolCount != nil {
+			count = *res.Data.ToolCount
 		}
+		fmt.Fprintf(out, "Verified — %d tool(s) discovered\n", count)
 		return nil
 	},
 }
@@ -502,24 +680,27 @@ reported and the command exits non-zero.`,
 			return err
 		}
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
 			return err
 		}
 
-		res, err := deployClient.RunMcpTool(
+		res, _, err := apiClient.RunMcpTool(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, tool, toolArgs,
 		)
 		if err != nil {
 			return err
 		}
-		if res.Error != nil {
-			return fmt.Errorf(
-				"mcp %q tool %q returned an error (JSON-RPC %d): %s",
-				mcpName, tool, res.Error.Code, res.Error.Message,
-			)
+		// The call reaching the provider and the provider refusing are different
+		// outcomes; Platform reports the second as a status, still over a 200.
+		if res.Data.Status != "ok" {
+			reason := res.Data.Status
+			if res.Data.ErrorClass != nil {
+				reason = *res.Data.ErrorClass
+			}
+			return fmt.Errorf("mcp %q tool %q returned an error: %s", mcpName, tool, reason)
 		}
-		return output.PrintRawJSON(out, res.Result)
+		return output.PrintRawJSON(out, res.Data.Result)
 	},
 }
 
@@ -562,26 +743,25 @@ Detach it from any attached agent first with 'iai agents update <agent> --detach
 			}
 		}
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
 			return err
 		}
 
-		serverMessage, err := deployClient.DeleteMcp(
+		// --force only skips the local prompt; Platform has no force semantics.
+		res, _, err := apiClient.DeleteMcp(
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
 			mcpName,
-			mcpForce,
 		)
 		if err != nil {
 			return err
 		}
-		if serverMessage != "" {
-			fmt.Fprintln(out, serverMessage)
-		} else {
-			fmt.Fprintf(out, "Successfully deleted mcp %q.\n", mcpName)
+		if !res.Data.Deleted {
+			return fmt.Errorf("mcp %q was not deleted", mcpName)
 		}
+		fmt.Fprintf(out, "Successfully deleted mcp %q.\n", mcpName)
 		return nil
 	},
 }
@@ -612,7 +792,7 @@ func init() {
 		c.Flags().
 			StringArrayVar(&mcpSecretRefs, "secret", nil, "Existing secret to load as env vars; can be repeated (internal)")
 		c.Flags().
-			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")`)
+			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth" — the user signs in, no credential to pass (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none"; with --catalog-id the entry decides)`)
 		c.Flags().
 			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
 		c.Flags().
@@ -671,6 +851,9 @@ func init() {
 	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogJSON, "json", false, "Output raw API response as JSON")
 	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogYAML, "yaml", false, "Output raw API response as YAML")
 	mcpCatalogCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	mcpConnectCmd.Flags().BoolVar(&mcpConnectNoBrowser, "no-browser", false,
+		"Print the sign-in URL instead of opening it")
+
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyJSON, "json", false, "Output raw API response as JSON")
 	mcpVerifyCmd.Flags().BoolVar(&mcpVerifyYAML, "yaml", false, "Output raw API response as YAML")
 	mcpVerifyCmd.MarkFlagsMutuallyExclusive("json", "yaml")
@@ -688,6 +871,7 @@ func init() {
 		mcpToolsCmd,
 		mcpRevisionsCmd,
 		mcpDiffCmd,
+		mcpConnectCmd,
 		mcpVerifyCmd,
 		mcpRunToolCmd,
 		mcpDeleteCmd,

@@ -14,13 +14,16 @@ configured, don't assume).
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
-derived from the catalog entry. Pass an auth type the entry supports; catalog
-entries provide their own credential header and prefix.
+derived from the catalog entry, which provides its own credential header and
+prefix. The entry decides the auth type — omit --auth-type unless it accepts
+more than one, in which case the error names the options.
 
 The mcp is verified against the live server before it's kept: an internal mcp
 is verified once its status is healthy (checked in the background — see 'iai
 mcps describe'); an external mcp (custom or catalog) is verified immediately,
 and the create fails if the server is unreachable or rejects the credential.
+An --auth-type oauth mcp is the exception: there is no credential until the
+user signs in, so it is created unverified and reports no tools until then.
 
 ```
 iai mcps create <mcp_name> [flags]
@@ -34,6 +37,8 @@ iai mcps create <mcp_name> [flags]
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
+  iai mcps create notion --catalog-id notion
+  iai mcps create newrelic --catalog-id newrelic --auth-type oauth
 ```
 
 ### Options
@@ -41,7 +46,7 @@ iai mcps create <mcp_name> [flags]
 ```
       --auth-header string          Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)
       --auth-header-prefix string   Credential value prefix — only valid with --auth-type custom
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth" — the user signs in, no credential to pass (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none"; with --catalog-id the entry decides)
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
       --cpu string                  CPU request/limit, e.g. 250m (required for internal)
       --credential string           Credential the mcp server requires (bearer token, API key)

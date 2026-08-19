@@ -7,36 +7,44 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestDecodeRunMcpToolResult(t *testing.T) {
+// A provider that refuses still answers 200, so the status — not the
+// transport — is what tells run-tool whether it has a result to print.
+func TestDecodeMcpToolCallResult(t *testing.T) {
+	errorClass := "unauthorized"
 	tests := []struct {
-		name       string
-		body       string
-		wantError  *McpToolError
-		wantResult bool
+		name           string
+		body           string
+		wantStatus     string
+		wantErrorClass *string
+		wantResult     bool
 	}{
 		{
-			name:       "error body populates Error, not Result",
-			body:       `{"mcp":"socket","tool":"depscore","error":{"code":-32603,"message":"boom"}}`,
-			wantError:  &McpToolError{Code: -32603, Message: "boom"},
-			wantResult: false,
+			name:           "error status carries a class and no result",
+			body:           `{"data":{"name":"socket","tool":"depscore","status":"error","error_class":"unauthorized"}}`,
+			wantStatus:     "error",
+			wantErrorClass: &errorClass,
+			wantResult:     false,
 		},
 		{
-			name:       "success body populates Result, not Error",
-			body:       `{"mcp":"socket","tool":"depscore","result":{"ok":true}}`,
-			wantError:  nil,
+			name:       "ok status carries a result and no class",
+			body:       `{"data":{"name":"socket","tool":"depscore","status":"ok","result":{"ok":true}}}`,
+			wantStatus: "ok",
 			wantResult: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var res RunMcpToolResult
+			var res McpToolCallResult
 			if err := json.Unmarshal([]byte(tt.body), &res); err != nil {
 				t.Fatalf("decode error: %v", err)
 			}
-			if diff := cmp.Diff(tt.wantError, res.Error); diff != "" {
-				t.Errorf("Error mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantStatus, res.Data.Status); diff != "" {
+				t.Errorf("Status mismatch (-want +got):\n%s", diff)
 			}
-			if hasResult := len(res.Result) > 0; hasResult != tt.wantResult {
+			if diff := cmp.Diff(tt.wantErrorClass, res.Data.ErrorClass); diff != "" {
+				t.Errorf("ErrorClass mismatch (-want +got):\n%s", diff)
+			}
+			if hasResult := len(res.Data.Result) > 0; hasResult != tt.wantResult {
 				t.Errorf("has Result = %v, want %v", hasResult, tt.wantResult)
 			}
 		})

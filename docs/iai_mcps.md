@@ -31,6 +31,7 @@ Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai mcps catalog](iai_mcps_catalog.md)	 - Browse the curated MCP catalog
+* [iai mcps connect](iai_mcps_connect.md)	 - Sign in to an mcp that authenticates with your account
 * [iai mcps create](iai_mcps_create.md)	 - Create an mcp in a project
 * [iai mcps delete](iai_mcps_delete.md)	 - Delete an mcp
 * [iai mcps describe](iai_mcps_describe.md)	 - Show mcp details, verify state, and cached tools

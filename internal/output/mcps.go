@@ -3,39 +3,51 @@ package output
 import (
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
-func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
+func PrintMcpList(out io.Writer, mcps []clients.McpSchema) error {
 	if len(mcps) == 0 {
 		fmt.Fprintln(out, "No mcps found.")
 		return nil
 	}
-	headers := []string{"NAME", "TYPE", "STATUS", "VERIFY", "TOOLS", "STACK", "UPDATED"}
+	headers := []string{"NAME", "BACKEND", "STATUS", "VERIFY", "TOOLS", "CREDENTIAL"}
 	rows := make([][]string, len(mcps))
 	for i, m := range mcps {
-		status := m.Status
-		if status == "" {
-			status = "-" // external: no workload
+		status := "-"
+		if m.Status != nil {
+			status = *m.Status
 		}
-		verify := m.Verify.Status
-		if verify == "" {
-			verify = "never"
+		verify := "-"
+		if m.VerifyStatus != nil {
+			verify = *m.VerifyStatus
+		}
+		if (m.AuthType != nil && *m.AuthType == "oauth") && m.HasCredential == false {
+			verify = "needs sign-in"
 		}
 		rows[i] = []string{
 			m.Name,
-			m.Type,
+			string(m.Backend),
 			status,
 			verify,
-			fmt.Sprintf("%d", m.Verify.ToolCount),
-			m.StackId,
-			LocalTime(m.Updated),
+			descOr(m.ToolCount),
+			boolOr(m.HasCredential),
 		}
 	}
 	return PrintTable(out, headers, rows)
+}
+
+func descOr(n int) string {
+	return fmt.Sprintf("%d", n)
+}
+
+func boolOr(b bool) string {
+	if b {
+		return "set"
+	}
+	return "none"
 }
 
 func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
@@ -43,201 +55,96 @@ func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
 		fmt.Fprintln(out, "No catalog entries found.")
 		return nil
 	}
-	headers := []string{"ID", "NAME", "CATEGORY", "SIGN-IN", "PERMISSIONS", "RENEWAL"}
+	headers := []string{"ID", "NAME", "CATEGORY", "SIGN-IN", "PERMISSIONS"}
 	rows := make([][]string, len(entries))
 	for i, e := range entries {
 		rows[i] = []string{
-			e.ID, e.Name, e.Category,
-			mcpSignIn(e), mcpPermissions(e), mcpRenewal(e.TokenRenewal),
+			e.ID, e.Name, e.Category, mcpSignIn(e), mcpPermissions(e),
 		}
 	}
 	return PrintTable(out, headers, rows)
 }
 
-// mcpSignIn describes how a user connects, and whether an operator has to
-// register an app with the provider first — the difference between an entry
-// anyone can connect today and one that needs setup.
 func mcpSignIn(e clients.McpCatalogEntry) string {
-	oauth := false
-	others := make([]string, 0, len(e.AuthMethods))
-	for _, m := range e.AuthMethods {
-		if m == "oauth" {
-			oauth = true
-			continue
-		}
-		others = append(others, m)
+	if len(e.GrantsAllowed) == 0 {
+		return TruncateList(e.AuthMethods, 3)
 	}
-	if !oauth {
-		return TruncateList(others, 3)
-	}
-	signIn := "oauth"
-	switch {
-	case e.SelfRegisters == nil:
-		// Nothing established yet; don't imply either way.
-	case *e.SelfRegisters:
-		signIn += " · automatic sign-up"
-	default:
-		signIn += " · we create the app"
-	}
-	if len(others) > 0 {
-		signIn += " (or " + strings.Join(others, "/") + ")"
+	options := append([]string{"oauth"}, e.AuthMethods...)
+	signIn := strings.Join(options, ", ")
+	if selfRegisters, known := e.SelfRegisters[e.GrantsAllowed[0]]; known && !selfRegisters {
+		signIn += " · needs admin setup"
 	}
 	return signIn
 }
 
-// mcpPermissions shows what a connection can reach. When a provider refuses a
-// narrower request, say so rather than listing options a user cannot pick:
-// asking Dropbox for two of its eight yields a connection whose every call
-// fails.
 func mcpPermissions(e clients.McpCatalogEntry) string {
 	if len(e.ScopesSupported) == 0 {
 		return "—"
 	}
 	short := make([]string, 0, len(e.ScopesSupported))
 	for _, s := range e.ScopesSupported {
-		if i := strings.LastIndex(s, "/"); i >= 0 && i < len(s)-1 {
-			s = s[i+1:] // Google publishes full URLs
-		}
 		short = append(short, s)
 	}
 	listed := TruncateList(short, 3)
-	if e.PermissionsAreAMenu != nil && !*e.PermissionsAreAMenu {
+	if e.ScopesSelectable != nil && !*e.ScopesSelectable {
 		return listed + " (all required)"
 	}
 	return listed
 }
 
-// mcpRenewal never renders a deadline. The stored expiry moves forward on every
-// silent renewal, so a countdown reads as an end date that never arrives.
-func mcpRenewal(renewal string) string {
-	switch renewal {
-	case "automatic":
-		return "automatic"
-	case "never_expires":
-		return "never expires"
-	case "manual":
-		return "needs re-approval"
-	default:
-		return "—"
-	}
-}
-
-func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
+func PrintMcpDetail(out io.Writer, m *clients.McpSchema) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", m.Name)
-	fmt.Fprintf(w, "Type:\t%s\n", m.Type)
-	if m.StackId != "" {
-		fmt.Fprintf(w, "Stack:\t%s\n", m.StackId)
+	fmt.Fprintf(w, "Backend:\t%s\n", m.Backend)
+	if m.Description != nil {
+		fmt.Fprintf(w, "Description:\t%s\n", *m.Description)
 	}
-	fmt.Fprintf(w, "External URL:\t%s\n", m.EndpointURL)
-	fmt.Fprintf(w, "Path:\t%s\n", m.Path)
-	fmt.Fprintf(w, "Transport:\t%s\n", m.Transport)
-	fmt.Fprintf(w, "Slug:\t%s\n", m.Slug)
-	if m.CatalogID != "" {
-		fmt.Fprintf(w, "Catalog ID:\t%s\n", m.CatalogID)
+	if m.EndpointURL != nil {
+		fmt.Fprintf(w, "Endpoint URL:\t%s\n", *m.EndpointURL)
 	}
-	if m.Status != "" {
-		fmt.Fprintf(w, "Status:\t%s\n", m.Status)
+	if m.Transport != nil {
+		fmt.Fprintf(w, "Transport:\t%s\n", *m.Transport)
 	}
-	if m.Auth.Type != "" {
-		fmt.Fprintf(w, "Auth Type:\t%s\n", m.Auth.Type)
+	if m.AuthType != nil {
+		fmt.Fprintf(w, "Auth Type:\t%s\n", *m.AuthType)
 	}
-	if m.Auth.Header != "" {
-		fmt.Fprintf(w, "Auth Header:\t%s\n", m.Auth.Header)
+	if m.CatalogID != nil {
+		fmt.Fprintf(w, "Catalog ID:\t%s\n", *m.CatalogID)
 	}
-	if m.Auth.HeaderPrefix != "" {
-		fmt.Fprintf(w, "Auth Header Prefix:\t%s\n", m.Auth.HeaderPrefix)
+	if m.Status != nil {
+		fmt.Fprintf(w, "Status:\t%s\n", *m.Status)
 	}
-	if len(m.Headers) > 0 {
-		names := make([]string, 0, len(m.Headers))
-		for k := range m.Headers {
-			names = append(names, k)
-		}
-		sort.Strings(names)
-		pairs := make([]string, len(names))
-		for i, k := range names {
-			pairs[i] = k + "=" + m.Headers[k]
-		}
-		fmt.Fprintf(w, "Extra Headers:\t%s\n", strings.Join(pairs, ", "))
+	if m.VerifyStatus != nil {
+		fmt.Fprintf(w, "Verify Status:\t%s\n", *m.VerifyStatus)
 	}
 	fmt.Fprintf(w, "Credential Set:\t%t\n", m.HasCredential)
-	if len(m.SecretRefs) > 0 {
-		names := make([]string, len(m.SecretRefs))
-		for i, ref := range m.SecretRefs {
-			names[i] = ref.SecretName
-		}
-		fmt.Fprintf(w, "Secrets:\t%s\n", strings.Join(names, ", "))
-	}
+	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools %s')\n", m.ToolCount, m.Name)
 	if len(m.AttachedAgents) > 0 {
 		fmt.Fprintf(w, "Attached Agents:\t%s\n", strings.Join(m.AttachedAgents, ", "))
 	}
-	fmt.Fprintf(w, "Revision:\t%d\n", m.Revision)
-	fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(m.Updated))
-
-	verifyStatus := m.Verify.Status
-	if verifyStatus == "" {
-		verifyStatus = "-"
-	}
-	fmt.Fprintf(w, "Verify Status:\t%s\n", verifyStatus)
-	if m.Verify.VerifiedAt != "" {
-		fmt.Fprintf(w, "Last Verified:\t%s\n", LocalTime(m.Verify.VerifiedAt))
-	}
-	if m.Verify.Error != "" {
-		fmt.Fprintf(w, "Verify Error:\t%s\n", m.Verify.Error)
-	}
-	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools %s')\n", m.Verify.ToolCount, m.Name)
-
 	return w.Flush()
 }
 
-// PrintMcpTools lists an mcp's cached tools, plus the names-level diff vs the previous verify snapshot when recorded.
-func PrintMcpTools(
-	out io.Writer,
-	tools []map[string]any,
-	added, removed []string,
-	changedFrom string,
-) error {
+func NeedsSignIn(m clients.McpSchema) bool {
+	return m.AuthType != nil && *m.AuthType == "oauth" && !m.HasCredential
+}
+
+func PrintMcpTools(out io.Writer, tools []clients.McpToolSchema) error {
 	if len(tools) == 0 {
-		fmt.Fprintln(out, "No tools cached — run 'iai mcps verify' first.")
+		fmt.Fprintln(out, "No tools cached - run 'iai mcps verify' first.")
 		return nil
 	}
 	fmt.Fprintf(out, "Tools (%d):\n", len(tools))
 	for _, t := range tools {
-		name, _ := t["name"].(string)
-		desc, _ := t["description"].(string)
-		if args := toolArgNames(t); args != "" {
-			name += "(" + args + ")"
+		desc := ""
+		if t.Description != nil {
+			desc = *t.Description
 		}
 		if desc != "" {
-			fmt.Fprintf(out, "  %s — %s\n", name, desc)
+			fmt.Fprintf(out, "  %s - %s\n", t.Name, desc)
 		} else {
-			fmt.Fprintf(out, "  %s\n", name)
+			fmt.Fprintf(out, "  %s\n", t.Name)
 		}
-	}
-	if len(added) > 0 || len(removed) > 0 {
-		fmt.Fprintf(out, "\nChanged since revision %s:", changedFrom)
-		for _, n := range added {
-			fmt.Fprintf(out, " +%s", n)
-		}
-		for _, n := range removed {
-			fmt.Fprintf(out, " -%s", n)
-		}
-		fmt.Fprintln(out)
 	}
 	return nil
-}
-
-// toolArgNames returns a tool's inputSchema property names, sorted, for a compact "name(args)" display.
-func toolArgNames(t map[string]any) string {
-	schema, _ := t["inputSchema"].(map[string]any)
-	props, _ := schema["properties"].(map[string]any)
-	if len(props) == 0 {
-		return ""
-	}
-	names := make([]string, 0, len(props))
-	for name := range props {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return strings.Join(names, ", ")
 }

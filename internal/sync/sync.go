@@ -331,7 +331,7 @@ func Mcps(
 			resource:  "mcp",
 			allowFlag: "mcps",
 			create: func(name string, body clients.CreateMcpBody) error {
-				_, err := deployClient.CreateMcp(ctx, orgId, projectId, name, body)
+				_, _, err := deployClient.CreateMcp(ctx, orgId, projectId, name, body)
 				return err
 			},
 			update: func(name string, body clients.CreateMcpBody) error {
