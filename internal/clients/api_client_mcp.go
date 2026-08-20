@@ -30,6 +30,7 @@ type McpSchema struct {
 	VerifyStatus   *string    `json:"verify_status,omitempty"`
 	ToolCount      int        `json:"tool_count"`
 	AttachedAgents []string   `json:"attached_agents"`
+	StackId        *string    `json:"stack_id,omitempty"`
 }
 
 type McpToolSchema struct {
@@ -97,11 +98,12 @@ type McpAuth struct {
 }
 
 type McpWorkload struct {
-	Image  string `json:"image"`
-	Port   int    `json:"port"`
-	Path   string `json:"path"`
-	Memory string `json:"memory"`
-	CPU    string `json:"cpu"`
+	Image   string `json:"image"`
+	Port    int    `json:"port"`
+	Path    string `json:"path"`
+	Memory  string `json:"memory"`
+	CPU     string `json:"cpu"`
+	StackId string `json:"stack_id,omitempty"`
 }
 
 type McpCreateRequest struct {

@@ -90,6 +90,7 @@ func ListStacks(
 	if err != nil {
 		return nil, fmt.Errorf("failed to list mcps: %w", err)
 	}
+	// MCPs expose stackId in the list response, so no describe call is needed.
 	for _, mcp := range mcps {
 		if mcp.StackId == "" {
 			continue

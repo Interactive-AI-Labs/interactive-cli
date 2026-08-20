@@ -546,17 +546,21 @@ func (c *APIClient) CreateDatasetRunItem(
 // ---------------------------------------------------------------------------
 
 type AnnotationQueueInfo struct {
-	ID             string   `json:"id"`
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	ScoreConfigIDs []string `json:"score_config_ids"`
-	CreatedAt      string   `json:"created_at"`
-	UpdatedAt      string   `json:"updated_at"`
+	ID                  string   `json:"id"`
+	Name                string   `json:"name"`
+	Description         string   `json:"description"`
+	ScoreConfigIDs      []string `json:"score_config_ids"`
+	CreatedAt           string   `json:"created_at"`
+	UpdatedAt           string   `json:"updated_at"`
+	CountCompletedItems int      `json:"count_completed_items"`
+	CountPendingItems   int      `json:"count_pending_items"`
 }
 
 type AnnotationQueueListOptions struct {
-	Page  int `url:"page,omitempty"`
-	Limit int `url:"limit,omitempty"`
+	Page      int    `url:"page,omitempty"`
+	Limit     int    `url:"limit,omitempty"`
+	SortBy    string `url:"sort_by,omitempty"`
+	SortOrder string `url:"sort_order,omitempty"`
 }
 
 type AnnotationQueueCreateBody struct {
@@ -600,6 +604,15 @@ func (c *APIClient) GetAnnotationQueue(
 		return nil, nil, err
 	}
 	return &data.Queue, raw, nil
+}
+
+func (c *APIClient) DeleteAnnotationQueue(
+	ctx context.Context,
+	orgID, projectID, queueID string,
+) (string, error) {
+	path := evalBasePath(orgID, projectID) + "/annotation-queues/" +
+		url.PathEscape(queueID)
+	return c.doDelete(ctx, path, "delete annotation queue")
 }
 
 func (c *APIClient) CreateAnnotationQueue(
@@ -701,9 +714,11 @@ type QueueItemInfo struct {
 }
 
 type QueueItemListOptions struct {
-	Status string `url:"status,omitempty"`
-	Page   int    `url:"page,omitempty"`
-	Limit  int    `url:"limit,omitempty"`
+	Status    string `url:"status,omitempty"`
+	Page      int    `url:"page,omitempty"`
+	Limit     int    `url:"limit,omitempty"`
+	SortBy    string `url:"sort_by,omitempty"`
+	SortOrder string `url:"sort_order,omitempty"`
 }
 
 type QueueItemCreateBody struct {
@@ -791,9 +806,6 @@ func (c *APIClient) DeleteQueueItem(
 	ctx context.Context,
 	orgID, projectID, queueID, itemID string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return "", err
-	}
 	path := queueItemsPath(orgID, projectID, queueID) + "/" + url.PathEscape(itemID)
 	return c.doDelete(ctx, path, "delete queue item")
 }

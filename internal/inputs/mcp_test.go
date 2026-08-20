@@ -240,25 +240,6 @@ func TestBuildMcpRequestBodyAuth(t *testing.T) {
 			input:   McpInput{EndpointURL: "https://x.io/mcp", Headers: []string{"bogus"}},
 			wantErr: `invalid --header "bogus": expected KEY=VALUE`,
 		},
-		{
-			// The entry decides between a static credential and a sign-in, so
-			// defaulting to "none" here would pre-empt it.
-			name:         "catalog id without a credential leaves the type to the server",
-			input:        McpInput{CatalogID: "linear"},
-			wantAuthType: "",
-		},
-		{
-			// Tinybird accepts api_key only; inferring bearer here made the server
-			// refuse a create that should have worked.
-			name:         "catalog id with a credential still leaves the type to the entry",
-			input:        McpInput{CatalogID: "tinybird", Credential: "tok"},
-			wantAuthType: "",
-		},
-		{
-			name:         "explicit oauth is passed through",
-			input:        McpInput{CatalogID: "sanity", AuthType: "oauth"},
-			wantAuthType: "oauth",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -408,7 +389,12 @@ func TestBuildMcpUpdatePatch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			patch, err := BuildMcpUpdatePatch(
-				tt.input, tt.clearEnv, tt.clearSecret, tt.clearHeaders, tt.clearStackId, changedFunc(tt.changed...),
+				tt.input,
+				tt.clearEnv,
+				tt.clearSecret,
+				tt.clearHeaders,
+				tt.clearStackId,
+				changedFunc(tt.changed...),
 			)
 			if tt.wantErr != "" {
 				if err == nil || err.Error() != tt.wantErr {

@@ -13,7 +13,7 @@ func PrintMcpList(out io.Writer, mcps []clients.McpSchema) error {
 		fmt.Fprintln(out, "No mcps found.")
 		return nil
 	}
-	headers := []string{"NAME", "BACKEND", "STATUS", "VERIFY", "TOOLS", "CREDENTIAL"}
+	headers := []string{"NAME", "BACKEND", "STATUS", "VERIFY", "TOOLS", "CREDENTIAL", "STACK"}
 	rows := make([][]string, len(mcps))
 	for i, m := range mcps {
 		status := "-"
@@ -34,9 +34,17 @@ func PrintMcpList(out io.Writer, mcps []clients.McpSchema) error {
 			verify,
 			descOr(m.ToolCount),
 			boolOr(m.HasCredential),
+			strOr(m.StackId),
 		}
 	}
 	return PrintTable(out, headers, rows)
+}
+
+func strOr(v *string) string {
+	if v == nil || *v == "" {
+		return "-"
+	}
+	return *v
 }
 
 func descOr(n int) string {
@@ -102,6 +110,9 @@ func PrintMcpDetail(out io.Writer, m *clients.McpSchema) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", m.Name)
 	fmt.Fprintf(w, "Backend:\t%s\n", m.Backend)
+	if m.StackId != nil && *m.StackId != "" {
+		fmt.Fprintf(w, "Stack:\t%s\n", *m.StackId)
+	}
 	if m.Description != nil {
 		fmt.Fprintf(w, "Description:\t%s\n", *m.Description)
 	}

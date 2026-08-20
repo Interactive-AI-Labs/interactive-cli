@@ -52,12 +52,13 @@ type trpcError struct {
 }
 
 // ExtractServerMessage extracts a human-readable error message from an API
-// response body. It handles four formats:
+// response body. It handles five formats:
 //
 //  1. Deployment API: {"message": "..."}
 //  2. Platform API (nested): {"detail": {"error": {"message": "...", "details": {...}}}}
 //  3. Simple API: {"detail": "..."}
-//  4. Plain text fallback
+//  4. Platform success envelope: {"data": {"message": "..."}}
+//  5. Plain text fallback
 func ExtractServerMessage(body []byte) string {
 	if len(body) == 0 {
 		return ""
@@ -114,6 +115,17 @@ func ExtractServerMessage(body []byte) string {
 			return msg
 		}
 		if msg := strings.TrimSpace(te.Error.Message); msg != "" {
+			return msg
+		}
+	}
+
+	var pm struct {
+		Data struct {
+			Message string `json:"message"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &pm); err == nil {
+		if msg := strings.TrimSpace(pm.Data.Message); msg != "" {
 			return msg
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,6 +78,53 @@ func TestAllowDeleteResource(t *testing.T) {
 					"AllowDeleteResource(%v, %q) = %v, want %v",
 					tt.allowed, tt.resource, got, tt.want,
 				)
+			}
+		})
+	}
+}
+
+func TestMcpsRejectsCredentialedUpdateWithoutCredential(t *testing.T) {
+	tests := []struct {
+		name string
+		body clients.CreateMcpBody
+	}{
+		{name: "auth omitted", body: clients.CreateMcpBody{}},
+		{
+			name: "credential omitted",
+			body: clients.CreateMcpBody{Auth: clients.McpAuthBody{Type: "bearer"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/mcps":
+					fmt.Fprint(
+						w,
+						`{"mcps":[{"name":"tools","projectId":"p1","revision":1,"type":"external","auth":{"type":"bearer"}}]}`,
+					)
+				case r.Method == http.MethodPut:
+					t.Errorf("credentialed mcp update reached PUT without auth.credential")
+					fmt.Fprint(w, `{}`)
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			})
+
+			_, err := Mcps(
+				context.Background(),
+				&bytes.Buffer{},
+				client,
+				"o1",
+				"p1",
+				"stack-1",
+				map[string]clients.CreateMcpBody{"tools": tt.body},
+				Options{},
+			)
+			if err == nil || !strings.Contains(err.Error(), "auth.credential is required") {
+				t.Fatalf("Mcps() error = %v, want auth.credential error", err)
 			}
 		})
 	}

@@ -91,6 +91,47 @@ func TestPrintMcpCatalog(t *testing.T) {
 	}
 }
 
+// The unified list carries stack_id so `iai stacks` needs no describe-per-mcp.
+func TestPrintMcpListIncludesStack(t *testing.T) {
+	tests := []struct {
+		name string
+		mcp  clients.McpSchema
+		want string
+	}{
+		{
+			name: "internal mcp in a stack",
+			mcp: clients.McpSchema{
+				Name: "tools", Backend: "internal",
+				Status: strPtr("healthy"), VerifyStatus: strPtr("ok"),
+				ToolCount: 3, StackId: strPtr("stack-123"),
+			},
+			want: "stack-123",
+		},
+		{
+			name: "external mcp never has one",
+			mcp: clients.McpSchema{
+				Name: "notion", Backend: "external", AuthType: strPtr("oauth"),
+			},
+			want: "-",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := PrintMcpList(&buf, []clients.McpSchema{tt.mcp}); err != nil {
+				t.Fatalf("PrintMcpList() error = %v", err)
+			}
+			got := buf.String()
+			if !strings.Contains(got, "STACK") {
+				t.Errorf("header is missing the STACK column:\n%q", got)
+			}
+			if !strings.Contains(got, tt.want) {
+				t.Errorf("output %q does not contain %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPrintMcpTools(t *testing.T) {
 	tests := []struct {
 		name  string

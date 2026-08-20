@@ -335,12 +335,26 @@ func Mcps(
 				return err
 			},
 			update: func(name string, body clients.CreateMcpBody) error {
+				authType := body.Auth.Type
+				if authType == "" {
+					authType = existingByName[name].Auth.Type
+				}
+				if body.Auth.Credential == "" && authType != "" &&
+					!strings.EqualFold(authType, "none") {
+					return fmt.Errorf(
+						"auth.credential is required to update mcp %q; stack get never exports credentials",
+						name,
+					)
+				}
 				_, err := deployClient.PutMcp(ctx, orgId, projectId, name, body)
 				return err
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteMcp(ctx, orgId, projectId, name, false)
-				return err
+				if err != nil {
+					return fmt.Errorf("detach agents before deleting mcp %q: %w", name, err)
+				}
+				return nil
 			},
 			banner: func(w io.Writer, mcp clients.McpOutput) {
 				preflight.PrintUpdateBanner(w, "mcp "+mcp.Name, mcp.Revision, mcp.Updated)

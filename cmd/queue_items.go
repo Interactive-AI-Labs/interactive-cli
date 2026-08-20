@@ -10,15 +10,17 @@ import (
 )
 
 var (
-	queueItemsListQueueID string
-	queueItemsListStatus  string
-	queueItemsListPage    int
-	queueItemsListLimit   int
-	queueItemsListColumns []string
-	queueItemsListJSON    bool
-	queueItemsListYAML    bool
-	queueItemsListOrg     string
-	queueItemsListProject string
+	queueItemsListQueueID   string
+	queueItemsListStatus    string
+	queueItemsListPage      int
+	queueItemsListLimit     int
+	queueItemsListSortBy    string
+	queueItemsListSortOrder string
+	queueItemsListColumns   []string
+	queueItemsListJSON      bool
+	queueItemsListYAML      bool
+	queueItemsListOrg       string
+	queueItemsListProject   string
 
 	queueItemsGetQueueID string
 	queueItemsGetJSON    bool
@@ -60,10 +62,14 @@ var queueItemsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List queue items",
-	Long:    `List items in an annotation queue.`,
+	Long: `List items in an annotation queue.
+
+Results are sorted by created_at descending unless --sort-by/--sort-order say otherwise.`,
 	Example: `  iai queue-items list --queue-id queue-123
   iai queue-items list --queue-id queue-123 --status PENDING
   iai queue-items list --queue-id queue-123 --page 2 --limit 50
+  iai queue-items list --queue-id queue-123 --sort-by created_at --sort-order asc
+  iai queue-items list --queue-id queue-123 --sort-by status --sort-order desc
   iai queue-items list --queue-id queue-123 --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -89,9 +95,11 @@ var queueItemsListCmd = &cobra.Command{
 		}
 
 		opts := clients.QueueItemListOptions{
-			Status: queueItemsListStatus,
-			Page:   queueItemsListPage,
-			Limit:  queueItemsListLimit,
+			Status:    queueItemsListStatus,
+			Page:      queueItemsListPage,
+			Limit:     queueItemsListLimit,
+			SortBy:    queueItemsListSortBy,
+			SortOrder: queueItemsListSortOrder,
 		}
 		if err := inputs.ValidateQueueItemListOptions(opts); err != nil {
 			return err
@@ -326,6 +334,10 @@ func init() {
 	queueItemsListCmd.Flags().
 		IntVar(&queueItemsListPage, "page", 1, "Page number (starts at 1)")
 	queueItemsListCmd.Flags().IntVar(&queueItemsListLimit, "limit", 0, "Items per page (max 100)")
+	queueItemsListCmd.Flags().
+		StringVar(&queueItemsListSortBy, "sort-by", "", "Sort by field: created_at, completed_at, status, object_id, updated_at (default: created_at)")
+	queueItemsListCmd.Flags().
+		StringVar(&queueItemsListSortOrder, "sort-order", "", "Sort direction: asc or desc (default: desc)")
 	queueItemsListCmd.Flags().
 		StringSliceVar(&queueItemsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	queueItemsListCmd.Flags().

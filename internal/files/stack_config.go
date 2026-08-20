@@ -62,7 +62,7 @@ type McpConfig struct {
 	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
 	EndpointURL string              `yaml:"endpointUrl,omitempty" json:"endpointUrl,omitempty"`
 	CatalogID   string              `yaml:"catalogId,omitempty"   json:"catalogId,omitempty"`
-	Auth        clients.McpAuthBody `yaml:"auth"                 json:"auth"`
+	Auth        clients.McpAuthBody `yaml:"auth,omitempty"        json:"auth"`
 	Headers     map[string]string   `yaml:"headers,omitempty"     json:"headers,omitempty"`
 }
 
@@ -208,8 +208,12 @@ func McpConfigFromDescribe(mcp *clients.DescribeMcpResponse) McpConfig {
 		SecretRefs:  mcp.SecretRefs,
 		EndpointURL: endpointURL,
 		CatalogID:   mcp.CatalogID,
-		Auth:        clients.McpAuthBody{Type: mcp.Auth.Type, Header: mcp.Auth.Header, HeaderPrefix: mcp.Auth.HeaderPrefix},
-		Headers:     mcp.Headers,
+		Auth: clients.McpAuthBody{
+			Type:         mcp.Auth.Type,
+			Header:       mcp.Auth.Header,
+			HeaderPrefix: mcp.Auth.HeaderPrefix,
+		},
+		Headers: mcp.Headers,
 	}
 }
 

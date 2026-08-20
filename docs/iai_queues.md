@@ -26,6 +26,7 @@ Manage annotation queues for review workflows.
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai queues assign](iai_queues_assign.md)	 - Assign a user to a queue
 * [iai queues create](iai_queues_create.md)	 - Create an annotation queue
+* [iai queues delete](iai_queues_delete.md)	 - Delete an annotation queue
 * [iai queues get](iai_queues_get.md)	 - Get an annotation queue
 * [iai queues list](iai_queues_list.md)	 - List annotation queues
 * [iai queues unassign](iai_queues_unassign.md)	 - Unassign a user from a queue

@@ -207,11 +207,12 @@ user signs in, so it is created unverified and reports no tools until then.`,
 				cpu = "100m"
 			}
 			workload = &clients.McpWorkload{
-				Image:  mcpImageName + ":" + mcpImageTag,
-				Port:   port,
-				Path:   path,
-				Memory: memory,
-				CPU:    cpu,
+				Image:   mcpImageName + ":" + mcpImageTag,
+				Port:    port,
+				Path:    path,
+				Memory:  memory,
+				CPU:     cpu,
+				StackId: mcpStackId,
 			}
 		}
 
