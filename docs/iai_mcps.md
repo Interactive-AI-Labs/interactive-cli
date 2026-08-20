@@ -36,6 +36,7 @@ Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 * [iai mcps delete](iai_mcps_delete.md)	 - Delete an mcp
 * [iai mcps describe](iai_mcps_describe.md)	 - Show mcp details, verify state, and cached tools
 * [iai mcps diff](iai_mcps_diff.md)	 - Compare two revisions of an mcp
+* [iai mcps disconnect](iai_mcps_disconnect.md)	 - Forget an mcp's stored provider credential
 * [iai mcps list](iai_mcps_list.md)	 - List mcps in a project
 * [iai mcps revisions](iai_mcps_revisions.md)	 - List revisions of an mcp
 * [iai mcps run-tool](iai_mcps_run-tool.md)	 - Run a tool on an mcp

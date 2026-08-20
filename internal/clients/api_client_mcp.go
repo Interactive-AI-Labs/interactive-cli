@@ -189,7 +189,10 @@ func (c *APIClient) ListMcpCatalog(
 	return &data, raw, nil
 }
 
-func (c *APIClient) ListMcps(ctx context.Context, orgID, projectID string) (*McpListResponse, []byte, error) {
+func (c *APIClient) ListMcps(
+	ctx context.Context,
+	orgID, projectID string,
+) (*McpListResponse, []byte, error) {
 	req, err := c.newRequest(ctx, "GET", c.mcpPath(orgID, projectID, ""))
 	if err != nil {
 		return nil, nil, err
@@ -213,7 +216,10 @@ func (c *APIClient) ListMcps(ctx context.Context, orgID, projectID string) (*Mcp
 	return out, body, nil
 }
 
-func (c *APIClient) DescribeMcp(ctx context.Context, orgID, projectID, name string) (*McpDetailResponse, []byte, error) {
+func (c *APIClient) DescribeMcp(
+	ctx context.Context,
+	orgID, projectID, name string,
+) (*McpDetailResponse, []byte, error) {
 	req, err := c.newRequest(ctx, "GET", c.mcpPath(orgID, projectID, name))
 	if err != nil {
 		return nil, nil, err
@@ -237,7 +243,11 @@ func (c *APIClient) DescribeMcp(ctx context.Context, orgID, projectID, name stri
 	return out, body, nil
 }
 
-func (c *APIClient) CreateMcp(ctx context.Context, orgID, projectID string, create McpCreateRequest) (*McpDetailResponse, []byte, error) {
+func (c *APIClient) CreateMcp(
+	ctx context.Context,
+	orgID, projectID string,
+	create McpCreateRequest,
+) (*McpDetailResponse, []byte, error) {
 	req, err := c.newJSONRequest(ctx, "POST", c.mcpPath(orgID, projectID, ""), create)
 	if err != nil {
 		return nil, nil, err
@@ -261,7 +271,10 @@ func (c *APIClient) CreateMcp(ctx context.Context, orgID, projectID string, crea
 	return out, body, nil
 }
 
-func (c *APIClient) ListMcpTools(ctx context.Context, orgID, projectID, name string) (*McpToolsResult, []byte, error) {
+func (c *APIClient) ListMcpTools(
+	ctx context.Context,
+	orgID, projectID, name string,
+) (*McpToolsResult, []byte, error) {
 	req, err := c.newRequest(ctx, "GET", c.mcpPath(orgID, projectID, name)+"/tools")
 	if err != nil {
 		return nil, nil, err
@@ -285,7 +298,10 @@ func (c *APIClient) ListMcpTools(ctx context.Context, orgID, projectID, name str
 	return out, body, nil
 }
 
-func (c *APIClient) VerifyMcp(ctx context.Context, orgID, projectID, name string) (*McpVerifyResponse, []byte, error) {
+func (c *APIClient) VerifyMcp(
+	ctx context.Context,
+	orgID, projectID, name string,
+) (*McpVerifyResponse, []byte, error) {
 	req, err := c.newRequest(ctx, "POST", c.mcpPath(orgID, projectID, name)+"/verify")
 	if err != nil {
 		return nil, nil, err
@@ -309,9 +325,18 @@ func (c *APIClient) VerifyMcp(ctx context.Context, orgID, projectID, name string
 	return out, body, nil
 }
 
-func (c *APIClient) RunMcpTool(ctx context.Context, orgID, projectID, name, tool string, arguments map[string]any) (*McpToolCallResult, []byte, error) {
+func (c *APIClient) RunMcpTool(
+	ctx context.Context,
+	orgID, projectID, name, tool string,
+	arguments map[string]any,
+) (*McpToolCallResult, []byte, error) {
 	payload := map[string]any{"arguments": arguments}
-	req, err := c.newJSONRequest(ctx, "POST", c.mcpPath(orgID, projectID, name)+"/tools/"+tool+"/run", payload)
+	req, err := c.newJSONRequest(
+		ctx,
+		"POST",
+		c.mcpPath(orgID, projectID, name)+"/tools/"+tool+"/run",
+		payload,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -334,7 +359,10 @@ func (c *APIClient) RunMcpTool(ctx context.Context, orgID, projectID, name, tool
 	return out, body, nil
 }
 
-func (c *APIClient) DeleteMcp(ctx context.Context, orgID, projectID, name string) (*McpDeleteResponse, []byte, error) {
+func (c *APIClient) DeleteMcp(
+	ctx context.Context,
+	orgID, projectID, name string,
+) (*McpDeleteResponse, []byte, error) {
 	req, err := c.newRequest(ctx, "DELETE", c.mcpPath(orgID, projectID, name))
 	if err != nil {
 		return nil, nil, err
@@ -368,7 +396,10 @@ type McpSignInResult struct {
 	} `json:"data"`
 }
 
-func (c *APIClient) BeginMcpSignIn(ctx context.Context, orgID, projectID, name string) (*McpSignInResult, []byte, error) {
+func (c *APIClient) BeginMcpSignIn(
+	ctx context.Context,
+	orgID, projectID, name string,
+) (*McpSignInResult, []byte, error) {
 	req, err := c.newRequest(ctx, "POST", c.mcpPath(orgID, projectID, name)+"/connect")
 	if err != nil {
 		return nil, nil, err
@@ -394,7 +425,10 @@ func (c *APIClient) BeginMcpSignIn(ctx context.Context, orgID, projectID, name s
 
 // ConnectionStatus reports whether the project's connection for this MCP holds
 // a live provider credential (connected) or not.
-func (c *APIClient) ConnectionStatus(ctx context.Context, orgID, projectID, name string) (bool, error) {
+func (c *APIClient) ConnectionStatus(
+	ctx context.Context,
+	orgID, projectID, name string,
+) (bool, error) {
 	req, err := c.newRequest(ctx, "GET", c.mcpPath(orgID, projectID, name)+"/connection")
 	if err != nil {
 		return false, err
@@ -443,7 +477,11 @@ func (c *APIClient) Disconnect(ctx context.Context, orgID, projectID, name strin
 	return nil
 }
 
-func (c *APIClient) UpdateMcp(ctx context.Context, orgID, projectID, name string, patch map[string]any) (*McpDetailResponse, []byte, error) {
+func (c *APIClient) UpdateMcp(
+	ctx context.Context,
+	orgID, projectID, name string,
+	patch map[string]any,
+) (*McpDetailResponse, []byte, error) {
 	req, err := c.newJSONRequest(ctx, "PATCH", c.mcpPath(orgID, projectID, name), patch)
 	if err != nil {
 		return nil, nil, err

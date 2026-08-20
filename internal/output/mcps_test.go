@@ -185,12 +185,22 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 		},
 		{
 			name: "oauth mcp already connected",
-			mcp:  clients.McpSchema{Name: "notion", Backend: "external", AuthType: strPtr("oauth"), HasCredential: true},
+			mcp: clients.McpSchema{
+				Name:          "notion",
+				Backend:       "external",
+				AuthType:      strPtr("oauth"),
+				HasCredential: true,
+			},
 			want: "set",
 		},
 		{
 			name: "static mcp with credential",
-			mcp:  clients.McpSchema{Name: "acme", Backend: "external", AuthType: strPtr("bearer"), HasCredential: true},
+			mcp: clients.McpSchema{
+				Name:          "acme",
+				Backend:       "external",
+				AuthType:      strPtr("bearer"),
+				HasCredential: true,
+			},
 			want: "set",
 		},
 	}

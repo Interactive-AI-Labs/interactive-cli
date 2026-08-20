@@ -220,22 +220,32 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		if cred != "" {
 			auth.Credential = &cred
 		}
-		res, raw, err := apiClient.CreateMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, clients.McpCreateRequest{
-			Name:        mcpName,
-			Backend:     backend,
-			CatalogID:   strPtr(mcpCatalogID),
-			EndpointURL: strPtr(endpointURL),
-			Transport:   "streamable_http",
-			Auth:        auth,
-			Workload:    workload,
-		})
+		res, raw, err := apiClient.CreateMcp(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			clients.McpCreateRequest{
+				Name:        mcpName,
+				Backend:     backend,
+				CatalogID:   strPtr(mcpCatalogID),
+				EndpointURL: strPtr(endpointURL),
+				Transport:   "streamable_http",
+				Auth:        auth,
+				Workload:    workload,
+			},
+		)
 		if err != nil {
 			return err
 		}
 		_ = raw
 
 		if mcpAuthType == "oauth" || (mcpCatalogID != "" && cred == "") {
-			fmt.Fprintf(out, "Created %s — it needs a sign-in before it can be used.\n  iai mcps connect %s\n", mcpName, mcpName)
+			fmt.Fprintf(
+				out,
+				"Created %s — it needs a sign-in before it can be used.\n  iai mcps connect %s\n",
+				mcpName,
+				mcpName,
+			)
 		} else {
 			fmt.Fprintf(out, "Created %s — %s\n", mcpName, res.Data.Mcp.Backend)
 		}
@@ -272,11 +282,21 @@ func mcpAuthTypeOr(backend clients.McpBackend, explicit string, cred string) str
 	return "none"
 }
 
-func mcpWorkloadFrom(imageName, imageTag string, port int, path, memory, cpu string) *clients.McpWorkload {
+func mcpWorkloadFrom(
+	imageName, imageTag string,
+	port int,
+	path, memory, cpu string,
+) *clients.McpWorkload {
 	if imageName == "" && imageTag == "" && port == 0 && path == "" && memory == "" && cpu == "" {
 		return nil
 	}
-	w := &clients.McpWorkload{Image: imageName + ":" + imageTag, Port: port, Path: path, Memory: memory, CPU: cpu}
+	w := &clients.McpWorkload{
+		Image:  imageName + ":" + imageTag,
+		Port:   port,
+		Path:   path,
+		Memory: memory,
+		CPU:    cpu,
+	}
 	if w.Port == 0 {
 		w.Port = 3000
 	}
@@ -341,7 +361,14 @@ to it. Auth routing cannot change while agents are attached — detach them firs
 			}
 			patch["auth"] = auth
 		}
-		if workload := mcpWorkloadFrom(mcpImageName, mcpImageTag, mcpPort, mcpPath, mcpMemory, mcpCPU); workload != nil {
+		if workload := mcpWorkloadFrom(
+			mcpImageName,
+			mcpImageTag,
+			mcpPort,
+			mcpPath,
+			mcpMemory,
+			mcpCPU,
+		); workload != nil {
 			patch["workload"] = workload
 		}
 		if err := rejectUnsupportedUpdateFlags(cmd); err != nil {
@@ -351,7 +378,13 @@ to it. Auth routing cannot change while agents are attached — detach them firs
 			return fmt.Errorf("no fields to update; pass at least one flag")
 		}
 
-		res, _, err := apiClient.UpdateMcp(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName, patch)
+		res, _, err := apiClient.UpdateMcp(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+			patch,
+		)
 		if err != nil {
 			return err
 		}
@@ -565,7 +598,12 @@ connection stops working if your access does.`,
 			return err
 		}
 
-		started, _, err := apiClient.BeginMcpSignIn(cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName)
+		started, _, err := apiClient.BeginMcpSignIn(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			mcpName,
+		)
 		if err != nil {
 			return err
 		}
