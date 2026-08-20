@@ -166,3 +166,41 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 		})
 	}
 }
+
+// Prepending unconditionally printed "oauth, oauth" when auth_methods had it too.
+func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
+	tests := []struct {
+		name  string
+		entry clients.McpCatalogEntry
+		want  string
+	}{
+		{
+			"oauth already in auth_methods",
+			clients.McpCatalogEntry{
+				AuthMethods:   []string{"oauth"},
+				GrantsAllowed: []string{"pkce"},
+			},
+			"oauth",
+		},
+		{
+			"oauth alongside another method",
+			clients.McpCatalogEntry{
+				AuthMethods:   []string{"bearer", "oauth"},
+				GrantsAllowed: []string{"pkce"},
+			},
+			"oauth, bearer",
+		},
+		{
+			"no grants recorded falls back to auth_methods as-is",
+			clients.McpCatalogEntry{AuthMethods: []string{"bearer"}},
+			"bearer",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := mcpSignIn(tc.entry); got != tc.want {
+				t.Errorf("mcpSignIn() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

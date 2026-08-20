@@ -69,7 +69,13 @@ func mcpSignIn(e clients.McpCatalogEntry) string {
 	if len(e.GrantsAllowed) == 0 {
 		return TruncateList(e.AuthMethods, 3)
 	}
-	options := append([]string{"oauth"}, e.AuthMethods...)
+	// auth_methods may already carry "oauth", so filter before prepending.
+	options := []string{"oauth"}
+	for _, m := range e.AuthMethods {
+		if m != "oauth" {
+			options = append(options, m)
+		}
+	}
 	signIn := strings.Join(options, ", ")
 	if selfRegisters, known := e.SelfRegisters[e.GrantsAllowed[0]]; known && !selfRegisters {
 		signIn += " · needs admin setup"
