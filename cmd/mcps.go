@@ -343,6 +343,9 @@ to it. Auth routing cannot change while agents are attached — detach them firs
 		if workload := mcpWorkloadFrom(mcpImageName, mcpImageTag, mcpPort, mcpPath, mcpMemory, mcpCPU); workload != nil {
 			patch["workload"] = workload
 		}
+		if err := rejectUnsupportedUpdateFlags(cmd); err != nil {
+			return err
+		}
 		if len(patch) == 0 {
 			return fmt.Errorf("no fields to update; pass at least one flag")
 		}
@@ -566,13 +569,13 @@ connection stops working if your access does.`,
 			return err
 		}
 		if mcpConnectNoBrowser {
-			fmt.Fprintf(out, "Open this to sign in:\n  %s\n", started.AuthorizeURL)
+			fmt.Fprintf(out, "Open this to sign in:\n  %s\n", started.Data.AuthorizeURL)
 			return fmt.Errorf("waiting for approval — re-run without --no-browser once signed in")
 		}
 
 		fmt.Fprintln(out, "Opening your browser to approve access...")
-		_ = auth.OpenBrowser(started.AuthorizeURL)
-		fmt.Fprintf(out, "If it did not open, visit:\n  %s\n\n", started.AuthorizeURL)
+		_ = auth.OpenBrowser(started.Data.AuthorizeURL)
+		fmt.Fprintf(out, "If it did not open, visit:\n  %s\n\n", started.Data.AuthorizeURL)
 
 		connected, err := waitForSignIn(cmd.Context(), apiClient, pCtx, mcpName)
 		if err != nil {
@@ -590,6 +593,54 @@ connection stops working if your access does.`,
 			return err
 		}
 		fmt.Fprintf(out, "Connected %s — %d tool(s) available.\n", mcpName, res.Data.Mcp.ToolCount)
+		return nil
+	},
+}
+
+// The mcps flag set is shared with `create`, but the unified patch carries none
+// of these — refusing beats silently ignoring a flag the user passed.
+func rejectUnsupportedUpdateFlags(cmd *cobra.Command) error {
+	for _, name := range []string{
+		"env", "secret", "header", "clear-env", "clear-secret", "clear-headers",
+	} {
+		if cmd.Flags().Changed(name) {
+			return fmt.Errorf(
+				"--%s is not supported by 'mcps update' yet; recreate the mcp to change it",
+				name,
+			)
+		}
+	}
+	return nil
+}
+
+var mcpDisconnectCmd = &cobra.Command{
+	Use:   "disconnect <mcp_name>",
+	Short: "Forget an mcp's stored provider credential",
+	Long: `Remove the provider credential this mcp holds, so it can no longer be used
+until someone signs in again.
+
+The connection is shared by the whole project, so this affects every agent and
+everyone in it. The mcp itself is kept — use 'iai mcps delete' to remove that.`,
+	Example: `  iai mcps disconnect notion-demo`,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		mcpName := strings.TrimSpace(args[0])
+
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+		if err := apiClient.Disconnect(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, mcpName,
+		); err != nil {
+			return err
+		}
+		fmt.Fprintf(
+			out,
+			"Disconnected %s — sign in again with 'iai mcps connect %s'.\n",
+			mcpName, mcpName,
+		)
 		return nil
 	},
 }
@@ -872,6 +923,7 @@ func init() {
 		mcpRevisionsCmd,
 		mcpDiffCmd,
 		mcpConnectCmd,
+		mcpDisconnectCmd,
 		mcpVerifyCmd,
 		mcpRunToolCmd,
 		mcpDeleteCmd,

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 )
 
 // Mirrors the backend's unified MCP API (api/platform/v1/schemas/mcps.py).
@@ -116,6 +117,16 @@ type McpCreateRequest struct {
 
 type McpUpdateRequest = map[string]any
 
+// readBody keeps the status code in the error: a 2xx here means the call
+// succeeded and only the read dropped, which a bare EOF hides.
+func readBody(resp *http.Response) ([]byte, error) {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response (HTTP %d): %w", resp.StatusCode, err)
+	}
+	return body, nil
+}
+
 func (c *APIClient) decodeError(body []byte) error {
 	var envelope struct {
 		Detail struct {
@@ -186,7 +197,7 @@ func (c *APIClient) ListMcps(ctx context.Context, orgID, projectID string) (*Mcp
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -210,7 +221,7 @@ func (c *APIClient) DescribeMcp(ctx context.Context, orgID, projectID, name stri
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -234,7 +245,7 @@ func (c *APIClient) CreateMcp(ctx context.Context, orgID, projectID string, crea
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -258,7 +269,7 @@ func (c *APIClient) ListMcpTools(ctx context.Context, orgID, projectID, name str
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -282,7 +293,7 @@ func (c *APIClient) VerifyMcp(ctx context.Context, orgID, projectID, name string
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -307,7 +318,7 @@ func (c *APIClient) RunMcpTool(ctx context.Context, orgID, projectID, name, tool
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -331,7 +342,7 @@ func (c *APIClient) DeleteMcp(ctx context.Context, orgID, projectID, name string
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -346,7 +357,13 @@ func (c *APIClient) DeleteMcp(ctx context.Context, orgID, projectID, name string
 }
 
 type McpSignInResult struct {
-	AuthorizeURL string `json:"authorization_url"`
+	// Wrapped, like every other platform response: the URL lives at
+	// data.authorization_url, and decoding the envelope flat silently yields
+	// an empty string rather than an error.
+	Data struct {
+		Name         string `json:"name"`
+		AuthorizeURL string `json:"authorization_url"`
+	} `json:"data"`
 }
 
 func (c *APIClient) BeginMcpSignIn(ctx context.Context, orgID, projectID, name string) (*McpSignInResult, []byte, error) {
@@ -359,7 +376,7 @@ func (c *APIClient) BeginMcpSignIn(ctx context.Context, orgID, projectID, name s
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -385,7 +402,7 @@ func (c *APIClient) ConnectionStatus(ctx context.Context, orgID, projectID, name
 		return false, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return false, err
 	}
@@ -403,6 +420,27 @@ func (c *APIClient) ConnectionStatus(ctx context.Context, orgID, projectID, name
 	return out.Data.Connected, nil
 }
 
+// Disconnect forgets the provider credential stored for this MCP.
+func (c *APIClient) Disconnect(ctx context.Context, orgID, projectID, name string) error {
+	req, err := c.newRequest(ctx, "DELETE", c.mcpPath(orgID, projectID, name)+"/connection")
+	if err != nil {
+		return err
+	}
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := readBody(resp)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		return c.decodeError(body)
+	}
+	return nil
+}
+
 func (c *APIClient) UpdateMcp(ctx context.Context, orgID, projectID, name string, patch map[string]any) (*McpDetailResponse, []byte, error) {
 	req, err := c.newJSONRequest(ctx, "PATCH", c.mcpPath(orgID, projectID, name), patch)
 	if err != nil {
@@ -413,7 +451,7 @@ func (c *APIClient) UpdateMcp(ctx context.Context, orgID, projectID, name string
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp)
 	if err != nil {
 		return nil, nil, err
 	}
