@@ -203,6 +203,26 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 			},
 			want: "set",
 		},
+		{
+			// Rows written before Platform recorded its own auth type carry
+			// LiteLLM's name for the flow. Same state, so the same column.
+			name: "unconnected oauth mcp carrying LiteLLM's auth type",
+			mcp: clients.McpSchema{
+				Name:     "linear",
+				Backend:  "external",
+				AuthType: strPtr("oauth2"),
+			},
+			want: "needs sign-in",
+		},
+		{
+			name: "unconnected oauth_delegate mcp",
+			mcp: clients.McpSchema{
+				Name:     "bridge",
+				Backend:  "external",
+				AuthType: strPtr("oauth_delegate"),
+			},
+			want: "needs sign-in",
+		},
 	}
 
 	for _, tt := range tests {
@@ -251,6 +271,68 @@ func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := mcpSignIn(tc.entry); got != tc.want {
 				t.Errorf("mcpSignIn() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// describe used to send an unconnected oauth mcp to `iai mcps tools`, which
+// errors. It has to name the command that actually helps.
+func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
+	tests := []struct {
+		name    string
+		mcp     clients.McpSchema
+		want    string
+		notWant string
+	}{
+		{
+			name: "unconnected oauth mcp is told to connect",
+			mcp: clients.McpSchema{
+				Name:     "asana",
+				Backend:  "external",
+				AuthType: strPtr("oauth"),
+			},
+			want:    "iai mcps connect asana",
+			notWant: "iai mcps tools asana",
+		},
+		{
+			name: "connected oauth mcp is told where the tools are",
+			mcp: clients.McpSchema{
+				Name:          "asana",
+				Backend:       "external",
+				AuthType:      strPtr("oauth"),
+				HasCredential: true,
+				ToolCount:     46,
+			},
+			want:    "iai mcps tools asana",
+			notWant: "iai mcps connect asana",
+		},
+		{
+			name: "static credential mcp is never told to connect",
+			mcp: clients.McpSchema{
+				Name:          "acme",
+				Backend:       "external",
+				AuthType:      strPtr("bearer"),
+				HasCredential: true,
+			},
+			want:    "iai mcps tools acme",
+			notWant: "iai mcps connect acme",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mcp := tt.mcp
+			if err := PrintMcpDetail(&buf, &mcp); err != nil {
+				t.Fatalf("PrintMcpDetail() error = %v", err)
+			}
+			got := buf.String()
+			if !strings.Contains(got, tt.want) {
+				t.Errorf("output %q does not contain %q", got, tt.want)
+			}
+			if strings.Contains(got, tt.notWant) {
+				t.Errorf("output %q must not contain %q", got, tt.notWant)
 			}
 		})
 	}

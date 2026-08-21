@@ -24,7 +24,7 @@ func PrintMcpList(out io.Writer, mcps []clients.McpSchema) error {
 		if m.VerifyStatus != nil {
 			verify = *m.VerifyStatus
 		}
-		if (m.AuthType != nil && *m.AuthType == "oauth") && m.HasCredential == false {
+		if NeedsSignIn(m) {
 			verify = "needs sign-in"
 		}
 		rows[i] = []string{
@@ -135,15 +135,34 @@ func PrintMcpDetail(out io.Writer, m *clients.McpSchema) error {
 		fmt.Fprintf(w, "Verify Status:\t%s\n", *m.VerifyStatus)
 	}
 	fmt.Fprintf(w, "Credential Set:\t%t\n", m.HasCredential)
-	fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools %s')\n", m.ToolCount, m.Name)
+	if NeedsSignIn(*m) {
+		fmt.Fprintf(
+			w,
+			"Tools:\t%d (needs a sign-in first — run 'iai mcps connect %s')\n",
+			m.ToolCount,
+			m.Name,
+		)
+	} else {
+		fmt.Fprintf(w, "Tools:\t%d (see 'iai mcps tools %s')\n", m.ToolCount, m.Name)
+	}
 	if len(m.AttachedAgents) > 0 {
 		fmt.Fprintf(w, "Attached Agents:\t%s\n", strings.Join(m.AttachedAgents, ", "))
 	}
 	return w.Flush()
 }
 
+// NeedsSignIn reports an MCP whose provider credential can only arrive through
+// `iai mcps connect`. AuthType may be Platform's name for the choice ("oauth") or
+// LiteLLM's name for the flow, which older rows still carry — both mean sign-in.
 func NeedsSignIn(m clients.McpSchema) bool {
-	return m.AuthType != nil && *m.AuthType == "oauth" && !m.HasCredential
+	if m.AuthType == nil || m.HasCredential {
+		return false
+	}
+	switch *m.AuthType {
+	case "oauth", "oauth2", "oauth_delegate":
+		return true
+	}
+	return false
 }
 
 func PrintMcpTools(out io.Writer, tools []clients.McpToolSchema) error {
