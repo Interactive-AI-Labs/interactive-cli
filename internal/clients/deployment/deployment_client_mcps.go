@@ -124,7 +124,7 @@ type McpToolError struct {
 	Message string `json:"message"`
 }
 
-type verifyMcpResponse struct {
+type VerifyMcpResponse struct {
 	Message         string           `json:"message"`
 	ToolCount       int              `json:"toolCount"`
 	Tools           []map[string]any `json:"tools"`
@@ -305,14 +305,14 @@ func (c *DeploymentClient) GetMcpTools(
 func (c *DeploymentClient) VerifyMcp(
 	ctx context.Context,
 	orgId, projectId, mcpName string,
-) (*verifyMcpResponse, error) {
+) (*VerifyMcpResponse, error) {
 	respBody, err := c.sendJSONRequest(
 		ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName)+"/verify", nil,
 	)
 	if err != nil {
 		return nil, err
 	}
-	var result verifyMcpResponse
+	var result VerifyMcpResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode verify response: %w", err)
 	}
