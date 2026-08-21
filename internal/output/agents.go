@@ -5,8 +5,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"gopkg.in/yaml.v3"
 )
 
@@ -190,7 +190,7 @@ func PrintAgentVersions(out io.Writer, agentId string, versions []string) error 
 
 func PrintCompatibilityMatrix(
 	out io.Writer,
-	matrix []api.CompatibilityEntry,
+	matrix []platform.CompatibilityEntry,
 	asJSON bool,
 ) error {
 	if asJSON {

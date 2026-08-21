@@ -3,7 +3,7 @@ package inputs
 import (
 	"fmt"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var DefaultObservationColumns = []string{
@@ -60,7 +60,7 @@ var AllStandaloneObservationColumns = []string{
 	"latency_ms",
 }
 
-func ValidateObservationSearchOptions(opts api.ObservationSearchOptions) error {
+func ValidateObservationSearchOptions(opts platform.ObservationSearchOptions) error {
 	if err := validateTimestamp(opts.FromTimestamp, "from-timestamp"); err != nil {
 		return err
 	}

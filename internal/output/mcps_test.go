@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestPrintMcpCatalog(t *testing.T) {
 	tests := []struct {
 		name    string
-		entries []api.McpCatalogEntry
+		entries []platform.McpCatalogEntry
 		want    string
 	}{
 		{
 			name: "single entry",
-			entries: []api.McpCatalogEntry{
+			entries: []platform.McpCatalogEntry{
 				{
 					ID:          "e1",
 					Name:        "GitHub",

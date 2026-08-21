@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
 func TestPrintScoreList(t *testing.T) {
 	tests := []struct {
 		name    string
-		scores  []api.ScoreInfo
-		meta    api.CursorMeta
+		scores  []platform.ScoreInfo
+		meta    platform.CursorMeta
 		columns []string
 		want    string
 	}{
@@ -23,7 +23,7 @@ func TestPrintScoreList(t *testing.T) {
 		},
 		{
 			name: "default columns with cursor",
-			scores: []api.ScoreInfo{{
+			scores: []platform.ScoreInfo{{
 				ID:        "score-1",
 				Name:      "quality",
 				DataType:  "NUMERIC",
@@ -32,7 +32,7 @@ func TestPrintScoreList(t *testing.T) {
 				Timestamp: "2025-01-01",
 				TraceID:   "trace-1",
 			}},
-			meta:    api.CursorMeta{NextCursor: "cursor-2"},
+			meta:    platform.CursorMeta{NextCursor: "cursor-2"},
 			columns: inputs.DefaultScoreColumns,
 			want: "ID        NAME      DATA TYPE   VALUE   SOURCE   TIMESTAMP    TRACE ID\n" +
 				"score-1   quality   NUMERIC     0.95    HUMAN    2025-01-01   trace-1\n" +
@@ -55,7 +55,7 @@ func TestPrintScoreList(t *testing.T) {
 }
 
 func TestPrintScoreCreateResultAndDeleteSuccess(t *testing.T) {
-	score := &api.ScoreInfo{
+	score := &platform.ScoreInfo{
 		ID:        "score-1",
 		Name:      "quality",
 		DataType:  "NUMERIC",

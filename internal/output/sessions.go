@@ -4,57 +4,57 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var sessionColumnMap = map[string]struct {
 	Header string
-	Value  func(s *api.SessionInfo) string
+	Value  func(s *platform.SessionInfo) string
 }{
-	"id": {"ID", func(s *api.SessionInfo) string { return s.ID }},
+	"id": {"ID", func(s *platform.SessionInfo) string { return s.ID }},
 	"created_at": {
 		"CREATED AT",
-		func(s *api.SessionInfo) string { return LocalTime(s.CreatedAt) },
+		func(s *platform.SessionInfo) string { return LocalTime(s.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(s *api.SessionInfo) string { return LocalTime(s.UpdatedAt) },
+		func(s *platform.SessionInfo) string { return LocalTime(s.UpdatedAt) },
 	},
 	"environment": {
 		"ENVIRONMENT",
-		func(s *api.SessionInfo) string { return s.Environment },
+		func(s *platform.SessionInfo) string { return s.Environment },
 	},
-	"user_id": {"USER ID", func(s *api.SessionInfo) string { return s.UserID }},
+	"user_id": {"USER ID", func(s *platform.SessionInfo) string { return s.UserID }},
 	"trace_count": {
 		"TRACE COUNT",
-		func(s *api.SessionInfo) string { return formatInt(s.TraceCount) },
+		func(s *platform.SessionInfo) string { return formatInt(s.TraceCount) },
 	},
 	"duration_seconds": {
 		"DURATION (s)",
-		func(s *api.SessionInfo) string { return formatFloat(s.DurationSeconds, "s") },
+		func(s *platform.SessionInfo) string { return formatFloat(s.DurationSeconds, "s") },
 	},
 	"total_cost": {
 		"TOTAL COST",
-		func(s *api.SessionInfo) string { return formatCost(s.TotalCost) },
+		func(s *platform.SessionInfo) string { return formatCost(s.TotalCost) },
 	},
 	"input_tokens": {
 		"INPUT TOKENS",
-		func(s *api.SessionInfo) string { return formatInt(s.InputTokens) },
+		func(s *platform.SessionInfo) string { return formatInt(s.InputTokens) },
 	},
 	"output_tokens": {
 		"OUTPUT TOKENS",
-		func(s *api.SessionInfo) string { return formatInt(s.OutputTokens) },
+		func(s *platform.SessionInfo) string { return formatInt(s.OutputTokens) },
 	},
 	"total_tokens": {
 		"TOTAL TOKENS",
-		func(s *api.SessionInfo) string { return formatInt(s.TotalTokens) },
+		func(s *platform.SessionInfo) string { return formatInt(s.TotalTokens) },
 	},
 }
 
 func PrintSessionList(
 	out io.Writer,
-	sessions []api.SessionInfo,
-	meta api.PageMeta,
+	sessions []platform.SessionInfo,
+	meta platform.PageMeta,
 	columns []string,
 ) error {
 	if len(sessions) == 0 {
@@ -88,7 +88,7 @@ func PrintSessionList(
 	return nil
 }
 
-func PrintSessionDetail(out io.Writer, session *api.SessionDetail) error {
+func PrintSessionDetail(out io.Writer, session *platform.SessionDetail) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", session.ID)
 	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(session.CreatedAt))

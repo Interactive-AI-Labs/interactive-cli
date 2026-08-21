@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -76,7 +76,7 @@ Use --daily to get metrics aggregated by day (default).`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		opts := api.MetricsDailyOptions{
+		opts := platform.MetricsDailyOptions{
 			FromTimestamp: fromTS,
 			ToTimestamp:   metricsListToTimestamp,
 			Page:          metricsListPage,

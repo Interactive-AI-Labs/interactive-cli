@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
-func obs(id, parent, typ, name, level, status string, in, out string) api.ObservationInfo {
-	o := api.ObservationInfo{
+func obs(id, parent, typ, name, level, status string, in, out string) platform.ObservationInfo {
+	o := platform.ObservationInfo{
 		ID: id, ParentObservationID: parent, Type: typ, Name: name,
 		Level: level, StatusMessage: status,
 	}
@@ -23,7 +23,7 @@ func obs(id, parent, typ, name, level, status string, in, out string) api.Observ
 	return o
 }
 
-func obsAt(id, parent, name, start string) api.ObservationInfo {
+func obsAt(id, parent, name, start string) platform.ObservationInfo {
 	o := obs(id, parent, "CHAIN", name, "", "", "", "")
 	o.StartTime = start
 	return o
@@ -51,19 +51,19 @@ func assertJSON(t *testing.T, got any, wantJSON string) {
 func TestTraceSummary(t *testing.T) {
 	cases := []struct {
 		name  string
-		trace *api.TraceDetail
-		obs   []api.ObservationInfo
+		trace *platform.TraceDetail
+		obs   []platform.ObservationInfo
 		want  string
 	}{
 		{
 			name: "two iterations with conditions and a tool",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name:   "driveaway-agent",
 				Level:  "DEFAULT",
 				Input:  json.RawMessage(`"I want to rent a car for next weekend"`),
 				Output: json.RawMessage(`"[\"Great! We have 3 cars available...\"]"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
 				obs(
 					"mg1",
@@ -96,13 +96,13 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "journey path, routine activation, policy, and decision rationale",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name:   "agent-chat",
 				Level:  "DEFAULT",
 				Input:  json.RawMessage(`"first bet refund?"`),
 				Output: json.RawMessage(`"[\"transfer\"]"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
 				obs("mg1", "it1", "chain", "match_guidelines", "", "", "", `{"matches":[
 					{"type":"routine","routine_id":"bonus-chat","condition":"big routine cond","score":10},
@@ -141,13 +141,13 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "titled knowledge-base retrieval at the root",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name:   "agent-chat",
 				Level:  "DEFAULT",
 				Input:  json.RawMessage(`"hi"`),
 				Output: json.RawMessage(`"[\"hello\"]"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs(
 					"kb",
 					"process",
@@ -173,10 +173,10 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "untitled knowledge-base retrieval reports count only",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name: "agent", Level: "DEFAULT", Input: json.RawMessage(`"hi"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
 				obs("fs1", "it1", "span", "find_similar_documents", "", "",
 					`{"query":"blob"}`, `[{"content":"a"},{"content":"b"},{"content":"c"}]`),
@@ -189,12 +189,12 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "condition whitespace normalized and tool envelope unwrapped",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name:  "agent-kyc",
 				Level: "DEFAULT",
 				Input: json.RawMessage(`"{\"step\":\"classify\"}"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
 				obs(
 					"mg1",
@@ -227,12 +227,12 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "tool error is captured at tool and trace level",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name: "agent", Level: "ERROR",
 				Input:  json.RawMessage(`"hi"`),
 				Output: json.RawMessage(`"[\"sorry\"]"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs("it1", "root", "chain", "preparation_iteration_1", "", "", "", ""),
 				obs("ex1", "it1", "tool", "execute_tool_calls", "", "", "", ""),
 				obs("t1", "ex1", "tool", "create_booking", "ERROR", "upstream 500",
@@ -247,13 +247,13 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "display names: chat iteration with context matches and next step",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name:   "agent-chat: 406867 (turn: 4)",
 				Level:  "DEFAULT",
 				Input:  json.RawMessage(`"kyc status?"`),
 				Output: json.RawMessage(`"[\"checking\"]"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs(
 					"kb",
 					"",
@@ -303,12 +303,12 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "display names: routine steps and tool execution",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name:  "agent-kyc",
 				Level: "DEFAULT",
 				Input: json.RawMessage(`"{\"applicantId\":\"a1\"}"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs("it2", "agent", "CHAIN", "Iteration: 2", "", "", "", ""),
 				obs("es1", "it2", "CHAIN", "Evaluate: Routine steps", "", "", "", `{"matches":[
 					{"type":"routine_node","routine_id":"verify-kyc-l1","step_id":"l1_name_check","condition":"rejectLabels does NOT contain WRONG_ADDRESS","score":10}
@@ -346,12 +346,12 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "warning status surfaces alongside errors",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name: "agent-kyc", Level: "WARNING",
 				Input:  json.RawMessage(`"{\"type\":\"applicantOnHold\"}"`),
 				Output: json.RawMessage(`"{\"matched\":[]}"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obs("wh1", "", "CHAIN", "sumsub-kyc", "WARNING", "no routine matched", "", ""),
 				obs("wh2", "", "CHAIN", "silent-warning", "WARNING", "", "", ""),
 			},
@@ -366,10 +366,10 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "repeated iteration numbers keep chronological order",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name: "agent-kyc", Level: "ERROR", Input: json.RawMessage(`"go"`),
 			}},
-			obs: []api.ObservationInfo{
+			obs: []platform.ObservationInfo{
 				obsAt("r2i2", "", "Iteration: 2", "2026-08-03T12:00:02+02:00"),
 				obsAt("r1i1", "", "Iteration: 1", "2026-08-03T10:00:00Z"),
 				obsAt("r2i1", "", "Iteration: 1", "2026-08-03T09:00:01-01:00"),
@@ -391,7 +391,7 @@ func TestTraceSummary(t *testing.T) {
 		},
 		{
 			name: "no observations still renders input and reply",
-			trace: &api.TraceDetail{TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 				Name: "agent", Level: "ERROR",
 				Input:  json.RawMessage(`"hi"`),
 				Output: json.RawMessage(`"[\"sorry\"]"`),
@@ -443,12 +443,12 @@ func TestUnwrapToolResult(t *testing.T) {
 }
 
 func TestTraceSummary_CyclicGraph(t *testing.T) {
-	trace := &api.TraceDetail{TraceInfo: api.TraceInfo{
+	trace := &platform.TraceDetail{TraceInfo: platform.TraceInfo{
 		Name: "agent", Level: "DEFAULT", Input: json.RawMessage(`"hi"`),
 	}}
 	// Malformed tree: a subtree with a parent cycle (a -> b -> a) and a
 	// self-reference (c -> c). The summary must terminate without panic.
-	observations := []api.ObservationInfo{
+	observations := []platform.ObservationInfo{
 		obs("it1", "process", "chain", "preparation_iteration_1", "", "", "", ""),
 		obs("a", "it1", "span", "node_a", "", "", "", ""),
 		obs("b", "a", "span", "node_b", "", "", "", ""),

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -135,7 +135,7 @@ Uses the platform API with dual authentication (API key or session).`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		opts := api.ObservationSearchOptions{
+		opts := platform.ObservationSearchOptions{
 			FromTimestamp:       fromTS,
 			ToTimestamp:         obsListToTimestamp,
 			Cursor:              obsListCursor,

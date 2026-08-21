@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func PrintMcpList(out io.Writer, mcps []deployment.McpOutput) error {
@@ -39,7 +39,7 @@ func PrintMcpList(out io.Writer, mcps []deployment.McpOutput) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintMcpCatalog(out io.Writer, entries []api.McpCatalogEntry) error {
+func PrintMcpCatalog(out io.Writer, entries []platform.McpCatalogEntry) error {
 	if len(entries) == 0 {
 		fmt.Fprintln(out, "No catalog entries found.")
 		return nil
