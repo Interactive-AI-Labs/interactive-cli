@@ -21,7 +21,9 @@ more than one, in which case the error names the options.
 The mcp is verified against the live server before it's kept: an internal mcp
 is verified once its status is healthy (checked in the background — see 'iai
 mcps describe'); an external mcp (custom or catalog) is verified immediately,
-and the create fails if the server is unreachable or rejects the credential.
+and the create fails if the server is unreachable. Verification lists the
+server's tools, so it only catches a bad credential on providers that require
+auth to list them — some serve tool discovery anonymously.
 An --auth-type oauth mcp is the exception: there is no credential until the
 user signs in, so it is created unverified and reports no tools until then.
 
