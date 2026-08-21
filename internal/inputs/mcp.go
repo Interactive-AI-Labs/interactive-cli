@@ -65,7 +65,7 @@ type McpInput struct {
 	EndpointURL string
 	CatalogID   string
 
-	AuthType         string // bearer | api_key | custom | none — inferred when empty, see BuildMcpRequestBody
+	AuthType         string // bearer | api_key | custom | none | oauth — inferred when empty, see BuildMcpRequestBody
 	Credential       string
 	AuthHeader       string
 	AuthHeaderPrefix string
@@ -113,6 +113,10 @@ func BuildMcpRequestBody(in McpInput) (deployment.CreateMcpBody, error) {
 	authType := strings.TrimSpace(in.AuthType)
 	if authType == "" {
 		switch {
+		case strings.TrimSpace(in.CatalogID) != "":
+			// Left empty on purpose: the entry knows whether the provider takes a
+			// bearer token, an api key or a sign-in, and guessing "bearer" from the
+			// presence of a credential is wrong for every api-key-only provider.
 		case strings.TrimSpace(in.AuthHeader) != "" || strings.TrimSpace(in.AuthHeaderPrefix) != "":
 			authType = "custom"
 		case strings.TrimSpace(in.Credential) != "":

@@ -33,7 +33,7 @@ iai mcps update <mcp_name> [flags]
 ```
       --auth-header string          Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)
       --auth-header-prefix string   Credential value prefix — only valid with --auth-type custom
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth" — the user signs in, no credential to pass (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none"; with --catalog-id the entry decides)
       --clear-env                   Remove all environment variables from the mcp
       --clear-headers               Remove all extra request headers from the mcp
       --clear-secret                Remove all secret references from the mcp
