@@ -3,7 +3,7 @@ package inputs
 import (
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestValidateObservationColumns(t *testing.T) {
@@ -58,12 +58,12 @@ func TestValidateStandaloneObservationColumns(t *testing.T) {
 func TestValidateObservationSearchOptions(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    api.ObservationSearchOptions
+		opts    platform.ObservationSearchOptions
 		wantErr bool
 	}{
 		{
 			name: "valid options",
-			opts: api.ObservationSearchOptions{
+			opts: platform.ObservationSearchOptions{
 				FromTimestamp: "2025-01-01T00:00:00Z",
 				Limit:         20,
 			},
@@ -71,12 +71,12 @@ func TestValidateObservationSearchOptions(t *testing.T) {
 		},
 		{
 			name:    "invalid from timestamp",
-			opts:    api.ObservationSearchOptions{FromTimestamp: "2025-01-01"},
+			opts:    platform.ObservationSearchOptions{FromTimestamp: "2025-01-01"},
 			wantErr: true,
 		},
 		{
 			name: "negative limit",
-			opts: api.ObservationSearchOptions{
+			opts: platform.ObservationSearchOptions{
 				FromTimestamp: "2025-01-01T00:00:00Z",
 				Limit:         -1,
 			},

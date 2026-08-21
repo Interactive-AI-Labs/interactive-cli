@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
@@ -15,28 +15,28 @@ func TestPrintTraceList(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		traces  []api.TraceInfo
-		meta    api.TraceMeta
+		traces  []platform.TraceInfo
+		meta    platform.TraceMeta
 		columns []string
 		want    string
 	}{
 		{
 			name:    "empty list prints message",
-			traces:  []api.TraceInfo{},
-			meta:    api.TraceMeta{},
+			traces:  []platform.TraceInfo{},
+			meta:    platform.TraceMeta{},
 			columns: inputs.DefaultTraceColumns,
 			want:    "No traces found.\n",
 		},
 		{
 			name:    "nil list prints message",
 			traces:  nil,
-			meta:    api.TraceMeta{},
+			meta:    platform.TraceMeta{},
 			columns: inputs.DefaultTraceColumns,
 			want:    "No traces found.\n",
 		},
 		{
 			name: "default columns",
-			traces: []api.TraceInfo{
+			traces: []platform.TraceInfo{
 				{
 					ID:        "abc123",
 					Name:      "my-trace",
@@ -46,7 +46,7 @@ func TestPrintTraceList(t *testing.T) {
 					Tags:      []string{"tag1"},
 				},
 			},
-			meta:    api.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta:    platform.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			columns: inputs.DefaultTraceColumns,
 			want: "ID       NAME       TIMESTAMP    LATENCY   COST        TAGS\n" +
 				"abc123   my-trace   2025-01-01   1.50s     $0.012345   tag1\n" +
@@ -54,13 +54,13 @@ func TestPrintTraceList(t *testing.T) {
 		},
 		{
 			name: "custom columns subset",
-			traces: []api.TraceInfo{
+			traces: []platform.TraceInfo{
 				{
 					ID:   "abc123",
 					Name: "my-trace",
 				},
 			},
-			meta:    api.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta:    platform.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			columns: []string{"id", "name"},
 			want: "ID       NAME\n" +
 				"abc123   my-trace\n" +
@@ -68,14 +68,14 @@ func TestPrintTraceList(t *testing.T) {
 		},
 		{
 			name: "nil latency and cost show dash",
-			traces: []api.TraceInfo{
+			traces: []platform.TraceInfo{
 				{
 					ID:        "abc123",
 					Name:      "test",
 					Timestamp: "2025-01-01",
 				},
 			},
-			meta:    api.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta:    platform.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			columns: []string{"id", "latency", "cost"},
 			want: "ID       LATENCY   COST\n" +
 				"abc123   -         -\n" +
@@ -83,13 +83,13 @@ func TestPrintTraceList(t *testing.T) {
 		},
 		{
 			name: "tags truncated beyond 3",
-			traces: []api.TraceInfo{
+			traces: []platform.TraceInfo{
 				{
 					ID:   "abc123",
 					Tags: []string{"a", "b", "c", "d", "e"},
 				},
 			},
-			meta:    api.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta:    platform.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			columns: []string{"id", "tags"},
 			want: "ID       TAGS\n" +
 				"abc123   a, b, c (+2 more)\n" +
@@ -97,14 +97,14 @@ func TestPrintTraceList(t *testing.T) {
 		},
 		{
 			name: "session_id and user_id columns",
-			traces: []api.TraceInfo{
+			traces: []platform.TraceInfo{
 				{
 					ID:        "abc123",
 					UserID:    "user1",
 					SessionID: "sess1",
 				},
 			},
-			meta:    api.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta:    platform.TraceMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			columns: []string{"id", "user_id", "session_id"},
 			want: "ID       USER ID   SESSION ID\n" +
 				"abc123   user1     sess1\n" +
@@ -112,10 +112,10 @@ func TestPrintTraceList(t *testing.T) {
 		},
 		{
 			name: "pagination info",
-			traces: []api.TraceInfo{
+			traces: []platform.TraceInfo{
 				{ID: "abc123"},
 			},
-			meta:    api.TraceMeta{Page: 2, TotalPages: 5, TotalItems: 50},
+			meta:    platform.TraceMeta{Page: 2, TotalPages: 5, TotalItems: 50},
 			columns: []string{"id"},
 			want: "ID\n" +
 				"abc123\n" +
@@ -143,13 +143,13 @@ func TestPrintTraceDetail(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		trace *api.TraceDetail
+		trace *platform.TraceDetail
 		want  string
 	}{
 		{
 			name: "all fields populated",
-			trace: &api.TraceDetail{
-				TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{
+				TraceInfo: platform.TraceInfo{
 					ID:          "abc123",
 					Name:        "my-trace",
 					Timestamp:   "2025-01-01",
@@ -192,8 +192,8 @@ func TestPrintTraceDetail(t *testing.T) {
 		},
 		{
 			name: "minimal fields",
-			trace: &api.TraceDetail{
-				TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{
+				TraceInfo: platform.TraceInfo{
 					ID:        "def456",
 					Name:      "minimal",
 					Timestamp: "2025-06-01",
@@ -218,8 +218,8 @@ func TestPrintTraceDetail(t *testing.T) {
 		},
 		{
 			name: "null json fields are hidden",
-			trace: &api.TraceDetail{
-				TraceInfo: api.TraceInfo{
+			trace: &platform.TraceDetail{
+				TraceInfo: platform.TraceInfo{
 					ID:     "ghi789",
 					Name:   "null-json",
 					Input:  []byte(`null`),

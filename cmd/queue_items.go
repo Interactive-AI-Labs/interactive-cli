@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -94,7 +94,7 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 			}
 		}
 
-		opts := api.QueueItemListOptions{
+		opts := platform.QueueItemListOptions{
 			Status:    queueItemsListStatus,
 			Page:      queueItemsListPage,
 			Limit:     queueItemsListLimit,
@@ -269,7 +269,7 @@ This command requires API key authentication.`,
 			pCtx.projectId,
 			queueID,
 			itemID,
-			api.QueueItemUpdateBody{Status: status},
+			platform.QueueItemUpdateBody{Status: status},
 		)
 		if err != nil {
 			return err

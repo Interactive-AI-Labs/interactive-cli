@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestPrintRouterAPIKeyListFormatsMoney(t *testing.T) {
 	oldExpiry := "2000-01-01T00:00:00Z"
-	keys := []api.RouterAPIKey{
+	keys := []platform.RouterAPIKey{
 		{
 			ID:             "1",
 			Name:           "a",

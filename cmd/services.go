@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -907,7 +907,13 @@ The project is selected with --project or via 'iai projects select', and the con
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := api.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := platform.NewAPIClient(
+			hostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var DefaultScoreColumns = []string{
@@ -49,7 +49,7 @@ type ScoreCreateInput struct {
 	QueueID       string
 }
 
-func PrepareScoreListOptions(opts api.ScoreListOptions) (api.ScoreListOptions, error) {
+func PrepareScoreListOptions(opts platform.ScoreListOptions) (platform.ScoreListOptions, error) {
 	if err := validateTimestamp(opts.FromTimestamp, "from-timestamp"); err != nil {
 		return opts, err
 	}
@@ -73,7 +73,7 @@ func PrepareScoreListOptions(opts api.ScoreListOptions) (api.ScoreListOptions, e
 	return opts, nil
 }
 
-func BuildScoreCreateBody(input ScoreCreateInput) (api.ScoreCreateBody, error) {
+func BuildScoreCreateBody(input ScoreCreateInput) (platform.ScoreCreateBody, error) {
 	targetCount := 0
 	if strings.TrimSpace(input.TraceID) != "" {
 		targetCount++
@@ -85,7 +85,7 @@ func BuildScoreCreateBody(input ScoreCreateInput) (api.ScoreCreateBody, error) {
 		targetCount++
 	}
 	if targetCount != 1 {
-		return api.ScoreCreateBody{}, fmt.Errorf(
+		return platform.ScoreCreateBody{}, fmt.Errorf(
 			"exactly one of --trace-id, --observation-id, or --session-id is required",
 		)
 	}
@@ -99,10 +99,10 @@ func BuildScoreCreateBody(input ScoreCreateInput) (api.ScoreCreateBody, error) {
 
 	parsedValue, err := parseScoreValue(dataType, valueRaw)
 	if err != nil {
-		return api.ScoreCreateBody{}, err
+		return platform.ScoreCreateBody{}, err
 	}
 
-	body := api.ScoreCreateBody{
+	body := platform.ScoreCreateBody{
 		ID:            strings.TrimSpace(input.ID),
 		Name:          strings.TrimSpace(input.Name),
 		TraceID:       strings.TrimSpace(input.TraceID),
@@ -122,7 +122,7 @@ func BuildScoreCreateBody(input ScoreCreateInput) (api.ScoreCreateBody, error) {
 			"--metadata-json",
 		)
 		if err != nil {
-			return api.ScoreCreateBody{}, err
+			return platform.ScoreCreateBody{}, err
 		}
 		body.Metadata = metadata
 	}

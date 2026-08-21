@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func PrintRouterModelList(
 	out io.Writer,
-	models []api.RouterModel,
-	meta api.PageMeta,
+	models []platform.RouterModel,
+	meta platform.PageMeta,
 ) error {
 	if len(models) == 0 {
 		fmt.Fprintln(out, "No models found.")
@@ -41,7 +41,7 @@ func PrintRouterModelList(
 	return nil
 }
 
-func PrintRouterModelDetail(out io.Writer, m *api.RouterModel) error {
+func PrintRouterModelDetail(out io.Writer, m *platform.RouterModel) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", m.ID)
 	fmt.Fprintf(w, "Model Name:\t%s\n", m.ModelName)

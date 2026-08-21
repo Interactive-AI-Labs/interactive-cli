@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -97,7 +97,7 @@ This is a public endpoint and does not require authentication.`, ptCfg.Plural),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 
-			result, err := api.GetPromptSchema(
+			result, err := platform.GetPromptSchema(
 				cmd.Context(), hostname, defaultHTTPTimeout, ptCfg.TypeName, schemaVersion,
 			)
 			if err != nil {
@@ -161,7 +161,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			return err
 		}
 
-		payload := api.CreatePromptBody{
+		payload := platform.CreatePromptBody{
 			Name:          name,
 			Prompt:        string(content),
 			Labels:        labels,
@@ -228,7 +228,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
-			opts := api.PromptListOptions{
+			opts := platform.PromptListOptions{
 				Page:  page,
 				Limit: limit,
 			}
@@ -372,7 +372,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			return err
 		}
 
-		payload := api.CreatePromptBody{
+		payload := platform.CreatePromptBody{
 			Name:          name,
 			Prompt:        string(content),
 			Labels:        labels,
@@ -594,10 +594,10 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 func findPromptVersions(
 	ctx context.Context,
-	apiClient *api.APIClient,
+	apiClient *platform.APIClient,
 	projectId, routeSegment, name, typeName string,
 ) ([]int, error) {
-	opts := api.PromptListOptions{Limit: 1000}
+	opts := platform.PromptListOptions{Limit: 1000}
 	result, err := apiClient.ListPrompts(ctx, projectId, routeSegment, opts)
 	if err != nil {
 		return nil, err

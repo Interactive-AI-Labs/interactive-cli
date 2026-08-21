@@ -3,7 +3,7 @@ package inputs
 import (
 	"fmt"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var DefaultSessionColumns = []string{
@@ -30,7 +30,7 @@ var AllSessionColumns = []string{
 	"total_tokens",
 }
 
-func ValidateSessionListOptions(opts api.SessionListOptions) error {
+func ValidateSessionListOptions(opts platform.SessionListOptions) error {
 	if err := validateTimestamp(opts.FromTimestamp, "from-timestamp"); err != nil {
 		return err
 	}

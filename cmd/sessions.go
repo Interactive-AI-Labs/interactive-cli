@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
@@ -83,7 +83,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		opts := api.SessionListOptions{
+		opts := platform.SessionListOptions{
 			FromTimestamp: fromTS,
 			ToTimestamp:   sessionsToTimestamp,
 			Page:          sessionsPage,
@@ -150,7 +150,7 @@ Uses the platform API with dual authentication (API key or session).`,
 		if sessionsGetSummary {
 			all, truncated, err := apiClient.ListAllTraces(
 				cmd.Context(), pCtx.orgId, pCtx.projectId,
-				api.TraceListOptions{
+				platform.TraceListOptions{
 					SessionID:     sessionID,
 					FromTimestamp: sessionSummaryEpoch,
 					Fields:        "core,io",

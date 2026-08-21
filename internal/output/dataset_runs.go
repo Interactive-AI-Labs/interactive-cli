@@ -4,37 +4,37 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var datasetRunColumnMap = map[string]struct {
 	Header string
-	Value  func(r *api.DatasetRunInfo) string
+	Value  func(r *platform.DatasetRunInfo) string
 }{
-	"id":   {"ID", func(r *api.DatasetRunInfo) string { return r.ID }},
-	"name": {"NAME", func(r *api.DatasetRunInfo) string { return r.Name }},
+	"id":   {"ID", func(r *platform.DatasetRunInfo) string { return r.ID }},
+	"name": {"NAME", func(r *platform.DatasetRunInfo) string { return r.Name }},
 	"description": {
 		"DESCRIPTION",
-		func(r *api.DatasetRunInfo) string { return r.Description },
+		func(r *platform.DatasetRunInfo) string { return r.Description },
 	},
 	"dataset_name": {
 		"DATASET NAME",
-		func(r *api.DatasetRunInfo) string { return r.DatasetName },
+		func(r *platform.DatasetRunInfo) string { return r.DatasetName },
 	},
 	"created_at": {
 		"CREATED AT",
-		func(r *api.DatasetRunInfo) string { return LocalTime(r.CreatedAt) },
+		func(r *platform.DatasetRunInfo) string { return LocalTime(r.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(r *api.DatasetRunInfo) string { return LocalTime(r.UpdatedAt) },
+		func(r *platform.DatasetRunInfo) string { return LocalTime(r.UpdatedAt) },
 	},
 }
 
 func PrintDatasetRunList(
 	out io.Writer,
-	runs []api.DatasetRunInfo,
-	meta api.PageMeta,
+	runs []platform.DatasetRunInfo,
+	meta platform.PageMeta,
 	columns []string,
 ) error {
 	if len(runs) == 0 {
@@ -68,7 +68,7 @@ func PrintDatasetRunList(
 	return nil
 }
 
-func PrintDatasetRunDetail(out io.Writer, run *api.DatasetRunInfo) error {
+func PrintDatasetRunDetail(out io.Writer, run *platform.DatasetRunInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", run.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", run.Name)

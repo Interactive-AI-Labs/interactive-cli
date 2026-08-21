@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -729,7 +729,13 @@ Use --json or --yaml for structured schema output.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := api.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := platform.NewAPIClient(
+			hostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -775,7 +781,7 @@ By default, output is a formatted table. Use --json for machine-readable output.
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		matrix, err := api.GetAgentCompatibilityMatrix(
+		matrix, err := platform.GetAgentCompatibilityMatrix(
 			cmd.Context(),
 			hostname,
 			defaultHTTPTimeout,

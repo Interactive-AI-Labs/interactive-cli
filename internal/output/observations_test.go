@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
@@ -15,13 +15,13 @@ func TestPrintObservationList(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		observations []api.ObservationInfo
+		observations []platform.ObservationInfo
 		columns      []string
 		want         string
 	}{
 		{
 			name:         "empty list prints message",
-			observations: []api.ObservationInfo{},
+			observations: []platform.ObservationInfo{},
 			columns:      inputs.DefaultObservationColumns,
 			want:         "No observations found.\n",
 		},
@@ -33,7 +33,7 @@ func TestPrintObservationList(t *testing.T) {
 		},
 		{
 			name: "default columns",
-			observations: []api.ObservationInfo{
+			observations: []platform.ObservationInfo{
 				{
 					ID:          "obs-123",
 					Type:        "GENERATION",
@@ -50,7 +50,7 @@ func TestPrintObservationList(t *testing.T) {
 		},
 		{
 			name: "custom columns subset",
-			observations: []api.ObservationInfo{
+			observations: []platform.ObservationInfo{
 				{
 					ID:      "obs-123",
 					TraceID: "trace-456",
@@ -63,7 +63,7 @@ func TestPrintObservationList(t *testing.T) {
 		},
 		{
 			name: "nil metrics show dash",
-			observations: []api.ObservationInfo{
+			observations: []platform.ObservationInfo{
 				{
 					ID:   "obs-123",
 					Name: "test",
@@ -99,13 +99,13 @@ func TestPrintObservationDetail(t *testing.T) {
 
 	tests := []struct {
 		name string
-		obs  *api.ObservationDetail
+		obs  *platform.ObservationDetail
 		want string
 	}{
 		{
 			name: "core fields and metrics",
-			obs: &api.ObservationDetail{
-				ObservationInfo: api.ObservationInfo{
+			obs: &platform.ObservationDetail{
+				ObservationInfo: platform.ObservationInfo{
 					ID:           "obs-123",
 					TraceID:      "trace-456",
 					Type:         "GENERATION",
@@ -139,8 +139,8 @@ func TestPrintObservationDetail(t *testing.T) {
 		},
 		{
 			name: "with prompt info",
-			obs: &api.ObservationDetail{
-				ObservationInfo: api.ObservationInfo{
+			obs: &platform.ObservationDetail{
+				ObservationInfo: platform.ObservationInfo{
 					ID:      "obs-789",
 					TraceID: "trace-abc",
 					Type:    "GENERATION",
@@ -190,8 +190,8 @@ func TestPrintStandaloneObservationList(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		observations []api.StandaloneObservationInfo
-		meta         api.CursorMeta
+		observations []platform.StandaloneObservationInfo
+		meta         platform.CursorMeta
 		columns      []string
 		want         string
 	}{
@@ -203,7 +203,7 @@ func TestPrintStandaloneObservationList(t *testing.T) {
 		},
 		{
 			name: "default columns with cursor",
-			observations: []api.StandaloneObservationInfo{
+			observations: []platform.StandaloneObservationInfo{
 				{
 					ID:          "obs-123",
 					TraceID:     "trace-456",
@@ -215,7 +215,7 @@ func TestPrintStandaloneObservationList(t *testing.T) {
 					TotalTokens: &tokens,
 				},
 			},
-			meta:    api.CursorMeta{NextCursor: "cursor-2"},
+			meta:    platform.CursorMeta{NextCursor: "cursor-2"},
 			columns: inputs.DefaultStandaloneObservationColumns,
 			want: "ID        TRACE ID    TYPE         NAME      MODEL   LATENCY (ms)   COST        TOTAL TOKENS\n" +
 				"obs-123   trace-456   GENERATION   ChatGPT   gpt-4   9321.00ms      $0.008100   7474\n" +

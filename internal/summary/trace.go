@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 // Condition is a guideline whose condition matched ("marked true") in a turn.
@@ -153,7 +153,7 @@ type iterNode struct {
 }
 
 // TraceSummary builds a compact turn summary from trace observations.
-func TraceSummary(trace *api.TraceDetail, obs []api.ObservationInfo) *TraceSummaryModel {
+func TraceSummary(trace *platform.TraceDetail, obs []platform.ObservationInfo) *TraceSummaryModel {
 	children, iters, errs := indexTraceObservations(obs)
 	m := &TraceSummaryModel{
 		Name:      trace.Name,
@@ -173,9 +173,9 @@ func TraceSummary(trace *api.TraceDetail, obs []api.ObservationInfo) *TraceSumma
 }
 
 func indexTraceObservations(
-	obs []api.ObservationInfo,
-) (children map[string][]api.ObservationInfo, iters []iterNode, errs []string) {
-	children = make(map[string][]api.ObservationInfo, len(obs))
+	obs []platform.ObservationInfo,
+) (children map[string][]platform.ObservationInfo, iters []iterNode, errs []string) {
+	children = make(map[string][]platform.ObservationInfo, len(obs))
 	for _, o := range obs {
 		children[o.ParentObservationID] = append(children[o.ParentObservationID], o)
 		if line := statusLine(o); line != "" {
@@ -201,7 +201,7 @@ func indexTraceObservations(
 	return children, iters, errs
 }
 
-func statusLine(o api.ObservationInfo) string {
+func statusLine(o platform.ObservationInfo) string {
 	switch {
 	case strings.EqualFold(o.Level, "ERROR"):
 		return o.Name + ": " + valueOr(o.StatusMessage, "error")
@@ -219,7 +219,7 @@ func valueOr(s, fallback string) string {
 }
 
 // summarizeIteration builds one iteration from the observation subtree rooted at it.
-func summarizeIteration(children map[string][]api.ObservationInfo, it iterNode) Iteration {
+func summarizeIteration(children map[string][]platform.ObservationInfo, it iterNode) Iteration {
 	iteration := Iteration{Number: it.num}
 
 	// Keep first-seen condition order and the highest score per condition.
@@ -301,7 +301,7 @@ func summarizeIteration(children map[string][]api.ObservationInfo, it iterNode) 
 
 // KB retrievals can appear as titled curated results or untitled vector hits.
 // Preserve titles when present; otherwise report only the retrieved count.
-func knowledgeBase(obs []api.ObservationInfo) *KBRetrieval {
+func knowledgeBase(obs []platform.ObservationInfo) *KBRetrieval {
 	var titles []string
 	curatedCount := 0 // docs in the curated retriever result
 	rawMax := 0       // largest untitled (find_similar) retrieval
@@ -380,10 +380,10 @@ func kbDocsFromOutput(raw json.RawMessage) (titles []string, count int) {
 // Observation parent links can be malformed or cyclic.
 // Track seen nodes so summary generation always terminates.
 func descendants(
-	children map[string][]api.ObservationInfo,
+	children map[string][]platform.ObservationInfo,
 	id string,
-) []api.ObservationInfo {
-	var out []api.ObservationInfo
+) []platform.ObservationInfo {
+	var out []platform.ObservationInfo
 	seen := map[string]bool{}
 	stack := []string{id}
 	for len(stack) > 0 {

@@ -3,7 +3,7 @@ package inputs
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var DefaultDatasetItemColumns = []string{
@@ -24,7 +24,7 @@ var AllDatasetItemColumns = []string{
 	"updated_at",
 }
 
-func ValidateDatasetItemListOptions(opts api.DatasetItemListOptions) error {
+func ValidateDatasetItemListOptions(opts platform.DatasetItemListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 
@@ -41,8 +41,8 @@ type DatasetItemCreateInput struct {
 
 func BuildDatasetItemCreateBody(
 	input DatasetItemCreateInput,
-) (api.DatasetItemCreateBody, error) {
-	body := api.DatasetItemCreateBody{
+) (platform.DatasetItemCreateBody, error) {
+	body := platform.DatasetItemCreateBody{
 		ID:                  strings.TrimSpace(input.ID),
 		DatasetName:         strings.TrimSpace(input.DatasetName),
 		SourceTraceID:       strings.TrimSpace(input.SourceTraceID),
@@ -53,7 +53,7 @@ func BuildDatasetItemCreateBody(
 	if strings.TrimSpace(input.InputJSON) != "" {
 		v, err := parseJSONAny(input.InputJSON, "--input")
 		if err != nil {
-			return api.DatasetItemCreateBody{}, err
+			return platform.DatasetItemCreateBody{}, err
 		}
 		body.Input = v
 	}
@@ -61,7 +61,7 @@ func BuildDatasetItemCreateBody(
 	if strings.TrimSpace(input.ExpectedOutputJSON) != "" {
 		v, err := parseJSONAny(input.ExpectedOutputJSON, "--expected-output")
 		if err != nil {
-			return api.DatasetItemCreateBody{}, err
+			return platform.DatasetItemCreateBody{}, err
 		}
 		body.ExpectedOutput = v
 	}
@@ -72,7 +72,7 @@ func BuildDatasetItemCreateBody(
 			"--metadata-json",
 		)
 		if err != nil {
-			return api.DatasetItemCreateBody{}, err
+			return platform.DatasetItemCreateBody{}, err
 		}
 		body.Metadata = metadata
 	}

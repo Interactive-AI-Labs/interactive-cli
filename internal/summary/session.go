@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 // Turn is one back-and-forth within a session.
@@ -29,10 +29,10 @@ type SessionSummaryModel struct {
 
 // SessionSummary builds the conversation overview from a session's traces
 // (one trace per turn). Traces are ordered by timestamp ascending.
-func SessionSummary(sessionID string, traces []api.TraceInfo) *SessionSummaryModel {
+func SessionSummary(sessionID string, traces []platform.TraceInfo) *SessionSummaryModel {
 	m := &SessionSummaryModel{ID: sessionID, TurnCount: len(traces)}
 
-	sorted := make([]api.TraceInfo, len(traces))
+	sorted := make([]platform.TraceInfo, len(traces))
 	copy(sorted, traces)
 	sort.SliceStable(sorted, func(i, j int) bool {
 		return sorted[i].Timestamp < sorted[j].Timestamp
@@ -73,7 +73,7 @@ func SessionSummary(sessionID string, traces []api.TraceInfo) *SessionSummaryMod
 	return m
 }
 
-func sessionDuration(sorted []api.TraceInfo) string {
+func sessionDuration(sorted []platform.TraceInfo) string {
 	if len(sorted) < 2 {
 		return ""
 	}

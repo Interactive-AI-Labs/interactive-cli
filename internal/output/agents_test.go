@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestPrintAgentDescribe(t *testing.T) {
@@ -233,18 +233,18 @@ func TestPrintAgentCatalog(t *testing.T) {
 func TestPrintCompatibilityMatrix(t *testing.T) {
 	tests := []struct {
 		name   string
-		matrix []api.CompatibilityEntry
+		matrix []platform.CompatibilityEntry
 		asJSON bool
 		want   string
 	}{
 		{
 			name:   "empty matrix prints message",
-			matrix: []api.CompatibilityEntry{},
+			matrix: []platform.CompatibilityEntry{},
 			want:   "No compatibility data available.\n",
 		},
 		{
 			name: "table output",
-			matrix: []api.CompatibilityEntry{
+			matrix: []platform.CompatibilityEntry{
 				{AgentVersion: "0.1.0", SchemaVersion: "1.0.0"},
 				{AgentVersion: "0.2.0", SchemaVersion: "2.0.0"},
 			},
@@ -254,7 +254,7 @@ func TestPrintCompatibilityMatrix(t *testing.T) {
 		},
 		{
 			name: "json output",
-			matrix: []api.CompatibilityEntry{
+			matrix: []platform.CompatibilityEntry{
 				{AgentVersion: "0.1.0", SchemaVersion: "1.0.0"},
 			},
 			asJSON: true,

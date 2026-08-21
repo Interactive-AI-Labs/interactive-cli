@@ -1,6 +1,6 @@
 package inputs
 
-import "github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+import "github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 
 var DefaultCommentColumns = []string{
 	"id",
@@ -21,14 +21,14 @@ var AllCommentColumns = []string{
 	"updated_at",
 }
 
-func ValidateCommentListOptions(opts api.CommentListOptions) error {
+func ValidateCommentListOptions(opts platform.CommentListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 
 func BuildCommentCreateBody(
 	objectType, objectID, content, authorUserID string,
-) api.CommentCreateBody {
-	return api.CommentCreateBody{
+) platform.CommentCreateBody {
+	return platform.CommentCreateBody{
 		ObjectType:   objectType,
 		ObjectID:     objectID,
 		Content:      content,

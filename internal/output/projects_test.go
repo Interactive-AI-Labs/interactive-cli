@@ -4,24 +4,24 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestPrintProjectList(t *testing.T) {
 	tests := []struct {
 		name            string
-		projects        []api.Project
+		projects        []platform.Project
 		selectedProject string
 		want            string
 	}{
 		{
 			name:     "empty list prints leading newline and headers",
-			projects: []api.Project{},
+			projects: []platform.Project{},
 			want:     "\nNAME   ROLE\n",
 		},
 		{
 			name: "single project no selection",
-			projects: []api.Project{
+			projects: []platform.Project{
 				{Name: "my-project", Role: "admin"},
 			},
 			selectedProject: "",
@@ -30,7 +30,7 @@ func TestPrintProjectList(t *testing.T) {
 		},
 		{
 			name: "selected project gets marker",
-			projects: []api.Project{
+			projects: []platform.Project{
 				{Name: "proj-a", Role: "admin"},
 				{Name: "proj-b", Role: "viewer"},
 			},
@@ -41,7 +41,7 @@ func TestPrintProjectList(t *testing.T) {
 		},
 		{
 			name: "selection is case-insensitive",
-			projects: []api.Project{
+			projects: []platform.Project{
 				{Name: "MyProject", Role: "admin"},
 			},
 			selectedProject: "myproject",
@@ -50,7 +50,7 @@ func TestPrintProjectList(t *testing.T) {
 		},
 		{
 			name: "no match for selected project",
-			projects: []api.Project{
+			projects: []platform.Project{
 				{Name: "proj-a", Role: "admin"},
 			},
 			selectedProject: "nonexistent",
@@ -59,7 +59,7 @@ func TestPrintProjectList(t *testing.T) {
 		},
 		{
 			name: "output starts with newline",
-			projects: []api.Project{
+			projects: []platform.Project{
 				{Name: "proj", Role: "admin"},
 			},
 			want: "\nNAME   ROLE\n" +

@@ -1,6 +1,6 @@
 package inputs
 
-import "github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+import "github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 
 var DefaultDatasetRunColumns = []string{
 	"id",
@@ -19,6 +19,6 @@ var AllDatasetRunColumns = []string{
 	"updated_at",
 }
 
-func ValidateDatasetRunListOptions(opts api.DatasetRunListOptions) error {
+func ValidateDatasetRunListOptions(opts platform.DatasetRunListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }

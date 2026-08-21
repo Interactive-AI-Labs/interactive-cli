@@ -4,24 +4,24 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestPrintOrganizationList(t *testing.T) {
 	tests := []struct {
 		name        string
-		orgs        []api.Organization
+		orgs        []platform.Organization
 		selectedOrg string
 		want        string
 	}{
 		{
 			name: "empty list prints headers only",
-			orgs: []api.Organization{},
+			orgs: []platform.Organization{},
 			want: "NAME   PROJECTS   ROLE\n",
 		},
 		{
 			name: "single org no selection",
-			orgs: []api.Organization{
+			orgs: []platform.Organization{
 				{Name: "acme", ProjectCount: 5, Role: "owner"},
 			},
 			selectedOrg: "",
@@ -30,7 +30,7 @@ func TestPrintOrganizationList(t *testing.T) {
 		},
 		{
 			name: "selected org gets marker",
-			orgs: []api.Organization{
+			orgs: []platform.Organization{
 				{Name: "org-a", ProjectCount: 3, Role: "admin"},
 				{Name: "org-b", ProjectCount: 1, Role: "viewer"},
 			},
@@ -41,7 +41,7 @@ func TestPrintOrganizationList(t *testing.T) {
 		},
 		{
 			name: "selection is case-insensitive",
-			orgs: []api.Organization{
+			orgs: []platform.Organization{
 				{Name: "MyOrg", ProjectCount: 2, Role: "admin"},
 			},
 			selectedOrg: "myorg",
@@ -50,7 +50,7 @@ func TestPrintOrganizationList(t *testing.T) {
 		},
 		{
 			name: "project count zero",
-			orgs: []api.Organization{
+			orgs: []platform.Organization{
 				{Name: "new-org", ProjectCount: 0, Role: "owner"},
 			},
 			want: "NAME      PROJECTS   ROLE\n" +
@@ -58,7 +58,7 @@ func TestPrintOrganizationList(t *testing.T) {
 		},
 		{
 			name: "no match for selected org",
-			orgs: []api.Organization{
+			orgs: []platform.Organization{
 				{Name: "org-a", ProjectCount: 1, Role: "admin"},
 			},
 			selectedOrg: "nonexistent",

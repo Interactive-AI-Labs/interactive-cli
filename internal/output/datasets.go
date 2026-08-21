@@ -4,30 +4,30 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var datasetColumnMap = map[string]struct {
 	Header string
-	Value  func(d *api.DatasetInfo) string
+	Value  func(d *platform.DatasetInfo) string
 }{
-	"id":          {"ID", func(d *api.DatasetInfo) string { return d.ID }},
-	"name":        {"NAME", func(d *api.DatasetInfo) string { return d.Name }},
-	"description": {"DESCRIPTION", func(d *api.DatasetInfo) string { return d.Description }},
+	"id":          {"ID", func(d *platform.DatasetInfo) string { return d.ID }},
+	"name":        {"NAME", func(d *platform.DatasetInfo) string { return d.Name }},
+	"description": {"DESCRIPTION", func(d *platform.DatasetInfo) string { return d.Description }},
 	"created_at": {
 		"CREATED AT",
-		func(d *api.DatasetInfo) string { return LocalTime(d.CreatedAt) },
+		func(d *platform.DatasetInfo) string { return LocalTime(d.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(d *api.DatasetInfo) string { return LocalTime(d.UpdatedAt) },
+		func(d *platform.DatasetInfo) string { return LocalTime(d.UpdatedAt) },
 	},
 }
 
 func PrintDatasetList(
 	out io.Writer,
-	datasets []api.DatasetInfo,
-	meta api.PageMeta,
+	datasets []platform.DatasetInfo,
+	meta platform.PageMeta,
 	columns []string,
 ) error {
 	if len(datasets) == 0 {
@@ -61,7 +61,7 @@ func PrintDatasetList(
 	return nil
 }
 
-func PrintDatasetDetail(out io.Writer, ds *api.DatasetInfo) error {
+func PrintDatasetDetail(out io.Writer, ds *platform.DatasetInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", ds.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", ds.Name)
@@ -74,7 +74,7 @@ func PrintDatasetDetail(out io.Writer, ds *api.DatasetInfo) error {
 	return w.Flush()
 }
 
-func PrintDatasetCreateResult(out io.Writer, ds *api.DatasetInfo) error {
+func PrintDatasetCreateResult(out io.Writer, ds *platform.DatasetInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created dataset %q.\n", ds.Name)
 	fmt.Fprintf(w, "ID:\t%s\n", ds.ID)
