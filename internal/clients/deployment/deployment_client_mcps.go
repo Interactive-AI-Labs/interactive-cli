@@ -1,4 +1,4 @@
-package clients
+package deployment
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 // CreateMcpBody mirrors the operator's CreateMcpRequest; fields are mutually exclusive by type.
@@ -157,7 +159,7 @@ func (c *DeploymentClient) CreateMcp(
 	if err != nil {
 		return "", err
 	}
-	return ExtractServerMessage(respBody), nil
+	return clients.ExtractServerMessage(respBody), nil
 }
 
 // PutMcp fully replaces an MCP's spec; a credential change rotates the Secret and restarts the MCP and every attached agent.
@@ -224,7 +226,7 @@ func decodeMcpMessage(respBody []byte) string {
 		}
 		return msg
 	}
-	return ExtractServerMessage(respBody)
+	return clients.ExtractServerMessage(respBody)
 }
 
 // DeleteMcp uninstalls the mcp's release; force bypasses the 409 for still-attached agents, returning a dangling-agents warning.

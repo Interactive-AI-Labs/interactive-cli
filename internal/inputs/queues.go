@@ -3,7 +3,7 @@ package inputs
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var DefaultQueueColumns = []string{
@@ -24,15 +24,15 @@ var AllQueueColumns = []string{
 	"count_pending_items",
 }
 
-func ValidateQueueListOptions(opts clients.AnnotationQueueListOptions) error {
+func ValidateQueueListOptions(opts api.AnnotationQueueListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 
 func BuildQueueCreateBody(
 	name, description string,
 	scoreConfigIDs []string,
-) clients.AnnotationQueueCreateBody {
-	return clients.AnnotationQueueCreateBody{
+) api.AnnotationQueueCreateBody {
+	return api.AnnotationQueueCreateBody{
 		Name:           strings.TrimSpace(name),
 		Description:    strings.TrimSpace(description),
 		ScoreConfigIDs: scoreConfigIDs,

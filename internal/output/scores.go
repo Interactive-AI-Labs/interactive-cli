@@ -7,38 +7,38 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var scoreColumnMap = map[string]struct {
 	Header string
-	Value  func(s *clients.ScoreInfo) string
+	Value  func(s *api.ScoreInfo) string
 }{
-	"id":        {"ID", func(s *clients.ScoreInfo) string { return s.ID }},
-	"name":      {"NAME", func(s *clients.ScoreInfo) string { return s.Name }},
-	"data_type": {"DATA TYPE", func(s *clients.ScoreInfo) string { return s.DataType }},
-	"value":     {"VALUE", func(s *clients.ScoreInfo) string { return formatScoreValue(s.Value) }},
-	"source":    {"SOURCE", func(s *clients.ScoreInfo) string { return s.Source }},
-	"timestamp": {"TIMESTAMP", func(s *clients.ScoreInfo) string { return LocalTime(s.Timestamp) }},
-	"trace_id":  {"TRACE ID", func(s *clients.ScoreInfo) string { return s.TraceID }},
+	"id":        {"ID", func(s *api.ScoreInfo) string { return s.ID }},
+	"name":      {"NAME", func(s *api.ScoreInfo) string { return s.Name }},
+	"data_type": {"DATA TYPE", func(s *api.ScoreInfo) string { return s.DataType }},
+	"value":     {"VALUE", func(s *api.ScoreInfo) string { return formatScoreValue(s.Value) }},
+	"source":    {"SOURCE", func(s *api.ScoreInfo) string { return s.Source }},
+	"timestamp": {"TIMESTAMP", func(s *api.ScoreInfo) string { return LocalTime(s.Timestamp) }},
+	"trace_id":  {"TRACE ID", func(s *api.ScoreInfo) string { return s.TraceID }},
 	"observation_id": {
 		"OBSERVATION ID",
-		func(s *clients.ScoreInfo) string { return s.ObservationID },
+		func(s *api.ScoreInfo) string { return s.ObservationID },
 	},
-	"session_id": {"SESSION ID", func(s *clients.ScoreInfo) string { return s.SessionID }},
+	"session_id": {"SESSION ID", func(s *api.ScoreInfo) string { return s.SessionID }},
 	"environment": {
 		"ENVIRONMENT",
-		func(s *clients.ScoreInfo) string { return s.Environment },
+		func(s *api.ScoreInfo) string { return s.Environment },
 	},
-	"config_id": {"CONFIG ID", func(s *clients.ScoreInfo) string { return s.ConfigID }},
-	"user_id":   {"USER ID", func(s *clients.ScoreInfo) string { return s.UserID }},
-	"comment":   {"COMMENT", func(s *clients.ScoreInfo) string { return s.Comment }},
+	"config_id": {"CONFIG ID", func(s *api.ScoreInfo) string { return s.ConfigID }},
+	"user_id":   {"USER ID", func(s *api.ScoreInfo) string { return s.UserID }},
+	"comment":   {"COMMENT", func(s *api.ScoreInfo) string { return s.Comment }},
 }
 
 func PrintScoreList(
 	out io.Writer,
-	scores []clients.ScoreInfo,
-	meta clients.CursorMeta,
+	scores []api.ScoreInfo,
+	meta api.CursorMeta,
 	columns []string,
 ) error {
 	if len(scores) == 0 {
@@ -75,7 +75,7 @@ func PrintScoreList(
 	return nil
 }
 
-func PrintScoreCreateResult(out io.Writer, score *clients.ScoreInfo) error {
+func PrintScoreCreateResult(out io.Writer, score *api.ScoreInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created score %q.\n", score.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", score.Name)

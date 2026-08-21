@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
+func PrintServiceList(out io.Writer, services []deployment.ServiceOutput) error {
 	if len(services) == 0 {
 		fmt.Fprintln(out, "No services found.")
 		return nil
@@ -28,7 +28,7 @@ func PrintServiceList(out io.Writer, services []clients.ServiceOutput) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) error {
+func PrintServiceDescribe(out io.Writer, svc *deployment.DescribeServiceResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", svc.Name)
 	if svc.StackId != "" {
@@ -119,7 +119,7 @@ func PrintServiceDescribe(out io.Writer, svc *clients.DescribeServiceResponse) e
 	return w.Flush()
 }
 
-func PrintServiceRevision(out io.Writer, rev *clients.ServiceRevisionResponse) error {
+func PrintServiceRevision(out io.Writer, rev *deployment.ServiceRevisionResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
 	if rev.StackId != "" {

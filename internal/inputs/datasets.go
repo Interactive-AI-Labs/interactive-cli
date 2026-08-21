@@ -3,7 +3,7 @@ package inputs
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var DefaultDatasetColumns = []string{
@@ -21,14 +21,14 @@ var AllDatasetColumns = []string{
 	"updated_at",
 }
 
-func ValidateDatasetListOptions(opts clients.DatasetListOptions) error {
+func ValidateDatasetListOptions(opts api.DatasetListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 
 func BuildDatasetCreateBody(
 	name, description, metadataJSON string,
-) (clients.DatasetCreateBody, error) {
-	body := clients.DatasetCreateBody{
+) (api.DatasetCreateBody, error) {
+	body := api.DatasetCreateBody{
 		Name:        strings.TrimSpace(name),
 		Description: strings.TrimSpace(description),
 	}
@@ -39,7 +39,7 @@ func BuildDatasetCreateBody(
 			"--metadata-json",
 		)
 		if err != nil {
-			return clients.DatasetCreateBody{}, err
+			return api.DatasetCreateBody{}, err
 		}
 		body.Metadata = metadata
 	}

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 func TestPrintPromptList(t *testing.T) {
@@ -13,12 +13,12 @@ func TestPrintPromptList(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		prompts []clients.PromptInfo
+		prompts []api.PromptInfo
 		want    string
 	}{
 		{
 			name:    "empty list prints message",
-			prompts: []clients.PromptInfo{},
+			prompts: []api.PromptInfo{},
 			want:    "No prompts found.\n",
 		},
 		{
@@ -28,7 +28,7 @@ func TestPrintPromptList(t *testing.T) {
 		},
 		{
 			name: "single prompt",
-			prompts: []clients.PromptInfo{
+			prompts: []api.PromptInfo{
 				{
 					Name: "welcome-message",
 
@@ -42,7 +42,7 @@ func TestPrintPromptList(t *testing.T) {
 		},
 		{
 			name: "multiple prompts",
-			prompts: []clients.PromptInfo{
+			prompts: []api.PromptInfo{
 				{
 					Name: "escalation",
 
@@ -64,7 +64,7 @@ func TestPrintPromptList(t *testing.T) {
 		},
 		{
 			name: "truncates long labels list",
-			prompts: []clients.PromptInfo{
+			prompts: []api.PromptInfo{
 				{
 					Name: "my-prompt",
 
@@ -78,7 +78,7 @@ func TestPrintPromptList(t *testing.T) {
 		},
 		{
 			name: "folder rows display trailing slash",
-			prompts: []clients.PromptInfo{
+			prompts: []api.PromptInfo{
 				{
 					Name:    "team-a",
 					RowType: "folder",
@@ -170,25 +170,25 @@ func TestPrintPromptDiff(t *testing.T) {
 	tests := []struct {
 		name     string
 		versionA string
-		a        *clients.PromptDetail
+		a        *api.PromptDetail
 		versionB string
-		b        *clients.PromptDetail
+		b        *api.PromptDetail
 		want     string
 	}{
 		{
 			name:     "identical content shows no differences",
 			versionA: "1",
-			a:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
+			a:        &api.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
 			versionB: "2",
-			b:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
+			b:        &api.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
 			want:     "No differences found.\n",
 		},
 		{
 			name:     "different string content shows diff",
 			versionA: "1",
-			a:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
+			a:        &api.PromptDetail{Prompt: json.RawMessage(`"Hello world"`)},
 			versionB: "2",
-			b:        &clients.PromptDetail{Prompt: json.RawMessage(`"Hello universe"`)},
+			b:        &api.PromptDetail{Prompt: json.RawMessage(`"Hello universe"`)},
 			want: "--- version 1\n" +
 				"+++ version 2\n" +
 				"@@ -1,1 +1,1 @@\n" +
@@ -198,11 +198,11 @@ func TestPrintPromptDiff(t *testing.T) {
 		{
 			name:     "structured JSON content shows diff",
 			versionA: "3",
-			a: &clients.PromptDetail{
+			a: &api.PromptDetail{
 				Prompt: json.RawMessage(`{"role":"system","content":"Hi"}`),
 			},
 			versionB: "4",
-			b: &clients.PromptDetail{
+			b: &api.PromptDetail{
 				Prompt: json.RawMessage(`{"role":"system","content":"Bye"}`),
 			},
 			want: "--- version 3\n" +
@@ -235,12 +235,12 @@ func TestPrintPromptDetail(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		prompt *clients.PromptDetail
+		prompt *api.PromptDetail
 		want   string
 	}{
 		{
 			name: "full detail with all fields",
-			prompt: &clients.PromptDetail{
+			prompt: &api.PromptDetail{
 				Name:      "onboarding-flow",
 				Type:      "routine",
 				Version:   3,
@@ -267,7 +267,7 @@ func TestPrintPromptDetail(t *testing.T) {
 		},
 		{
 			name: "minimal detail without optional fields",
-			prompt: &clients.PromptDetail{
+			prompt: &api.PromptDetail{
 				Name:    "welcome-message",
 				Type:    "text",
 				Version: 1,
@@ -281,7 +281,7 @@ func TestPrintPromptDetail(t *testing.T) {
 		},
 		{
 			name: "non-string JSON prompt prints raw",
-			prompt: &clients.PromptDetail{
+			prompt: &api.PromptDetail{
 				Name:    "structured-prompt",
 				Type:    "chat",
 				Version: 1,
@@ -295,7 +295,7 @@ func TestPrintPromptDetail(t *testing.T) {
 		},
 		{
 			name: "prompt content ending with newline has no double newline",
-			prompt: &clients.PromptDetail{
+			prompt: &api.PromptDetail{
 				Name:    "trailing-nl",
 				Type:    "text",
 				Version: 1,
@@ -309,7 +309,7 @@ func TestPrintPromptDetail(t *testing.T) {
 		},
 		{
 			name: "detail without content",
-			prompt: &clients.PromptDetail{
+			prompt: &api.PromptDetail{
 				Name:    "empty-prompt",
 				Type:    "text",
 				Version: 1,
@@ -322,7 +322,7 @@ func TestPrintPromptDetail(t *testing.T) {
 		},
 		{
 			name: "skill with config block",
-			prompt: &clients.PromptDetail{
+			prompt: &api.PromptDetail{
 				Name:    "summarize-trace",
 				Type:    "skill",
 				Version: 2,
@@ -348,7 +348,7 @@ func TestPrintPromptDetail(t *testing.T) {
 			// empty config object. The renderer must NOT print a Config
 			// block in that case — pre-PR behavior must be preserved.
 			name: "empty config object is not rendered",
-			prompt: &clients.PromptDetail{
+			prompt: &api.PromptDetail{
 				Name:    "no-config-prompt",
 				Type:    "macro",
 				Version: 1,

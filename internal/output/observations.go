@@ -4,117 +4,117 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var observationColumnMap = map[string]struct {
 	Header string
-	Value  func(o *clients.ObservationInfo) string
+	Value  func(o *api.ObservationInfo) string
 }{
-	"id":       {"ID", func(o *clients.ObservationInfo) string { return o.ID }},
-	"trace_id": {"TRACE ID", func(o *clients.ObservationInfo) string { return o.TraceID }},
-	"type":     {"TYPE", func(o *clients.ObservationInfo) string { return o.Type }},
-	"name":     {"NAME", func(o *clients.ObservationInfo) string { return o.Name }},
+	"id":       {"ID", func(o *api.ObservationInfo) string { return o.ID }},
+	"trace_id": {"TRACE ID", func(o *api.ObservationInfo) string { return o.TraceID }},
+	"type":     {"TYPE", func(o *api.ObservationInfo) string { return o.Type }},
+	"name":     {"NAME", func(o *api.ObservationInfo) string { return o.Name }},
 	"start_time": {
 		"START TIME",
-		func(o *clients.ObservationInfo) string { return LocalTime(o.StartTime) },
+		func(o *api.ObservationInfo) string { return LocalTime(o.StartTime) },
 	},
 	"end_time": {
 		"END TIME",
-		func(o *clients.ObservationInfo) string { return LocalTime(o.EndTime) },
+		func(o *api.ObservationInfo) string { return LocalTime(o.EndTime) },
 	},
 	"parent_observation_id": {
 		"PARENT ID",
-		func(o *clients.ObservationInfo) string { return o.ParentObservationID },
+		func(o *api.ObservationInfo) string { return o.ParentObservationID },
 	},
-	"level": {"LEVEL", func(o *clients.ObservationInfo) string { return o.Level }},
+	"level": {"LEVEL", func(o *api.ObservationInfo) string { return o.Level }},
 	"status_message": {
 		"STATUS",
-		func(o *clients.ObservationInfo) string { return o.StatusMessage },
+		func(o *api.ObservationInfo) string { return o.StatusMessage },
 	},
-	"model": {"MODEL", func(o *clients.ObservationInfo) string { return o.Model }},
+	"model": {"MODEL", func(o *api.ObservationInfo) string { return o.Model }},
 	"input_tokens": {
 		"INPUT TOKENS",
-		func(o *clients.ObservationInfo) string { return formatInt(o.InputTokens) },
+		func(o *api.ObservationInfo) string { return formatInt(o.InputTokens) },
 	},
 	"output_tokens": {
 		"OUTPUT TOKENS",
-		func(o *clients.ObservationInfo) string { return formatInt(o.OutputTokens) },
+		func(o *api.ObservationInfo) string { return formatInt(o.OutputTokens) },
 	},
 	"total_tokens": {
 		"TOTAL TOKENS",
-		func(o *clients.ObservationInfo) string { return formatInt(o.TotalTokens) },
+		func(o *api.ObservationInfo) string { return formatInt(o.TotalTokens) },
 	},
 	"total_cost": {
 		"COST",
-		func(o *clients.ObservationInfo) string { return formatCost(o.TotalCost) },
+		func(o *api.ObservationInfo) string { return formatCost(o.TotalCost) },
 	},
 	"latency_ms": {
 		"LATENCY (ms)",
-		func(o *clients.ObservationInfo) string { return formatFloat(o.LatencyMs, "ms") },
+		func(o *api.ObservationInfo) string { return formatFloat(o.LatencyMs, "ms") },
 	},
 }
 
 var standaloneObservationColumnMap = map[string]struct {
 	Header string
-	Value  func(o *clients.StandaloneObservationInfo) string
+	Value  func(o *api.StandaloneObservationInfo) string
 }{
-	"id": {"ID", func(o *clients.StandaloneObservationInfo) string { return o.ID }},
+	"id": {"ID", func(o *api.StandaloneObservationInfo) string { return o.ID }},
 	"trace_id": {
 		"TRACE ID",
-		func(o *clients.StandaloneObservationInfo) string { return o.TraceID },
+		func(o *api.StandaloneObservationInfo) string { return o.TraceID },
 	},
-	"type":  {"TYPE", func(o *clients.StandaloneObservationInfo) string { return o.Type }},
-	"name":  {"NAME", func(o *clients.StandaloneObservationInfo) string { return o.Name }},
-	"model": {"MODEL", func(o *clients.StandaloneObservationInfo) string { return o.Model }},
+	"type":  {"TYPE", func(o *api.StandaloneObservationInfo) string { return o.Type }},
+	"name":  {"NAME", func(o *api.StandaloneObservationInfo) string { return o.Name }},
+	"model": {"MODEL", func(o *api.StandaloneObservationInfo) string { return o.Model }},
 	"environment": {
 		"ENVIRONMENT",
-		func(o *clients.StandaloneObservationInfo) string { return o.Environment },
+		func(o *api.StandaloneObservationInfo) string { return o.Environment },
 	},
-	"user_id": {"USER ID", func(o *clients.StandaloneObservationInfo) string { return o.UserID }},
-	"version": {"VERSION", func(o *clients.StandaloneObservationInfo) string { return o.Version }},
+	"user_id": {"USER ID", func(o *api.StandaloneObservationInfo) string { return o.UserID }},
+	"version": {"VERSION", func(o *api.StandaloneObservationInfo) string { return o.Version }},
 	"start_time": {
 		"START TIME",
-		func(o *clients.StandaloneObservationInfo) string { return LocalTime(o.StartTime) },
+		func(o *api.StandaloneObservationInfo) string { return LocalTime(o.StartTime) },
 	},
 	"end_time": {
 		"END TIME",
-		func(o *clients.StandaloneObservationInfo) string { return LocalTime(o.EndTime) },
+		func(o *api.StandaloneObservationInfo) string { return LocalTime(o.EndTime) },
 	},
 	"parent_observation_id": {
 		"PARENT ID",
-		func(o *clients.StandaloneObservationInfo) string { return o.ParentObservationID },
+		func(o *api.StandaloneObservationInfo) string { return o.ParentObservationID },
 	},
-	"level": {"LEVEL", func(o *clients.StandaloneObservationInfo) string { return o.Level }},
+	"level": {"LEVEL", func(o *api.StandaloneObservationInfo) string { return o.Level }},
 	"status_message": {
 		"STATUS",
-		func(o *clients.StandaloneObservationInfo) string { return o.StatusMessage },
+		func(o *api.StandaloneObservationInfo) string { return o.StatusMessage },
 	},
 	"input_tokens": {
 		"INPUT TOKENS",
-		func(o *clients.StandaloneObservationInfo) string { return formatInt(o.InputTokens) },
+		func(o *api.StandaloneObservationInfo) string { return formatInt(o.InputTokens) },
 	},
 	"output_tokens": {
 		"OUTPUT TOKENS",
-		func(o *clients.StandaloneObservationInfo) string { return formatInt(o.OutputTokens) },
+		func(o *api.StandaloneObservationInfo) string { return formatInt(o.OutputTokens) },
 	},
 	"total_tokens": {
 		"TOTAL TOKENS",
-		func(o *clients.StandaloneObservationInfo) string { return formatInt(o.TotalTokens) },
+		func(o *api.StandaloneObservationInfo) string { return formatInt(o.TotalTokens) },
 	},
 	"total_cost": {
 		"COST",
-		func(o *clients.StandaloneObservationInfo) string { return formatCost(o.TotalCost) },
+		func(o *api.StandaloneObservationInfo) string { return formatCost(o.TotalCost) },
 	},
 	"latency_ms": {
 		"LATENCY (ms)",
-		func(o *clients.StandaloneObservationInfo) string { return formatFloat(o.LatencyMs, "ms") },
+		func(o *api.StandaloneObservationInfo) string { return formatFloat(o.LatencyMs, "ms") },
 	},
 }
 
 func PrintObservationList(
 	out io.Writer,
-	observations []clients.ObservationInfo,
+	observations []api.ObservationInfo,
 	columns []string,
 ) error {
 	if len(observations) == 0 {
@@ -145,8 +145,8 @@ func PrintObservationList(
 
 func PrintStandaloneObservationList(
 	out io.Writer,
-	observations []clients.StandaloneObservationInfo,
-	meta clients.CursorMeta,
+	observations []api.StandaloneObservationInfo,
+	meta api.CursorMeta,
 	columns []string,
 ) error {
 	if len(observations) == 0 {
@@ -183,7 +183,7 @@ func PrintStandaloneObservationList(
 	return nil
 }
 
-func PrintObservationDetail(out io.Writer, obs *clients.ObservationDetail) error {
+func PrintObservationDetail(out io.Writer, obs *api.ObservationDetail) error {
 	isTTY := IsTerminal(out)
 	const jsonPrefix = "  "
 

@@ -5,11 +5,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"gopkg.in/yaml.v3"
 )
 
-func PrintAgentList(out io.Writer, agents []clients.AgentOutput) error {
+func PrintAgentList(out io.Writer, agents []deployment.AgentOutput) error {
 	if len(agents) == 0 {
 		fmt.Fprintln(out, "No agents found.")
 		return nil
@@ -29,7 +30,7 @@ func PrintAgentList(out io.Writer, agents []clients.AgentOutput) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) error {
+func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", agent.Name)
 	if agent.StackId != "" {
@@ -94,7 +95,7 @@ func PrintAgentDescribe(out io.Writer, agent *clients.DescribeAgentResponse) err
 	return w.Flush()
 }
 
-func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error {
+func PrintAgentRevision(out io.Writer, rev *deployment.AgentRevisionResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
 	if rev.StackId != "" {
@@ -157,7 +158,7 @@ func PrintAgentRevision(out io.Writer, rev *clients.AgentRevisionResponse) error
 	return w.Flush()
 }
 
-func PrintAgentCatalog(out io.Writer, agents []clients.CatalogAgent) error {
+func PrintAgentCatalog(out io.Writer, agents []deployment.CatalogAgent) error {
 	if len(agents) == 0 {
 		fmt.Fprintln(out, "No agents available.")
 		return nil
@@ -189,7 +190,7 @@ func PrintAgentVersions(out io.Writer, agentId string, versions []string) error 
 
 func PrintCompatibilityMatrix(
 	out io.Writer,
-	matrix []clients.CompatibilityEntry,
+	matrix []api.CompatibilityEntry,
 	asJSON bool,
 ) error {
 	if asJSON {

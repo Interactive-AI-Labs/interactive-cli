@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -12,7 +12,7 @@ func TestBuildDatabaseRequestBody(t *testing.T) {
 	tests := []struct {
 		name string
 		in   DatabaseInput
-		want clients.CreateDatabaseBody
+		want deployment.CreateDatabaseBody
 	}{
 		{
 			name: "basic fields",
@@ -22,10 +22,10 @@ func TestBuildDatabaseRequestBody(t *testing.T) {
 				Memory:      "2G",
 				StorageSize: "20G",
 			},
-			want: clients.CreateDatabaseBody{
+			want: deployment.CreateDatabaseBody{
 				Instances: 2,
-				Resources: clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:   clients.DatabaseStorageConfig{Size: "20G"},
+				Resources: deployment.Resources{CPU: "1", Memory: "2G"},
+				Storage:   deployment.DatabaseStorageConfig{Size: "20G"},
 			},
 		},
 		{
@@ -40,13 +40,13 @@ func TestBuildDatabaseRequestBody(t *testing.T) {
 				BackupSchedule:  "0 0 2 * * *",
 				BackupRetention: "30d",
 			},
-			want: clients.CreateDatabaseBody{
+			want: deployment.CreateDatabaseBody{
 				Instances:       2,
 				PostgresVersion: "16",
-				Resources:       clients.Resources{CPU: "2", Memory: "4G"},
-				Storage:         clients.DatabaseStorageConfig{Size: "50G"},
+				Resources:       deployment.Resources{CPU: "2", Memory: "4G"},
+				Storage:         deployment.DatabaseStorageConfig{Size: "50G"},
 				Extensions:      []string{"vector", "pg_trgm"},
-				Backup: &clients.DatabaseBackupConfig{
+				Backup: &deployment.DatabaseBackupConfig{
 					Schedule:        "0 0 2 * * *",
 					RetentionPolicy: "30d",
 				},
@@ -60,10 +60,10 @@ func TestBuildDatabaseRequestBody(t *testing.T) {
 				Memory:      "1G",
 				StorageSize: "10G",
 			},
-			want: clients.CreateDatabaseBody{
+			want: deployment.CreateDatabaseBody{
 				Instances: 1,
-				Resources: clients.Resources{CPU: "0.5", Memory: "1G"},
-				Storage:   clients.DatabaseStorageConfig{Size: "10G"},
+				Resources: deployment.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:   deployment.DatabaseStorageConfig{Size: "10G"},
 			},
 		},
 		{
@@ -75,11 +75,11 @@ func TestBuildDatabaseRequestBody(t *testing.T) {
 				StorageSize:    "20G",
 				BackupSchedule: "0 0 3 * * *",
 			},
-			want: clients.CreateDatabaseBody{
+			want: deployment.CreateDatabaseBody{
 				Instances: 1,
-				Resources: clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:   clients.DatabaseStorageConfig{Size: "20G"},
-				Backup: &clients.DatabaseBackupConfig{
+				Resources: deployment.Resources{CPU: "1", Memory: "2G"},
+				Storage:   deployment.DatabaseStorageConfig{Size: "20G"},
+				Backup: &deployment.DatabaseBackupConfig{
 					Schedule: "0 0 3 * * *",
 				},
 			},

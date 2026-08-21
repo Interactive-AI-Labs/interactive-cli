@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestPrintMcpCatalog(t *testing.T) {
 	tests := []struct {
 		name    string
-		entries []clients.McpCatalogEntry
+		entries []api.McpCatalogEntry
 		want    string
 	}{
 		{
 			name: "single entry",
-			entries: []clients.McpCatalogEntry{
+			entries: []api.McpCatalogEntry{
 				{
 					ID:          "e1",
 					Name:        "GitHub",
@@ -44,12 +45,12 @@ func TestPrintMcpCatalog(t *testing.T) {
 
 func TestPrintMcpListIncludesStack(t *testing.T) {
 	var buf bytes.Buffer
-	err := PrintMcpList(&buf, []clients.McpOutput{{
+	err := PrintMcpList(&buf, []deployment.McpOutput{{
 		Name:    "tools",
 		Type:    "internal",
 		Status:  "healthy",
 		StackId: "stack-123",
-		Verify:  clients.McpVerifyState{Status: "ok", ToolCount: 3},
+		Verify:  deployment.McpVerifyState{Status: "ok", ToolCount: 3},
 	}})
 	if err != nil {
 		t.Fatalf("PrintMcpList() error = %v", err)

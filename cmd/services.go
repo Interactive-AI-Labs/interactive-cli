@@ -10,7 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -637,7 +638,7 @@ nested JSON values.`,
 			return err
 		}
 
-		opts := clients.LogsOptions{
+		opts := deployment.LogsOptions{
 			Follow:    servLogsFollow,
 			Since:     servLogsSince,
 			StartTime: servLogsStartTime,
@@ -703,7 +704,7 @@ Use the reported field names with 'iai services logs --fields' to include them i
 			return err
 		}
 
-		opts := clients.LogsOptions{Since: since}
+		opts := deployment.LogsOptions{Since: since}
 		logsResp, err := deployClient.GetServiceLogs(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, serviceName, opts,
 		)
@@ -906,12 +907,12 @@ The project is selected with --project or via 'iai projects select', and the con
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := api.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
+		deployClient, err := deployment.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
 			token,
@@ -939,7 +940,7 @@ The project is selected with --project or via 'iai projects select', and the con
 			return err
 		}
 
-		svcBodies := make(map[string]clients.CreateServiceBody)
+		svcBodies := make(map[string]deployment.CreateServiceBody)
 		for name, svcCfg := range cfg.Services {
 			svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
 		}

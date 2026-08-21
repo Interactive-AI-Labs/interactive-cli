@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var DefaultScoreColumns = []string{
@@ -49,7 +49,7 @@ type ScoreCreateInput struct {
 	QueueID       string
 }
 
-func PrepareScoreListOptions(opts clients.ScoreListOptions) (clients.ScoreListOptions, error) {
+func PrepareScoreListOptions(opts api.ScoreListOptions) (api.ScoreListOptions, error) {
 	if err := validateTimestamp(opts.FromTimestamp, "from-timestamp"); err != nil {
 		return opts, err
 	}
@@ -73,7 +73,7 @@ func PrepareScoreListOptions(opts clients.ScoreListOptions) (clients.ScoreListOp
 	return opts, nil
 }
 
-func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, error) {
+func BuildScoreCreateBody(input ScoreCreateInput) (api.ScoreCreateBody, error) {
 	targetCount := 0
 	if strings.TrimSpace(input.TraceID) != "" {
 		targetCount++
@@ -85,7 +85,7 @@ func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, erro
 		targetCount++
 	}
 	if targetCount != 1 {
-		return clients.ScoreCreateBody{}, fmt.Errorf(
+		return api.ScoreCreateBody{}, fmt.Errorf(
 			"exactly one of --trace-id, --observation-id, or --session-id is required",
 		)
 	}
@@ -99,10 +99,10 @@ func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, erro
 
 	parsedValue, err := parseScoreValue(dataType, valueRaw)
 	if err != nil {
-		return clients.ScoreCreateBody{}, err
+		return api.ScoreCreateBody{}, err
 	}
 
-	body := clients.ScoreCreateBody{
+	body := api.ScoreCreateBody{
 		ID:            strings.TrimSpace(input.ID),
 		Name:          strings.TrimSpace(input.Name),
 		TraceID:       strings.TrimSpace(input.TraceID),
@@ -122,7 +122,7 @@ func BuildScoreCreateBody(input ScoreCreateInput) (clients.ScoreCreateBody, erro
 			"--metadata-json",
 		)
 		if err != nil {
-			return clients.ScoreCreateBody{}, err
+			return api.ScoreCreateBody{}, err
 		}
 		body.Metadata = metadata
 	}

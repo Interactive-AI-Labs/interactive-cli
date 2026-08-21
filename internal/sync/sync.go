@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 )
@@ -35,7 +35,7 @@ type Options struct {
 
 func HasServices(
 	ctx context.Context,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
@@ -50,7 +50,7 @@ func HasServices(
 
 func HasAgents(
 	ctx context.Context,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
@@ -65,7 +65,7 @@ func HasAgents(
 
 func HasDatabases(
 	ctx context.Context,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
@@ -80,7 +80,7 @@ func HasDatabases(
 
 func HasMcps(
 	ctx context.Context,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
@@ -159,11 +159,11 @@ func PrintPlan(out io.Writer, label string, result *Result) {
 func Services(
 	ctx context.Context,
 	warnW io.Writer,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
-	desired map[string]clients.CreateServiceBody,
+	desired map[string]deployment.CreateServiceBody,
 	opts Options,
 ) (*Result, error) {
 	existing, err := deployClient.ListServices(
@@ -173,7 +173,7 @@ func Services(
 		return nil, fmt.Errorf("failed to list services: %w", err)
 	}
 
-	existingByName := make(map[string]clients.ServiceOutput)
+	existingByName := make(map[string]deployment.ServiceOutput)
 	for _, svc := range existing {
 		existingByName[svc.Name] = svc
 	}
@@ -183,14 +183,14 @@ func Services(
 		existingByName,
 		desired,
 		opts,
-		resourceOps[clients.ServiceOutput, clients.CreateServiceBody]{
+		resourceOps[deployment.ServiceOutput, deployment.CreateServiceBody]{
 			resource:  "service",
 			allowFlag: "services",
-			create: func(name string, body clients.CreateServiceBody) error {
+			create: func(name string, body deployment.CreateServiceBody) error {
 				_, err := deployClient.CreateService(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body clients.CreateServiceBody) error {
+			update: func(name string, body deployment.CreateServiceBody) error {
 				_, err := deployClient.PutService(ctx, orgId, projectId, name, body)
 				return err
 			},
@@ -198,7 +198,7 @@ func Services(
 				_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
 				return err
 			},
-			banner: func(w io.Writer, svc clients.ServiceOutput) {
+			banner: func(w io.Writer, svc deployment.ServiceOutput) {
 				preflight.PrintUpdateBanner(w, "service "+svc.Name, svc.Revision, svc.Updated)
 			},
 		},
@@ -208,11 +208,11 @@ func Services(
 func Agents(
 	ctx context.Context,
 	warnW io.Writer,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
-	desired map[string]clients.CreateAgentBody,
+	desired map[string]deployment.CreateAgentBody,
 	opts Options,
 ) (*Result, error) {
 	existing, err := deployClient.ListAgents(
@@ -222,7 +222,7 @@ func Agents(
 		return nil, fmt.Errorf("failed to list agents: %w", err)
 	}
 
-	existingByName := make(map[string]clients.AgentOutput)
+	existingByName := make(map[string]deployment.AgentOutput)
 	for _, a := range existing {
 		existingByName[a.Name] = a
 	}
@@ -232,14 +232,14 @@ func Agents(
 		existingByName,
 		desired,
 		opts,
-		resourceOps[clients.AgentOutput, clients.CreateAgentBody]{
+		resourceOps[deployment.AgentOutput, deployment.CreateAgentBody]{
 			resource:  "agent",
 			allowFlag: "agents",
-			create: func(name string, body clients.CreateAgentBody) error {
+			create: func(name string, body deployment.CreateAgentBody) error {
 				_, err := deployClient.CreateAgent(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body clients.CreateAgentBody) error {
+			update: func(name string, body deployment.CreateAgentBody) error {
 				_, err := deployClient.PutAgent(ctx, orgId, projectId, name, body)
 				return err
 			},
@@ -247,7 +247,7 @@ func Agents(
 				_, err := deployClient.DeleteAgent(ctx, orgId, projectId, name)
 				return err
 			},
-			banner: func(w io.Writer, a clients.AgentOutput) {
+			banner: func(w io.Writer, a deployment.AgentOutput) {
 				preflight.PrintUpdateBanner(w, "agent "+a.Name, a.Revision, a.Updated)
 			},
 		},
@@ -257,11 +257,11 @@ func Agents(
 func Databases(
 	ctx context.Context,
 	warnW io.Writer,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
-	desired map[string]clients.CreateDatabaseBody,
+	desired map[string]deployment.CreateDatabaseBody,
 	opts Options,
 ) (*Result, error) {
 	existing, err := deployClient.ListDatabases(
@@ -271,7 +271,7 @@ func Databases(
 		return nil, fmt.Errorf("failed to list databases: %w", err)
 	}
 
-	existingByName := make(map[string]clients.DatabaseOutput)
+	existingByName := make(map[string]deployment.DatabaseOutput)
 	for _, db := range existing {
 		existingByName[db.Name] = db
 	}
@@ -281,14 +281,14 @@ func Databases(
 		existingByName,
 		desired,
 		opts,
-		resourceOps[clients.DatabaseOutput, clients.CreateDatabaseBody]{
+		resourceOps[deployment.DatabaseOutput, deployment.CreateDatabaseBody]{
 			resource:  "database",
 			allowFlag: "databases",
-			create: func(name string, body clients.CreateDatabaseBody) error {
+			create: func(name string, body deployment.CreateDatabaseBody) error {
 				_, err := deployClient.CreateDatabase(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body clients.CreateDatabaseBody) error {
+			update: func(name string, body deployment.CreateDatabaseBody) error {
 				_, err := deployClient.PutDatabase(ctx, orgId, projectId, name, body)
 				return err
 			},
@@ -303,11 +303,11 @@ func Databases(
 func Mcps(
 	ctx context.Context,
 	warnW io.Writer,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId,
 	projectId,
 	stackId string,
-	desired map[string]clients.CreateMcpBody,
+	desired map[string]deployment.CreateMcpBody,
 	opts Options,
 ) (*Result, error) {
 	existing, err := deployClient.ListMcps(
@@ -317,7 +317,7 @@ func Mcps(
 		return nil, fmt.Errorf("failed to list mcps: %w", err)
 	}
 
-	existingByName := make(map[string]clients.McpOutput)
+	existingByName := make(map[string]deployment.McpOutput)
 	for _, mcp := range existing {
 		existingByName[mcp.Name] = mcp
 	}
@@ -327,14 +327,14 @@ func Mcps(
 		existingByName,
 		desired,
 		opts,
-		resourceOps[clients.McpOutput, clients.CreateMcpBody]{
+		resourceOps[deployment.McpOutput, deployment.CreateMcpBody]{
 			resource:  "mcp",
 			allowFlag: "mcps",
-			create: func(name string, body clients.CreateMcpBody) error {
+			create: func(name string, body deployment.CreateMcpBody) error {
 				_, err := deployClient.CreateMcp(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body clients.CreateMcpBody) error {
+			update: func(name string, body deployment.CreateMcpBody) error {
 				authType := body.Auth.Type
 				if authType == "" {
 					authType = existingByName[name].Auth.Type
@@ -356,7 +356,7 @@ func Mcps(
 				}
 				return nil
 			},
-			banner: func(w io.Writer, mcp clients.McpOutput) {
+			banner: func(w io.Writer, mcp deployment.McpOutput) {
 				preflight.PrintUpdateBanner(w, "mcp "+mcp.Name, mcp.Revision, mcp.Updated)
 			},
 		},

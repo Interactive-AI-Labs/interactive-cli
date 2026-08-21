@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -101,7 +101,7 @@ func TestExistingImageTag(t *testing.T) {
 			)
 			t.Cleanup(server.Close)
 
-			deployClient, err := clients.NewDeploymentClient(
+			deployClient, err := deployment.NewDeploymentClient(
 				server.URL, defaultHTTPTimeout, "test-token", "", nil,
 			)
 			if err != nil {

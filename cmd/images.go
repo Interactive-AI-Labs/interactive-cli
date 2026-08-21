@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
@@ -228,12 +230,12 @@ open when the existing tags cannot be listed.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := api.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
+		deployClient, err := deployment.NewDeploymentClient(
 			deploymentHostname, defaultHTTPTimeout, token, apiKey, cookies,
 		)
 		if err != nil {
@@ -397,7 +399,7 @@ func refuseTagOverwrite(errW io.Writer, tag string, exists, force bool) error {
 func existingImageTag(
 	ctx context.Context,
 	errW io.Writer,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId, projectId, imageName, tag string,
 ) bool {
 	images, err := deployClient.ListImages(ctx, orgId, projectId)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 )
 
@@ -38,38 +38,38 @@ type ServiceInput struct {
 	StackId string
 }
 
-func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error) {
+func BuildServiceRequestBody(in ServiceInput) (deployment.CreateServiceBody, error) {
 	if err := ValidateServiceEnvVars(in.EnvVars); err != nil {
-		return clients.CreateServiceBody{}, err
+		return deployment.CreateServiceBody{}, err
 	}
-	var env []clients.EnvVar
+	var env []deployment.EnvVar
 	for _, e := range in.EnvVars {
 		parts := strings.SplitN(e, "=", 2)
-		env = append(env, clients.EnvVar{
+		env = append(env, deployment.EnvVar{
 			Name:  strings.TrimSpace(parts[0]),
 			Value: parts[1],
 		})
 	}
 
 	if err := ValidateServiceSecretRefs(in.SecretRefs); err != nil {
-		return clients.CreateServiceBody{}, err
+		return deployment.CreateServiceBody{}, err
 	}
-	var secretRefs []clients.SecretRef
+	var secretRefs []deployment.SecretRef
 	for _, name := range in.SecretRefs {
-		secretRefs = append(secretRefs, clients.SecretRef{
+		secretRefs = append(secretRefs, deployment.SecretRef{
 			SecretName: strings.TrimSpace(name),
 		})
 	}
 
-	reqBody := clients.CreateServiceBody{
+	reqBody := deployment.CreateServiceBody{
 		ServicePort: in.Port,
-		Image: clients.ImageSpec{
+		Image: deployment.ImageSpec{
 			Type:       in.ImageType,
 			Repository: in.ImageRepository,
 			Name:       in.ImageName,
 			Tag:        in.ImageTag,
 		},
-		Resources: clients.Resources{
+		Resources: deployment.Resources{
 			Memory: in.Memory,
 			CPU:    in.CPU,
 		},
@@ -81,7 +81,7 @@ func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error)
 
 	if in.AutoscalingMin > 0 || in.AutoscalingMax > 0 || in.AutoscalingCPU > 0 ||
 		in.AutoscalingMemory > 0 {
-		as := &clients.Autoscaling{
+		as := &deployment.Autoscaling{
 			MinReplicas: in.AutoscalingMin,
 			MaxReplicas: in.AutoscalingMax,
 		}
@@ -98,7 +98,7 @@ func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error)
 	}
 
 	if in.HealthcheckPath != "" || in.HealthcheckInitialDelay != 0 {
-		hc := &clients.Healthcheck{
+		hc := &deployment.Healthcheck{
 			Path: in.HealthcheckPath,
 		}
 		if in.HealthcheckInitialDelay > 0 {
@@ -108,7 +108,7 @@ func BuildServiceRequestBody(in ServiceInput) (clients.CreateServiceBody, error)
 	}
 
 	if in.ScheduleUptime != "" || in.ScheduleDowntime != "" || in.ScheduleTimezone != "" {
-		reqBody.Schedule = &clients.Schedule{
+		reqBody.Schedule = &deployment.Schedule{
 			Uptime:   in.ScheduleUptime,
 			Downtime: in.ScheduleDowntime,
 			Timezone: in.ScheduleTimezone,
@@ -173,9 +173,9 @@ func BuildServiceUpdatePatch(
 	in ServiceInput,
 	clearEnv, clearSecret, clearHealthcheck, clearSchedule, clearStackId bool,
 	changed func(string) bool,
-) (clients.UpdatePatch, error) {
+) (deployment.UpdatePatch, error) {
 	f := ServiceUpdateFlags
-	patch := clients.UpdatePatch{}
+	patch := deployment.UpdatePatch{}
 
 	autoscalingFlags := []string{
 		f.AutoscalingMin, f.AutoscalingMax, f.AutoscalingCPU, f.AutoscalingMemory,

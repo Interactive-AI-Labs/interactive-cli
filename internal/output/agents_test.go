@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestPrintAgentDescribe(t *testing.T) {
 	tests := []struct {
 		name  string
-		agent *clients.DescribeAgentResponse
+		agent *deployment.DescribeAgentResponse
 		want  string
 	}{
 		{
 			name: "minimal agent",
-			agent: &clients.DescribeAgentResponse{
+			agent: &deployment.DescribeAgentResponse{
 				Name:     "minimal-agent",
 				Id:       "interactive-agent",
 				Version:  "0.1.0",
@@ -30,7 +31,7 @@ func TestPrintAgentDescribe(t *testing.T) {
 		},
 		{
 			name: "agent with message",
-			agent: &clients.DescribeAgentResponse{
+			agent: &deployment.DescribeAgentResponse{
 				Name:     "msg-agent",
 				Id:       "interactive-agent",
 				Version:  "0.1.0",
@@ -64,12 +65,12 @@ func TestPrintAgentDescribe(t *testing.T) {
 func TestPrintAgentList(t *testing.T) {
 	tests := []struct {
 		name   string
-		agents []clients.AgentOutput
+		agents []deployment.AgentOutput
 		want   string
 	}{
 		{
 			name:   "empty list prints message",
-			agents: []clients.AgentOutput{},
+			agents: []deployment.AgentOutput{},
 			want:   "No agents found.\n",
 		},
 		{
@@ -79,7 +80,7 @@ func TestPrintAgentList(t *testing.T) {
 		},
 		{
 			name: "single agent",
-			agents: []clients.AgentOutput{
+			agents: []deployment.AgentOutput{
 				{Name: "my-agent", Revision: 3, Status: "deployed", Updated: "2024-06-01"},
 			},
 			want: "NAME       REVISION   STATUS     UPDATED\n" +
@@ -87,7 +88,7 @@ func TestPrintAgentList(t *testing.T) {
 		},
 		{
 			name: "multiple agents",
-			agents: []clients.AgentOutput{
+			agents: []deployment.AgentOutput{
 				{Name: "agent-a", Revision: 1, Status: "deployed"},
 				{Name: "agent-b", Revision: 5, Status: "deploying"},
 			},
@@ -114,13 +115,13 @@ func TestPrintAgentList(t *testing.T) {
 func TestPrintAgentRevision(t *testing.T) {
 	tests := []struct {
 		name string
-		rev  *clients.AgentRevisionResponse
+		rev  *deployment.AgentRevisionResponse
 		want string
 	}{
 		{
 			name: "minimal revision",
-			rev: &clients.AgentRevisionResponse{
-				RevisionMeta: clients.RevisionMeta{Revision: 3, Status: "deployed"},
+			rev: &deployment.AgentRevisionResponse{
+				RevisionMeta: deployment.RevisionMeta{Revision: 3, Status: "deployed"},
 				Id:           "interactive-agent",
 				Version:      "1.0.0",
 			},
@@ -133,21 +134,21 @@ func TestPrintAgentRevision(t *testing.T) {
 		},
 		{
 			name: "revision with endpoint and env",
-			rev: &clients.AgentRevisionResponse{
-				RevisionMeta: clients.RevisionMeta{
+			rev: &deployment.AgentRevisionResponse{
+				RevisionMeta: deployment.RevisionMeta{
 					Revision: 5,
 					Status:   "deployed",
 					Updated:  "2024-06-01",
-					Actor: &clients.RevisionActor{
+					Actor: &deployment.RevisionActor{
 						Type:        "api_key",
 						DisplayName: "silverspin-release",
 					},
-					Source: &clients.RevisionSource{Type: "cli", Version: "0.39.0"},
+					Source: &deployment.RevisionSource{Type: "cli", Version: "0.39.0"},
 				},
 				Id:       "interactive-agent",
 				Version:  "2.0.0",
 				Endpoint: "my-agent.interactive.ai",
-				Env: []clients.EnvVar{
+				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "debug"},
 				},
 			},
@@ -182,12 +183,12 @@ func TestPrintAgentRevision(t *testing.T) {
 func TestPrintAgentCatalog(t *testing.T) {
 	tests := []struct {
 		name   string
-		agents []clients.CatalogAgent
+		agents []deployment.CatalogAgent
 		want   string
 	}{
 		{
 			name:   "empty list prints message",
-			agents: []clients.CatalogAgent{},
+			agents: []deployment.CatalogAgent{},
 			want:   "No agents available.\n",
 		},
 		{
@@ -197,7 +198,7 @@ func TestPrintAgentCatalog(t *testing.T) {
 		},
 		{
 			name: "single agent",
-			agents: []clients.CatalogAgent{
+			agents: []deployment.CatalogAgent{
 				{Id: "interactive-agent"},
 			},
 			want: "AGENT ID\n" +
@@ -205,7 +206,7 @@ func TestPrintAgentCatalog(t *testing.T) {
 		},
 		{
 			name: "multiple agents",
-			agents: []clients.CatalogAgent{
+			agents: []deployment.CatalogAgent{
 				{Id: "interactive-agent"},
 				{Id: "other-agent"},
 			},
@@ -232,18 +233,18 @@ func TestPrintAgentCatalog(t *testing.T) {
 func TestPrintCompatibilityMatrix(t *testing.T) {
 	tests := []struct {
 		name   string
-		matrix []clients.CompatibilityEntry
+		matrix []api.CompatibilityEntry
 		asJSON bool
 		want   string
 	}{
 		{
 			name:   "empty matrix prints message",
-			matrix: []clients.CompatibilityEntry{},
+			matrix: []api.CompatibilityEntry{},
 			want:   "No compatibility data available.\n",
 		},
 		{
 			name: "table output",
-			matrix: []clients.CompatibilityEntry{
+			matrix: []api.CompatibilityEntry{
 				{AgentVersion: "0.1.0", SchemaVersion: "1.0.0"},
 				{AgentVersion: "0.2.0", SchemaVersion: "2.0.0"},
 			},
@@ -253,7 +254,7 @@ func TestPrintCompatibilityMatrix(t *testing.T) {
 		},
 		{
 			name: "json output",
-			matrix: []clients.CompatibilityEntry{
+			matrix: []api.CompatibilityEntry{
 				{AgentVersion: "0.1.0", SchemaVersion: "1.0.0"},
 			},
 			asJSON: true,

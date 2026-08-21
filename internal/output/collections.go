@@ -6,11 +6,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // PrintCollectionList renders a collections list as a table.
-func PrintCollectionList(out io.Writer, collections []clients.CollectionSummary) error {
+func PrintCollectionList(out io.Writer, collections []deployment.CollectionSummary) error {
 	if len(collections) == 0 {
 		fmt.Fprintln(out, "No collections found.")
 		return nil
@@ -26,7 +26,7 @@ func PrintCollectionList(out io.Writer, collections []clients.CollectionSummary)
 
 // PrintCollectionDescribe renders a collection's config: header fields plus a
 // per-slot table.
-func PrintCollectionDescribe(out io.Writer, c *clients.DescribeCollectionResponse) error {
+func PrintCollectionDescribe(out io.Writer, c *deployment.DescribeCollectionResponse) error {
 	ft := "disabled"
 	if c.Config.FullText != nil && c.Config.FullText.Enabled {
 		ft = fmt.Sprintf("enabled (%s)", c.Config.FullText.Language)
@@ -58,7 +58,7 @@ func PrintCollectionDescribe(out io.Writer, c *clients.DescribeCollectionRespons
 }
 
 // PrintCollectionStats renders a collection's operational stats.
-func PrintCollectionStats(out io.Writer, s *clients.CollectionStats) error {
+func PrintCollectionStats(out io.Writer, s *deployment.CollectionStats) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Chunks:\t%d\n", s.ChunkCount)
 	fmt.Fprintf(w, "Size:\t%s\n", humanBytes(s.SizeBytes))
@@ -83,7 +83,7 @@ func PrintCollectionStats(out io.Writer, s *clients.CollectionStats) error {
 	return PrintTable(out, headers, rows)
 }
 
-func sortedSlotNames(slots map[string]clients.CollectionSlot) []string {
+func sortedSlotNames(slots map[string]deployment.CollectionSlot) []string {
 	names := make([]string, 0, len(slots))
 	for name := range slots {
 		names = append(names, name)
@@ -92,14 +92,14 @@ func sortedSlotNames(slots map[string]clients.CollectionSlot) []string {
 	return names
 }
 
-func embeddingModel(slot clients.CollectionSlot) string {
+func embeddingModel(slot deployment.CollectionSlot) string {
 	if slot.Embedding != nil && slot.Embedding.Model != "" {
 		return slot.Embedding.Model
 	}
 	return "-"
 }
 
-func indexType(slot clients.CollectionSlot) string {
+func indexType(slot deployment.CollectionSlot) string {
 	idx := slot.Index
 	if idx == nil || idx.Type == "" {
 		return "deferred"

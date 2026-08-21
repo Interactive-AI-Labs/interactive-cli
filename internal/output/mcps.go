@@ -6,10 +6,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
+func PrintMcpList(out io.Writer, mcps []deployment.McpOutput) error {
 	if len(mcps) == 0 {
 		fmt.Fprintln(out, "No mcps found.")
 		return nil
@@ -38,7 +39,7 @@ func PrintMcpList(out io.Writer, mcps []clients.McpOutput) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
+func PrintMcpCatalog(out io.Writer, entries []api.McpCatalogEntry) error {
 	if len(entries) == 0 {
 		fmt.Fprintln(out, "No catalog entries found.")
 		return nil
@@ -51,7 +52,7 @@ func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintMcpDetail(out io.Writer, m *clients.DescribeMcpResponse) error {
+func PrintMcpDetail(out io.Writer, m *deployment.DescribeMcpResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", m.Name)
 	fmt.Fprintf(w, "Type:\t%s\n", m.Type)

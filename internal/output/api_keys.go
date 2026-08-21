@@ -6,81 +6,81 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var projectAPIKeyColumnMap = map[string]struct {
 	Header string
-	Value  func(clients.ProjectAPIKey) string
+	Value  func(api.ProjectAPIKey) string
 }{
-	"id":         {"ID", func(k clients.ProjectAPIKey) string { return k.ID }},
-	"public_key": {"PUBLIC KEY", func(k clients.ProjectAPIKey) string { return k.PublicKey }},
-	"secret":     {"SECRET", func(k clients.ProjectAPIKey) string { return k.DisplaySecretKey }},
-	"note":       {"NOTE", func(k clients.ProjectAPIKey) string { return stringValue(k.Note) }},
+	"id":         {"ID", func(k api.ProjectAPIKey) string { return k.ID }},
+	"public_key": {"PUBLIC KEY", func(k api.ProjectAPIKey) string { return k.PublicKey }},
+	"secret":     {"SECRET", func(k api.ProjectAPIKey) string { return k.DisplaySecretKey }},
+	"note":       {"NOTE", func(k api.ProjectAPIKey) string { return stringValue(k.Note) }},
 	"status": {
 		"STATUS",
-		func(k clients.ProjectAPIKey) string { return expiryStatus(k.ExpiresAt) },
+		func(k api.ProjectAPIKey) string { return expiryStatus(k.ExpiresAt) },
 	},
 	"expires_at": {
 		"EXPIRES",
-		func(k clients.ProjectAPIKey) string { return formatExpiresAt(k.ExpiresAt) },
+		func(k api.ProjectAPIKey) string { return formatExpiresAt(k.ExpiresAt) },
 	},
 	"last_used_at": {
 		"LAST USED",
-		func(k clients.ProjectAPIKey) string { return formatOptionalTime(k.LastUsedAt) },
+		func(k api.ProjectAPIKey) string { return formatOptionalTime(k.LastUsedAt) },
 	},
 	"created_at": {
 		"CREATED",
-		func(k clients.ProjectAPIKey) string { return LocalTime(k.CreatedAt) },
+		func(k api.ProjectAPIKey) string { return LocalTime(k.CreatedAt) },
 	},
 }
 
 var routerAPIKeyColumnMap = map[string]struct {
 	Header string
-	Value  func(clients.RouterAPIKey) string
+	Value  func(api.RouterAPIKey) string
 }{
-	"id":   {"ID", func(k clients.RouterAPIKey) string { return k.ID }},
-	"name": {"NAME", func(k clients.RouterAPIKey) string { return k.Name }},
+	"id":   {"ID", func(k api.RouterAPIKey) string { return k.ID }},
+	"name": {"NAME", func(k api.RouterAPIKey) string { return k.Name }},
 	"description": {
 		"DESCRIPTION",
-		func(k clients.RouterAPIKey) string { return stringValue(k.Description) },
+		func(k api.RouterAPIKey) string { return stringValue(k.Description) },
 	},
 	"status": {"STATUS", keyStatus},
-	"key":    {"KEY", func(k clients.RouterAPIKey) string { return k.KeyPreview }},
+	"key":    {"KEY", func(k api.RouterAPIKey) string { return k.KeyPreview }},
 	"disabled": {
 		"DISABLED",
-		func(k clients.RouterAPIKey) string { return fmt.Sprint(k.Disabled) },
+		func(k api.RouterAPIKey) string { return fmt.Sprint(k.Disabled) },
 	},
-	"limit": {"LIMIT", func(k clients.RouterAPIKey) string { return formatUSD(k.Limit) }},
+	"limit": {"LIMIT", func(k api.RouterAPIKey) string { return formatUSD(k.Limit) }},
 	"remaining": {
 		"REMAINING",
-		func(k clients.RouterAPIKey) string { return formatUSD(k.LimitRemaining) },
+		func(k api.RouterAPIKey) string { return formatUSD(k.LimitRemaining) },
 	},
 	"limit_reset": {
 		"RESET",
-		func(k clients.RouterAPIKey) string { return stringValue(k.LimitReset) },
+		func(k api.RouterAPIKey) string { return stringValue(k.LimitReset) },
 	},
 	"expires_at": {
 		"EXPIRES",
-		func(k clients.RouterAPIKey) string { return formatExpiresAt(k.ExpiresAt) },
+		func(k api.RouterAPIKey) string { return formatExpiresAt(k.ExpiresAt) },
 	},
 	"last_used_at": {
 		"LAST USED",
-		func(k clients.RouterAPIKey) string { return formatOptionalTime(k.LastUsedAt) },
+		func(k api.RouterAPIKey) string { return formatOptionalTime(k.LastUsedAt) },
 	},
 	"created_at": {
 		"CREATED",
-		func(k clients.RouterAPIKey) string { return LocalTime(k.CreatedAt) },
+		func(k api.RouterAPIKey) string { return LocalTime(k.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED",
-		func(k clients.RouterAPIKey) string { return formatOptionalTime(k.UpdatedAt) },
+		func(k api.RouterAPIKey) string { return formatOptionalTime(k.UpdatedAt) },
 	},
-	"project_id": {"PROJECT ID", func(k clients.RouterAPIKey) string { return k.ProjectID }},
-	"user_id":    {"USER ID", func(k clients.RouterAPIKey) string { return k.UserID }},
+	"project_id": {"PROJECT ID", func(k api.RouterAPIKey) string { return k.ProjectID }},
+	"user_id":    {"USER ID", func(k api.RouterAPIKey) string { return k.UserID }},
 }
 
-func PrintProjectAPIKeyList(out io.Writer, keys []clients.ProjectAPIKey, columns []string) error {
+func PrintProjectAPIKeyList(out io.Writer, keys []api.ProjectAPIKey, columns []string) error {
 	fmt.Fprintln(out)
 	headers := make([]string, len(columns))
 	for i, col := range columns {
@@ -97,7 +97,7 @@ func PrintProjectAPIKeyList(out io.Writer, keys []clients.ProjectAPIKey, columns
 	return PrintTable(out, headers, rows)
 }
 
-func PrintRouterAPIKeyList(out io.Writer, keys []clients.RouterAPIKey, columns []string) error {
+func PrintRouterAPIKeyList(out io.Writer, keys []api.RouterAPIKey, columns []string) error {
 	fmt.Fprintln(out)
 	headers := make([]string, len(columns))
 	for i, col := range columns {
@@ -114,7 +114,7 @@ func PrintRouterAPIKeyList(out io.Writer, keys []clients.RouterAPIKey, columns [
 	return PrintTable(out, headers, rows)
 }
 
-func keyStatus(key clients.RouterAPIKey) string {
+func keyStatus(key api.RouterAPIKey) string {
 	if key.Disabled {
 		return "disabled"
 	}

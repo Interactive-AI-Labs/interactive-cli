@@ -4,24 +4,24 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 )
 
 func TestPrintServiceList(t *testing.T) {
 	tests := []struct {
 		name     string
-		services []clients.ServiceOutput
+		services []deployment.ServiceOutput
 		want     string
 	}{
 		{
 			name:     "empty list prints message",
-			services: []clients.ServiceOutput{},
+			services: []deployment.ServiceOutput{},
 			want:     "No services found.\n",
 		},
 		{
 			name: "single service",
-			services: []clients.ServiceOutput{
+			services: []deployment.ServiceOutput{
 				{
 					Name:     "web",
 					Revision: 3,
@@ -34,7 +34,7 @@ func TestPrintServiceList(t *testing.T) {
 		},
 		{
 			name: "multiple services with empty fields",
-			services: []clients.ServiceOutput{
+			services: []deployment.ServiceOutput{
 				{Name: "api", Revision: 1, Status: "Running"},
 				{Name: "worker", Revision: 5, Status: "Deploying"},
 			},
@@ -44,7 +44,7 @@ func TestPrintServiceList(t *testing.T) {
 		},
 		{
 			name: "revision zero",
-			services: []clients.ServiceOutput{
+			services: []deployment.ServiceOutput{
 				{Name: "new-svc", Revision: 0, Status: "Pending"},
 			},
 			want: "NAME      REVISION   STATUS    UPDATED\n" +
@@ -69,25 +69,25 @@ func TestPrintServiceList(t *testing.T) {
 func TestPrintServiceDescribe(t *testing.T) {
 	tests := []struct {
 		name string
-		svc  *clients.DescribeServiceResponse
+		svc  *deployment.DescribeServiceResponse
 		want string
 	}{
 		{
 			name: "minimal service with replicas",
-			svc: &clients.DescribeServiceResponse{
-				ServiceOutput: clients.ServiceOutput{
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
 					Name:      "minimal-svc",
 					ProjectId: "proj-123",
 					Revision:  1,
 					Status:    "deployed",
 				},
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "external",
 					Name: "nginx",
 					Tag:  "latest",
 				},
-				Resources: clients.Resources{Memory: "128M", CPU: "100m"},
+				Resources: deployment.Resources{Memory: "128M", CPU: "100m"},
 				Replicas:  1,
 			},
 			want: "Name:       minimal-svc\n" +
@@ -105,18 +105,18 @@ func TestPrintServiceDescribe(t *testing.T) {
 		},
 		{
 			name: "zero replicas prints zero",
-			svc: &clients.DescribeServiceResponse{
-				ServiceOutput: clients.ServiceOutput{
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
 					Name:   "scaled-svc",
 					Status: "deployed",
 				},
 				ServicePort: 80,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "external",
 					Name: "app",
 					Tag:  "1.0",
 				},
-				Resources: clients.Resources{Memory: "256M", CPU: "200m"},
+				Resources: deployment.Resources{Memory: "256M", CPU: "200m"},
 				Replicas:  0,
 			},
 			want: "Name:       scaled-svc\n" +
@@ -134,19 +134,19 @@ func TestPrintServiceDescribe(t *testing.T) {
 		},
 		{
 			name: "autoscaling with CPU only",
-			svc: &clients.DescribeServiceResponse{
-				ServiceOutput: clients.ServiceOutput{
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
 					Name:   "autoscaling-svc",
 					Status: "deployed",
 				},
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "external",
 					Name: "redis",
 					Tag:  "7",
 				},
-				Resources: clients.Resources{Memory: "256M", CPU: "200m"},
-				Autoscaling: &clients.Autoscaling{
+				Resources: deployment.Resources{Memory: "256M", CPU: "200m"},
+				Autoscaling: &deployment.Autoscaling{
 					MinReplicas:   2,
 					MaxReplicas:   5,
 					CPUPercentage: utils.ToPtr(70),
@@ -171,8 +171,8 @@ func TestPrintServiceDescribe(t *testing.T) {
 		},
 		{
 			name: "full-featured service",
-			svc: &clients.DescribeServiceResponse{
-				ServiceOutput: clients.ServiceOutput{
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
 					Name:      "full-svc",
 					ProjectId: "proj-456",
 					Revision:  10,
@@ -180,32 +180,32 @@ func TestPrintServiceDescribe(t *testing.T) {
 				},
 				Endpoint:    "full-svc-abc.dev.interactive.ai",
 				ServicePort: 443,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type:       "platform",
 					Repository: "agents",
 					Name:       "api-gateway",
 					Tag:        "1.0.0",
 				},
-				Resources: clients.Resources{Memory: "1G", CPU: "1"},
-				Env: []clients.EnvVar{
+				Resources: deployment.Resources{Memory: "1G", CPU: "1"},
+				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "info"},
 				},
-				SecretRefs: []clients.SecretRef{
+				SecretRefs: []deployment.SecretRef{
 					{SecretName: "api-keys"},
 					{SecretName: "db-creds"},
 				},
 				StackId: "my-stack",
-				Autoscaling: &clients.Autoscaling{
+				Autoscaling: &deployment.Autoscaling{
 					MinReplicas:      2,
 					MaxReplicas:      8,
 					CPUPercentage:    utils.ToPtr(65),
 					MemoryPercentage: utils.ToPtr(80),
 				},
-				Healthcheck: &clients.Healthcheck{
+				Healthcheck: &deployment.Healthcheck{
 					Path:                "/healthz",
 					InitialDelaySeconds: utils.ToPtr(20),
 				},
-				Schedule: &clients.Schedule{
+				Schedule: &deployment.Schedule{
 					Uptime:   "Mon-Fri 08:00-20:00",
 					Timezone: "UTC",
 				},
@@ -246,20 +246,20 @@ func TestPrintServiceDescribe(t *testing.T) {
 		},
 		{
 			name: "service with message",
-			svc: &clients.DescribeServiceResponse{
-				ServiceOutput: clients.ServiceOutput{
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
 					Name:     "msg-svc",
 					Revision: 2,
 					Status:   "deployed",
 				},
 				Message:     "rollout completed",
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "external",
 					Name: "nginx",
 					Tag:  "latest",
 				},
-				Resources: clients.Resources{Memory: "128M", CPU: "100m"},
+				Resources: deployment.Resources{Memory: "128M", CPU: "100m"},
 				Replicas:  1,
 			},
 			want: "Name:       msg-svc\n" +
@@ -278,20 +278,20 @@ func TestPrintServiceDescribe(t *testing.T) {
 		},
 		{
 			name: "schedule with downtime",
-			svc: &clients.DescribeServiceResponse{
-				ServiceOutput: clients.ServiceOutput{
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
 					Name:   "downtime-svc",
 					Status: "deployed",
 				},
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "external",
 					Name: "app",
 					Tag:  "v2",
 				},
-				Resources: clients.Resources{Memory: "128M", CPU: "50m"},
+				Resources: deployment.Resources{Memory: "128M", CPU: "50m"},
 				Replicas:  1,
-				Schedule: &clients.Schedule{
+				Schedule: &deployment.Schedule{
 					Downtime: "Sat-Sun 00:00-24:00",
 					Timezone: "US/Eastern",
 				},
@@ -332,16 +332,16 @@ func TestPrintServiceDescribe(t *testing.T) {
 func TestPrintServiceRevision(t *testing.T) {
 	tests := []struct {
 		name string
-		rev  *clients.ServiceRevisionResponse
+		rev  *deployment.ServiceRevisionResponse
 		want string
 	}{
 		{
 			name: "minimal revision",
-			rev: &clients.ServiceRevisionResponse{
-				RevisionMeta: clients.RevisionMeta{Revision: 2, Status: "deployed"},
+			rev: &deployment.ServiceRevisionResponse{
+				RevisionMeta: deployment.RevisionMeta{Revision: 2, Status: "deployed"},
 				ServicePort:  8080,
-				Image:        clients.ImageSpec{Type: "external", Name: "nginx", Tag: "latest"},
-				Resources:    clients.Resources{Memory: "128M", CPU: "100m"},
+				Image:        deployment.ImageSpec{Type: "external", Name: "nginx", Tag: "latest"},
+				Resources:    deployment.Resources{Memory: "128M", CPU: "100m"},
 				Replicas:     1,
 			},
 			want: "Revision:   2\n" +
@@ -360,27 +360,27 @@ func TestPrintServiceRevision(t *testing.T) {
 		},
 		{
 			name: "revision with endpoint and env",
-			rev: &clients.ServiceRevisionResponse{
-				RevisionMeta: clients.RevisionMeta{
+			rev: &deployment.ServiceRevisionResponse{
+				RevisionMeta: deployment.RevisionMeta{
 					Revision: 5,
 					Status:   "deployed",
 					Updated:  "2024-06-01",
-					Actor: &clients.RevisionActor{
+					Actor: &deployment.RevisionActor{
 						Type:        "service",
 						DisplayName: "deployment-controller",
 					},
-					Source: &clients.RevisionSource{Type: "controller"},
+					Source: &deployment.RevisionSource{Type: "controller"},
 				},
 				ServicePort: 443,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type:       "platform",
 					Name:       "api",
 					Tag:        "2.0",
 					Repository: "apps",
 				},
-				Resources: clients.Resources{Memory: "512M", CPU: "500m"},
+				Resources: deployment.Resources{Memory: "512M", CPU: "500m"},
 				Endpoint:  "api.interactive.ai",
-				Env: []clients.EnvVar{
+				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "info"},
 				},
 			},

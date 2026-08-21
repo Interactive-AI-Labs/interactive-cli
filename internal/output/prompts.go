@@ -8,13 +8,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"znkr.io/diff/textdiff"
 )
 
 const colorBlue = "\033[1;34m"
 
-func PrintPromptList(out io.Writer, prompts []clients.PromptInfo) error {
+func PrintPromptList(out io.Writer, prompts []api.PromptInfo) error {
 	if len(prompts) == 0 {
 		fmt.Fprintln(out, "No prompts found.")
 		return nil
@@ -49,7 +49,7 @@ func colorizeFolder(name string, useColor bool) string {
 	return "\xff" + colorBlue + "\xff" + name + "\xff" + colorReset + "\xff"
 }
 
-func PrintPromptDetail(out io.Writer, prompt *clients.PromptDetail) error {
+func PrintPromptDetail(out io.Writer, prompt *api.PromptDetail) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", prompt.Name)
 	fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
@@ -127,9 +127,9 @@ func PrintPromptVersions(out io.Writer, versions []int) error {
 func PrintPromptDiff(
 	out io.Writer,
 	versionA string,
-	a *clients.PromptDetail,
+	a *api.PromptDetail,
 	versionB string,
-	b *clients.PromptDetail,
+	b *api.PromptDetail,
 ) error {
 	contentA := normalizePromptContent(a.Prompt)
 	contentB := normalizePromptContent(b.Prompt)

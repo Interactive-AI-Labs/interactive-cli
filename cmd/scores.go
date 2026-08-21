@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -101,7 +101,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		opts := clients.ScoreListOptions{
+		opts := api.ScoreListOptions{
 			FromTimestamp: fromTS,
 			ToTimestamp:   scoresToTimestamp,
 			Cursor:        scoresCursor,

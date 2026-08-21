@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -65,7 +65,7 @@ var runItemsListCmd = &cobra.Command{
 			}
 		}
 
-		opts := clients.DatasetRunItemListOptions{
+		opts := api.DatasetRunItemListOptions{
 			RunName:     runItemsListRunName,
 			DatasetName: runItemsListDatasetName,
 			Page:        runItemsListPage,

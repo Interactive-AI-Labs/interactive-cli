@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -250,10 +250,10 @@ func TestDiffFieldsVersionFiltered(t *testing.T) {
 	}
 }
 
-func clientsImageSpec(name, tag string) clients.ImageSpec {
-	return clients.ImageSpec{Type: "external", Repository: "docker.io", Name: name, Tag: tag}
+func clientsImageSpec(name, tag string) deployment.ImageSpec {
+	return deployment.ImageSpec{Type: "external", Repository: "docker.io", Name: name, Tag: tag}
 }
 
-func clientsResources(mem, cpu string) clients.Resources {
-	return clients.Resources{Memory: mem, CPU: cpu}
+func clientsResources(mem, cpu string) deployment.Resources {
+	return deployment.Resources{Memory: mem, CPU: cpu}
 }

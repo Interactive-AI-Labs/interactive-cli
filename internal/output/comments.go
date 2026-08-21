@@ -4,31 +4,31 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var commentColumnMap = map[string]struct {
 	Header string
-	Value  func(c *clients.CommentInfo) string
+	Value  func(c *api.CommentInfo) string
 }{
-	"id":          {"ID", func(c *clients.CommentInfo) string { return c.ID }},
-	"object_type": {"OBJECT TYPE", func(c *clients.CommentInfo) string { return c.ObjectType }},
-	"object_id":   {"OBJECT ID", func(c *clients.CommentInfo) string { return c.ObjectID }},
+	"id":          {"ID", func(c *api.CommentInfo) string { return c.ID }},
+	"object_type": {"OBJECT TYPE", func(c *api.CommentInfo) string { return c.ObjectType }},
+	"object_id":   {"OBJECT ID", func(c *api.CommentInfo) string { return c.ObjectID }},
 	"content": {
 		"CONTENT",
-		func(c *clients.CommentInfo) string { return truncateString(c.Content, 80) },
+		func(c *api.CommentInfo) string { return truncateString(c.Content, 80) },
 	},
 	"author_user_id": {
 		"AUTHOR USER ID",
-		func(c *clients.CommentInfo) string { return c.AuthorUserID },
+		func(c *api.CommentInfo) string { return c.AuthorUserID },
 	},
 	"created_at": {
 		"CREATED AT",
-		func(c *clients.CommentInfo) string { return LocalTime(c.CreatedAt) },
+		func(c *api.CommentInfo) string { return LocalTime(c.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(c *clients.CommentInfo) string { return LocalTime(c.UpdatedAt) },
+		func(c *api.CommentInfo) string { return LocalTime(c.UpdatedAt) },
 	},
 }
 
@@ -42,8 +42,8 @@ func truncateString(s string, maxLen int) string {
 
 func PrintCommentList(
 	out io.Writer,
-	comments []clients.CommentInfo,
-	meta clients.PageMeta,
+	comments []api.CommentInfo,
+	meta api.PageMeta,
 	columns []string,
 ) error {
 	if len(comments) == 0 {
@@ -77,7 +77,7 @@ func PrintCommentList(
 	return nil
 }
 
-func PrintCommentDetail(out io.Writer, c *clients.CommentInfo) error {
+func PrintCommentDetail(out io.Writer, c *api.CommentInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", c.ID)
 	fmt.Fprintf(w, "Object Type:\t%s\n", c.ObjectType)
@@ -91,7 +91,7 @@ func PrintCommentDetail(out io.Writer, c *clients.CommentInfo) error {
 	return w.Flush()
 }
 
-func PrintCommentCreateResult(out io.Writer, c *clients.CommentInfo) error {
+func PrintCommentCreateResult(out io.Writer, c *api.CommentInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created comment %q.\n", c.ID)
 	fmt.Fprintf(w, "Object Type:\t%s\n", c.ObjectType)

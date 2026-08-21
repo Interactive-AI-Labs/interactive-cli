@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestPrintReplicaList(t *testing.T) {
@@ -12,17 +12,17 @@ func TestPrintReplicaList(t *testing.T) {
 	t.Setenv("TZ", "Europe/Madrid")
 	tests := []struct {
 		name     string
-		replicas []clients.ReplicaInfo
+		replicas []deployment.ReplicaInfo
 		want     string
 	}{
 		{
 			name:     "empty list prints no replicas found",
-			replicas: []clients.ReplicaInfo{},
+			replicas: []deployment.ReplicaInfo{},
 			want:     "No replicas found.\n",
 		},
 		{
 			name: "ready replica with status",
-			replicas: []clients.ReplicaInfo{
+			replicas: []deployment.ReplicaInfo{
 				{
 					Name:      "web-abc123",
 					Status:    "Running",
@@ -38,7 +38,7 @@ func TestPrintReplicaList(t *testing.T) {
 		},
 		{
 			name: "not-ready replica shows Not Ready",
-			replicas: []clients.ReplicaInfo{
+			replicas: []deployment.ReplicaInfo{
 				{
 					Name:   "worker-xyz",
 					Status: "CrashLoopBackOff",
@@ -52,7 +52,7 @@ func TestPrintReplicaList(t *testing.T) {
 		},
 		{
 			name: "falls back to phase when status is empty",
-			replicas: []clients.ReplicaInfo{
+			replicas: []deployment.ReplicaInfo{
 				{
 					Name:  "api-pod",
 					Phase: "Pending",
@@ -64,7 +64,7 @@ func TestPrintReplicaList(t *testing.T) {
 		},
 		{
 			name: "shows Unknown when both status and phase are empty",
-			replicas: []clients.ReplicaInfo{
+			replicas: []deployment.ReplicaInfo{
 				{
 					Name:  "mystery-pod",
 					Ready: false,
@@ -75,7 +75,7 @@ func TestPrintReplicaList(t *testing.T) {
 		},
 		{
 			name: "multiple replicas",
-			replicas: []clients.ReplicaInfo{
+			replicas: []deployment.ReplicaInfo{
 				{Name: "pod-1", Status: "Running", Ready: true, CPU: "100m", Memory: "128Mi"},
 				{Name: "pod-2", Status: "Pending", Ready: false, CPU: "0m", Memory: "0Mi"},
 			},
@@ -104,12 +104,12 @@ func TestPrintReplicaDescribe(t *testing.T) {
 	t.Setenv("TZ", "Europe/Madrid")
 	tests := []struct {
 		name   string
-		status *clients.ReplicaStatus
+		status *deployment.ReplicaStatus
 		want   string
 	}{
 		{
 			name: "no last termination state",
-			status: &clients.ReplicaStatus{
+			status: &deployment.ReplicaStatus{
 				Name:         "web-abc123",
 				Status:       "Running",
 				Ready:        true,
@@ -124,12 +124,12 @@ func TestPrintReplicaDescribe(t *testing.T) {
 		},
 		{
 			name: "with last termination state all fields",
-			status: &clients.ReplicaStatus{
+			status: &deployment.ReplicaStatus{
 				Name:         "worker-xyz",
 				Status:       "Running",
 				Ready:        true,
 				RestartCount: 3,
-				LastTerminationState: &clients.ReplicaLastTermination{
+				LastTerminationState: &deployment.ReplicaLastTermination{
 					Reason:     "OOMKilled",
 					ExitCode:   137,
 					StartedAt:  "2024-01-01T00:00:00Z",
@@ -148,12 +148,12 @@ func TestPrintReplicaDescribe(t *testing.T) {
 		},
 		{
 			name: "last termination state without timestamps",
-			status: &clients.ReplicaStatus{
+			status: &deployment.ReplicaStatus{
 				Name:         "api-pod",
 				Status:       "CrashLoopBackOff",
 				Ready:        false,
 				RestartCount: 5,
-				LastTerminationState: &clients.ReplicaLastTermination{
+				LastTerminationState: &deployment.ReplicaLastTermination{
 					Reason:   "Error",
 					ExitCode: 1,
 				},
@@ -168,12 +168,12 @@ func TestPrintReplicaDescribe(t *testing.T) {
 		},
 		{
 			name: "last termination state with exit code zero",
-			status: &clients.ReplicaStatus{
+			status: &deployment.ReplicaStatus{
 				Name:         "job-pod",
 				Status:       "Running",
 				Ready:        true,
 				RestartCount: 1,
-				LastTerminationState: &clients.ReplicaLastTermination{
+				LastTerminationState: &deployment.ReplicaLastTermination{
 					Reason:   "Completed",
 					ExitCode: 0,
 				},
@@ -188,22 +188,22 @@ func TestPrintReplicaDescribe(t *testing.T) {
 		},
 		{
 			name: "last termination state with resources and events",
-			status: &clients.ReplicaStatus{
+			status: &deployment.ReplicaStatus{
 				Name:         "full-pod",
 				Status:       "Running",
 				Ready:        true,
 				StartTime:    "2024-06-01T12:00:00Z",
 				RestartCount: 1,
-				LastTerminationState: &clients.ReplicaLastTermination{
+				LastTerminationState: &deployment.ReplicaLastTermination{
 					Reason:     "OOMKilled",
 					ExitCode:   137,
 					FinishedAt: "2024-06-01T11:59:00Z",
 				},
-				Resources: &clients.ReplicaResources{
+				Resources: &deployment.ReplicaResources{
 					CPU:    "250m",
 					Memory: "512Mi",
 				},
-				Events: []clients.ReplicaEvent{
+				Events: []deployment.ReplicaEvent{
 					{
 						Type:          "Warning",
 						Reason:        "OOMKilling",

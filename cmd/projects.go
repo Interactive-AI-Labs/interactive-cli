@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
@@ -54,7 +54,7 @@ var projectsListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := api.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ var projectsSelectCmd = &cobra.Command{
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := api.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 		if err != nil {
 			return err
 		}

@@ -1,4 +1,4 @@
-package clients
+package deployment
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 // CollectionSummary is one entry in a collections list response.
@@ -86,7 +88,7 @@ func CollectionsPath(orgId, projectId, database string) string {
 // errors.
 func collectionErr(resp *http.Response, action string) error {
 	respBody, readErr := io.ReadAll(resp.Body)
-	if msg := ExtractServerMessage(respBody); msg != "" {
+	if msg := clients.ExtractServerMessage(respBody); msg != "" {
 		return errors.New(msg)
 	}
 	if readErr != nil {
@@ -109,7 +111,7 @@ func serverMessage(resp *http.Response, action string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to %s: reading response body: %w", action, err)
 	}
-	return ExtractServerMessage(respBody), nil
+	return clients.ExtractServerMessage(respBody), nil
 }
 
 // sendJSONInto issues a request with an optional JSON body and decodes the
