@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func writeTempYAML(t *testing.T, content string) string {
@@ -27,7 +27,7 @@ func TestBuildAgentRequestBody(t *testing.T) {
 		input      AgentInput
 		wantErr    bool
 		errContain string
-		want       clients.CreateAgentBody
+		want       deployment.CreateAgentBody
 	}{
 		{
 			name: "minimal valid input",
@@ -36,7 +36,7 @@ func TestBuildAgentRequestBody(t *testing.T) {
 				Id:      "interactive-agent",
 				Version: "0.0.1",
 			},
-			want: clients.CreateAgentBody{
+			want: deployment.CreateAgentBody{
 				Id:          "interactive-agent",
 				Version:     "0.0.1",
 				AgentConfig: map[string]any{"language": "en"},
@@ -54,22 +54,22 @@ func TestBuildAgentRequestBody(t *testing.T) {
 				ScheduleUptime:   "Mon-Fri 07:30-20:30",
 				ScheduleTimezone: "Europe/Berlin",
 			},
-			want: clients.CreateAgentBody{
+			want: deployment.CreateAgentBody{
 				Id:       "interactive-agent",
 				Version:  "1.0.0",
 				Endpoint: true,
 				AgentConfig: map[string]any{
 					"context": map[string]any{"description": "test"},
 				},
-				Env: []clients.EnvVar{
+				Env: []deployment.EnvVar{
 					{Name: "KEY1", Value: "value1"},
 					{Name: "KEY2", Value: "value2"},
 				},
-				SecretRefs: []clients.SecretRef{
+				SecretRefs: []deployment.SecretRef{
 					{SecretName: "my-secret"},
 					{SecretName: "other-secret"},
 				},
-				Schedule: &clients.Schedule{
+				Schedule: &deployment.Schedule{
 					Uptime:   "Mon-Fri 07:30-20:30",
 					Timezone: "Europe/Berlin",
 				},
@@ -84,11 +84,11 @@ func TestBuildAgentRequestBody(t *testing.T) {
 				ScheduleDowntime: "Sat-Sun 00:00-24:00",
 				ScheduleTimezone: "UTC",
 			},
-			want: clients.CreateAgentBody{
+			want: deployment.CreateAgentBody{
 				Id:          "interactive-agent",
 				Version:     "0.0.1",
 				AgentConfig: map[string]any{"language": "en"},
-				Schedule: &clients.Schedule{
+				Schedule: &deployment.Schedule{
 					Downtime: "Sat-Sun 00:00-24:00",
 					Timezone: "UTC",
 				},
@@ -102,11 +102,11 @@ func TestBuildAgentRequestBody(t *testing.T) {
 				Version: "0.0.1",
 				EnvVars: []string{"CONN=postgres://host:5432/db?opt=val"},
 			},
-			want: clients.CreateAgentBody{
+			want: deployment.CreateAgentBody{
 				Id:          "interactive-agent",
 				Version:     "0.0.1",
 				AgentConfig: map[string]any{"language": "en"},
-				Env: []clients.EnvVar{
+				Env: []deployment.EnvVar{
 					{Name: "CONN", Value: "postgres://host:5432/db?opt=val"},
 				},
 			},
@@ -118,7 +118,7 @@ func TestBuildAgentRequestBody(t *testing.T) {
 				Id:      "interactive-agent",
 				Version: "0.0.1",
 			},
-			want: clients.CreateAgentBody{
+			want: deployment.CreateAgentBody{
 				Id:      "interactive-agent",
 				Version: "0.0.1",
 				AgentConfig: map[string]any{

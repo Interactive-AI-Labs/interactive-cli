@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // StackInfo holds summary info for a stack discovered from live resources.
@@ -21,7 +21,7 @@ type StackInfo struct {
 // agents, databases, and mcps. Resources without a stackId are skipped.
 func ListStacks(
 	ctx context.Context,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId, projectId string,
 ) ([]StackInfo, error) {
 	stacks := make(map[string]*StackInfo)

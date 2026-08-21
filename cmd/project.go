@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 )
@@ -25,7 +26,7 @@ func resolveProject(
 	ctx context.Context,
 	org, project string,
 	opts ...resolveOpts,
-) (*projectContext, *clients.APIClient, *clients.DeploymentClient, error) {
+) (*projectContext, *api.APIClient, *deployment.DeploymentClient, error) {
 	cfg, err := files.LoadStackConfig(cfgFilePath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to load config file: %w", err)
@@ -36,7 +37,7 @@ func resolveProject(
 		return nil, nil, nil, fmt.Errorf("failed to load session: %w", err)
 	}
 
-	apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+	apiClient, err := api.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -46,7 +47,7 @@ func resolveProject(
 		deployTimeout = opts[0].deployTimeout
 	}
 
-	deployClient, err := clients.NewDeploymentClient(
+	deployClient, err := deployment.NewDeploymentClient(
 		deploymentHostname,
 		deployTimeout,
 		token,

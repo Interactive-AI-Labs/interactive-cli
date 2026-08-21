@@ -3,7 +3,7 @@ package inputs
 import (
 	"fmt"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var DefaultMetricsDailyColumns = []string{
@@ -21,7 +21,7 @@ var AllMetricsDailyColumns = []string{
 	"total_tokens",
 }
 
-func ValidateMetricsDailyOptions(opts clients.MetricsDailyOptions) error {
+func ValidateMetricsDailyOptions(opts api.MetricsDailyOptions) error {
 	if err := validateTimestamp(opts.FromTimestamp, "from-timestamp"); err != nil {
 		return err
 	}

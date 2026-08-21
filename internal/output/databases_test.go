@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestPrintDatabaseList(t *testing.T) {
 	tests := []struct {
 		name      string
-		databases []clients.DatabaseOutput
+		databases []deployment.DatabaseOutput
 		want      string
 	}{
 		{
 			name:      "empty list",
-			databases: []clients.DatabaseOutput{},
+			databases: []deployment.DatabaseOutput{},
 			want:      "No databases found.\n",
 		},
 		{
@@ -26,7 +26,7 @@ func TestPrintDatabaseList(t *testing.T) {
 		},
 		{
 			name: "single database",
-			databases: []clients.DatabaseOutput{
+			databases: []deployment.DatabaseOutput{
 				{
 					Name:     "my-db",
 					Revision: 1,
@@ -39,7 +39,7 @@ func TestPrintDatabaseList(t *testing.T) {
 		},
 		{
 			name: "multiple databases",
-			databases: []clients.DatabaseOutput{
+			databases: []deployment.DatabaseOutput{
 				{
 					Name:     "db-alpha",
 					Revision: 3,
@@ -76,12 +76,12 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 
 	tests := []struct {
 		name string
-		db   *clients.DescribeDatabaseResponse
+		db   *deployment.DescribeDatabaseResponse
 		want string
 	}{
 		{
 			name: "full describe output",
-			db: &clients.DescribeDatabaseResponse{
+			db: &deployment.DescribeDatabaseResponse{
 				Name:             "my-db",
 				Revision:         2,
 				Status:           "Healthy",
@@ -90,12 +90,12 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 				PostgresVersion:  "17",
 				Replicas:         2,
 				HighAvailability: true,
-				Resources:        clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:          clients.DatabaseStorageConfig{Size: "20G"},
+				Resources:        deployment.Resources{CPU: "1", Memory: "2G"},
+				Storage:          deployment.DatabaseStorageConfig{Size: "20G"},
 				Extensions:       []string{"vector", "pg_trgm"},
-				Backup: clients.DatabaseBackupStatus{
+				Backup: deployment.DatabaseBackupStatus{
 					Enabled: true,
-					DatabaseBackupConfig: clients.DatabaseBackupConfig{
+					DatabaseBackupConfig: deployment.DatabaseBackupConfig{
 						Schedule:        "0 0 2 * * *",
 						RetentionPolicy: "30d",
 					},
@@ -126,15 +126,15 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 		},
 		{
 			name: "HA independent of replica count",
-			db: &clients.DescribeDatabaseResponse{
+			db: &deployment.DescribeDatabaseResponse{
 				Name:              "flexible-db",
 				Revision:          1,
 				Status:            "Healthy",
 				PostgresVersion:   "17",
 				Replicas:          2,
 				HighAvailability:  false,
-				Resources:         clients.Resources{CPU: "0.5", Memory: "1G"},
-				Storage:           clients.DatabaseStorageConfig{Size: "10G"},
+				Resources:         deployment.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:           deployment.DatabaseStorageConfig{Size: "10G"},
 				CredentialsSecret: "flexible-db-app",
 			},
 			want: "Name:                 flexible-db\n" +
@@ -154,14 +154,14 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 		},
 		{
 			name: "without backup configuration",
-			db: &clients.DescribeDatabaseResponse{
+			db: &deployment.DescribeDatabaseResponse{
 				Name:              "basic-db",
 				Revision:          1,
 				Status:            "Provisioning",
 				PostgresVersion:   "17",
 				Replicas:          1,
-				Resources:         clients.Resources{CPU: "0.5", Memory: "1G"},
-				Storage:           clients.DatabaseStorageConfig{Size: "10G"},
+				Resources:         deployment.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:           deployment.DatabaseStorageConfig{Size: "10G"},
 				CredentialsSecret: "basic-db-app",
 			},
 			want: "Name:                 basic-db\n" +
@@ -198,12 +198,12 @@ func TestPrintDatabaseDescribe(t *testing.T) {
 func TestPrintDatabaseBackups(t *testing.T) {
 	tests := []struct {
 		name    string
-		backups []clients.BackupOutput
+		backups []deployment.BackupOutput
 		want    string
 	}{
 		{
 			name:    "empty list",
-			backups: []clients.BackupOutput{},
+			backups: []deployment.BackupOutput{},
 			want:    "No backups found.\n",
 		},
 		{
@@ -213,7 +213,7 @@ func TestPrintDatabaseBackups(t *testing.T) {
 		},
 		{
 			name: "single backup",
-			backups: []clients.BackupOutput{
+			backups: []deployment.BackupOutput{
 				{
 					Name:  "my-db-on-demand-1234",
 					Phase: "completed",
@@ -224,7 +224,7 @@ func TestPrintDatabaseBackups(t *testing.T) {
 		},
 		{
 			name: "backup with error",
-			backups: []clients.BackupOutput{
+			backups: []deployment.BackupOutput{
 				{
 					Name:  "my-db-on-demand-5678",
 					Phase: "failed",

@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -66,7 +66,7 @@ var datasetsListCmd = &cobra.Command{
 			}
 		}
 
-		opts := clients.DatasetListOptions{
+		opts := api.DatasetListOptions{
 			Page:  datasetsListPage,
 			Limit: datasetsListLimit,
 		}

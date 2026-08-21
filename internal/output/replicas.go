@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-func PrintReplicaList(out io.Writer, replicas []clients.ReplicaInfo) error {
+func PrintReplicaList(out io.Writer, replicas []deployment.ReplicaInfo) error {
 	if len(replicas) == 0 {
 		fmt.Fprintln(out, "No replicas found.")
 		return nil
@@ -44,7 +44,7 @@ func PrintReplicaList(out io.Writer, replicas []clients.ReplicaInfo) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintReplicaDescribe(out io.Writer, status *clients.ReplicaStatus) error {
+func PrintReplicaDescribe(out io.Writer, status *deployment.ReplicaStatus) error {
 	readyStr := "No"
 	if status.Ready {
 		readyStr = "Yes"

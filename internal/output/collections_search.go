@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // PrintSearchResults renders ranked search hits as a table.
-func PrintSearchResults(out io.Writer, r *clients.SearchResponse) error {
+func PrintSearchResults(out io.Writer, r *deployment.SearchResponse) error {
 	if len(r.Results) == 0 {
 		fmt.Fprintln(out, "No results.")
 		return nil
@@ -17,7 +17,7 @@ func PrintSearchResults(out io.Writer, r *clients.SearchResponse) error {
 }
 
 // PrintBatchSearchResults renders one result block per sub-search.
-func PrintBatchSearchResults(out io.Writer, r *clients.BatchSearchResponse) error {
+func PrintBatchSearchResults(out io.Writer, r *deployment.BatchSearchResponse) error {
 	if len(r.Responses) == 0 {
 		fmt.Fprintln(out, "No results.")
 		return nil
@@ -36,7 +36,7 @@ func PrintBatchSearchResults(out io.Writer, r *clients.BatchSearchResponse) erro
 	return nil
 }
 
-func searchHitsTable(out io.Writer, hits []clients.SearchHit) error {
+func searchHitsTable(out io.Writer, hits []deployment.SearchHit) error {
 	headers := []string{"SCORE", "ID", "TEXT"}
 	rows := make([][]string, len(hits))
 	for i, h := range hits {

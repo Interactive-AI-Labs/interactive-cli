@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
 func TestPrintQueueList(t *testing.T) {
 	tests := []struct {
 		name    string
-		queues  []clients.AnnotationQueueInfo
-		meta    clients.PageMeta
+		queues  []api.AnnotationQueueInfo
+		meta    api.PageMeta
 		columns []string
 		want    string
 	}{
@@ -23,13 +23,13 @@ func TestPrintQueueList(t *testing.T) {
 		},
 		{
 			name: "item count columns",
-			queues: []clients.AnnotationQueueInfo{{
+			queues: []api.AnnotationQueueInfo{{
 				ID:                  "queue-1",
 				Name:                "triage",
 				CountCompletedItems: 2,
 				CountPendingItems:   0,
 			}},
-			meta:    clients.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta:    api.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			columns: []string{"id", "name", "count_completed_items", "count_pending_items"},
 			want: "ID        NAME     COMPLETED ITEMS   PENDING ITEMS\n" +
 				"queue-1   triage   2                 0\n" +

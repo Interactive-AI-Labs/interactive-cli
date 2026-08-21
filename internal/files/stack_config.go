@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"gopkg.in/yaml.v3"
 )
 
@@ -20,50 +20,50 @@ type StackConfig struct {
 }
 
 type ServiceConfig struct {
-	Version     string               `yaml:"version,omitempty"     json:"version,omitempty"`
-	ServicePort int                  `yaml:"servicePort"           json:"servicePort"`
-	Image       clients.ImageSpec    `yaml:"image"                 json:"image"`
-	Resources   clients.Resources    `yaml:"resources"             json:"resources"`
-	Env         []clients.EnvVar     `yaml:"env,omitempty"         json:"env,omitempty"`
-	SecretRefs  []clients.SecretRef  `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
-	Endpoint    bool                 `yaml:"endpoint,omitempty"    json:"endpoint,omitempty"`
-	Replicas    int                  `yaml:"replicas,omitempty"    json:"replicas,omitempty"`
-	Autoscaling *clients.Autoscaling `yaml:"autoscaling,omitempty" json:"autoscaling,omitempty"`
-	Healthcheck *clients.Healthcheck `yaml:"healthcheck,omitempty" json:"healthcheck,omitempty"`
-	Schedule    *clients.Schedule    `yaml:"schedule,omitempty"    json:"schedule,omitempty"`
+	Version     string                  `yaml:"version,omitempty"     json:"version,omitempty"`
+	ServicePort int                     `yaml:"servicePort"           json:"servicePort"`
+	Image       deployment.ImageSpec    `yaml:"image"                 json:"image"`
+	Resources   deployment.Resources    `yaml:"resources"             json:"resources"`
+	Env         []deployment.EnvVar     `yaml:"env,omitempty"         json:"env,omitempty"`
+	SecretRefs  []deployment.SecretRef  `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
+	Endpoint    bool                    `yaml:"endpoint,omitempty"    json:"endpoint,omitempty"`
+	Replicas    int                     `yaml:"replicas,omitempty"    json:"replicas,omitempty"`
+	Autoscaling *deployment.Autoscaling `yaml:"autoscaling,omitempty" json:"autoscaling,omitempty"`
+	Healthcheck *deployment.Healthcheck `yaml:"healthcheck,omitempty" json:"healthcheck,omitempty"`
+	Schedule    *deployment.Schedule    `yaml:"schedule,omitempty"    json:"schedule,omitempty"`
 }
 
 type DatabaseConfig struct {
-	Instances       int                           `yaml:"instances"                 json:"instances"`
-	PostgresVersion string                        `yaml:"postgresVersion,omitempty" json:"postgresVersion,omitempty"`
-	Resources       clients.Resources             `yaml:"resources"                 json:"resources"`
-	Storage         clients.DatabaseStorageConfig `yaml:"storage"                   json:"storage"`
-	Extensions      []string                      `yaml:"extensions,omitempty"      json:"extensions,omitempty"`
-	Backup          *clients.DatabaseBackupConfig `yaml:"backup,omitempty"          json:"backup,omitempty"`
+	Instances       int                              `yaml:"instances"                 json:"instances"`
+	PostgresVersion string                           `yaml:"postgresVersion,omitempty" json:"postgresVersion,omitempty"`
+	Resources       deployment.Resources             `yaml:"resources"                 json:"resources"`
+	Storage         deployment.DatabaseStorageConfig `yaml:"storage"                   json:"storage"`
+	Extensions      []string                         `yaml:"extensions,omitempty"      json:"extensions,omitempty"`
+	Backup          *deployment.DatabaseBackupConfig `yaml:"backup,omitempty"          json:"backup,omitempty"`
 }
 
 type AgentConfig struct {
-	Id          string              `yaml:"id"                   json:"id"`
-	Version     string              `yaml:"version"              json:"version"`
-	AgentConfig any                 `yaml:"agentConfig"          json:"agentConfig"`
-	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty" json:"secretRefs,omitempty"`
-	Endpoint    bool                `yaml:"endpoint,omitempty"   json:"endpoint,omitempty"`
-	Schedule    *clients.Schedule   `yaml:"schedule,omitempty"   json:"schedule,omitempty"`
-	Env         []clients.EnvVar    `yaml:"env,omitempty"        json:"env,omitempty"`
+	Id          string                 `yaml:"id"                   json:"id"`
+	Version     string                 `yaml:"version"              json:"version"`
+	AgentConfig any                    `yaml:"agentConfig"          json:"agentConfig"`
+	SecretRefs  []deployment.SecretRef `yaml:"secretRefs,omitempty" json:"secretRefs,omitempty"`
+	Endpoint    bool                   `yaml:"endpoint,omitempty"   json:"endpoint,omitempty"`
+	Schedule    *deployment.Schedule   `yaml:"schedule,omitempty"   json:"schedule,omitempty"`
+	Env         []deployment.EnvVar    `yaml:"env,omitempty"        json:"env,omitempty"`
 }
 
 type McpConfig struct {
-	Type        string              `yaml:"type,omitempty"        json:"type,omitempty"`
-	Port        int                 `yaml:"port,omitempty"        json:"port,omitempty"`
-	Path        string              `yaml:"path,omitempty"        json:"path,omitempty"`
-	Image       clients.ImageSpec   `yaml:"image,omitempty"       json:"image,omitempty"`
-	Resources   clients.Resources   `yaml:"resources,omitempty"   json:"resources,omitempty"`
-	Env         []clients.EnvVar    `yaml:"env,omitempty"         json:"env,omitempty"`
-	SecretRefs  []clients.SecretRef `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
-	EndpointURL string              `yaml:"endpointUrl,omitempty" json:"endpointUrl,omitempty"`
-	CatalogID   string              `yaml:"catalogId,omitempty"   json:"catalogId,omitempty"`
-	Auth        clients.McpAuthBody `yaml:"auth,omitempty"        json:"auth"`
-	Headers     map[string]string   `yaml:"headers,omitempty"     json:"headers,omitempty"`
+	Type        string                 `yaml:"type,omitempty"        json:"type,omitempty"`
+	Port        int                    `yaml:"port,omitempty"        json:"port,omitempty"`
+	Path        string                 `yaml:"path,omitempty"        json:"path,omitempty"`
+	Image       deployment.ImageSpec   `yaml:"image,omitempty"       json:"image,omitempty"`
+	Resources   deployment.Resources   `yaml:"resources,omitempty"   json:"resources,omitempty"`
+	Env         []deployment.EnvVar    `yaml:"env,omitempty"         json:"env,omitempty"`
+	SecretRefs  []deployment.SecretRef `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
+	EndpointURL string                 `yaml:"endpointUrl,omitempty" json:"endpointUrl,omitempty"`
+	CatalogID   string                 `yaml:"catalogId,omitempty"   json:"catalogId,omitempty"`
+	Auth        deployment.McpAuthBody `yaml:"auth,omitempty"        json:"auth"`
+	Headers     map[string]string      `yaml:"headers,omitempty"     json:"headers,omitempty"`
 }
 
 func LoadStackConfig(path string) (*StackConfig, error) {
@@ -106,8 +106,8 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	return &cfg, nil
 }
 
-func (a AgentConfig) ToCreateRequest(stackId string) clients.CreateAgentBody {
-	return clients.CreateAgentBody{
+func (a AgentConfig) ToCreateRequest(stackId string) deployment.CreateAgentBody {
+	return deployment.CreateAgentBody{
 		Id:          a.Id,
 		Version:     a.Version,
 		AgentConfig: a.AgentConfig,
@@ -119,8 +119,8 @@ func (a AgentConfig) ToCreateRequest(stackId string) clients.CreateAgentBody {
 	}
 }
 
-func (d DatabaseConfig) ToCreateRequest(stackId string) clients.CreateDatabaseBody {
-	return clients.CreateDatabaseBody{
+func (d DatabaseConfig) ToCreateRequest(stackId string) deployment.CreateDatabaseBody {
+	return deployment.CreateDatabaseBody{
 		Instances:       d.Instances,
 		PostgresVersion: d.PostgresVersion,
 		Resources:       d.Resources,
@@ -131,8 +131,8 @@ func (d DatabaseConfig) ToCreateRequest(stackId string) clients.CreateDatabaseBo
 	}
 }
 
-func (m McpConfig) ToCreateRequest(stackId string) clients.CreateMcpBody {
-	return clients.CreateMcpBody{
+func (m McpConfig) ToCreateRequest(stackId string) deployment.CreateMcpBody {
+	return deployment.CreateMcpBody{
 		Type:        m.Type,
 		Port:        m.Port,
 		Path:        m.Path,
@@ -148,7 +148,7 @@ func (m McpConfig) ToCreateRequest(stackId string) clients.CreateMcpBody {
 	}
 }
 
-func ServiceConfigFromDescribe(svc *clients.DescribeServiceResponse) ServiceConfig {
+func ServiceConfigFromDescribe(svc *deployment.DescribeServiceResponse) ServiceConfig {
 	return ServiceConfig{
 		ServicePort: svc.ServicePort,
 		Image:       svc.Image,
@@ -163,7 +163,7 @@ func ServiceConfigFromDescribe(svc *clients.DescribeServiceResponse) ServiceConf
 	}
 }
 
-func AgentConfigFromDescribe(agent *clients.DescribeAgentResponse) AgentConfig {
+func AgentConfigFromDescribe(agent *deployment.DescribeAgentResponse) AgentConfig {
 	return AgentConfig{
 		Id:          agent.Id,
 		Version:     agent.Version,
@@ -175,10 +175,10 @@ func AgentConfigFromDescribe(agent *clients.DescribeAgentResponse) AgentConfig {
 	}
 }
 
-func DatabaseConfigFromDescribe(db *clients.DescribeDatabaseResponse) DatabaseConfig {
-	var backup *clients.DatabaseBackupConfig
+func DatabaseConfigFromDescribe(db *deployment.DescribeDatabaseResponse) DatabaseConfig {
+	var backup *deployment.DatabaseBackupConfig
 	if db.Backup.Enabled {
-		backup = &clients.DatabaseBackupConfig{
+		backup = &deployment.DatabaseBackupConfig{
 			Schedule:        db.Backup.Schedule,
 			RetentionPolicy: db.Backup.RetentionPolicy,
 		}
@@ -193,7 +193,7 @@ func DatabaseConfigFromDescribe(db *clients.DescribeDatabaseResponse) DatabaseCo
 	}
 }
 
-func McpConfigFromDescribe(mcp *clients.DescribeMcpResponse) McpConfig {
+func McpConfigFromDescribe(mcp *deployment.DescribeMcpResponse) McpConfig {
 	endpointURL := ""
 	if mcp.Type == "external" {
 		endpointURL = mcp.EndpointURL
@@ -208,7 +208,7 @@ func McpConfigFromDescribe(mcp *clients.DescribeMcpResponse) McpConfig {
 		SecretRefs:  mcp.SecretRefs,
 		EndpointURL: endpointURL,
 		CatalogID:   mcp.CatalogID,
-		Auth: clients.McpAuthBody{
+		Auth: deployment.McpAuthBody{
 			Type:         mcp.Auth.Type,
 			Header:       mcp.Auth.Header,
 			HeaderPrefix: mcp.Auth.HeaderPrefix,
@@ -217,8 +217,8 @@ func McpConfigFromDescribe(mcp *clients.DescribeMcpResponse) McpConfig {
 	}
 }
 
-func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody {
-	body := clients.CreateServiceBody{
+func (s ServiceConfig) ToCreateRequest(stackId string) deployment.CreateServiceBody {
+	body := deployment.CreateServiceBody{
 		ServicePort: s.ServicePort,
 		Image:       s.Image,
 		Resources:   s.Resources,
@@ -244,7 +244,7 @@ func (s ServiceConfig) ToCreateRequest(stackId string) clients.CreateServiceBody
 
 func FetchLiveStack(
 	ctx context.Context,
-	deployClient *clients.DeploymentClient,
+	deployClient *deployment.DeploymentClient,
 	orgId, projectId, stackId string,
 ) (*StackConfig, error) {
 	cfg := &StackConfig{

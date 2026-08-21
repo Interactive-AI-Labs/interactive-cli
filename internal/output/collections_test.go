@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // squashSpaces collapses runs of spaces to one so assertions check content, not
@@ -63,7 +63,7 @@ func TestTruncateString(t *testing.T) {
 func TestPrintCollectionList(t *testing.T) {
 	cases := []struct {
 		name        string
-		collections []clients.CollectionSummary
+		collections []deployment.CollectionSummary
 		wantLines   []string
 	}{
 		{
@@ -73,7 +73,7 @@ func TestPrintCollectionList(t *testing.T) {
 		},
 		{
 			name: "two rows",
-			collections: []clients.CollectionSummary{
+			collections: []deployment.CollectionSummary{
 				{
 					Name:      "alpha",
 					CreatedAt: "2026-01-01T00:00:00Z",
@@ -109,17 +109,17 @@ func TestPrintCollectionList(t *testing.T) {
 func TestPrintCollectionStats(t *testing.T) {
 	cases := []struct {
 		name     string
-		stats    *clients.CollectionStats
+		stats    *deployment.CollectionStats
 		wantSubs []string
 	}{
 		{
 			name:     "no-index-valid",
-			stats:    &clients.CollectionStats{ChunkCount: 0, SizeBytes: 0},
+			stats:    &deployment.CollectionStats{ChunkCount: 0, SizeBytes: 0},
 			wantSubs: []string{"Chunks: 0", "Size: 0 B"},
 		},
 		{
 			name: "with-index-valid",
-			stats: &clients.CollectionStats{
+			stats: &deployment.CollectionStats{
 				ChunkCount: 42,
 				SizeBytes:  5 * 1024 * 1024,
 				IndexValid: map[string]bool{"default": true, "extra": false},
@@ -153,15 +153,15 @@ func TestPrintCollectionStats(t *testing.T) {
 func TestPrintCollectionDescribe(t *testing.T) {
 	cases := []struct {
 		name     string
-		in       *clients.DescribeCollectionResponse
+		in       *deployment.DescribeCollectionResponse
 		wantSubs []string
 	}{
 		{
 			name: "full-text-disabled",
-			in: &clients.DescribeCollectionResponse{
+			in: &deployment.DescribeCollectionResponse{
 				Name: "c",
-				Config: clients.CollectionConfig{
-					Vectors: map[string]clients.CollectionSlot{
+				Config: deployment.CollectionConfig{
+					Vectors: map[string]deployment.CollectionSlot{
 						"default": {Type: "float32", Dimension: 4, Distance: "l2"},
 					},
 				},
@@ -170,10 +170,10 @@ func TestPrintCollectionDescribe(t *testing.T) {
 		},
 		{
 			name: "embedding-slot-with-index",
-			in: &clients.DescribeCollectionResponse{
+			in: &deployment.DescribeCollectionResponse{
 				Name: "c",
-				Config: clients.CollectionConfig{
-					Vectors: map[string]clients.CollectionSlot{
+				Config: deployment.CollectionConfig{
+					Vectors: map[string]deployment.CollectionSlot{
 						"default": {
 							Type:      "float32",
 							Dimension: 1536,
@@ -181,12 +181,12 @@ func TestPrintCollectionDescribe(t *testing.T) {
 							Embedding: &struct {
 								Model string `json:"model"`
 							}{Model: "interactive/openai/text-embedding-3-small"},
-							Index: &clients.CollectionIndex{
+							Index: &deployment.CollectionIndex{
 								Type: "hnsw", M: 16, EfConstruction: 64,
 							},
 						},
 					},
-					FullText: &clients.CollectionFullText{Enabled: true, Language: "english"},
+					FullText: &deployment.CollectionFullText{Enabled: true, Language: "english"},
 				},
 			},
 			wantSubs: []string{
@@ -215,13 +215,13 @@ func TestPrintCollectionDescribe(t *testing.T) {
 func TestPrintChunkUpsertResult(t *testing.T) {
 	cases := []struct {
 		name string
-		in   *clients.ChunkUpsertResult
+		in   *deployment.ChunkUpsertResult
 		want string
 	}{
 		{
 			name: "single-status",
-			in: &clients.ChunkUpsertResult{
-				Results: []clients.ChunkResult{
+			in: &deployment.ChunkUpsertResult{
+				Results: []deployment.ChunkResult{
 					{ID: "a", Status: "upserted"},
 					{ID: "b", Status: "upserted"},
 					{ID: "c", Status: "upserted"},
@@ -231,13 +231,13 @@ func TestPrintChunkUpsertResult(t *testing.T) {
 		},
 		{
 			name: "no-results",
-			in:   &clients.ChunkUpsertResult{},
+			in:   &deployment.ChunkUpsertResult{},
 			want: "",
 		},
 		{
 			name: "multi-status-sorted",
-			in: &clients.ChunkUpsertResult{
-				Results: []clients.ChunkResult{
+			in: &deployment.ChunkUpsertResult{
+				Results: []deployment.ChunkResult{
 					{ID: "a", Status: "upserted"},
 					{ID: "b", Status: "failed"},
 					{ID: "c", Status: "upserted"},
@@ -263,18 +263,18 @@ func TestPrintChunkUpsertResult(t *testing.T) {
 func TestPrintChunkList(t *testing.T) {
 	cases := []struct {
 		name     string
-		in       *clients.ChunkList
+		in       *deployment.ChunkList
 		wantSubs []string
 	}{
 		{
 			name:     "empty",
-			in:       &clients.ChunkList{},
+			in:       &deployment.ChunkList{},
 			wantSubs: []string{"No chunks found."},
 		},
 		{
 			name: "single-page",
-			in: &clients.ChunkList{
-				Chunks: []clients.Chunk{
+			in: &deployment.ChunkList{
+				Chunks: []deployment.Chunk{
 					{ID: "a", DocumentID: "doc", Text: "hello world"},
 				},
 			},
@@ -282,8 +282,8 @@ func TestPrintChunkList(t *testing.T) {
 		},
 		{
 			name: "with-next-cursor",
-			in: &clients.ChunkList{
-				Chunks:     []clients.Chunk{{ID: "a", DocumentID: "doc", Text: "hello"}},
+			in: &deployment.ChunkList{
+				Chunks:     []deployment.Chunk{{ID: "a", DocumentID: "doc", Text: "hello"}},
 				HasMore:    true,
 				NextCursor: stringPtr("opaque"),
 			},
@@ -308,7 +308,7 @@ func TestPrintChunkList(t *testing.T) {
 
 func TestPrintChunk(t *testing.T) {
 	var buf bytes.Buffer
-	if err := PrintChunk(&buf, &clients.Chunk{
+	if err := PrintChunk(&buf, &deployment.Chunk{
 		ID: "a", DocumentID: "doc",
 		Text:     "hello",
 		Metadata: map[string]any{"lang": "en"},
@@ -341,17 +341,17 @@ func TestPrintChunk(t *testing.T) {
 func TestPrintBulkDeleteResult(t *testing.T) {
 	cases := []struct {
 		name string
-		in   *clients.BulkDeleteResult
+		in   *deployment.BulkDeleteResult
 		want string
 	}{
 		{
 			name: "count-only",
-			in:   &clients.BulkDeleteResult{DeletedCount: 3},
+			in:   &deployment.BulkDeleteResult{DeletedCount: 3},
 			want: "Deleted 3 chunk(s)\n",
 		},
 		{
 			name: "with-ids",
-			in:   &clients.BulkDeleteResult{DeletedCount: 2, DeletedIds: []string{"a", "b"}},
+			in:   &deployment.BulkDeleteResult{DeletedCount: 2, DeletedIds: []string{"a", "b"}},
 			want: "Deleted 2 chunk(s)\n  a\n  b\n",
 		},
 	}
@@ -371,18 +371,18 @@ func TestPrintBulkDeleteResult(t *testing.T) {
 func TestPrintDocumentList(t *testing.T) {
 	cases := []struct {
 		name     string
-		in       *clients.DocumentList
+		in       *deployment.DocumentList
 		wantSubs []string
 	}{
 		{
 			name:     "empty",
-			in:       &clients.DocumentList{},
+			in:       &deployment.DocumentList{},
 			wantSubs: []string{"No documents found."},
 		},
 		{
 			name: "with-cursor",
-			in: &clients.DocumentList{
-				Documents:  []clients.DocumentSummary{{DocumentID: "doc", ChunkCount: 2}},
+			in: &deployment.DocumentList{
+				Documents:  []deployment.DocumentSummary{{DocumentID: "doc", ChunkCount: 2}},
 				HasMore:    true,
 				NextCursor: stringPtr("next"),
 			},
@@ -408,19 +408,19 @@ func TestPrintDocumentList(t *testing.T) {
 func TestPrintDocumentChunks(t *testing.T) {
 	cases := []struct {
 		name     string
-		in       *clients.DocumentChunks
+		in       *deployment.DocumentChunks
 		wantSubs []string
 	}{
 		{
 			name:     "empty",
-			in:       &clients.DocumentChunks{DocumentID: "doc"},
+			in:       &deployment.DocumentChunks{DocumentID: "doc"},
 			wantSubs: []string{"Document: doc", "No chunks found."},
 		},
 		{
 			name: "with-chunks",
-			in: &clients.DocumentChunks{
+			in: &deployment.DocumentChunks{
 				DocumentID: "doc",
-				Chunks:     []clients.Chunk{{ID: "a", Text: "hello"}},
+				Chunks:     []deployment.Chunk{{ID: "a", Text: "hello"}},
 			},
 			wantSubs: []string{"Document: doc", "ID", "TEXT", "hello"},
 		},
@@ -444,18 +444,18 @@ func TestPrintDocumentChunks(t *testing.T) {
 func TestPrintSearchResults(t *testing.T) {
 	cases := []struct {
 		name     string
-		in       *clients.SearchResponse
+		in       *deployment.SearchResponse
 		wantSubs []string
 	}{
 		{
 			name:     "empty",
-			in:       &clients.SearchResponse{},
+			in:       &deployment.SearchResponse{},
 			wantSubs: []string{"No results."},
 		},
 		{
 			name: "two-hits",
-			in: &clients.SearchResponse{
-				Results: []clients.SearchHit{
+			in: &deployment.SearchResponse{
+				Results: []deployment.SearchHit{
 					{ID: "a", Score: 0.9, Text: "first"},
 					{ID: "b", Score: 0.5, Text: "second"},
 				},
@@ -482,20 +482,20 @@ func TestPrintSearchResults(t *testing.T) {
 func TestPrintBatchSearchResults(t *testing.T) {
 	cases := []struct {
 		name     string
-		in       *clients.BatchSearchResponse
+		in       *deployment.BatchSearchResponse
 		wantSubs []string
 	}{
 		{
 			name:     "empty",
-			in:       &clients.BatchSearchResponse{},
+			in:       &deployment.BatchSearchResponse{},
 			wantSubs: []string{"No results."},
 		},
 		{
 			name: "two-queries",
-			in: &clients.BatchSearchResponse{
-				Responses: []clients.SearchResponse{
-					{Results: []clients.SearchHit{{ID: "a", Score: 0.9, Text: "first"}}},
-					{Results: []clients.SearchHit{{ID: "b", Score: 0.5, Text: "second"}}},
+			in: &deployment.BatchSearchResponse{
+				Responses: []deployment.SearchResponse{
+					{Results: []deployment.SearchHit{{ID: "a", Score: 0.9, Text: "first"}}},
+					{Results: []deployment.SearchHit{{ID: "b", Score: 0.5, Text: "second"}}},
 				},
 			},
 			wantSubs: []string{"Query 1:", "Query 2:", "0.9000", "first", "0.5000", "second"},
@@ -520,7 +520,7 @@ func TestPrintBatchSearchResults(t *testing.T) {
 func TestPrintSlotResults(t *testing.T) {
 	t.Run("add", func(t *testing.T) {
 		var buf bytes.Buffer
-		if err := PrintSlotAddResult(&buf, &clients.SlotAddResult{
+		if err := PrintSlotAddResult(&buf, &deployment.SlotAddResult{
 			Slot: "s", Type: "float32", Dimension: 4, Distance: "l2", IndexStatus: "ready",
 		}); err != nil {
 			t.Fatal(err)
@@ -533,7 +533,7 @@ func TestPrintSlotResults(t *testing.T) {
 
 	t.Run("progress", func(t *testing.T) {
 		var buf bytes.Buffer
-		if err := PrintSlotIndexProgress(&buf, &clients.SlotIndexProgress{
+		if err := PrintSlotIndexProgress(&buf, &deployment.SlotIndexProgress{
 			Slot: "s", IndexType: "hnsw", Status: "ready",
 		}); err != nil {
 			t.Fatal(err)
@@ -548,7 +548,7 @@ func TestPrintSlotResults(t *testing.T) {
 		var buf bytes.Buffer
 		if err := PrintSlotOpResult(
 			&buf,
-			&clients.SlotOpResult{Slot: "s", Status: "ok"},
+			&deployment.SlotOpResult{Slot: "s", Status: "ok"},
 		); err != nil {
 			t.Fatal(err)
 		}
@@ -561,7 +561,7 @@ func TestPrintSlotResults(t *testing.T) {
 		var buf bytes.Buffer
 		if err := PrintSlotOpResult(
 			&buf,
-			&clients.SlotOpResult{Slot: "s", IndexStatus: "ready"},
+			&deployment.SlotOpResult{Slot: "s", IndexStatus: "ready"},
 		); err != nil {
 			t.Fatal(err)
 		}

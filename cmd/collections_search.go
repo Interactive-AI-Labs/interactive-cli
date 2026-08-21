@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -209,7 +209,7 @@ Schema:
 }
 
 // printSearch renders a SearchResponse honoring the --json/--yaml flags.
-func printSearch(cmd *cobra.Command, res *clients.SearchResponse) error {
+func printSearch(cmd *cobra.Command, res *deployment.SearchResponse) error {
 	out := cmd.OutOrStdout()
 	if collJSON {
 		return output.PrintStructuredJSON(out, res)

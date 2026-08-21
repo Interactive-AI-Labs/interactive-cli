@@ -3,21 +3,21 @@ package inputs
 import (
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 func TestValidateRouterModelListOptions(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    clients.RouterModelListOptions
+		opts    api.RouterModelListOptions
 		wantErr bool
 	}{
-		{"valid defaults", clients.RouterModelListOptions{Page: 0, Limit: 50}, false},
-		{"valid region", clients.RouterModelListOptions{Limit: 100, Region: "eu"}, false},
-		{"negative page", clients.RouterModelListOptions{Page: -1, Limit: 50}, true},
-		{"limit zero", clients.RouterModelListOptions{Limit: 0}, true},
-		{"limit too high", clients.RouterModelListOptions{Limit: 101}, true},
-		{"invalid region", clients.RouterModelListOptions{Limit: 50, Region: "apac"}, true},
+		{"valid defaults", api.RouterModelListOptions{Page: 0, Limit: 50}, false},
+		{"valid region", api.RouterModelListOptions{Limit: 100, Region: "eu"}, false},
+		{"negative page", api.RouterModelListOptions{Page: -1, Limit: 50}, true},
+		{"limit zero", api.RouterModelListOptions{Limit: 0}, true},
+		{"limit too high", api.RouterModelListOptions{Limit: 101}, true},
+		{"invalid region", api.RouterModelListOptions{Limit: 50, Region: "apac"}, true},
 	}
 
 	for _, tt := range tests {

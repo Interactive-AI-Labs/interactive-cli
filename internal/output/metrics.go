@@ -4,36 +4,36 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var metricsDailyColumnMap = map[string]struct {
 	Header string
-	Value  func(m *clients.DailyMetric) string
+	Value  func(m *api.DailyMetric) string
 }{
-	"date": {"DATE", func(m *clients.DailyMetric) string { return m.Date }},
+	"date": {"DATE", func(m *api.DailyMetric) string { return m.Date }},
 	"count_traces": {
 		"TRACE COUNT",
-		func(m *clients.DailyMetric) string { return formatInt(m.CountTraces) },
+		func(m *api.DailyMetric) string { return formatInt(m.CountTraces) },
 	},
 	"count_observations": {
 		"OBSERVATION COUNT",
-		func(m *clients.DailyMetric) string { return formatInt(m.CountObservations) },
+		func(m *api.DailyMetric) string { return formatInt(m.CountObservations) },
 	},
 	"total_cost": {
 		"TOTAL COST",
-		func(m *clients.DailyMetric) string { return formatCost(m.TotalCost) },
+		func(m *api.DailyMetric) string { return formatCost(m.TotalCost) },
 	},
 	"total_tokens": {
 		"TOTAL TOKENS",
-		func(m *clients.DailyMetric) string { return formatInt(m.TotalTokens) },
+		func(m *api.DailyMetric) string { return formatInt(m.TotalTokens) },
 	},
 }
 
 func PrintMetricsDaily(
 	out io.Writer,
-	metrics []clients.DailyMetric,
-	meta clients.PageMeta,
+	metrics []api.DailyMetric,
+	meta api.PageMeta,
 	columns []string,
 	showModels bool,
 ) error {

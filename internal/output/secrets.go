@@ -6,10 +6,10 @@ import (
 	"io"
 	"sort"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-func PrintSecretList(out io.Writer, secrets []clients.SecretInfo) error {
+func PrintSecretList(out io.Writer, secrets []deployment.SecretInfo) error {
 	if len(secrets) == 0 {
 		fmt.Fprintln(out, "No secrets found.")
 		return nil

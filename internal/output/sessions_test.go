@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
@@ -16,8 +16,8 @@ func TestPrintSessionList(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		sessions []clients.SessionInfo
-		meta     clients.PageMeta
+		sessions []api.SessionInfo
+		meta     api.PageMeta
 		columns  []string
 		want     string
 	}{
@@ -28,7 +28,7 @@ func TestPrintSessionList(t *testing.T) {
 		},
 		{
 			name: "default columns",
-			sessions: []clients.SessionInfo{{
+			sessions: []api.SessionInfo{{
 				ID:              "sess-1",
 				CreatedAt:       "2025-01-01",
 				Environment:     "prod",
@@ -37,7 +37,7 @@ func TestPrintSessionList(t *testing.T) {
 				TotalCost:       &cost,
 				TotalTokens:     &totalTokens,
 			}},
-			meta:    clients.PageMeta{Page: 1, TotalPages: 2, TotalItems: 3},
+			meta:    api.PageMeta{Page: 1, TotalPages: 2, TotalItems: 3},
 			columns: inputs.DefaultSessionColumns,
 			want: "ID       CREATED AT   ENVIRONMENT   TRACE COUNT   DURATION (s)   TOTAL COST   TOTAL TOKENS\n" +
 				"sess-1   2025-01-01   prod          2             12.50s         $0.030000    1200\n" +
@@ -69,8 +69,8 @@ func TestPrintSessionDetail(t *testing.T) {
 	latency := 1500.0
 	observationCount := 4
 
-	session := &clients.SessionDetail{
-		SessionInfo: clients.SessionInfo{
+	session := &api.SessionDetail{
+		SessionInfo: api.SessionInfo{
 			ID:              "sess-1",
 			CreatedAt:       "2025-01-01",
 			UpdatedAt:       "2025-01-02",
@@ -83,7 +83,7 @@ func TestPrintSessionDetail(t *testing.T) {
 			OutputTokens:    &outputTokens,
 			TotalTokens:     &totalTokens,
 		},
-		Traces: []clients.SessionTraceSummary{{
+		Traces: []api.SessionTraceSummary{{
 			ID:               "trace-1",
 			Name:             "chat",
 			Timestamp:        "2025-01-01",

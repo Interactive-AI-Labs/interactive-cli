@@ -5,46 +5,46 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var scoreConfigColumnMap = map[string]struct {
 	Header string
-	Value  func(s *clients.ScoreConfigInfo) string
+	Value  func(s *api.ScoreConfigInfo) string
 }{
-	"id":        {"ID", func(s *clients.ScoreConfigInfo) string { return s.ID }},
-	"name":      {"NAME", func(s *clients.ScoreConfigInfo) string { return s.Name }},
-	"data_type": {"DATA TYPE", func(s *clients.ScoreConfigInfo) string { return s.DataType }},
+	"id":        {"ID", func(s *api.ScoreConfigInfo) string { return s.ID }},
+	"name":      {"NAME", func(s *api.ScoreConfigInfo) string { return s.Name }},
+	"data_type": {"DATA TYPE", func(s *api.ScoreConfigInfo) string { return s.DataType }},
 	"is_archived": {
 		"ARCHIVED",
-		func(s *clients.ScoreConfigInfo) string { return strconv.FormatBool(s.IsArchived) },
+		func(s *api.ScoreConfigInfo) string { return strconv.FormatBool(s.IsArchived) },
 	},
 	"min_value": {
 		"MIN VALUE",
-		func(s *clients.ScoreConfigInfo) string { return formatOptionalFloat(s.MinValue) },
+		func(s *api.ScoreConfigInfo) string { return formatOptionalFloat(s.MinValue) },
 	},
 	"max_value": {
 		"MAX VALUE",
-		func(s *clients.ScoreConfigInfo) string { return formatOptionalFloat(s.MaxValue) },
+		func(s *api.ScoreConfigInfo) string { return formatOptionalFloat(s.MaxValue) },
 	},
 	"description": {
 		"DESCRIPTION",
-		func(s *clients.ScoreConfigInfo) string { return s.Description },
+		func(s *api.ScoreConfigInfo) string { return s.Description },
 	},
 	"created_at": {
 		"CREATED AT",
-		func(s *clients.ScoreConfigInfo) string { return LocalTime(s.CreatedAt) },
+		func(s *api.ScoreConfigInfo) string { return LocalTime(s.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(s *clients.ScoreConfigInfo) string { return LocalTime(s.UpdatedAt) },
+		func(s *api.ScoreConfigInfo) string { return LocalTime(s.UpdatedAt) },
 	},
 }
 
 func PrintScoreConfigList(
 	out io.Writer,
-	configs []clients.ScoreConfigInfo,
-	meta clients.PageMeta,
+	configs []api.ScoreConfigInfo,
+	meta api.PageMeta,
 	columns []string,
 ) error {
 	if len(configs) == 0 {
@@ -78,7 +78,7 @@ func PrintScoreConfigList(
 	return nil
 }
 
-func PrintScoreConfigDetail(out io.Writer, cfg *clients.ScoreConfigInfo) error {
+func PrintScoreConfigDetail(out io.Writer, cfg *api.ScoreConfigInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", cfg.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", cfg.Name)
@@ -97,7 +97,7 @@ func PrintScoreConfigDetail(out io.Writer, cfg *clients.ScoreConfigInfo) error {
 	return w.Flush()
 }
 
-func PrintScoreConfigCreateResult(out io.Writer, cfg *clients.ScoreConfigInfo) error {
+func PrintScoreConfigCreateResult(out io.Writer, cfg *api.ScoreConfigInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created score config %q.\n", cfg.Name)
 	fmt.Fprintf(w, "ID:\t%s\n", cfg.ID)
@@ -107,7 +107,7 @@ func PrintScoreConfigCreateResult(out io.Writer, cfg *clients.ScoreConfigInfo) e
 	return w.Flush()
 }
 
-func PrintScoreConfigUpdateResult(out io.Writer, cfg *clients.ScoreConfigInfo) error {
+func PrintScoreConfigUpdateResult(out io.Writer, cfg *api.ScoreConfigInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Updated score config %q.\n", cfg.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", cfg.Name)

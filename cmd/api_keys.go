@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/auth"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -135,7 +135,7 @@ Project API keys authenticate platform/API access for reading and writing projec
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
-			clients.CreateProjectAPIKeyBody{Note: apiKeyNote},
+			api.CreateProjectAPIKeyBody{Note: apiKeyNote},
 		)
 		if err != nil {
 			return err
@@ -182,7 +182,7 @@ var apiKeysUpdateCmd = &cobra.Command{
 			pCtx.orgId,
 			pCtx.projectId,
 			args[0],
-			clients.UpdateProjectAPIKeyBody{Note: apiKeyUpdateNote},
+			api.UpdateProjectAPIKeyBody{Note: apiKeyUpdateNote},
 		)
 		if err != nil {
 			return err
@@ -337,7 +337,7 @@ Router keys authenticate inference requests to the InteractiveAI Router, for exa
 		res, err := apiClient.CreateRouterAPIKey(
 			cmd.Context(),
 			pCtx.projectId,
-			clients.CreateRouterAPIKeyBody{
+			api.CreateRouterAPIKeyBody{
 				Name:               name,
 				Description:        routerKeyDescription,
 				Limit:              routerKeyLimit,
@@ -378,7 +378,7 @@ var routerKeysUpdateCmd = &cobra.Command{
 			return fmt.Errorf("--disable cannot be used with --enable")
 		}
 
-		patch := clients.UpdateRouterAPIKeyBody{}
+		patch := api.UpdateRouterAPIKeyBody{}
 		if cmd.Flags().Changed("limit") {
 			patch["limit"] = routerKeyLimit
 		}

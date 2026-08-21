@@ -3,21 +3,21 @@ package inputs
 import (
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 func TestValidateQueueItemListOptions(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    clients.QueueItemListOptions
+		opts    api.QueueItemListOptions
 		wantErr bool
 	}{
-		{"defaults", clients.QueueItemListOptions{Page: 1}, false},
-		{"invalid page", clients.QueueItemListOptions{Page: 0}, true},
-		{"negative limit", clients.QueueItemListOptions{Page: 1, Limit: -1}, true},
+		{"defaults", api.QueueItemListOptions{Page: 1}, false},
+		{"invalid page", api.QueueItemListOptions{Page: 0}, true},
+		{"negative limit", api.QueueItemListOptions{Page: 1, Limit: -1}, true},
 		{
 			"sorting is delegated to the server",
-			clients.QueueItemListOptions{Page: 1, SortBy: "bogus", SortOrder: "sideways"},
+			api.QueueItemListOptions{Page: 1, SortBy: "bogus", SortOrder: "sideways"},
 			false,
 		},
 	}

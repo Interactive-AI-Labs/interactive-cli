@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestRunUpdatePreflight(t *testing.T) {
@@ -82,11 +82,11 @@ func TestRunUpdatePreflight(t *testing.T) {
 }
 
 func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
-	liveEnv := []clients.EnvVar{
+	liveEnv := []deployment.EnvVar{
 		{Name: "LOG_LEVEL", Value: "info"},
 		{Name: "DB_HOST", Value: "db"},
 	}
-	liveRefs := []clients.SecretRef{{SecretName: "api-keys"}}
+	liveRefs := []deployment.SecretRef{{SecretName: "api-keys"}}
 
 	tests := []struct {
 		name          string

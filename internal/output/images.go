@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-func PrintImageList(out io.Writer, images []clients.ImageInfo) error {
+func PrintImageList(out io.Writer, images []deployment.ImageInfo) error {
 	if len(images) == 0 {
 		fmt.Fprintln(out, "No images found.")
 		return nil

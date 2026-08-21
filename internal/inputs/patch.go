@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // Helpers for building partial-update patches. Shared by services.go and
@@ -27,7 +27,7 @@ func anyChanged(changed func(string) bool, names ...string) bool {
 
 // setEnvPatch handles the env field: emits null on clear, replaces the full
 // list on --env, leaves it alone otherwise. Rejects clear combined with --env.
-func setEnvPatch(patch clients.UpdatePatch, envVars []string, changed, clear bool) error {
+func setEnvPatch(patch deployment.UpdatePatch, envVars []string, changed, clear bool) error {
 	if clear && changed {
 		return fmt.Errorf("--clear-env cannot be combined with --env")
 	}
@@ -46,10 +46,10 @@ func setEnvPatch(patch clients.UpdatePatch, envVars []string, changed, clear boo
 	if err := ValidateServiceEnvVars(envVars); err != nil {
 		return err
 	}
-	env := []clients.EnvVar{}
+	env := []deployment.EnvVar{}
 	for _, e := range envVars {
 		parts := strings.SplitN(e, "=", 2)
-		env = append(env, clients.EnvVar{
+		env = append(env, deployment.EnvVar{
 			Name: strings.TrimSpace(parts[0]), Value: parts[1],
 		})
 	}
@@ -59,7 +59,7 @@ func setEnvPatch(patch clients.UpdatePatch, envVars []string, changed, clear boo
 // setSecretRefsPatch handles the secretRefs field: emits null on clear,
 // replaces the full list on --secret, leaves it alone otherwise. Rejects clear
 // combined with --secret.
-func setSecretRefsPatch(patch clients.UpdatePatch, refs []string, changed, clear bool) error {
+func setSecretRefsPatch(patch deployment.UpdatePatch, refs []string, changed, clear bool) error {
 	if clear && changed {
 		return fmt.Errorf("--clear-secret cannot be combined with --secret")
 	}
@@ -78,16 +78,16 @@ func setSecretRefsPatch(patch clients.UpdatePatch, refs []string, changed, clear
 	if err := ValidateServiceSecretRefs(refs); err != nil {
 		return err
 	}
-	out := []clients.SecretRef{}
+	out := []deployment.SecretRef{}
 	for _, name := range refs {
-		out = append(out, clients.SecretRef{SecretName: strings.TrimSpace(name)})
+		out = append(out, deployment.SecretRef{SecretName: strings.TrimSpace(name)})
 	}
 	return setJSON(patch, "secretRefs", out)
 }
 
 // setEndpointPatch adds the endpoint flag to the patch when the user explicitly
 // passed --endpoint (true or false).
-func setEndpointPatch(patch clients.UpdatePatch, endpoint bool, changed bool) error {
+func setEndpointPatch(patch deployment.UpdatePatch, endpoint bool, changed bool) error {
 	if !changed {
 		return nil
 	}
@@ -108,7 +108,7 @@ type ScheduleInput struct {
 // setStackIdPatch handles the stackId field: emits null on clear, sets the
 // value on --stack-id, leaves it alone otherwise. Rejects clear combined with
 // --stack-id.
-func setStackIdPatch(patch clients.UpdatePatch, stackId string, changed, clear bool) error {
+func setStackIdPatch(patch deployment.UpdatePatch, stackId string, changed, clear bool) error {
 	if clear && changed {
 		return fmt.Errorf("--clear-stack-id cannot be combined with --stack-id")
 	}
@@ -125,7 +125,7 @@ func setStackIdPatch(patch clients.UpdatePatch, stackId string, changed, clear b
 // setSchedulePatch handles the schedule field for both services and agents:
 // emits null on Clear, builds a partial object from the changed sub-flags
 // otherwise. Rejects clear combined with any --schedule-* setter.
-func setSchedulePatch(patch clients.UpdatePatch, in ScheduleInput) error {
+func setSchedulePatch(patch deployment.UpdatePatch, in ScheduleInput) error {
 	anySet := in.UptimeChanged || in.DowntimeChanged || in.TimezoneChanged
 	if in.Clear && anySet {
 		return fmt.Errorf("--clear-schedule cannot be combined with --schedule-* flags")

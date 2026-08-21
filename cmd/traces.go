@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
@@ -117,7 +117,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		opts := clients.TraceListOptions{
+		opts := api.TraceListOptions{
 			Page:          tracesPage,
 			Limit:         tracesLimit,
 			UserID:        tracesUserID,
@@ -301,9 +301,9 @@ Uses the platform API with dual authentication (API key or session).`,
 
 func traceSummariesFor(
 	ctx context.Context,
-	apiClient *clients.APIClient,
+	apiClient *api.APIClient,
 	orgID, projectID string,
-	traces []clients.TraceInfo,
+	traces []api.TraceInfo,
 ) ([]summary.TraceSummaryItem, error) {
 	const workers = 8
 	items := make([]summary.TraceSummaryItem, len(traces))
@@ -339,7 +339,7 @@ func traceSummariesFor(
 // model the diff compares.
 func traceSummaryFor(
 	ctx context.Context,
-	apiClient *clients.APIClient,
+	apiClient *api.APIClient,
 	orgID, projectID, traceID string,
 ) (*summary.TraceSummaryModel, error) {
 	trace, _, err := apiClient.GetTrace(ctx, orgID, projectID, traceID, "core,io,metrics")
@@ -419,7 +419,7 @@ This command currently requires API key authentication.`,
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
-			clients.BulkTraceDeleteBody{IDs: deleteIDs},
+			api.BulkTraceDeleteBody{IDs: deleteIDs},
 		)
 		if err != nil {
 			return err

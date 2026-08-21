@@ -3,7 +3,7 @@ package inputs
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/api"
 )
 
 var DefaultScoreConfigColumns = []string{
@@ -26,7 +26,7 @@ var AllScoreConfigColumns = []string{
 	"updated_at",
 }
 
-func ValidateScoreConfigListOptions(opts clients.ScoreConfigListOptions) error {
+func ValidateScoreConfigListOptions(opts api.ScoreConfigListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 
@@ -41,8 +41,8 @@ type ScoreConfigCreateInput struct {
 
 func BuildScoreConfigCreateBody(
 	input ScoreConfigCreateInput,
-) (clients.ScoreConfigCreateBody, error) {
-	body := clients.ScoreConfigCreateBody{
+) (api.ScoreConfigCreateBody, error) {
+	body := api.ScoreConfigCreateBody{
 		Name:        strings.TrimSpace(input.Name),
 		DataType:    strings.ToUpper(strings.TrimSpace(input.DataType)),
 		MinValue:    input.MinValue,
@@ -53,7 +53,7 @@ func BuildScoreConfigCreateBody(
 	if strings.TrimSpace(input.CategoriesJSON) != "" {
 		categories, err := parseJSONArray(input.CategoriesJSON, "--categories")
 		if err != nil {
-			return clients.ScoreConfigCreateBody{}, err
+			return api.ScoreConfigCreateBody{}, err
 		}
 		body.Categories = categories
 	}
@@ -71,8 +71,8 @@ type ScoreConfigUpdateInput struct {
 
 func BuildScoreConfigUpdateBody(
 	input ScoreConfigUpdateInput,
-) (clients.ScoreConfigUpdateBody, error) {
-	body := clients.ScoreConfigUpdateBody{
+) (api.ScoreConfigUpdateBody, error) {
+	body := api.ScoreConfigUpdateBody{
 		Description: input.Description,
 		IsArchived:  input.IsArchived,
 		MinValue:    input.MinValue,
@@ -82,7 +82,7 @@ func BuildScoreConfigUpdateBody(
 	if strings.TrimSpace(input.CategoriesJSON) != "" {
 		categories, err := parseJSONArray(input.CategoriesJSON, "--categories")
 		if err != nil {
-			return clients.ScoreConfigUpdateBody{}, err
+			return api.ScoreConfigUpdateBody{}, err
 		}
 		body.Categories = categories
 	}
