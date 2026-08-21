@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -191,6 +192,39 @@ func (c *DeploymentClient) sendJSONRequest(
 		return nil, fmt.Errorf("request failed with status %s", resp.Status)
 	}
 	return respBody, nil
+}
+
+// sendJSONInto issues a request with an optional JSON body and decodes the
+// response into dst. A nil body sends no payload (for bodyless POSTs).
+func (c *DeploymentClient) sendJSONInto(
+	ctx context.Context,
+	method, path string,
+	body []byte,
+	action string,
+	dst any,
+) error {
+	req, err := c.newRequest(ctx, method, path)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return fmt.Errorf("%s request failed: %w", action, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return collectionErr(resp, action)
+	}
+	if err := json.NewDecoder(resp.Body).Decode(dst); err != nil {
+		return fmt.Errorf("failed to decode %s response: %w", action, err)
+	}
+	return nil
 }
 
 type CreateServiceBody struct {
