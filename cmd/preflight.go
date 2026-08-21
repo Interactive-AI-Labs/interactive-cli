@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 )
@@ -44,8 +44,8 @@ func runUpdatePreflight(
 func printDroppedEnvSecretWarnings(
 	errW io.Writer,
 	envChanged, secretChanged bool,
-	liveEnv []clients.EnvVar,
-	liveRefs []clients.SecretRef,
+	liveEnv []deployment.EnvVar,
+	liveRefs []deployment.SecretRef,
 	envArgs, secretArgs []string,
 ) bool {
 	dropped := false

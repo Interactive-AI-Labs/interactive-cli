@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
-func PrintOrganizationList(out io.Writer, orgs []clients.Organization, selectedOrg string) error {
+func PrintOrganizationList(out io.Writer, orgs []platform.Organization, selectedOrg string) error {
 	headers := []string{"NAME", "PROJECTS", "ROLE"}
 	rows := make([][]string, len(orgs))
 	for i, org := range orgs {

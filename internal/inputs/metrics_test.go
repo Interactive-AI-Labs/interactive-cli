@@ -3,7 +3,7 @@ package inputs
 import (
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestValidateMetricsDailyColumns(t *testing.T) {
@@ -30,21 +30,21 @@ func TestValidateMetricsDailyColumns(t *testing.T) {
 func TestValidateMetricsDailyOptions(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    clients.MetricsDailyOptions
+		opts    platform.MetricsDailyOptions
 		wantErr bool
 	}{
 		{
 			"valid",
-			clients.MetricsDailyOptions{FromTimestamp: "2025-01-01T00:00:00Z", Page: 1},
+			platform.MetricsDailyOptions{FromTimestamp: "2025-01-01T00:00:00Z", Page: 1},
 			false,
 		},
 		{
 			"invalid timestamp",
-			clients.MetricsDailyOptions{FromTimestamp: "2025-01-01", Page: 1},
+			platform.MetricsDailyOptions{FromTimestamp: "2025-01-01", Page: 1},
 			true,
 		},
-		{"invalid page", clients.MetricsDailyOptions{Page: 0}, true},
-		{"negative limit", clients.MetricsDailyOptions{Page: 1, Limit: -1}, true},
+		{"invalid page", platform.MetricsDailyOptions{Page: 0}, true},
+		{"negative limit", platform.MetricsDailyOptions{Page: 1, Limit: -1}, true},
 	}
 
 	for _, tt := range tests {

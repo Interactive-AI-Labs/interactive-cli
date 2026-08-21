@@ -3,7 +3,7 @@ package inputs
 import (
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestValidateSessionColumns(t *testing.T) {
@@ -30,21 +30,21 @@ func TestValidateSessionColumns(t *testing.T) {
 func TestValidateSessionListOptions(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    clients.SessionListOptions
+		opts    platform.SessionListOptions
 		wantErr bool
 	}{
 		{
 			"valid",
-			clients.SessionListOptions{FromTimestamp: "2025-01-01T00:00:00Z", Page: 1},
+			platform.SessionListOptions{FromTimestamp: "2025-01-01T00:00:00Z", Page: 1},
 			false,
 		},
 		{
 			"invalid timestamp",
-			clients.SessionListOptions{FromTimestamp: "2025-01-01", Page: 1},
+			platform.SessionListOptions{FromTimestamp: "2025-01-01", Page: 1},
 			true,
 		},
-		{"invalid page", clients.SessionListOptions{Page: 0}, true},
-		{"negative limit", clients.SessionListOptions{Page: 1, Limit: -1}, true},
+		{"invalid page", platform.SessionListOptions{Page: 0}, true},
+		{"negative limit", platform.SessionListOptions{Page: 1, Limit: -1}, true},
 	}
 
 	for _, tt := range tests {

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 	"github.com/google/go-cmp/cmp"
 )
@@ -195,14 +195,14 @@ Page 1 of 1 (3 total items)
 }
 
 func TestTraceSummariesForReturnsCancellation(t *testing.T) {
-	apiClient, err := clients.NewAPIClient("http://invalid", time.Second, "token", "", nil)
+	apiClient, err := platform.NewAPIClient("http://invalid", time.Second, "token", "", nil)
 	if err != nil {
 		t.Fatalf("new API client: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	traces := make([]clients.TraceInfo, 100)
+	traces := make([]platform.TraceInfo, 100)
 	for i := range traces {
 		traces[i].ID = fmt.Sprintf("t%d", i)
 	}

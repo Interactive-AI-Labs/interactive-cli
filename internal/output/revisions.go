@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 const missingRevisionMetadata = "—"
 
-func PrintRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
+func PrintRevisions(out io.Writer, revisions []deployment.RevisionMeta) error {
 	if len(revisions) == 0 {
 		fmt.Fprintln(out, "No revisions found.")
 		return nil
@@ -41,12 +41,12 @@ func PrintRevisions(out io.Writer, revisions []clients.RevisionMeta) error {
 	return PrintTable(out, headers, rows)
 }
 
-func printRevisionAttribution(out io.Writer, revision clients.RevisionMeta) {
+func printRevisionAttribution(out io.Writer, revision deployment.RevisionMeta) {
 	fmt.Fprintf(out, "By:\t%s\n", formatRevisionActor(revision.Actor))
 	fmt.Fprintf(out, "Source:\t%s\n", formatRevisionSource(revision.Source))
 }
 
-func formatRevisionActor(actor *clients.RevisionActor) string {
+func formatRevisionActor(actor *deployment.RevisionActor) string {
 	if actor == nil {
 		return missingRevisionMetadata
 	}
@@ -78,7 +78,7 @@ func formatRevisionActor(actor *clients.RevisionActor) string {
 	}
 }
 
-func formatRevisionSource(source *clients.RevisionSource) string {
+func formatRevisionSource(source *deployment.RevisionSource) string {
 	if source == nil {
 		return missingRevisionMetadata
 	}

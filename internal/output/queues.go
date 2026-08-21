@@ -6,47 +6,47 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var queueColumnMap = map[string]struct {
 	Header string
-	Value  func(q *clients.AnnotationQueueInfo) string
+	Value  func(q *platform.AnnotationQueueInfo) string
 }{
-	"id":   {"ID", func(q *clients.AnnotationQueueInfo) string { return q.ID }},
-	"name": {"NAME", func(q *clients.AnnotationQueueInfo) string { return q.Name }},
+	"id":   {"ID", func(q *platform.AnnotationQueueInfo) string { return q.ID }},
+	"name": {"NAME", func(q *platform.AnnotationQueueInfo) string { return q.Name }},
 	"description": {
 		"DESCRIPTION",
-		func(q *clients.AnnotationQueueInfo) string { return q.Description },
+		func(q *platform.AnnotationQueueInfo) string { return q.Description },
 	},
 	"score_config_ids": {
 		"SCORE CONFIG IDS",
-		func(q *clients.AnnotationQueueInfo) string {
+		func(q *platform.AnnotationQueueInfo) string {
 			return strings.Join(q.ScoreConfigIDs, ", ")
 		},
 	},
 	"created_at": {
 		"CREATED AT",
-		func(q *clients.AnnotationQueueInfo) string { return LocalTime(q.CreatedAt) },
+		func(q *platform.AnnotationQueueInfo) string { return LocalTime(q.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(q *clients.AnnotationQueueInfo) string { return LocalTime(q.UpdatedAt) },
+		func(q *platform.AnnotationQueueInfo) string { return LocalTime(q.UpdatedAt) },
 	},
 	"count_completed_items": {
 		"COMPLETED ITEMS",
-		func(q *clients.AnnotationQueueInfo) string { return strconv.Itoa(q.CountCompletedItems) },
+		func(q *platform.AnnotationQueueInfo) string { return strconv.Itoa(q.CountCompletedItems) },
 	},
 	"count_pending_items": {
 		"PENDING ITEMS",
-		func(q *clients.AnnotationQueueInfo) string { return strconv.Itoa(q.CountPendingItems) },
+		func(q *platform.AnnotationQueueInfo) string { return strconv.Itoa(q.CountPendingItems) },
 	},
 }
 
 func PrintQueueList(
 	out io.Writer,
-	queues []clients.AnnotationQueueInfo,
-	meta clients.PageMeta,
+	queues []platform.AnnotationQueueInfo,
+	meta platform.PageMeta,
 	columns []string,
 ) error {
 	if len(queues) == 0 {
@@ -80,7 +80,7 @@ func PrintQueueList(
 	return nil
 }
 
-func PrintQueueDetail(out io.Writer, q *clients.AnnotationQueueInfo) error {
+func PrintQueueDetail(out io.Writer, q *platform.AnnotationQueueInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", q.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", q.Name)
@@ -93,7 +93,7 @@ func PrintQueueDetail(out io.Writer, q *clients.AnnotationQueueInfo) error {
 	return w.Flush()
 }
 
-func PrintQueueCreateResult(out io.Writer, q *clients.AnnotationQueueInfo) error {
+func PrintQueueCreateResult(out io.Writer, q *platform.AnnotationQueueInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created annotation queue %q.\n", q.Name)
 	fmt.Fprintf(w, "ID:\t%s\n", q.ID)

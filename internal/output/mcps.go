@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
-func PrintMcpList(out io.Writer, mcps []clients.McpSchema) error {
+func PrintMcpList(out io.Writer, mcps []platform.McpSchema) error {
 	if len(mcps) == 0 {
 		fmt.Fprintln(out, "No mcps found.")
 		return nil
@@ -58,7 +58,7 @@ func boolOr(b bool) string {
 	return "none"
 }
 
-func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
+func PrintMcpCatalog(out io.Writer, entries []platform.McpCatalogEntry) error {
 	if len(entries) == 0 {
 		fmt.Fprintln(out, "No catalog entries found.")
 		return nil
@@ -73,7 +73,7 @@ func PrintMcpCatalog(out io.Writer, entries []clients.McpCatalogEntry) error {
 	return PrintTable(out, headers, rows)
 }
 
-func mcpSignIn(e clients.McpCatalogEntry) string {
+func mcpSignIn(e platform.McpCatalogEntry) string {
 	if len(e.GrantsAllowed) == 0 {
 		return TruncateList(e.AuthMethods, 3)
 	}
@@ -91,7 +91,7 @@ func mcpSignIn(e clients.McpCatalogEntry) string {
 	return signIn
 }
 
-func mcpPermissions(e clients.McpCatalogEntry) string {
+func mcpPermissions(e platform.McpCatalogEntry) string {
 	if len(e.ScopesSupported) == 0 {
 		return "—"
 	}
@@ -106,7 +106,7 @@ func mcpPermissions(e clients.McpCatalogEntry) string {
 	return listed
 }
 
-func PrintMcpDetail(out io.Writer, m *clients.McpSchema) error {
+func PrintMcpDetail(out io.Writer, m *platform.McpSchema) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", m.Name)
 	fmt.Fprintf(w, "Backend:\t%s\n", m.Backend)
@@ -154,7 +154,7 @@ func PrintMcpDetail(out io.Writer, m *clients.McpSchema) error {
 // NeedsSignIn reports an MCP whose provider credential can only arrive through
 // `iai mcps connect`. AuthType may be Platform's name for the choice ("oauth") or
 // LiteLLM's name for the flow, which older rows still carry — both mean sign-in.
-func NeedsSignIn(m clients.McpSchema) bool {
+func NeedsSignIn(m platform.McpSchema) bool {
 	if m.AuthType == nil || m.HasCredential {
 		return false
 	}
@@ -165,7 +165,7 @@ func NeedsSignIn(m clients.McpSchema) bool {
 	return false
 }
 
-func PrintMcpTools(out io.Writer, tools []clients.McpToolSchema) error {
+func PrintMcpTools(out io.Writer, tools []platform.McpToolSchema) error {
 	if len(tools) == 0 {
 		fmt.Fprintln(out, "No tools cached - run 'iai mcps verify' first.")
 		return nil

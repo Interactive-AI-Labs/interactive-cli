@@ -1,4 +1,4 @@
-package clients
+package platform
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/google/go-querystring/query"
 )
 
@@ -27,7 +28,7 @@ func (c *APIClient) doAndRead(req *http.Request, action string) ([]byte, error) 
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return nil, errors.New(msg)
 		}
 		return nil, fmt.Errorf("failed to %s: server returned %s", action, resp.Status)
@@ -51,7 +52,7 @@ func decodeSuccess[T any](body []byte, action string) (T, error) {
 	}
 	if !envelope.Success {
 		var zero T
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return zero, errors.New(msg)
 		}
 		return zero, fmt.Errorf("%s returned success=false", action)
@@ -161,12 +162,12 @@ func checkSuccess(body []byte, action string) (string, error) {
 		return "", fmt.Errorf("%s: failed to parse response: %w", action, err)
 	}
 	if !envelope.Success {
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return "", errors.New(msg)
 		}
 		return "", fmt.Errorf("%s returned success=false", action)
 	}
-	if msg := ExtractServerMessage(body); msg != "" {
+	if msg := clients.ExtractServerMessage(body); msg != "" {
 		return msg, nil
 	}
 	return "", nil

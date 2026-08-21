@@ -8,7 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
@@ -184,7 +185,13 @@ nested JSON values.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := platform.NewAPIClient(
+			hostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -194,7 +201,7 @@ nested JSON values.`,
 			timeout = 0
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
+		deployClient, err := deployment.NewDeploymentClient(
 			deploymentHostname,
 			timeout,
 			token,
@@ -222,7 +229,7 @@ nested JSON values.`,
 			return fmt.Errorf("failed to resolve project %q: %w", projectName, err)
 		}
 
-		opts := clients.LogsOptions{
+		opts := deployment.LogsOptions{
 			Follow:    replicaLogsFollow,
 			Since:     replicaLogsSince,
 			StartTime: replicaLogsStartTime,
@@ -284,7 +291,7 @@ Use the reported field names with 'iai replicas logs --fields' to include them i
 			return err
 		}
 
-		opts := clients.LogsOptions{Since: since}
+		opts := deployment.LogsOptions{Since: since}
 		logsResp, err := deployClient.GetReplicaLogs(
 			cmd.Context(),
 			pCtx.orgId,

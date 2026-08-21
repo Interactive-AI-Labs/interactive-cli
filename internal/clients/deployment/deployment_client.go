@@ -1,6 +1,7 @@
-package clients
+package deployment
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 type DeploymentClient struct {
@@ -121,7 +124,7 @@ func NewDeploymentClient(
 }
 
 func (c *DeploymentClient) do(req *http.Request) (*http.Response, error) {
-	if err := ApplyRequestHeaders(req, c.token, c.apiKey, c.cookies); err != nil {
+	if err := clients.ApplyRequestHeaders(req, c.token, c.apiKey, c.cookies); err != nil {
 		return nil, err
 	}
 	resp, err := c.httpClient.Do(req)
@@ -183,12 +186,45 @@ func (c *DeploymentClient) sendJSONRequest(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
 		return nil, fmt.Errorf("request failed with status %s", resp.Status)
 	}
 	return respBody, nil
+}
+
+// sendJSONInto issues a request with an optional JSON body and decodes the
+// response into dst. A nil body sends no payload (for bodyless POSTs).
+func (c *DeploymentClient) sendJSONInto(
+	ctx context.Context,
+	method, path string,
+	body []byte,
+	action string,
+	dst any,
+) error {
+	req, err := c.newRequest(ctx, method, path)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return fmt.Errorf("%s request failed: %w", action, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return collectionErr(resp, action)
+	}
+	if err := json.NewDecoder(resp.Body).Decode(dst); err != nil {
+		return fmt.Errorf("failed to decode %s response: %w", action, err)
+	}
+	return nil
 }
 
 type CreateServiceBody struct {
@@ -306,7 +342,7 @@ func (c *DeploymentClient) CreateService(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -381,7 +417,7 @@ func (c *DeploymentClient) sendServiceUpdate(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -421,7 +457,7 @@ func (c *DeploymentClient) DeleteService(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -461,7 +497,7 @@ func (c *DeploymentClient) RestartService(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -501,7 +537,7 @@ func (c *DeploymentClient) DeactivateService(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -541,7 +577,7 @@ func (c *DeploymentClient) ActivateService(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -586,7 +622,7 @@ func (c *DeploymentClient) ListServices(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -629,7 +665,7 @@ func (c *DeploymentClient) DescribeService(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -687,7 +723,7 @@ func (c *DeploymentClient) CreateSecret(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -742,7 +778,7 @@ func (c *DeploymentClient) ReplaceSecret(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -782,7 +818,7 @@ func (c *DeploymentClient) DeleteSecret(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -826,7 +862,7 @@ func (c *DeploymentClient) DeleteSecretKey(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -885,7 +921,7 @@ func (c *DeploymentClient) UpdateSecretKey(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -925,7 +961,7 @@ func (c *DeploymentClient) GetSecret(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -985,7 +1021,7 @@ func (c *DeploymentClient) ListSecrets(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1040,7 +1076,7 @@ func (c *DeploymentClient) DeleteImage(
 	if err != nil {
 		return "", err
 	}
-	return ExtractServerMessage(body), nil
+	return clients.ExtractServerMessage(body), nil
 }
 
 func (c *DeploymentClient) ListReplicas(
@@ -1071,7 +1107,7 @@ func (c *DeploymentClient) ListReplicas(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1114,7 +1150,7 @@ func (c *DeploymentClient) DescribeReplica(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1218,7 +1254,7 @@ func (c *DeploymentClient) fetchLogs(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1367,31 +1403,31 @@ type refValidationError struct {
 func fmtAgentValErr(body []byte) string {
 	var envelope agentValidationEnvelope
 	if err := json.Unmarshal(body, &envelope); err != nil || len(envelope.Detail) == 0 {
-		return ExtractServerMessage(body)
+		return clients.ExtractServerMessage(body)
 	}
 
 	var inner any
 	if err := json.Unmarshal(envelope.Detail, &inner); err != nil {
-		return ExtractServerMessage(body)
+		return clients.ExtractServerMessage(body)
 	}
 
 	switch inner.(type) {
 	case []any:
 		var fields []structValidationField
 		if err := json.Unmarshal(envelope.Detail, &fields); err != nil {
-			return ExtractServerMessage(body)
+			return clients.ExtractServerMessage(body)
 		}
 		return formatStructErrors(fields)
 
 	case map[string]any:
 		var ref refValidationDetail
 		if err := json.Unmarshal(envelope.Detail, &ref); err != nil {
-			return ExtractServerMessage(body)
+			return clients.ExtractServerMessage(body)
 		}
 		return formatRefErrors(ref)
 
 	default:
-		return ExtractServerMessage(body)
+		return clients.ExtractServerMessage(body)
 	}
 }
 
@@ -1493,7 +1529,7 @@ func (c *DeploymentClient) CreateAgent(
 		return "", fmt.Errorf("%s", fmtAgentValErr(respBody))
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -1568,7 +1604,7 @@ func (c *DeploymentClient) sendAgentUpdate(
 		return "", fmt.Errorf("%s", fmtAgentValErr(respBody))
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -1608,7 +1644,7 @@ func (c *DeploymentClient) DeleteAgent(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -1653,7 +1689,7 @@ func (c *DeploymentClient) ListAgents(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1696,7 +1732,7 @@ func (c *DeploymentClient) DescribeAgent(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1739,7 +1775,7 @@ func (c *DeploymentClient) RestartAgent(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -1779,7 +1815,7 @@ func (c *DeploymentClient) DeactivateAgent(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -1819,7 +1855,7 @@ func (c *DeploymentClient) ActivateAgent(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -1878,7 +1914,7 @@ func (c *DeploymentClient) ListCatalogAgents(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1917,7 +1953,7 @@ func (c *DeploymentClient) ListCatalogAgentVersions(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -1973,7 +2009,7 @@ func (c *DeploymentClient) DescribeAgentRevision(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -2029,7 +2065,7 @@ func (c *DeploymentClient) DescribeServiceRevision(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -2064,7 +2100,7 @@ func (c *DeploymentClient) fetchRevisions(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -2190,7 +2226,7 @@ func (c *DeploymentClient) CreateDatabase(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -2257,7 +2293,7 @@ func (c *DeploymentClient) sendDatabaseUpdate(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -2297,7 +2333,7 @@ func (c *DeploymentClient) DeleteDatabase(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {
@@ -2337,7 +2373,7 @@ func (c *DeploymentClient) DeactivateDatabase(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -2377,7 +2413,7 @@ func (c *DeploymentClient) ActivateDatabase(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return serverMessage, nil
@@ -2422,7 +2458,7 @@ func (c *DeploymentClient) ListDatabases(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -2465,7 +2501,7 @@ func (c *DeploymentClient) DescribeDatabase(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -2524,7 +2560,7 @@ func (c *DeploymentClient) TriggerDatabaseBackup(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -2567,7 +2603,7 @@ func (c *DeploymentClient) ListDatabaseBackups(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := ExtractServerMessage(respBody)
+		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
@@ -2619,7 +2655,7 @@ func (c *DeploymentClient) RestoreDatabase(
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	serverMessage := ExtractServerMessage(respBody)
+	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if serverMessage != "" {

@@ -11,7 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -625,7 +626,7 @@ nested JSON values.`,
 			return err
 		}
 
-		opts := clients.LogsOptions{
+		opts := deployment.LogsOptions{
 			Follow:    agentLogsFollow,
 			Since:     agentLogsSince,
 			StartTime: agentLogsStartTime,
@@ -679,7 +680,7 @@ With an agent ID argument, lists available versions for that agent.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
+		deployClient, err := deployment.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
 			token,
@@ -728,7 +729,13 @@ Use --json or --yaml for structured schema output.`,
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := platform.NewAPIClient(
+			hostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
@@ -774,7 +781,7 @@ By default, output is a formatted table. Use --json for machine-readable output.
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		matrix, err := clients.GetAgentCompatibilityMatrix(
+		matrix, err := platform.GetAgentCompatibilityMatrix(
 			cmd.Context(),
 			hostname,
 			defaultHTTPTimeout,
@@ -930,7 +937,7 @@ Use the reported field names with 'iai agents logs --fields' to include them in 
 			return err
 		}
 
-		opts := clients.LogsOptions{Since: since}
+		opts := deployment.LogsOptions{Since: since}
 		logsResp, err := deployClient.GetAgentLogs(
 			cmd.Context(),
 			pCtx.orgId,

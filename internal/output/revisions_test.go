@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestFormatRevisionActor(t *testing.T) {
 	tests := []struct {
 		name  string
-		actor *clients.RevisionActor
+		actor *deployment.RevisionActor
 		want  string
 	}{
 		{name: "missing attribution", want: "—"},
 		{
 			name: "user",
-			actor: &clients.RevisionActor{
+			actor: &deployment.RevisionActor{
 				Type:        "user",
 				DisplayName: "oliver@example.com",
 			},
@@ -24,7 +24,7 @@ func TestFormatRevisionActor(t *testing.T) {
 		},
 		{
 			name: "api key",
-			actor: &clients.RevisionActor{
+			actor: &deployment.RevisionActor{
 				Type:        "api_key",
 				DisplayName: "silverspin-release",
 			},
@@ -32,7 +32,7 @@ func TestFormatRevisionActor(t *testing.T) {
 		},
 		{
 			name: "service",
-			actor: &clients.RevisionActor{
+			actor: &deployment.RevisionActor{
 				Type:        "service",
 				DisplayName: "release-controller",
 			},
@@ -40,12 +40,12 @@ func TestFormatRevisionActor(t *testing.T) {
 		},
 		{
 			name:  "system",
-			actor: &clients.RevisionActor{Type: "system"},
+			actor: &deployment.RevisionActor{Type: "system"},
 			want:  "system",
 		},
 		{
 			name: "named system",
-			actor: &clients.RevisionActor{
+			actor: &deployment.RevisionActor{
 				Type:        "system",
 				DisplayName: "platform-auto-rollback",
 			},
@@ -53,12 +53,12 @@ func TestFormatRevisionActor(t *testing.T) {
 		},
 		{
 			name:  "unknown",
-			actor: &clients.RevisionActor{Type: "unknown"},
+			actor: &deployment.RevisionActor{Type: "unknown"},
 			want:  "unknown",
 		},
 		{
 			name: "future actor type",
-			actor: &clients.RevisionActor{
+			actor: &deployment.RevisionActor{
 				Type:        "workload",
 				DisplayName: "release-job",
 			},
@@ -78,7 +78,7 @@ func TestFormatRevisionActor(t *testing.T) {
 func TestPrintRevisions(t *testing.T) {
 	tests := []struct {
 		name      string
-		revisions []clients.RevisionMeta
+		revisions []deployment.RevisionMeta
 		want      string
 	}{
 		{
@@ -87,15 +87,15 @@ func TestPrintRevisions(t *testing.T) {
 		},
 		{
 			name: "attribution and legacy rows",
-			revisions: []clients.RevisionMeta{
+			revisions: []deployment.RevisionMeta{
 				{
 					Revision: 48,
 					Updated:  "2026-07-28",
-					Actor: &clients.RevisionActor{
+					Actor: &deployment.RevisionActor{
 						Type:        "api_key",
 						DisplayName: "silverspin-release",
 					},
-					Source: &clients.RevisionSource{Type: "cli", Version: "0.39.0"},
+					Source: &deployment.RevisionSource{Type: "cli", Version: "0.39.0"},
 				},
 				{Revision: 47, Updated: "2026-07-24"},
 			},

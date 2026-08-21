@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -71,7 +71,7 @@ var commentsListCmd = &cobra.Command{
 			}
 		}
 
-		opts := clients.CommentListOptions{
+		opts := platform.CommentListOptions{
 			ObjectType:   commentsListObjectType,
 			ObjectID:     commentsListObjectID,
 			AuthorUserID: commentsListAuthorUserID,

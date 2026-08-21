@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var DefaultTraceColumns = []string{"id", "name", "timestamp", "latency", "cost", "tags"}
@@ -35,7 +35,7 @@ const maxSearchLength = 200
 // ValidateTraceListOptions validates structural constraints on trace list
 // options. Enum-style validations (--level, --order-by, --order, --fields) are
 // delegated to the server to avoid client/server divergence.
-func ValidateTraceListOptions(opts clients.TraceListOptions) error {
+func ValidateTraceListOptions(opts platform.TraceListOptions) error {
 	if opts.Page < 1 {
 		return fmt.Errorf("page must be >= 1, got %d", opts.Page)
 	}

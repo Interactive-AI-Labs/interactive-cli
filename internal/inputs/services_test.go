@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"github.com/google/go-cmp/cmp"
 )
@@ -14,7 +14,7 @@ func TestBuildServiceRequestBodyScaling(t *testing.T) {
 		name            string
 		in              ServiceInput
 		wantReplicas    int
-		wantAutoscaling *clients.Autoscaling
+		wantAutoscaling *deployment.Autoscaling
 	}{
 		{
 			name:         "replicas only",
@@ -29,7 +29,7 @@ func TestBuildServiceRequestBodyScaling(t *testing.T) {
 				AutoscalingCPU:    80,
 				AutoscalingMemory: 85,
 			},
-			wantAutoscaling: &clients.Autoscaling{
+			wantAutoscaling: &deployment.Autoscaling{
 				MinReplicas:      2,
 				MaxReplicas:      10,
 				CPUPercentage:    utils.ToPtr(80),
@@ -39,7 +39,7 @@ func TestBuildServiceRequestBodyScaling(t *testing.T) {
 		{
 			name: "single autoscaling flag triggers block",
 			in:   ServiceInput{AutoscalingMin: 2},
-			wantAutoscaling: &clients.Autoscaling{
+			wantAutoscaling: &deployment.Autoscaling{
 				MinReplicas: 2,
 			},
 		},
@@ -51,7 +51,7 @@ func TestBuildServiceRequestBodyScaling(t *testing.T) {
 				AutoscalingMax: 10,
 			},
 			wantReplicas: 5,
-			wantAutoscaling: &clients.Autoscaling{
+			wantAutoscaling: &deployment.Autoscaling{
 				MinReplicas: 2,
 				MaxReplicas: 10,
 			},

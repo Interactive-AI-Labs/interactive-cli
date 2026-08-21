@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestAllowDeleteResource(t *testing.T) {
@@ -86,12 +86,12 @@ func TestAllowDeleteResource(t *testing.T) {
 func TestMcpsRejectsCredentialedUpdateWithoutCredential(t *testing.T) {
 	tests := []struct {
 		name string
-		body clients.CreateMcpBody
+		body deployment.CreateMcpBody
 	}{
-		{name: "auth omitted", body: clients.CreateMcpBody{}},
+		{name: "auth omitted", body: deployment.CreateMcpBody{}},
 		{
 			name: "credential omitted",
-			body: clients.CreateMcpBody{Auth: clients.McpAuthBody{Type: "bearer"}},
+			body: deployment.CreateMcpBody{Auth: deployment.McpAuthBody{Type: "bearer"}},
 		},
 	}
 
@@ -120,7 +120,7 @@ func TestMcpsRejectsCredentialedUpdateWithoutCredential(t *testing.T) {
 				"o1",
 				"p1",
 				"stack-1",
-				map[string]clients.CreateMcpBody{"tools": tt.body},
+				map[string]deployment.CreateMcpBody{"tools": tt.body},
 				Options{},
 			)
 			if err == nil || !strings.Contains(err.Error(), "auth.credential is required") {
@@ -266,11 +266,11 @@ func TestPrintPlan(t *testing.T) {
 	}
 }
 
-func newTestDeployClient(t *testing.T, handler http.HandlerFunc) *clients.DeploymentClient {
+func newTestDeployClient(t *testing.T, handler http.HandlerFunc) *deployment.DeploymentClient {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	client, err := clients.NewDeploymentClient(server.URL, 5*time.Second, "test-token", "", nil)
+	client, err := deployment.NewDeploymentClient(server.URL, 5*time.Second, "test-token", "", nil)
 	if err != nil {
 		t.Fatalf("NewDeploymentClient() error = %v", err)
 	}
@@ -296,7 +296,7 @@ func TestServicesPrintsUpdateBanner(t *testing.T) {
 	})
 
 	var warn bytes.Buffer
-	desired := map[string]clients.CreateServiceBody{
+	desired := map[string]deployment.CreateServiceBody{
 		"svc-a":   {},
 		"svc-new": {},
 	}
@@ -336,7 +336,7 @@ func TestSyncRefusesDeletionsByDefault(t *testing.T) {
 		wantWarn      string
 		wantProtected []string
 		wantUpdated   []string
-		run           func(context.Context, *bytes.Buffer, *clients.DeploymentClient) (*Result, error)
+		run           func(context.Context, *bytes.Buffer, *deployment.DeploymentClient) (*Result, error)
 	}{
 		{
 			name:       "services",
@@ -349,9 +349,9 @@ func TestSyncRefusesDeletionsByDefault(t *testing.T) {
 				"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n",
 			wantProtected: []string{"svc-old"},
 			wantUpdated:   []string{"svc-a"},
-			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+			run: func(ctx context.Context, warn *bytes.Buffer, client *deployment.DeploymentClient) (*Result, error) {
 				return Services(ctx, warn, client, "o1", "p1", "stack-1",
-					map[string]clients.CreateServiceBody{"svc-a": {}}, Options{})
+					map[string]deployment.CreateServiceBody{"svc-a": {}}, Options{})
 			},
 		},
 		{
@@ -362,9 +362,9 @@ func TestSyncRefusesDeletionsByDefault(t *testing.T) {
 			wantWarn: "⚠ sync will NOT delete 1 agent not in the config: agent-old" +
 				" (a config that omits a resource looks identical to a stale one — pass --allow-delete=agents to delete)\n",
 			wantProtected: []string{"agent-old"},
-			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+			run: func(ctx context.Context, warn *bytes.Buffer, client *deployment.DeploymentClient) (*Result, error) {
 				return Agents(ctx, warn, client, "o1", "p1", "stack-1",
-					map[string]clients.CreateAgentBody{}, Options{})
+					map[string]deployment.CreateAgentBody{}, Options{})
 			},
 		},
 		{
@@ -375,9 +375,9 @@ func TestSyncRefusesDeletionsByDefault(t *testing.T) {
 			wantWarn: "⚠ sync will NOT delete 1 database not in the config: old-db" +
 				" (a config that omits a resource looks identical to a stale one — pass --allow-delete=databases to delete)\n",
 			wantProtected: []string{"old-db"},
-			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+			run: func(ctx context.Context, warn *bytes.Buffer, client *deployment.DeploymentClient) (*Result, error) {
 				return Databases(ctx, warn, client, "o1", "p1", "stack-1",
-					map[string]clients.CreateDatabaseBody{}, Options{})
+					map[string]deployment.CreateDatabaseBody{}, Options{})
 			},
 		},
 	}
@@ -431,7 +431,7 @@ func TestSyncDeletesWithAllowDelete(t *testing.T) {
 		putPath     string
 		wantWarn    string
 		wantDeleted []string
-		run         func(context.Context, *bytes.Buffer, *clients.DeploymentClient) (*Result, error)
+		run         func(context.Context, *bytes.Buffer, *deployment.DeploymentClient) (*Result, error)
 	}{
 		{
 			name:       "services",
@@ -443,9 +443,19 @@ func TestSyncDeletesWithAllowDelete(t *testing.T) {
 				" (--allow-delete=services; service deletes run after service creates/updates)\n" +
 				"Live: service svc-a revision 3, last updated 2026-07-24 11:20 UTC — this update creates revision 4\n",
 			wantDeleted: []string{"svc-old"},
-			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
-				return Services(ctx, warn, client, "o1", "p1", "stack-1",
-					map[string]clients.CreateServiceBody{"svc-a": {}}, Options{AllowDelete: true})
+			run: func(ctx context.Context, warn *bytes.Buffer, client *deployment.DeploymentClient) (*Result, error) {
+				return Services(
+					ctx,
+					warn,
+					client,
+					"o1",
+					"p1",
+					"stack-1",
+					map[string]deployment.CreateServiceBody{
+						"svc-a": {},
+					},
+					Options{AllowDelete: true},
+				)
 			},
 		},
 		{
@@ -456,9 +466,9 @@ func TestSyncDeletesWithAllowDelete(t *testing.T) {
 			wantWarn: "⚠ sync will DELETE 1 agent not in the config: agent-old" +
 				" (--allow-delete=agents; agent deletes run after agent creates/updates)\n",
 			wantDeleted: []string{"agent-old"},
-			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+			run: func(ctx context.Context, warn *bytes.Buffer, client *deployment.DeploymentClient) (*Result, error) {
 				return Agents(ctx, warn, client, "o1", "p1", "stack-1",
-					map[string]clients.CreateAgentBody{}, Options{AllowDelete: true})
+					map[string]deployment.CreateAgentBody{}, Options{AllowDelete: true})
 			},
 		},
 		{
@@ -469,9 +479,9 @@ func TestSyncDeletesWithAllowDelete(t *testing.T) {
 			wantWarn: "⚠ sync will DELETE 1 database not in the config: old-db" +
 				" (--allow-delete=databases; database deletes run after database creates/updates)\n",
 			wantDeleted: []string{"old-db"},
-			run: func(ctx context.Context, warn *bytes.Buffer, client *clients.DeploymentClient) (*Result, error) {
+			run: func(ctx context.Context, warn *bytes.Buffer, client *deployment.DeploymentClient) (*Result, error) {
 				return Databases(ctx, warn, client, "o1", "p1", "stack-1",
-					map[string]clients.CreateDatabaseBody{}, Options{AllowDelete: true})
+					map[string]deployment.CreateDatabaseBody{}, Options{AllowDelete: true})
 			},
 		},
 	}
@@ -531,7 +541,7 @@ func TestServicesDryRunPlansWithoutWriting(t *testing.T) {
 	})
 
 	var warn bytes.Buffer
-	desired := map[string]clients.CreateServiceBody{
+	desired := map[string]deployment.CreateServiceBody{
 		"svc-a":   {},
 		"svc-new": {},
 	}
@@ -577,7 +587,7 @@ func TestAgentsPrintsUpdateBanner(t *testing.T) {
 	})
 
 	var warn bytes.Buffer
-	desired := map[string]clients.CreateAgentBody{"agent-a": {}}
+	desired := map[string]deployment.CreateAgentBody{"agent-a": {}}
 	result, err := Agents(
 		context.Background(),
 		&warn,

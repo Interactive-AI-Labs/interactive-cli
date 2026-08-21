@@ -1,4 +1,4 @@
-package clients
+package platform
 
 import (
 	"encoding/json"
@@ -6,6 +6,21 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 )
+
+func TestDecodeMcpCatalog(t *testing.T) {
+	data, err := decodeSuccess[McpCatalogListData](
+		[]byte(
+			`{"success":true,"data":{"entries":[{"id":"e1","name":"GitHub","category":"dev","type":"platform","auth_methods":["api_key"]}]}}`,
+		),
+		"list mcp catalog",
+	)
+	if err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
+	if len(data.Entries) != 1 || data.Entries[0].ID != "e1" {
+		t.Fatalf("unexpected catalog: %#v", data.Entries)
+	}
+}
 
 // A provider that refuses still answers 200, so the status — not the
 // transport — is what tells run-tool whether it has a result to print.
@@ -48,20 +63,5 @@ func TestDecodeMcpToolCallResult(t *testing.T) {
 				t.Errorf("has Result = %v, want %v", hasResult, tt.wantResult)
 			}
 		})
-	}
-}
-
-func TestDecodeMcpCatalog(t *testing.T) {
-	data, err := decodeSuccess[McpCatalogListData](
-		[]byte(
-			`{"success":true,"data":{"entries":[{"id":"e1","name":"GitHub","category":"dev","type":"platform","auth_methods":["api_key"]}]}}`,
-		),
-		"list mcp catalog",
-	)
-	if err != nil {
-		t.Fatalf("decode error: %v", err)
-	}
-	if len(data.Entries) != 1 || data.Entries[0].ID != "e1" {
-		t.Fatalf("unexpected catalog: %#v", data.Entries)
 	}
 }

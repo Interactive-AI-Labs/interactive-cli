@@ -5,18 +5,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestPrintMcpCatalog(t *testing.T) {
 	tests := []struct {
 		name    string
-		entries []clients.McpCatalogEntry
+		entries []platform.McpCatalogEntry
 		want    string
 	}{
 		{
 			name: "static key entry has no sign-in details to show",
-			entries: []clients.McpCatalogEntry{
+			entries: []platform.McpCatalogEntry{
 				{
 					ID:          "e1",
 					Name:        "GitHub",
@@ -30,7 +30,7 @@ func TestPrintMcpCatalog(t *testing.T) {
 		},
 		{
 			name: "self-registering provider whose permissions are all-or-nothing",
-			entries: []clients.McpCatalogEntry{
+			entries: []platform.McpCatalogEntry{
 				{
 					ID:               "dropbox",
 					Name:             "Dropbox",
@@ -47,7 +47,7 @@ func TestPrintMcpCatalog(t *testing.T) {
 		},
 		{
 			name: "provider needing our app, that also takes a plain token",
-			entries: []clients.McpCatalogEntry{
+			entries: []platform.McpCatalogEntry{
 				{
 					ID:              "github",
 					Name:            "GitHub",
@@ -64,7 +64,7 @@ func TestPrintMcpCatalog(t *testing.T) {
 		},
 		{
 			name: "provider that publishes a grant but not whether it registers us",
-			entries: []clients.McpCatalogEntry{
+			entries: []platform.McpCatalogEntry{
 				{
 					ID:            "gorgias",
 					Name:          "Gorgias",
@@ -95,12 +95,12 @@ func TestPrintMcpCatalog(t *testing.T) {
 func TestPrintMcpListIncludesStack(t *testing.T) {
 	tests := []struct {
 		name string
-		mcp  clients.McpSchema
+		mcp  platform.McpSchema
 		want string
 	}{
 		{
 			name: "internal mcp in a stack",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name: "tools", Backend: "internal",
 				Status: strPtr("healthy"), VerifyStatus: strPtr("ok"),
 				ToolCount: 3, StackId: strPtr("stack-123"),
@@ -109,7 +109,7 @@ func TestPrintMcpListIncludesStack(t *testing.T) {
 		},
 		{
 			name: "external mcp never has one",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name: "notion", Backend: "external", AuthType: strPtr("oauth"),
 			},
 			want: "-",
@@ -118,7 +118,7 @@ func TestPrintMcpListIncludesStack(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := PrintMcpList(&buf, []clients.McpSchema{tt.mcp}); err != nil {
+			if err := PrintMcpList(&buf, []platform.McpSchema{tt.mcp}); err != nil {
 				t.Fatalf("PrintMcpList() error = %v", err)
 			}
 			got := buf.String()
@@ -135,12 +135,12 @@ func TestPrintMcpListIncludesStack(t *testing.T) {
 func TestPrintMcpTools(t *testing.T) {
 	tests := []struct {
 		name  string
-		tools []clients.McpToolSchema
+		tools []platform.McpToolSchema
 		want  string
 	}{
 		{
 			name: "one tool with description",
-			tools: []clients.McpToolSchema{
+			tools: []platform.McpToolSchema{
 				{Name: "search", Description: strPtr("Search the knowledge base")},
 				{Name: "ping", Description: strPtr("No-arg health check")},
 			},
@@ -175,17 +175,21 @@ func boolPtr(b bool) *bool { return &b }
 func TestPrintMcpsNeedsSignIn(t *testing.T) {
 	tests := []struct {
 		name string
-		mcp  clients.McpSchema
+		mcp  platform.McpSchema
 		want string
 	}{
 		{
 			name: "oauth mcp that was never connected",
-			mcp:  clients.McpSchema{Name: "notion", Backend: "external", AuthType: strPtr("oauth")},
+			mcp: platform.McpSchema{
+				Name:     "notion",
+				Backend:  "external",
+				AuthType: strPtr("oauth"),
+			},
 			want: "needs sign-in",
 		},
 		{
 			name: "oauth mcp already connected",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name:          "notion",
 				Backend:       "external",
 				AuthType:      strPtr("oauth"),
@@ -195,7 +199,7 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 		},
 		{
 			name: "static mcp with credential",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name:          "acme",
 				Backend:       "external",
 				AuthType:      strPtr("bearer"),
@@ -207,7 +211,7 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 			// Rows written before Platform recorded its own auth type carry
 			// LiteLLM's name for the flow. Same state, so the same column.
 			name: "unconnected oauth mcp carrying LiteLLM's auth type",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name:     "linear",
 				Backend:  "external",
 				AuthType: strPtr("oauth2"),
@@ -216,7 +220,7 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 		},
 		{
 			name: "unconnected oauth_delegate mcp",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name:     "bridge",
 				Backend:  "external",
 				AuthType: strPtr("oauth_delegate"),
@@ -228,7 +232,7 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := PrintMcpList(&buf, []clients.McpSchema{tt.mcp}); err != nil {
+			if err := PrintMcpList(&buf, []platform.McpSchema{tt.mcp}); err != nil {
 				t.Fatalf("PrintMcpList() error = %v", err)
 			}
 			if !strings.Contains(buf.String(), tt.want) {
@@ -242,12 +246,12 @@ func TestPrintMcpsNeedsSignIn(t *testing.T) {
 func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
 	tests := []struct {
 		name  string
-		entry clients.McpCatalogEntry
+		entry platform.McpCatalogEntry
 		want  string
 	}{
 		{
 			"oauth already in auth_methods",
-			clients.McpCatalogEntry{
+			platform.McpCatalogEntry{
 				AuthMethods:   []string{"oauth"},
 				GrantsAllowed: []string{"pkce"},
 			},
@@ -255,7 +259,7 @@ func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
 		},
 		{
 			"oauth alongside another method",
-			clients.McpCatalogEntry{
+			platform.McpCatalogEntry{
 				AuthMethods:   []string{"bearer", "oauth"},
 				GrantsAllowed: []string{"pkce"},
 			},
@@ -263,7 +267,7 @@ func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
 		},
 		{
 			"no grants recorded falls back to auth_methods as-is",
-			clients.McpCatalogEntry{AuthMethods: []string{"bearer"}},
+			platform.McpCatalogEntry{AuthMethods: []string{"bearer"}},
 			"bearer",
 		},
 	}
@@ -281,13 +285,13 @@ func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
 func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 	tests := []struct {
 		name    string
-		mcp     clients.McpSchema
+		mcp     platform.McpSchema
 		want    string
 		notWant string
 	}{
 		{
 			name: "unconnected oauth mcp is told to connect",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name:     "asana",
 				Backend:  "external",
 				AuthType: strPtr("oauth"),
@@ -297,7 +301,7 @@ func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 		},
 		{
 			name: "connected oauth mcp is told where the tools are",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name:          "asana",
 				Backend:       "external",
 				AuthType:      strPtr("oauth"),
@@ -309,7 +313,7 @@ func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 		},
 		{
 			name: "static credential mcp is never told to connect",
-			mcp: clients.McpSchema{
+			mcp: platform.McpSchema{
 				Name:          "acme",
 				Backend:       "external",
 				AuthType:      strPtr("bearer"),

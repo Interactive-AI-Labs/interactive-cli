@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // PrintSlotAddResult renders the result of adding a slot.
-func PrintSlotAddResult(out io.Writer, r *clients.SlotAddResult) error {
+func PrintSlotAddResult(out io.Writer, r *deployment.SlotAddResult) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Slot:\t%s\n", r.Slot)
 	fmt.Fprintf(w, "Type:\t%s\n", r.Type)
@@ -19,7 +19,7 @@ func PrintSlotAddResult(out io.Writer, r *clients.SlotAddResult) error {
 }
 
 // PrintSlotIndexProgress renders a slot's index build progress.
-func PrintSlotIndexProgress(out io.Writer, p *clients.SlotIndexProgress) error {
+func PrintSlotIndexProgress(out io.Writer, p *deployment.SlotIndexProgress) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Slot:\t%s\n", p.Slot)
 	fmt.Fprintf(w, "Index type:\t%s\n", p.IndexType)
@@ -28,7 +28,7 @@ func PrintSlotIndexProgress(out io.Writer, p *clients.SlotIndexProgress) error {
 }
 
 // PrintSlotOpResult renders a reindex/vacuum result (whichever status is set).
-func PrintSlotOpResult(out io.Writer, r *clients.SlotOpResult) error {
+func PrintSlotOpResult(out io.Writer, r *deployment.SlotOpResult) error {
 	status := r.Status
 	if status == "" {
 		status = r.IndexStatus

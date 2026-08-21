@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -82,7 +82,7 @@ var datasetItemsListCmd = &cobra.Command{
 			}
 		}
 
-		opts := clients.DatasetItemListOptions{
+		opts := platform.DatasetItemListOptions{
 			DatasetName:         datasetItemsListDatasetName,
 			SourceTraceID:       datasetItemsListSourceTraceID,
 			SourceObservationID: datasetItemsListSourceObservationID,

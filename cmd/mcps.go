@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/auth"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -163,9 +163,9 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			return err
 		}
 
-		backend := clients.McpBackendExternal
+		backend := platform.McpBackendExternal
 		if mcpImageName != "" {
-			backend = clients.McpBackendInternal
+			backend = platform.McpBackendInternal
 		}
 		if mcpCatalogID != "" && cred == "" {
 			entry, catErr := catalogEntry(cmd.Context(), apiClient, pCtx, mcpCatalogID)
@@ -187,8 +187,8 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		if mcpCatalogID != "" {
 			endpointURL = "" // the catalog entry owns the endpoint
 		}
-		var workload *clients.McpWorkload
-		if backend == clients.McpBackendInternal {
+		var workload *platform.McpWorkload
+		if backend == platform.McpBackendInternal {
 			if mcpImageTag == "" {
 				return fmt.Errorf("internal mcp requires --image-tag")
 			}
@@ -208,7 +208,7 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			if cpu == "" {
 				cpu = "100m"
 			}
-			workload = &clients.McpWorkload{
+			workload = &platform.McpWorkload{
 				Image:   mcpImageName + ":" + mcpImageTag,
 				Port:    port,
 				Path:    path,
@@ -218,7 +218,7 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			}
 		}
 
-		auth := clients.McpAuth{Type: mcpAuthTypeOr(backend, mcpAuthType, cred)}
+		auth := platform.McpAuth{Type: mcpAuthTypeOr(backend, mcpAuthType, cred)}
 		if cred != "" {
 			auth.Credential = &cred
 		}
@@ -226,7 +226,7 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
-			clients.McpCreateRequest{
+			platform.McpCreateRequest{
 				Name:        mcpName,
 				Backend:     backend,
 				CatalogID:   strPtr(mcpCatalogID),
@@ -271,11 +271,11 @@ func ptrOr[T any](p *T, fallback T) T {
 	return *p
 }
 
-func mcpAuthTypeOr(backend clients.McpBackend, explicit string, cred string) string {
+func mcpAuthTypeOr(backend platform.McpBackend, explicit string, cred string) string {
 	if explicit != "" {
 		return explicit
 	}
-	if backend == clients.McpBackendInternal {
+	if backend == platform.McpBackendInternal {
 		return "none"
 	}
 	if cred != "" {
@@ -288,11 +288,11 @@ func mcpWorkloadFrom(
 	imageName, imageTag string,
 	port int,
 	path, memory, cpu string,
-) *clients.McpWorkload {
+) *platform.McpWorkload {
 	if imageName == "" && imageTag == "" && port == 0 && path == "" && memory == "" && cpu == "" {
 		return nil
 	}
-	w := &clients.McpWorkload{
+	w := &platform.McpWorkload{
 		Image:  imageName + ":" + imageTag,
 		Port:   port,
 		Path:   path,
@@ -357,7 +357,7 @@ to it. Auth routing cannot change while agents are attached — detach them firs
 			patch["endpoint_url"] = mcpEndpointURL
 		}
 		if mcpAuthType != "" {
-			auth := clients.McpAuth{Type: mcpAuthType}
+			auth := platform.McpAuth{Type: mcpAuthType}
 			if cred != "" {
 				auth.Credential = &cred
 			}
@@ -562,8 +562,8 @@ what changed since the previous verify.`,
 
 // catalogEntry finds the entry so create can act on what it accepts.
 func catalogEntry(
-	ctx context.Context, apiClient *clients.APIClient, pCtx *projectContext, catalogID string,
-) (*clients.McpCatalogEntry, error) {
+	ctx context.Context, apiClient *platform.APIClient, pCtx *projectContext, catalogID string,
+) (*platform.McpCatalogEntry, error) {
 	catalog, _, err := apiClient.ListMcpCatalog(ctx, pCtx.orgId, pCtx.projectId)
 	if err != nil {
 		return nil, err
@@ -689,7 +689,7 @@ everyone in it. The mcp itself is kept — use 'iai mcps delete' to remove that.
 // waitForSignIn polls until the gateway reports a credential. Nothing calls back
 // to the CLI — the browser's redirect lands on the gateway, not on us.
 func waitForSignIn(
-	ctx context.Context, apiClient *clients.APIClient, pCtx *projectContext, mcpName string,
+	ctx context.Context, apiClient *platform.APIClient, pCtx *projectContext, mcpName string,
 ) (bool, error) {
 	for i := 0; i < 100; i++ {
 		time.Sleep(3 * time.Second)

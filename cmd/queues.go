@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -83,7 +83,7 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 			}
 		}
 
-		opts := clients.AnnotationQueueListOptions{
+		opts := platform.AnnotationQueueListOptions{
 			Page:      queuesListPage,
 			Limit:     queuesListLimit,
 			SortBy:    queuesListSortBy,

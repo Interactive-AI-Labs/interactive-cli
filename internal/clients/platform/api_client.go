@@ -1,4 +1,4 @@
-package clients
+package platform
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 type APIClient struct {
@@ -72,7 +74,7 @@ func NewAPIClient(
 }
 
 func (c *APIClient) do(req *http.Request) (*http.Response, error) {
-	if err := ApplyRequestHeaders(req, c.token, c.apiKey, c.cookies); err != nil {
+	if err := clients.ApplyRequestHeaders(req, c.token, c.apiKey, c.cookies); err != nil {
 		return nil, err
 	}
 	resp, err := c.httpClient.Do(req)
@@ -139,7 +141,7 @@ func (c *APIClient) validateApiKey(ctx context.Context) error {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return fmt.Errorf("API key validation failed: %s", msg)
 		}
 		return fmt.Errorf("API key validation failed with status %s", resp.Status)
@@ -179,7 +181,7 @@ func (c *APIClient) ListOrganizations(ctx context.Context) ([]Organization, erro
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to list organizations: %s", msg)
 		}
 		return nil, fmt.Errorf("failed to list organizations: server returned %s", resp.Status)
@@ -274,7 +276,7 @@ func (c *APIClient) ListProjects(ctx context.Context, orgId string) ([]Project, 
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to list projects: %s", msg)
 		}
 		return nil, fmt.Errorf("failed to list projects: server returned %s", resp.Status)
@@ -1097,7 +1099,7 @@ func (c *APIClient) CreatePrompt(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
 		return nil, fmt.Errorf("prompt creation failed with status %s", resp.Status)
@@ -1180,7 +1182,7 @@ func (c *APIClient) ListPrompts(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
 		return nil, fmt.Errorf("failed to list prompts: server returned %s", resp.Status)
@@ -1237,7 +1239,7 @@ func (c *APIClient) GetPrompt(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
 			return nil, fmt.Errorf("%s", msg)
 		}
 		return nil, fmt.Errorf("failed to get prompt: server returned %s", resp.Status)
@@ -1291,7 +1293,7 @@ func (c *APIClient) DeletePrompt(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
 			return fmt.Errorf("%s", msg)
 		}
 		return fmt.Errorf("prompt deletion failed with status %s", resp.Status)
@@ -1347,7 +1349,7 @@ func GetPromptSchema(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to fetch schema: %s", msg)
 		}
 		return nil, fmt.Errorf("failed to fetch schema: server returned %s", resp.Status)
@@ -1410,7 +1412,7 @@ func GetAgentCompatibilityMatrix(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to fetch compatibility matrix: %s", msg)
 		}
 		return nil, fmt.Errorf(
@@ -1460,7 +1462,7 @@ func (c *APIClient) GetAgentSchema(
 	// Agent schema endpoint returns SchemaResponse directly, without the
 	// {success, data} envelope used by the prompt schema endpoint.
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(body); msg != "" {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
 			return nil, fmt.Errorf("failed to fetch schema: %s", msg)
 		}
 		return nil, fmt.Errorf("failed to fetch schema: server returned %s", resp.Status)
@@ -1498,7 +1500,7 @@ func (c *APIClient) DeletePromptByName(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := ExtractServerMessage(respBody); msg != "" {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
 			return fmt.Errorf("%s", msg)
 		}
 		return fmt.Errorf("prompt deletion failed with status %s", resp.Status)

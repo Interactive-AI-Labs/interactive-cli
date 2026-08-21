@@ -4,44 +4,44 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var runItemColumnMap = map[string]struct {
 	Header string
-	Value  func(r *clients.DatasetRunItemInfo) string
+	Value  func(r *platform.DatasetRunItemInfo) string
 }{
-	"id": {"ID", func(r *clients.DatasetRunItemInfo) string { return r.ID }},
+	"id": {"ID", func(r *platform.DatasetRunItemInfo) string { return r.ID }},
 	"dataset_run_name": {
 		"RUN NAME",
-		func(r *clients.DatasetRunItemInfo) string { return r.DatasetRunName },
+		func(r *platform.DatasetRunItemInfo) string { return r.DatasetRunName },
 	},
 	"dataset_item_id": {
 		"DATASET ITEM ID",
-		func(r *clients.DatasetRunItemInfo) string { return r.DatasetItemID },
+		func(r *platform.DatasetRunItemInfo) string { return r.DatasetItemID },
 	},
 	"trace_id": {
 		"TRACE ID",
-		func(r *clients.DatasetRunItemInfo) string { return r.TraceID },
+		func(r *platform.DatasetRunItemInfo) string { return r.TraceID },
 	},
 	"observation_id": {
 		"OBSERVATION ID",
-		func(r *clients.DatasetRunItemInfo) string { return r.ObservationID },
+		func(r *platform.DatasetRunItemInfo) string { return r.ObservationID },
 	},
 	"created_at": {
 		"CREATED AT",
-		func(r *clients.DatasetRunItemInfo) string { return LocalTime(r.CreatedAt) },
+		func(r *platform.DatasetRunItemInfo) string { return LocalTime(r.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(r *clients.DatasetRunItemInfo) string { return LocalTime(r.UpdatedAt) },
+		func(r *platform.DatasetRunItemInfo) string { return LocalTime(r.UpdatedAt) },
 	},
 }
 
 func PrintRunItemList(
 	out io.Writer,
-	items []clients.DatasetRunItemInfo,
-	meta clients.PageMeta,
+	items []platform.DatasetRunItemInfo,
+	meta platform.PageMeta,
 	columns []string,
 ) error {
 	if len(items) == 0 {
@@ -75,7 +75,7 @@ func PrintRunItemList(
 	return nil
 }
 
-func PrintRunItemCreateResult(out io.Writer, item *clients.DatasetRunItemInfo) error {
+func PrintRunItemCreateResult(out io.Writer, item *platform.DatasetRunItemInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created run item %q.\n", item.ID)
 	fmt.Fprintf(w, "ID:\t%s\n", item.ID)

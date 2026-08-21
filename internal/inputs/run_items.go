@@ -3,7 +3,7 @@ package inputs
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var DefaultRunItemColumns = []string{
@@ -25,7 +25,7 @@ var AllRunItemColumns = []string{
 	"updated_at",
 }
 
-func ValidateRunItemListOptions(opts clients.DatasetRunItemListOptions) error {
+func ValidateRunItemListOptions(opts platform.DatasetRunItemListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 
@@ -40,8 +40,8 @@ type RunItemCreateInput struct {
 
 func BuildRunItemCreateBody(
 	input RunItemCreateInput,
-) (clients.DatasetRunItemCreateBody, error) {
-	body := clients.DatasetRunItemCreateBody{
+) (platform.DatasetRunItemCreateBody, error) {
+	body := platform.DatasetRunItemCreateBody{
 		RunName:        strings.TrimSpace(input.RunName),
 		RunDescription: strings.TrimSpace(input.RunDescription),
 		DatasetItemID:  strings.TrimSpace(input.DatasetItemID),
@@ -55,7 +55,7 @@ func BuildRunItemCreateBody(
 			"--metadata-json",
 		)
 		if err != nil {
-			return clients.DatasetRunItemCreateBody{}, err
+			return platform.DatasetRunItemCreateBody{}, err
 		}
 		body.Metadata = metadata
 	}

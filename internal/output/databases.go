@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-func PrintDatabaseList(out io.Writer, databases []clients.DatabaseOutput) error {
+func PrintDatabaseList(out io.Writer, databases []deployment.DatabaseOutput) error {
 	if len(databases) == 0 {
 		fmt.Fprintln(out, "No databases found.")
 		return nil
@@ -28,7 +28,7 @@ func PrintDatabaseList(out io.Writer, databases []clients.DatabaseOutput) error 
 	return PrintTable(out, headers, rows)
 }
 
-func PrintDatabaseDescribe(out io.Writer, db *clients.DescribeDatabaseResponse) error {
+func PrintDatabaseDescribe(out io.Writer, db *deployment.DescribeDatabaseResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", db.Name)
 	if db.StackId != "" {
@@ -77,7 +77,7 @@ func PrintDatabaseDescribe(out io.Writer, db *clients.DescribeDatabaseResponse) 
 	return w.Flush()
 }
 
-func PrintDatabaseBackups(out io.Writer, backups []clients.BackupOutput) error {
+func PrintDatabaseBackups(out io.Writer, backups []deployment.BackupOutput) error {
 	if len(backups) == 0 {
 		fmt.Fprintln(out, "No backups found.")
 		return nil
@@ -98,7 +98,7 @@ func PrintDatabaseBackups(out io.Writer, backups []clients.BackupOutput) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintDatabaseBackup(out io.Writer, backup *clients.BackupOutput) error {
+func PrintDatabaseBackup(out io.Writer, backup *deployment.BackupOutput) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", backup.Name)
 	fmt.Fprintf(w, "Phase:\t%s\n", backup.Phase)

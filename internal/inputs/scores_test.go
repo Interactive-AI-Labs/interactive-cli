@@ -3,7 +3,7 @@ package inputs
 import (
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestValidateScoreColumns(t *testing.T) {
@@ -33,25 +33,25 @@ func TestPrepareScoreListOptions(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		opts    clients.ScoreListOptions
+		opts    platform.ScoreListOptions
 		wantErr bool
 		wantOp  string
 	}{
 		{
 			name:    "defaults operator for value",
-			opts:    clients.ScoreListOptions{FromTimestamp: "2025-01-01T00:00:00Z", Value: "1"},
+			opts:    platform.ScoreListOptions{FromTimestamp: "2025-01-01T00:00:00Z", Value: "1"},
 			wantErr: false,
 			wantOp:  "=",
 		},
 		{
 			name:    "rejects mixed exact and range filters",
-			opts:    clients.ScoreListOptions{Value: "1", MinValue: &minValue},
+			opts:    platform.ScoreListOptions{Value: "1", MinValue: &minValue},
 			wantErr: true,
 			wantOp:  "=",
 		},
 		{
 			name:    "rejects invalid range",
-			opts:    clients.ScoreListOptions{MinValue: &minValue, MaxValue: &maxValue},
+			opts:    platform.ScoreListOptions{MinValue: &minValue, MaxValue: &maxValue},
 			wantErr: true,
 		},
 	}

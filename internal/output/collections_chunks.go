@@ -6,12 +6,12 @@ import (
 	"io"
 	"sort"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // PrintChunkUpsertResult summarizes an upsert response: a per-status count plus
 // any per-chunk errors.
-func PrintChunkUpsertResult(out io.Writer, r *clients.ChunkUpsertResult) error {
+func PrintChunkUpsertResult(out io.Writer, r *deployment.ChunkUpsertResult) error {
 	byStatus := map[string]int{}
 	for _, res := range r.Results {
 		byStatus[res.Status]++
@@ -35,7 +35,7 @@ func PrintChunkUpsertResult(out io.Writer, r *clients.ChunkUpsertResult) error {
 }
 
 // PrintChunkList renders a page of chunks as a table.
-func PrintChunkList(out io.Writer, list *clients.ChunkList) error {
+func PrintChunkList(out io.Writer, list *deployment.ChunkList) error {
 	if len(list.Chunks) == 0 {
 		fmt.Fprintln(out, "No chunks found.")
 		return nil
@@ -57,7 +57,7 @@ func PrintChunkList(out io.Writer, list *clients.ChunkList) error {
 }
 
 // PrintChunk renders a single chunk's detail.
-func PrintChunk(out io.Writer, c *clients.Chunk) error {
+func PrintChunk(out io.Writer, c *deployment.Chunk) error {
 	fmt.Fprintf(out, "ID:        %s\n", c.ID)
 	fmt.Fprintf(out, "Document:  %s\n", c.DocumentID)
 	fmt.Fprintf(out, "Text:      %s\n", c.Text)
@@ -105,7 +105,7 @@ func vectorSummary(raw json.RawMessage) string {
 // PrintBulkDeleteResult renders a bulk-delete response. The deleted id list is
 // only useful for --filter/--all deletes (the caller already knows the ids for
 // --ids), so it's printed one per line when present.
-func PrintBulkDeleteResult(out io.Writer, r *clients.BulkDeleteResult) error {
+func PrintBulkDeleteResult(out io.Writer, r *deployment.BulkDeleteResult) error {
 	fmt.Fprintf(out, "Deleted %d chunk(s)\n", r.DeletedCount)
 	if len(r.DeletedIds) > 0 {
 		for _, id := range r.DeletedIds {

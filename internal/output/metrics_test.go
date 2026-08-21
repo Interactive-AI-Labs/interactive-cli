@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
@@ -17,8 +17,8 @@ func TestPrintMetricsDaily(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		metrics    []clients.DailyMetric
-		meta       clients.PageMeta
+		metrics    []platform.DailyMetric
+		meta       platform.PageMeta
 		columns    []string
 		showModels bool
 		want       string
@@ -30,20 +30,20 @@ func TestPrintMetricsDaily(t *testing.T) {
 		},
 		{
 			name: "list with models",
-			metrics: []clients.DailyMetric{{
+			metrics: []platform.DailyMetric{{
 				Date:              "2025-01-01",
 				CountTraces:       &traceCount,
 				CountObservations: &observationCount,
 				TotalCost:         &totalCost,
 				TotalTokens:       &totalTokens,
-				Models: []clients.ModelUsage{{
+				Models: []platform.ModelUsage{{
 					Model:             "gpt-4",
 					CountObservations: &modelObs,
 					TotalTokens:       &totalTokens,
 					TotalCost:         &totalCost,
 				}},
 			}},
-			meta:       clients.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta:       platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			columns:    inputs.DefaultMetricsDailyColumns,
 			showModels: true,
 			want: "DATE         TRACE COUNT   OBSERVATION COUNT   TOTAL COST\n" +

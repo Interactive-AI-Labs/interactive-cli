@@ -4,41 +4,41 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var datasetItemColumnMap = map[string]struct {
 	Header string
-	Value  func(d *clients.DatasetItemInfo) string
+	Value  func(d *platform.DatasetItemInfo) string
 }{
-	"id":     {"ID", func(d *clients.DatasetItemInfo) string { return d.ID }},
-	"status": {"STATUS", func(d *clients.DatasetItemInfo) string { return d.Status }},
+	"id":     {"ID", func(d *platform.DatasetItemInfo) string { return d.ID }},
+	"status": {"STATUS", func(d *platform.DatasetItemInfo) string { return d.Status }},
 	"dataset_name": {
 		"DATASET NAME",
-		func(d *clients.DatasetItemInfo) string { return d.DatasetName },
+		func(d *platform.DatasetItemInfo) string { return d.DatasetName },
 	},
 	"source_trace_id": {
 		"SOURCE TRACE ID",
-		func(d *clients.DatasetItemInfo) string { return d.SourceTraceID },
+		func(d *platform.DatasetItemInfo) string { return d.SourceTraceID },
 	},
 	"source_observation_id": {
 		"SOURCE OBSERVATION ID",
-		func(d *clients.DatasetItemInfo) string { return d.SourceObservationID },
+		func(d *platform.DatasetItemInfo) string { return d.SourceObservationID },
 	},
 	"created_at": {
 		"CREATED AT",
-		func(d *clients.DatasetItemInfo) string { return LocalTime(d.CreatedAt) },
+		func(d *platform.DatasetItemInfo) string { return LocalTime(d.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(d *clients.DatasetItemInfo) string { return LocalTime(d.UpdatedAt) },
+		func(d *platform.DatasetItemInfo) string { return LocalTime(d.UpdatedAt) },
 	},
 }
 
 func PrintDatasetItemList(
 	out io.Writer,
-	items []clients.DatasetItemInfo,
-	meta clients.PageMeta,
+	items []platform.DatasetItemInfo,
+	meta platform.PageMeta,
 	columns []string,
 ) error {
 	if len(items) == 0 {
@@ -72,7 +72,7 @@ func PrintDatasetItemList(
 	return nil
 }
 
-func PrintDatasetItemDetail(out io.Writer, item *clients.DatasetItemInfo) error {
+func PrintDatasetItemDetail(out io.Writer, item *platform.DatasetItemInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
 	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
@@ -97,7 +97,7 @@ func PrintDatasetItemDetail(out io.Writer, item *clients.DatasetItemInfo) error 
 	return w.Flush()
 }
 
-func PrintDatasetItemCreateResult(out io.Writer, item *clients.DatasetItemInfo) error {
+func PrintDatasetItemCreateResult(out io.Writer, item *platform.DatasetItemInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created dataset item %q.\n", item.ID)
 	fmt.Fprintf(w, "ID:\t%s\n", item.ID)

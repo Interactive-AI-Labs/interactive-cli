@@ -4,18 +4,18 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestPrintImageList(t *testing.T) {
 	tests := []struct {
 		name   string
-		images []clients.ImageInfo
+		images []deployment.ImageInfo
 		want   string
 	}{
 		{
 			name:   "empty list prints message",
-			images: []clients.ImageInfo{},
+			images: []deployment.ImageInfo{},
 			want:   "No images found.\n",
 		},
 		{
@@ -25,7 +25,7 @@ func TestPrintImageList(t *testing.T) {
 		},
 		{
 			name: "single image with one tag",
-			images: []clients.ImageInfo{
+			images: []deployment.ImageInfo{
 				{Name: "myapp", Tags: []string{"latest"}},
 			},
 			want: "NAME    TAGS\n" +
@@ -33,7 +33,7 @@ func TestPrintImageList(t *testing.T) {
 		},
 		{
 			name: "image with multiple tags joined",
-			images: []clients.ImageInfo{
+			images: []deployment.ImageInfo{
 				{Name: "api", Tags: []string{"v1.0", "v1.1", "latest"}},
 			},
 			want: "NAME   TAGS\n" +
@@ -41,7 +41,7 @@ func TestPrintImageList(t *testing.T) {
 		},
 		{
 			name: "image with no tags",
-			images: []clients.ImageInfo{
+			images: []deployment.ImageInfo{
 				{Name: "untagged", Tags: []string{}},
 			},
 			want: "NAME       TAGS\n" +
@@ -49,7 +49,7 @@ func TestPrintImageList(t *testing.T) {
 		},
 		{
 			name: "multiple images",
-			images: []clients.ImageInfo{
+			images: []deployment.ImageInfo{
 				{Name: "frontend", Tags: []string{"v2"}},
 				{Name: "backend", Tags: []string{"v3", "stable"}},
 			},

@@ -3,7 +3,7 @@ package inputs
 import (
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var DefaultQueueItemColumns = []string{
@@ -24,14 +24,14 @@ var AllQueueItemColumns = []string{
 	"updated_at",
 }
 
-func ValidateQueueItemListOptions(opts clients.QueueItemListOptions) error {
+func ValidateQueueItemListOptions(opts platform.QueueItemListOptions) error {
 	return ValidatePagination(opts.Page, opts.Limit)
 }
 
 func BuildQueueItemCreateBody(
 	objectID, objectType, status string,
-) clients.QueueItemCreateBody {
-	return clients.QueueItemCreateBody{
+) platform.QueueItemCreateBody {
+	return platform.QueueItemCreateBody{
 		ObjectID:   strings.TrimSpace(objectID),
 		ObjectType: strings.TrimSpace(objectType),
 		Status:     strings.TrimSpace(status),

@@ -1,4 +1,4 @@
-package clients
+package deployment
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 // CreateMcpBody mirrors the operator's CreateMcpRequest; fields are mutually exclusive by type.
@@ -108,7 +110,21 @@ type listMcpsResponse struct {
 	Mcps []McpOutput `json:"mcps"`
 }
 
-type verifyMcpResponse struct {
+type RunMcpToolResult struct {
+	Mcp  string `json:"mcp"`
+	Tool string `json:"tool"`
+	// kept raw: a tool may return an object, array, or scalar at the top level
+	Result json.RawMessage `json:"result,omitempty"`
+	// Error is set instead of Result when the MCP reached but returned a JSON-RPC error.
+	Error *McpToolError `json:"error,omitempty"`
+}
+
+type McpToolError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+type VerifyMcpResponse struct {
 	Message         string           `json:"message"`
 	ToolCount       int              `json:"toolCount"`
 	Tools           []map[string]any `json:"tools"`
@@ -129,14 +145,11 @@ func mcpsPath(orgId, projectId, mcpName string) string {
 }
 
 // CreateMcp deploys an internal MCP or registers an external one (custom endpoint or catalog-backed).
-// CreateMcp returns the server's message and the auth type it resolved. The
-// caller may have sent none — a catalog entry picks its own — and only the
-// resolved value says whether a sign-in comes next.
 func (c *DeploymentClient) CreateMcp(
 	ctx context.Context,
 	orgId, projectId, mcpName string,
 	body CreateMcpBody,
-) (message, authType string, err error) {
+) (string, error) {
 	respBody, err := c.sendJSONRequest(
 		ctx,
 		http.MethodPost,
@@ -144,13 +157,9 @@ func (c *DeploymentClient) CreateMcp(
 		body,
 	)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
-	var resolved struct {
-		AuthType string `json:"authType"`
-	}
-	_ = json.Unmarshal(respBody, &resolved)
-	return ExtractServerMessage(respBody), resolved.AuthType, nil
+	return clients.ExtractServerMessage(respBody), nil
 }
 
 // PutMcp fully replaces an MCP's spec; a credential change rotates the Secret and restarts the MCP and every attached agent.
@@ -217,7 +226,7 @@ func decodeMcpMessage(respBody []byte) string {
 		}
 		return msg
 	}
-	return ExtractServerMessage(respBody)
+	return clients.ExtractServerMessage(respBody)
 }
 
 // DeleteMcp uninstalls the mcp's release; force bypasses the 409 for still-attached agents, returning a dangling-agents warning.
@@ -270,6 +279,62 @@ func (c *DeploymentClient) DescribeMcp(
 	var result DescribeMcpResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode mcp response: %w", err)
+	}
+	return &result, nil
+}
+
+// GetMcpTools returns the mcp's cached tool list and verify state.
+func (c *DeploymentClient) GetMcpTools(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+) (*McpToolsResponse, error) {
+	respBody, err := c.sendJSONRequest(
+		ctx, http.MethodGet, mcpsPath(orgId, projectId, mcpName)+"/tools", nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	var result McpToolsResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode mcp tools response: %w", err)
+	}
+	return &result, nil
+}
+
+// VerifyMcp re-dials the MCP and refreshes its cached tools.
+func (c *DeploymentClient) VerifyMcp(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+) (*VerifyMcpResponse, error) {
+	respBody, err := c.sendJSONRequest(
+		ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName)+"/verify", nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	var result VerifyMcpResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode verify response: %w", err)
+	}
+	return &result, nil
+}
+
+// RunMcpTool executes one tool; external MCPs work from anywhere, internal MCPs need the in-cluster operator.
+func (c *DeploymentClient) RunMcpTool(
+	ctx context.Context,
+	orgId, projectId, mcpName, tool string,
+	args map[string]any,
+) (*RunMcpToolResult, error) {
+	body := map[string]any{"tool": tool, "args": args}
+	respBody, err := c.sendJSONRequest(
+		ctx, http.MethodPost, mcpsPath(orgId, projectId, mcpName)+"/run-tool", body,
+	)
+	if err != nil {
+		return nil, err
+	}
+	var result RunMcpToolResult
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode run-tool response: %w", err)
 	}
 	return &result, nil
 }

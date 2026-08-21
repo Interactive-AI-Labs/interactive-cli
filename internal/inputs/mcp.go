@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // ResolveCredential reads from stdin when fromStdin is set, keeping the secret out of the process list and shell history.
@@ -73,30 +73,30 @@ type McpInput struct {
 	StackId          string
 }
 
-func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
+func BuildMcpRequestBody(in McpInput) (deployment.CreateMcpBody, error) {
 	if err := ValidateServiceEnvVars(in.EnvVars); err != nil {
-		return clients.CreateMcpBody{}, err
+		return deployment.CreateMcpBody{}, err
 	}
-	var env []clients.EnvVar
+	var env []deployment.EnvVar
 	for _, e := range in.EnvVars {
 		parts := strings.SplitN(e, "=", 2)
-		env = append(env, clients.EnvVar{
+		env = append(env, deployment.EnvVar{
 			Name:  strings.TrimSpace(parts[0]),
 			Value: parts[1],
 		})
 	}
 
 	if err := ValidateServiceSecretRefs(in.SecretRefs); err != nil {
-		return clients.CreateMcpBody{}, err
+		return deployment.CreateMcpBody{}, err
 	}
-	var secretRefs []clients.SecretRef
+	var secretRefs []deployment.SecretRef
 	for _, name := range in.SecretRefs {
-		secretRefs = append(secretRefs, clients.SecretRef{SecretName: strings.TrimSpace(name)})
+		secretRefs = append(secretRefs, deployment.SecretRef{SecretName: strings.TrimSpace(name)})
 	}
 
 	headers, err := parseHeaderFlags(in.Headers)
 	if err != nil {
-		return clients.CreateMcpBody{}, err
+		return deployment.CreateMcpBody{}, err
 	}
 
 	mcpType := strings.TrimSpace(in.Type)
@@ -126,10 +126,10 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 		}
 	}
 
-	body := clients.CreateMcpBody{
+	body := deployment.CreateMcpBody{
 		Type:      mcpType,
 		CatalogID: strings.TrimSpace(in.CatalogID),
-		Auth: clients.McpAuthBody{
+		Auth: deployment.McpAuthBody{
 			Type:         authType,
 			Credential:   in.Credential,
 			Header:       strings.TrimSpace(in.AuthHeader),
@@ -142,28 +142,28 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 	switch mcpType {
 	case "external":
 		if in.CatalogID == "" && in.EndpointURL == "" {
-			return clients.CreateMcpBody{}, fmt.Errorf(
+			return deployment.CreateMcpBody{}, fmt.Errorf(
 				"external mcps need --catalog-id or --external-url",
 			)
 		}
 		if len(env) > 0 || len(secretRefs) > 0 || in.Path != "" {
-			return clients.CreateMcpBody{}, fmt.Errorf(
+			return deployment.CreateMcpBody{}, fmt.Errorf(
 				"--env, --secret, and --path don't apply to an external mcp — the path is part of --external-url",
 			)
 		}
 		body.EndpointURL = strings.TrimSpace(in.EndpointURL)
 	case "internal":
 		if in.Port <= 0 {
-			return clients.CreateMcpBody{}, fmt.Errorf("--port is required for an internal mcp")
+			return deployment.CreateMcpBody{}, fmt.Errorf("--port is required for an internal mcp")
 		}
 		if strings.TrimSpace(in.ImageName) == "" || strings.TrimSpace(in.ImageTag) == "" {
-			return clients.CreateMcpBody{}, fmt.Errorf(
+			return deployment.CreateMcpBody{}, fmt.Errorf(
 				"--image-name and --image-tag are required for an internal mcp",
 			)
 		}
 		body.Port = in.Port
 		body.Path = strings.TrimSpace(in.Path)
-		body.Image = clients.ImageSpec{
+		body.Image = deployment.ImageSpec{
 			Type:       in.ImageType,
 			Repository: in.ImageRepository,
 			Name:       in.ImageName,
@@ -172,10 +172,10 @@ func BuildMcpRequestBody(in McpInput) (clients.CreateMcpBody, error) {
 		body.Env = env
 		body.SecretRefs = secretRefs
 		if in.Memory != "" || in.CPU != "" {
-			body.Resources = clients.Resources{Memory: in.Memory, CPU: in.CPU}
+			body.Resources = deployment.Resources{Memory: in.Memory, CPU: in.CPU}
 		}
 	default:
-		return clients.CreateMcpBody{}, fmt.Errorf(`--type must be "internal" or "external"`)
+		return deployment.CreateMcpBody{}, fmt.Errorf(`--type must be "internal" or "external"`)
 	}
 
 	return body, nil
@@ -240,9 +240,9 @@ func BuildMcpUpdatePatch(
 	in McpInput,
 	clearEnv, clearSecret, clearHeaders, clearStackId bool,
 	changed func(string) bool,
-) (clients.UpdatePatch, error) {
+) (deployment.UpdatePatch, error) {
 	f := McpUpdateFlags
-	patch := clients.UpdatePatch{}
+	patch := deployment.UpdatePatch{}
 
 	if changed(f.Port) {
 		if err := setJSON(patch, "port", in.Port); err != nil {

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
@@ -96,12 +97,18 @@ The organization and project are read from the config file, flags, or resolved v
 			return fmt.Errorf("failed to load session: %w", err)
 		}
 
-		apiClient, err := clients.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
+		apiClient, err := platform.NewAPIClient(
+			hostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
 
-		deployClient, err := clients.NewDeploymentClient(
+		deployClient, err := deployment.NewDeploymentClient(
 			deploymentHostname,
 			defaultHTTPTimeout,
 			token,
@@ -163,7 +170,7 @@ The organization and project are read from the config file, flags, or resolved v
 			return sync.PrintResult(out, label, result, err)
 		}
 
-		svcBodies := make(map[string]clients.CreateServiceBody)
+		svcBodies := make(map[string]deployment.CreateServiceBody)
 		for name, svcCfg := range cfg.Services {
 			svcBodies[name] = svcCfg.ToCreateRequest(cfg.StackId)
 		}
@@ -200,7 +207,7 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		agentBodies := make(map[string]clients.CreateAgentBody)
+		agentBodies := make(map[string]deployment.CreateAgentBody)
 		for name, agentCfg := range cfg.Agents {
 			agentBodies[name] = agentCfg.ToCreateRequest(cfg.StackId)
 		}
@@ -237,7 +244,7 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		dbBodies := make(map[string]clients.CreateDatabaseBody)
+		dbBodies := make(map[string]deployment.CreateDatabaseBody)
 		for name, dbCfg := range cfg.Databases {
 			dbBodies[name] = dbCfg.ToCreateRequest(cfg.StackId)
 		}
@@ -274,7 +281,7 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		mcpBodies := make(map[string]clients.CreateMcpBody)
+		mcpBodies := make(map[string]deployment.CreateMcpBody)
 		for name, mcpCfg := range cfg.Mcps {
 			mcpBodies[name] = mcpCfg.ToCreateRequest(cfg.StackId)
 		}

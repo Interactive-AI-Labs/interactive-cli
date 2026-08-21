@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -436,7 +436,7 @@ JSON strings into nested JSON values.`,
 			return err
 		}
 
-		opts := clients.LogsOptions{
+		opts := deployment.LogsOptions{
 			Follow:    dbLogsFollow,
 			Since:     dbLogsSince,
 			StartTime: dbLogsStartTime,
@@ -503,7 +503,7 @@ PostgreSQL-specific details are often nested under the 'record' field, so seeing
 			return err
 		}
 
-		opts := clients.LogsOptions{Since: since}
+		opts := deployment.LogsOptions{Since: since}
 		logsResp, err := deployClient.GetDatabaseLogs(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, databaseName, opts,
 		)

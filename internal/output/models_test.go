@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func intPtr(i int) *int { return &i }
@@ -13,8 +13,8 @@ func intPtr(i int) *int { return &i }
 func TestPrintRouterModelList(t *testing.T) {
 	tests := []struct {
 		name   string
-		models []clients.RouterModel
-		meta   clients.PageMeta
+		models []platform.RouterModel
+		meta   platform.PageMeta
 		want   string
 	}{
 		{
@@ -24,7 +24,7 @@ func TestPrintRouterModelList(t *testing.T) {
 		},
 		{
 			name: "single model",
-			models: []clients.RouterModel{
+			models: []platform.RouterModel{
 				{
 					ID:            "m-1",
 					ModelName:     "gpt-4o",
@@ -32,14 +32,14 @@ func TestPrintRouterModelList(t *testing.T) {
 					Region:        "us",
 				},
 			},
-			meta: clients.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			want: "NAME     CONTEXT   REGION   RECOMMENDED   ID\n" +
 				"gpt-4o   128000    us       -             m-1\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 		{
 			name: "recommendation ranks name their category, sorted",
-			models: []clients.RouterModel{
+			models: []platform.RouterModel{
 				{
 					ID:              "m-2",
 					ModelName:       "claude-opus-5",
@@ -48,7 +48,7 @@ func TestPrintRouterModelList(t *testing.T) {
 					Recommendations: map[string]int{"vision": 3, "chat": 1},
 				},
 			},
-			meta: clients.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
 			want: "NAME            CONTEXT   REGION   RECOMMENDED          ID\n" +
 				"claude-opus-5   200000    eu       chat #1, vision #3   m-2\n" +
 				"\nPage 1 of 1 (1 total items)\n",
@@ -71,13 +71,13 @@ func TestPrintRouterModelList(t *testing.T) {
 func TestPrintRouterModelDetail(t *testing.T) {
 	tests := []struct {
 		name        string
-		model       clients.RouterModel
+		model       platform.RouterModel
 		contains    []string
 		notContains []string
 	}{
 		{
 			name: "recommended model names each category",
-			model: clients.RouterModel{
+			model: platform.RouterModel{
 				ID:              "m-1",
 				ModelName:       "gpt-4o",
 				MatchPattern:    "gpt-4o*",
@@ -98,7 +98,7 @@ func TestPrintRouterModelDetail(t *testing.T) {
 		},
 		{
 			name:        "unrecommended model drops the line rather than printing the list view's placeholder",
-			model:       clients.RouterModel{ID: "m-1", ModelName: "gpt-4o", Region: "us"},
+			model:       platform.RouterModel{ID: "m-1", ModelName: "gpt-4o", Region: "us"},
 			notContains: []string{"Recommended:"},
 		},
 	}

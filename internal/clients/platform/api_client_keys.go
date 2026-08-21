@@ -1,4 +1,4 @@
-package clients
+package platform
 
 import (
 	"context"

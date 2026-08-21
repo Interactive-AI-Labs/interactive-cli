@@ -5,18 +5,18 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestPrintSecretList(t *testing.T) {
 	tests := []struct {
 		name    string
-		secrets []clients.SecretInfo
+		secrets []deployment.SecretInfo
 		want    string
 	}{
 		{
 			name:    "empty list prints message",
-			secrets: []clients.SecretInfo{},
+			secrets: []deployment.SecretInfo{},
 			want:    "No secrets found.\n",
 		},
 		{
@@ -26,7 +26,7 @@ func TestPrintSecretList(t *testing.T) {
 		},
 		{
 			name: "single secret with few keys",
-			secrets: []clients.SecretInfo{
+			secrets: []deployment.SecretInfo{
 				{
 					Name:      "db-creds",
 					Type:      "project",
@@ -39,7 +39,7 @@ func TestPrintSecretList(t *testing.T) {
 		},
 		{
 			name: "secret with many keys truncates",
-			secrets: []clients.SecretInfo{
+			secrets: []deployment.SecretInfo{
 				{
 					Name:      "big-secret",
 					Type:      "database",
@@ -52,7 +52,7 @@ func TestPrintSecretList(t *testing.T) {
 		},
 		{
 			name: "secret with exactly 3 keys truncates to 2 visible",
-			secrets: []clients.SecretInfo{
+			secrets: []deployment.SecretInfo{
 				{
 					Name:      "three-keys",
 					Type:      "database-superuser",
@@ -65,7 +65,7 @@ func TestPrintSecretList(t *testing.T) {
 		},
 		{
 			name: "secret with no keys shows empty",
-			secrets: []clients.SecretInfo{
+			secrets: []deployment.SecretInfo{
 				{
 					Name:      "empty-secret",
 					Type:      "project",

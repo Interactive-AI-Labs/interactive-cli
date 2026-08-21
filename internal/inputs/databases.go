@@ -3,7 +3,7 @@ package inputs
 import (
 	"fmt"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 type DatabaseInput struct {
@@ -24,22 +24,22 @@ type RestoreInput struct {
 	TargetTime     string
 }
 
-func BuildDatabaseRequestBody(in DatabaseInput) (clients.CreateDatabaseBody, error) {
-	body := clients.CreateDatabaseBody{
+func BuildDatabaseRequestBody(in DatabaseInput) (deployment.CreateDatabaseBody, error) {
+	body := deployment.CreateDatabaseBody{
 		Instances:       in.Instances,
 		PostgresVersion: in.PostgresVersion,
-		Resources: clients.Resources{
+		Resources: deployment.Resources{
 			CPU:    in.CPU,
 			Memory: in.Memory,
 		},
-		Storage: clients.DatabaseStorageConfig{
+		Storage: deployment.DatabaseStorageConfig{
 			Size: in.StorageSize,
 		},
 		Extensions: in.Extensions,
 	}
 
 	if in.BackupSchedule != "" || in.BackupRetention != "" {
-		body.Backup = &clients.DatabaseBackupConfig{
+		body.Backup = &deployment.DatabaseBackupConfig{
 			Schedule:        in.BackupSchedule,
 			RetentionPolicy: in.BackupRetention,
 		}
@@ -50,13 +50,13 @@ func BuildDatabaseRequestBody(in DatabaseInput) (clients.CreateDatabaseBody, err
 	return body, nil
 }
 
-func BuildRestoreRequestBody(in RestoreInput) (clients.RestoreDatabaseBody, error) {
+func BuildRestoreRequestBody(in RestoreInput) (deployment.RestoreDatabaseBody, error) {
 	base, err := BuildDatabaseRequestBody(in.DatabaseInput)
 	if err != nil {
-		return clients.RestoreDatabaseBody{}, err
+		return deployment.RestoreDatabaseBody{}, err
 	}
 
-	return clients.RestoreDatabaseBody{
+	return deployment.RestoreDatabaseBody{
 		CreateDatabaseBody: base,
 		SourceDatabase:     in.SourceDatabase,
 		TargetTime:         in.TargetTime,
@@ -89,9 +89,9 @@ func BuildDatabaseUpdatePatch(
 	in DatabaseInput,
 	clearBackup, clearStackId bool,
 	changed func(string) bool,
-) (clients.UpdatePatch, error) {
+) (deployment.UpdatePatch, error) {
 	f := DatabaseUpdateFlags
-	patch := clients.UpdatePatch{}
+	patch := deployment.UpdatePatch{}
 
 	backupFlags := []string{f.BackupSchedule, f.BackupRetention}
 	if clearBackup && anyChanged(changed, backupFlags...) {

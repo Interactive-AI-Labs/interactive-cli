@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -88,7 +88,7 @@ The server automatically assigns the "latest" label to new versions. Use
 				return err
 			}
 
-			body := clients.CreatePromptBody{
+			body := platform.CreatePromptBody{
 				Name:       name,
 				Prompt:     promptContent,
 				Labels:     labels,
@@ -165,7 +165,7 @@ Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 				return err
 			}
 
-			opts := clients.PromptListOptions{
+			opts := platform.PromptListOptions{
 				Page:   page,
 				Limit:  limit,
 				Folder: "prompts",
@@ -321,7 +321,7 @@ Exactly one of --file or --content must be specified.`,
 				return err
 			}
 
-			body := clients.CreatePromptBody{
+			body := platform.CreatePromptBody{
 				Name:   name,
 				Prompt: promptContent,
 				Labels: labels,
@@ -510,7 +510,7 @@ func makeGenericVersionsCmd() *cobra.Command {
 				return err
 			}
 
-			opts := clients.PromptListOptions{Limit: 1000, Folder: "prompts"}
+			opts := platform.PromptListOptions{Limit: 1000, Folder: "prompts"}
 			result, err := apiClient.ListPrompts(
 				cmd.Context(), pCtx.projectId, "", opts,
 			)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var validRouterModelRegions = []string{"us", "eu"}
@@ -12,7 +12,7 @@ var validRouterModelRegions = []string{"us", "eu"}
 // ValidateRouterModelListOptions validates router model list options. This
 // endpoint is 0-indexed (page >= 0) with a max limit of 100, so it cannot reuse
 // ValidatePagination.
-func ValidateRouterModelListOptions(opts clients.RouterModelListOptions) error {
+func ValidateRouterModelListOptions(opts platform.RouterModelListOptions) error {
 	if opts.Page < 0 {
 		return fmt.Errorf("page must be >= 0, got %d", opts.Page)
 	}

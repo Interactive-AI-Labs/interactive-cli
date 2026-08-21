@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v3"
@@ -48,12 +48,12 @@ services:
 					"web": {
 						Version:     "v1",
 						ServicePort: 8080,
-						Image: clients.ImageSpec{
+						Image: deployment.ImageSpec{
 							Type: "internal",
 							Name: "myapp",
 							Tag:  "latest",
 						},
-						Resources: clients.Resources{
+						Resources: deployment.Resources{
 							Memory: "256M",
 							CPU:    "1",
 						},
@@ -95,17 +95,17 @@ services:
 				Services: map[string]ServiceConfig{
 					"api": {
 						ServicePort: 3000,
-						Image: clients.ImageSpec{
+						Image: deployment.ImageSpec{
 							Type:       "external",
 							Repository: "nginx",
 							Name:       "nginx",
 							Tag:        "alpine",
 						},
-						Resources: clients.Resources{
+						Resources: deployment.Resources{
 							Memory: "128M",
 							CPU:    "1",
 						},
-						Autoscaling: &clients.Autoscaling{
+						Autoscaling: &deployment.Autoscaling{
 							MinReplicas:      2,
 							MaxReplicas:      10,
 							CPUPercentage:    utils.ToPtr(80),
@@ -149,10 +149,10 @@ databases:
 					"my-db": {
 						Instances:       2,
 						PostgresVersion: "16",
-						Resources:       clients.Resources{CPU: "1", Memory: "2G"},
-						Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+						Resources:       deployment.Resources{CPU: "1", Memory: "2G"},
+						Storage:         deployment.DatabaseStorageConfig{Size: "20G"},
 						Extensions:      []string{"vector", "pg_trgm"},
-						Backup: &clients.DatabaseBackupConfig{
+						Backup: &deployment.DatabaseBackupConfig{
 							Schedule:        "0 0 2 * * *",
 							RetentionPolicy: "30d",
 						},
@@ -190,12 +190,16 @@ mcps:
 				Databases:    map[string]DatabaseConfig{},
 				Mcps: map[string]McpConfig{
 					"tools": {
-						Type:      "internal",
-						Port:      8080,
-						Path:      "/mcp",
-						Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
-						Resources: clients.Resources{CPU: "250m", Memory: "512M"},
-						Auth:      clients.McpAuthBody{Type: "none"},
+						Type: "internal",
+						Port: 8080,
+						Path: "/mcp",
+						Image: deployment.ImageSpec{
+							Type: "internal",
+							Name: "my-mcp",
+							Tag:  "v1",
+						},
+						Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+						Auth:      deployment.McpAuthBody{Type: "none"},
 					},
 				},
 			},
@@ -301,46 +305,46 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 		name    string
 		input   ServiceConfig
 		stackId string
-		want    clients.CreateServiceBody
+		want    deployment.CreateServiceBody
 	}{
 		{
 			name: "with fixed replicas",
 			input: ServiceConfig{
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "internal",
 					Name: "myapp",
 					Tag:  "latest",
 				},
-				Resources: clients.Resources{
+				Resources: deployment.Resources{
 					Memory: "256M",
 					CPU:    "1",
 				},
-				Env: []clients.EnvVar{
+				Env: []deployment.EnvVar{
 					{Name: "KEY1", Value: "value1"},
 				},
-				SecretRefs: []clients.SecretRef{
+				SecretRefs: []deployment.SecretRef{
 					{SecretName: "my-secret"},
 				},
 				Endpoint: true,
 				Replicas: 3,
 			},
 			stackId: "stack-123",
-			want: clients.CreateServiceBody{
+			want: deployment.CreateServiceBody{
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "internal",
 					Name: "myapp",
 					Tag:  "latest",
 				},
-				Resources: clients.Resources{
+				Resources: deployment.Resources{
 					Memory: "256M",
 					CPU:    "1",
 				},
-				Env: []clients.EnvVar{
+				Env: []deployment.EnvVar{
 					{Name: "KEY1", Value: "value1"},
 				},
-				SecretRefs: []clients.SecretRef{
+				SecretRefs: []deployment.SecretRef{
 					{SecretName: "my-secret"},
 				},
 				Endpoint:    true,
@@ -353,17 +357,17 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 			name: "with autoscaling",
 			input: ServiceConfig{
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type:       "external",
 					Repository: "nginx",
 					Name:       "nginx",
 					Tag:        "latest",
 				},
-				Resources: clients.Resources{
+				Resources: deployment.Resources{
 					Memory: "128M",
 					CPU:    "1",
 				},
-				Autoscaling: &clients.Autoscaling{
+				Autoscaling: &deployment.Autoscaling{
 					MinReplicas:      2,
 					MaxReplicas:      10,
 					CPUPercentage:    utils.ToPtr(80),
@@ -371,20 +375,20 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 				},
 			},
 			stackId: "stack-456",
-			want: clients.CreateServiceBody{
+			want: deployment.CreateServiceBody{
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type:       "external",
 					Repository: "nginx",
 					Name:       "nginx",
 					Tag:        "latest",
 				},
-				Resources: clients.Resources{
+				Resources: deployment.Resources{
 					Memory: "128M",
 					CPU:    "1",
 				},
 				Replicas: 0,
-				Autoscaling: &clients.Autoscaling{
+				Autoscaling: &deployment.Autoscaling{
 					MinReplicas:      2,
 					MaxReplicas:      10,
 					CPUPercentage:    utils.ToPtr(80),
@@ -397,26 +401,26 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 			name: "nil autoscaling with replicas",
 			input: ServiceConfig{
 				ServicePort: 3000,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "internal",
 					Name: "app",
 					Tag:  "v1",
 				},
-				Resources: clients.Resources{
+				Resources: deployment.Resources{
 					Memory: "512M",
 					CPU:    "2",
 				},
 				Replicas: 5,
 			},
 			stackId: "stack-789",
-			want: clients.CreateServiceBody{
+			want: deployment.CreateServiceBody{
 				ServicePort: 3000,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type: "internal",
 					Name: "app",
 					Tag:  "v1",
 				},
-				Resources: clients.Resources{
+				Resources: deployment.Resources{
 					Memory: "512M",
 					CPU:    "2",
 				},
@@ -443,29 +447,29 @@ func TestDatabaseConfigToCreateRequest(t *testing.T) {
 		name    string
 		input   DatabaseConfig
 		stackId string
-		want    clients.CreateDatabaseBody
+		want    deployment.CreateDatabaseBody
 	}{
 		{
 			name: "with backup",
 			input: DatabaseConfig{
 				Instances:       2,
 				PostgresVersion: "16",
-				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Resources:       deployment.Resources{CPU: "1", Memory: "2G"},
+				Storage:         deployment.DatabaseStorageConfig{Size: "20G"},
 				Extensions:      []string{"vector", "pg_trgm"},
-				Backup: &clients.DatabaseBackupConfig{
+				Backup: &deployment.DatabaseBackupConfig{
 					Schedule:        "0 0 2 * * *",
 					RetentionPolicy: "30d",
 				},
 			},
 			stackId: "stack-123",
-			want: clients.CreateDatabaseBody{
+			want: deployment.CreateDatabaseBody{
 				Instances:       2,
 				PostgresVersion: "16",
-				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Resources:       deployment.Resources{CPU: "1", Memory: "2G"},
+				Storage:         deployment.DatabaseStorageConfig{Size: "20G"},
 				Extensions:      []string{"vector", "pg_trgm"},
-				Backup: &clients.DatabaseBackupConfig{
+				Backup: &deployment.DatabaseBackupConfig{
 					Schedule:        "0 0 2 * * *",
 					RetentionPolicy: "30d",
 				},
@@ -476,14 +480,14 @@ func TestDatabaseConfigToCreateRequest(t *testing.T) {
 			name: "without backup",
 			input: DatabaseConfig{
 				Instances: 1,
-				Resources: clients.Resources{CPU: "0.5", Memory: "1G"},
-				Storage:   clients.DatabaseStorageConfig{Size: "10G"},
+				Resources: deployment.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:   deployment.DatabaseStorageConfig{Size: "10G"},
 			},
 			stackId: "stack-456",
-			want: clients.CreateDatabaseBody{
+			want: deployment.CreateDatabaseBody{
 				Instances: 1,
-				Resources: clients.Resources{CPU: "0.5", Memory: "1G"},
-				Storage:   clients.DatabaseStorageConfig{Size: "10G"},
+				Resources: deployment.Resources{CPU: "0.5", Memory: "1G"},
+				Storage:   deployment.DatabaseStorageConfig{Size: "10G"},
 				StackId:   "stack-456",
 			},
 		},
@@ -503,7 +507,7 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 	tests := []struct {
 		name  string
 		input McpConfig
-		want  clients.CreateMcpBody
+		want  deployment.CreateMcpBody
 	}{
 		{
 			name: "internal",
@@ -511,17 +515,17 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 				Type:      "internal",
 				Port:      8080,
 				Path:      "/mcp",
-				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
-				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
-				Auth:      clients.McpAuthBody{Type: "none"},
+				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Auth:      deployment.McpAuthBody{Type: "none"},
 			},
-			want: clients.CreateMcpBody{
+			want: deployment.CreateMcpBody{
 				Type:      "internal",
 				Port:      8080,
 				Path:      "/mcp",
-				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
-				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
-				Auth:      clients.McpAuthBody{Type: "none"},
+				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Auth:      deployment.McpAuthBody{Type: "none"},
 				StackId:   "stack-123",
 			},
 		},
@@ -530,12 +534,12 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 			input: McpConfig{
 				Type:        "external",
 				EndpointURL: "https://example.com/mcp",
-				Auth:        clients.McpAuthBody{Type: "bearer", Credential: "token"},
+				Auth:        deployment.McpAuthBody{Type: "bearer", Credential: "token"},
 			},
-			want: clients.CreateMcpBody{
+			want: deployment.CreateMcpBody{
 				Type:        "external",
 				EndpointURL: "https://example.com/mcp",
-				Auth:        clients.McpAuthBody{Type: "bearer", Credential: "token"},
+				Auth:        deployment.McpAuthBody{Type: "bearer", Credential: "token"},
 				StackId:     "stack-123",
 			},
 		},
@@ -554,43 +558,43 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 func TestServiceConfigFromDescribe(t *testing.T) {
 	tests := []struct {
 		name string
-		desc *clients.DescribeServiceResponse
+		desc *deployment.DescribeServiceResponse
 		want ServiceConfig
 	}{
 		{
 			name: "with endpoint",
-			desc: &clients.DescribeServiceResponse{
+			desc: &deployment.DescribeServiceResponse{
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type:       "external",
 					Repository: "docker.io",
 					Name:       "nginx",
 					Tag:        "latest",
 				},
-				Resources:  clients.Resources{Memory: "512M", CPU: "1"},
-				Env:        []clients.EnvVar{{Name: "K", Value: "V"}},
-				SecretRefs: []clients.SecretRef{{SecretName: "s"}},
+				Resources:  deployment.Resources{Memory: "512M", CPU: "1"},
+				Env:        []deployment.EnvVar{{Name: "K", Value: "V"}},
+				SecretRefs: []deployment.SecretRef{{SecretName: "s"}},
 				Endpoint:   "example.com",
 				Replicas:   3,
 			},
 			want: ServiceConfig{
 				ServicePort: 8080,
-				Image: clients.ImageSpec{
+				Image: deployment.ImageSpec{
 					Type:       "external",
 					Repository: "docker.io",
 					Name:       "nginx",
 					Tag:        "latest",
 				},
-				Resources:  clients.Resources{Memory: "512M", CPU: "1"},
-				Env:        []clients.EnvVar{{Name: "K", Value: "V"}},
-				SecretRefs: []clients.SecretRef{{SecretName: "s"}},
+				Resources:  deployment.Resources{Memory: "512M", CPU: "1"},
+				Env:        []deployment.EnvVar{{Name: "K", Value: "V"}},
+				SecretRefs: []deployment.SecretRef{{SecretName: "s"}},
 				Endpoint:   true,
 				Replicas:   3,
 			},
 		},
 		{
 			name: "without endpoint",
-			desc: &clients.DescribeServiceResponse{ServicePort: 8080},
+			desc: &deployment.DescribeServiceResponse{ServicePort: 8080},
 			want: ServiceConfig{ServicePort: 8080},
 		},
 	}
@@ -607,20 +611,20 @@ func TestServiceConfigFromDescribe(t *testing.T) {
 func TestDatabaseConfigFromDescribe(t *testing.T) {
 	tests := []struct {
 		name string
-		desc *clients.DescribeDatabaseResponse
+		desc *deployment.DescribeDatabaseResponse
 		want DatabaseConfig
 	}{
 		{
 			name: "backup enabled",
-			desc: &clients.DescribeDatabaseResponse{
+			desc: &deployment.DescribeDatabaseResponse{
 				Replicas:        2,
 				PostgresVersion: "16",
-				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Resources:       deployment.Resources{CPU: "1", Memory: "2G"},
+				Storage:         deployment.DatabaseStorageConfig{Size: "20G"},
 				Extensions:      []string{"vector"},
-				Backup: clients.DatabaseBackupStatus{
+				Backup: deployment.DatabaseBackupStatus{
 					Enabled: true,
-					DatabaseBackupConfig: clients.DatabaseBackupConfig{
+					DatabaseBackupConfig: deployment.DatabaseBackupConfig{
 						Schedule:        "0 0 2 * * *",
 						RetentionPolicy: "30d",
 					},
@@ -629,10 +633,10 @@ func TestDatabaseConfigFromDescribe(t *testing.T) {
 			want: DatabaseConfig{
 				Instances:       2,
 				PostgresVersion: "16",
-				Resources:       clients.Resources{CPU: "1", Memory: "2G"},
-				Storage:         clients.DatabaseStorageConfig{Size: "20G"},
+				Resources:       deployment.Resources{CPU: "1", Memory: "2G"},
+				Storage:         deployment.DatabaseStorageConfig{Size: "20G"},
 				Extensions:      []string{"vector"},
-				Backup: &clients.DatabaseBackupConfig{
+				Backup: &deployment.DatabaseBackupConfig{
 					Schedule:        "0 0 2 * * *",
 					RetentionPolicy: "30d",
 				},
@@ -640,9 +644,9 @@ func TestDatabaseConfigFromDescribe(t *testing.T) {
 		},
 		{
 			name: "backup disabled",
-			desc: &clients.DescribeDatabaseResponse{
+			desc: &deployment.DescribeDatabaseResponse{
 				Replicas: 1,
-				Backup:   clients.DatabaseBackupStatus{Enabled: false},
+				Backup:   deployment.DatabaseBackupStatus{Enabled: false},
 			},
 			want: DatabaseConfig{Instances: 1},
 		},
@@ -660,41 +664,41 @@ func TestDatabaseConfigFromDescribe(t *testing.T) {
 func TestMcpConfigFromDescribe(t *testing.T) {
 	tests := []struct {
 		name string
-		desc *clients.DescribeMcpResponse
+		desc *deployment.DescribeMcpResponse
 		want McpConfig
 	}{
 		{
 			name: "internal hides generated endpoint",
-			desc: &clients.DescribeMcpResponse{
-				McpOutput: clients.McpOutput{
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
 					Type:        "internal",
 					EndpointURL: "http://tools.p1.svc.cluster.local:8080/mcp",
-					Auth:        clients.McpAuthInfo{Type: "none"},
+					Auth:        deployment.McpAuthInfo{Type: "none"},
 				},
 				Port:      8080,
 				Path:      "/mcp",
-				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
-				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
-				Env:       []clients.EnvVar{{Name: "K", Value: "V"}},
+				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Env:       []deployment.EnvVar{{Name: "K", Value: "V"}},
 			},
 			want: McpConfig{
 				Type:      "internal",
 				Port:      8080,
 				Path:      "/mcp",
-				Image:     clients.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
-				Resources: clients.Resources{CPU: "250m", Memory: "512M"},
-				Env:       []clients.EnvVar{{Name: "K", Value: "V"}},
-				Auth:      clients.McpAuthBody{Type: "none"},
+				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
+				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Env:       []deployment.EnvVar{{Name: "K", Value: "V"}},
+				Auth:      deployment.McpAuthBody{Type: "none"},
 			},
 		},
 		{
 			name: "external keeps endpoint and auth routing",
-			desc: &clients.DescribeMcpResponse{
-				McpOutput: clients.McpOutput{
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
 					Type:        "external",
 					EndpointURL: "https://example.com/mcp",
 					CatalogID:   "github",
-					Auth: clients.McpAuthInfo{
+					Auth: deployment.McpAuthInfo{
 						Type:         "custom",
 						Header:       "X-Token",
 						HeaderPrefix: "Token ",
@@ -706,7 +710,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Type:        "external",
 				EndpointURL: "https://example.com/mcp",
 				CatalogID:   "github",
-				Auth: clients.McpAuthBody{
+				Auth: deployment.McpAuthBody{
 					Type:         "custom",
 					Header:       "X-Token",
 					HeaderPrefix: "Token ",
@@ -732,7 +736,7 @@ func TestMcpAuthYAMLOmitsEmptyFields(t *testing.T) {
 		Project:      "test-project",
 		StackId:      "stack-123",
 		Mcps: map[string]McpConfig{
-			"tools": {Auth: clients.McpAuthBody{Type: "none"}},
+			"tools": {Auth: deployment.McpAuthBody{Type: "none"}},
 		},
 	}
 

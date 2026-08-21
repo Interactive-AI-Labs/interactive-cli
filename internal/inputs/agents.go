@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"gopkg.in/yaml.v3"
 )
 
@@ -109,37 +109,41 @@ func DetachMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 	return cfg, nil
 }
 
-func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
+func BuildAgentRequestBody(in AgentInput) (deployment.CreateAgentBody, error) {
 	if err := ValidateServiceEnvVars(in.EnvVars); err != nil {
-		return clients.CreateAgentBody{}, err
+		return deployment.CreateAgentBody{}, err
 	}
-	var env []clients.EnvVar
+	var env []deployment.EnvVar
 	for _, e := range in.EnvVars {
 		parts := strings.SplitN(e, "=", 2)
-		env = append(env, clients.EnvVar{
+		env = append(env, deployment.EnvVar{
 			Name:  strings.TrimSpace(parts[0]),
 			Value: parts[1],
 		})
 	}
 
 	if err := ValidateServiceSecretRefs(in.SecretRefs); err != nil {
-		return clients.CreateAgentBody{}, err
+		return deployment.CreateAgentBody{}, err
 	}
-	var secretRefs []clients.SecretRef
+	var secretRefs []deployment.SecretRef
 	for _, name := range in.SecretRefs {
-		secretRefs = append(secretRefs, clients.SecretRef{
+		secretRefs = append(secretRefs, deployment.SecretRef{
 			SecretName: strings.TrimSpace(name),
 		})
 	}
 
 	data, err := os.ReadFile(in.FilePath)
 	if err != nil {
-		return clients.CreateAgentBody{}, fmt.Errorf("failed to read file %q: %w", in.FilePath, err)
+		return deployment.CreateAgentBody{}, fmt.Errorf(
+			"failed to read file %q: %w",
+			in.FilePath,
+			err,
+		)
 	}
 
 	var agentConfig any
 	if err := yaml.Unmarshal(data, &agentConfig); err != nil {
-		return clients.CreateAgentBody{}, fmt.Errorf(
+		return deployment.CreateAgentBody{}, fmt.Errorf(
 			"failed to parse YAML from %q: %w",
 			in.FilePath,
 			err,
@@ -147,10 +151,10 @@ func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
 	}
 	agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
 	if err != nil {
-		return clients.CreateAgentBody{}, err
+		return deployment.CreateAgentBody{}, err
 	}
 
-	reqBody := clients.CreateAgentBody{
+	reqBody := deployment.CreateAgentBody{
 		Id:          in.Id,
 		Version:     in.Version,
 		AgentConfig: agentConfig,
@@ -161,7 +165,7 @@ func BuildAgentRequestBody(in AgentInput) (clients.CreateAgentBody, error) {
 	}
 
 	if in.ScheduleUptime != "" || in.ScheduleDowntime != "" || in.ScheduleTimezone != "" {
-		reqBody.Schedule = &clients.Schedule{
+		reqBody.Schedule = &deployment.Schedule{
 			Uptime:   in.ScheduleUptime,
 			Downtime: in.ScheduleDowntime,
 			Timezone: in.ScheduleTimezone,
@@ -204,9 +208,9 @@ func BuildAgentUpdatePatch(
 	in AgentInput,
 	clearEnv, clearSecret, clearSchedule, clearStackId bool,
 	changed func(string) bool,
-) (clients.UpdatePatch, error) {
+) (deployment.UpdatePatch, error) {
 	f := AgentUpdateFlags
-	patch := clients.UpdatePatch{}
+	patch := deployment.UpdatePatch{}
 
 	if changed(f.Id) {
 		if err := setJSON(patch, "id", in.Id); err != nil {

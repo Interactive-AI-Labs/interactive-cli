@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
-func PrintProjectList(out io.Writer, projects []clients.Project, selectedProject string) error {
+func PrintProjectList(out io.Writer, projects []platform.Project, selectedProject string) error {
 	fmt.Fprintln(out)
 
 	headers := []string{"NAME", "ROLE"}

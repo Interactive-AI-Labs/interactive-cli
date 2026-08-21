@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 // PrintDocumentList renders a documents list as a table.
-func PrintDocumentList(out io.Writer, list *clients.DocumentList) error {
+func PrintDocumentList(out io.Writer, list *deployment.DocumentList) error {
 	if len(list.Documents) == 0 {
 		fmt.Fprintln(out, "No documents found.")
 		return nil
@@ -30,7 +30,7 @@ func PrintDocumentList(out io.Writer, list *clients.DocumentList) error {
 }
 
 // PrintDocumentChunks renders one document's chunks: a header plus a chunk table.
-func PrintDocumentChunks(out io.Writer, doc *clients.DocumentChunks) error {
+func PrintDocumentChunks(out io.Writer, doc *deployment.DocumentChunks) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Document:\t%s\n", doc.DocumentID)
 	if err := w.Flush(); err != nil {

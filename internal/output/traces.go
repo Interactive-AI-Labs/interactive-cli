@@ -7,57 +7,57 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var traceColumnMap = map[string]struct {
 	Header string
-	Value  func(t *clients.TraceInfo) string
+	Value  func(t *platform.TraceInfo) string
 }{
-	"id":   {"ID", func(t *clients.TraceInfo) string { return t.ID }},
-	"name": {"NAME", func(t *clients.TraceInfo) string { return t.Name }},
+	"id":   {"ID", func(t *platform.TraceInfo) string { return t.ID }},
+	"name": {"NAME", func(t *platform.TraceInfo) string { return t.Name }},
 	"timestamp": {
 		"TIMESTAMP",
-		func(t *clients.TraceInfo) string { return LocalTime(t.Timestamp) },
+		func(t *platform.TraceInfo) string { return LocalTime(t.Timestamp) },
 	},
-	"user_id":     {"USER ID", func(t *clients.TraceInfo) string { return t.UserID }},
-	"session_id":  {"SESSION ID", func(t *clients.TraceInfo) string { return t.SessionID }},
-	"release":     {"RELEASE", func(t *clients.TraceInfo) string { return t.Release }},
-	"version":     {"VERSION", func(t *clients.TraceInfo) string { return t.Version }},
-	"environment": {"ENVIRONMENT", func(t *clients.TraceInfo) string { return t.Environment }},
+	"user_id":     {"USER ID", func(t *platform.TraceInfo) string { return t.UserID }},
+	"session_id":  {"SESSION ID", func(t *platform.TraceInfo) string { return t.SessionID }},
+	"release":     {"RELEASE", func(t *platform.TraceInfo) string { return t.Release }},
+	"version":     {"VERSION", func(t *platform.TraceInfo) string { return t.Version }},
+	"environment": {"ENVIRONMENT", func(t *platform.TraceInfo) string { return t.Environment }},
 	"public": {
 		"PUBLIC",
-		func(t *clients.TraceInfo) string { return fmt.Sprintf("%t", t.Public) },
+		func(t *platform.TraceInfo) string { return fmt.Sprintf("%t", t.Public) },
 	},
 	"latency": {
 		"LATENCY",
-		func(t *clients.TraceInfo) string { return formatLatencyMs(t.LatencyMs) },
+		func(t *platform.TraceInfo) string { return formatLatencyMs(t.LatencyMs) },
 	},
-	"cost":  {"COST", func(t *clients.TraceInfo) string { return formatCost(t.TotalCost) }},
-	"tags":  {"TAGS", func(t *clients.TraceInfo) string { return TruncateList(t.Tags, 3) }},
-	"level": {"LEVEL", func(t *clients.TraceInfo) string { return t.Level }},
+	"cost":  {"COST", func(t *platform.TraceInfo) string { return formatCost(t.TotalCost) }},
+	"tags":  {"TAGS", func(t *platform.TraceInfo) string { return TruncateList(t.Tags, 3) }},
+	"level": {"LEVEL", func(t *platform.TraceInfo) string { return t.Level }},
 	"observation_count": {
 		"OBSERVATIONS",
-		func(t *clients.TraceInfo) string { return formatInt(t.ObservationCount) },
+		func(t *platform.TraceInfo) string { return formatInt(t.ObservationCount) },
 	},
 	"input_tokens": {
 		"INPUT TOKENS",
-		func(t *clients.TraceInfo) string { return formatInt(t.InputTokens) },
+		func(t *platform.TraceInfo) string { return formatInt(t.InputTokens) },
 	},
 	"output_tokens": {
 		"OUTPUT TOKENS",
-		func(t *clients.TraceInfo) string { return formatInt(t.OutputTokens) },
+		func(t *platform.TraceInfo) string { return formatInt(t.OutputTokens) },
 	},
 	"total_tokens": {
 		"TOTAL TOKENS",
-		func(t *clients.TraceInfo) string { return formatInt(t.TotalTokens) },
+		func(t *platform.TraceInfo) string { return formatInt(t.TotalTokens) },
 	},
 }
 
 func PrintTraceList(
 	out io.Writer,
-	traces []clients.TraceInfo,
-	meta clients.TraceMeta,
+	traces []platform.TraceInfo,
+	meta platform.TraceMeta,
 	columns []string,
 ) error {
 	if len(traces) == 0 {
@@ -98,7 +98,7 @@ const (
 	colorCyan   = "\033[36m"
 )
 
-func PrintTraceDetail(out io.Writer, trace *clients.TraceDetail) error {
+func PrintTraceDetail(out io.Writer, trace *platform.TraceDetail) error {
 	isTTY := IsTerminal(out)
 	const jsonPrefix = "  "
 

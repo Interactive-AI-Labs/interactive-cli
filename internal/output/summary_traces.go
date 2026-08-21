@@ -5,14 +5,14 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/summary"
 )
 
 func PrintTraceSummaryList(
 	out io.Writer,
 	items []summary.TraceSummaryItem,
-	meta clients.TraceMeta,
+	meta platform.TraceMeta,
 ) error {
 	if len(items) == 0 {
 		_, err := fmt.Fprintln(out, "No traces found.")

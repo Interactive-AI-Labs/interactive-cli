@@ -4,35 +4,35 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 var queueItemColumnMap = map[string]struct {
 	Header string
-	Value  func(q *clients.QueueItemInfo) string
+	Value  func(q *platform.QueueItemInfo) string
 }{
-	"id":          {"ID", func(q *clients.QueueItemInfo) string { return q.ID }},
-	"object_id":   {"OBJECT ID", func(q *clients.QueueItemInfo) string { return q.ObjectID }},
-	"object_type": {"OBJECT TYPE", func(q *clients.QueueItemInfo) string { return q.ObjectType }},
-	"status":      {"STATUS", func(q *clients.QueueItemInfo) string { return q.Status }},
+	"id":          {"ID", func(q *platform.QueueItemInfo) string { return q.ID }},
+	"object_id":   {"OBJECT ID", func(q *platform.QueueItemInfo) string { return q.ObjectID }},
+	"object_type": {"OBJECT TYPE", func(q *platform.QueueItemInfo) string { return q.ObjectType }},
+	"status":      {"STATUS", func(q *platform.QueueItemInfo) string { return q.Status }},
 	"completed_at": {
 		"COMPLETED AT",
-		func(q *clients.QueueItemInfo) string { return LocalTime(q.CompletedAt) },
+		func(q *platform.QueueItemInfo) string { return LocalTime(q.CompletedAt) },
 	},
 	"created_at": {
 		"CREATED AT",
-		func(q *clients.QueueItemInfo) string { return LocalTime(q.CreatedAt) },
+		func(q *platform.QueueItemInfo) string { return LocalTime(q.CreatedAt) },
 	},
 	"updated_at": {
 		"UPDATED AT",
-		func(q *clients.QueueItemInfo) string { return LocalTime(q.UpdatedAt) },
+		func(q *platform.QueueItemInfo) string { return LocalTime(q.UpdatedAt) },
 	},
 }
 
 func PrintQueueItemList(
 	out io.Writer,
-	items []clients.QueueItemInfo,
-	meta clients.PageMeta,
+	items []platform.QueueItemInfo,
+	meta platform.PageMeta,
 	columns []string,
 ) error {
 	if len(items) == 0 {
@@ -66,7 +66,7 @@ func PrintQueueItemList(
 	return nil
 }
 
-func PrintQueueItemDetail(out io.Writer, item *clients.QueueItemInfo) error {
+func PrintQueueItemDetail(out io.Writer, item *platform.QueueItemInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
 	fmt.Fprintf(w, "Object ID:\t%s\n", item.ObjectID)
@@ -80,7 +80,7 @@ func PrintQueueItemDetail(out io.Writer, item *clients.QueueItemInfo) error {
 	return w.Flush()
 }
 
-func PrintQueueItemCreateResult(out io.Writer, item *clients.QueueItemInfo) error {
+func PrintQueueItemCreateResult(out io.Writer, item *platform.QueueItemInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created queue item %q.\n", item.ID)
 	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
@@ -91,7 +91,7 @@ func PrintQueueItemCreateResult(out io.Writer, item *clients.QueueItemInfo) erro
 	return w.Flush()
 }
 
-func PrintQueueItemUpdateResult(out io.Writer, item *clients.QueueItemInfo) error {
+func PrintQueueItemUpdateResult(out io.Writer, item *platform.QueueItemInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Updated queue item %q.\n", item.ID)
 	fmt.Fprintf(w, "Status:\t%s\n", item.Status)

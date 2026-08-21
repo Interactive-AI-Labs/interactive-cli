@@ -4,20 +4,20 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestSessionSummary(t *testing.T) {
 	cases := []struct {
 		name      string
 		sessionID string
-		traces    []clients.TraceInfo
+		traces    []platform.TraceInfo
 		want      string
 	}{
 		{
 			name:      "transcript with tools and a journey",
 			sessionID: "s_abc",
-			traces: []clients.TraceInfo{
+			traces: []platform.TraceInfo{
 				{
 					ID: "t1", Name: "turn", Timestamp: "2026-06-22T14:30:00Z",
 					Tags:   []string{"agent:driveaway-agent", "tool:check_availability"},
@@ -48,7 +48,7 @@ func TestSessionSummary(t *testing.T) {
 		{
 			name:      "multiple agents surface deduped in order",
 			sessionID: "s_multi",
-			traces: []clients.TraceInfo{
+			traces: []platform.TraceInfo{
 				{ID: "t1", Timestamp: "2026-06-22T14:30:00Z", Tags: []string{"agent:agent-chat"}},
 				{
 					ID:        "t2",
@@ -65,7 +65,7 @@ func TestSessionSummary(t *testing.T) {
 		{
 			name:      "single turn omits duration",
 			sessionID: "s_one",
-			traces: []clients.TraceInfo{
+			traces: []platform.TraceInfo{
 				{ID: "t1", Timestamp: "2026-06-22T14:30:00Z", Tags: []string{"agent:agent-chat"}},
 			},
 			want: `{
@@ -92,13 +92,13 @@ func TestSessionSummary_Cost(t *testing.T) {
 	c := func(v float64) *float64 { return &v }
 	cases := []struct {
 		name     string
-		traces   []clients.TraceInfo
+		traces   []platform.TraceInfo
 		wantNil  bool
 		wantCost float64 // checked with tolerance; ignored when wantNil
 	}{
 		{
 			name: "sums non-nil costs, ignores gaps",
-			traces: []clients.TraceInfo{
+			traces: []platform.TraceInfo{
 				{ID: "t1", Timestamp: "2026-06-22T14:30:00Z", TotalCost: c(0.05)},
 				{ID: "t2", Timestamp: "2026-06-22T14:31:00Z"}, // nil cost
 				{ID: "t3", Timestamp: "2026-06-22T14:32:00Z", TotalCost: c(0.03)},
@@ -107,7 +107,7 @@ func TestSessionSummary_Cost(t *testing.T) {
 		},
 		{
 			name:    "no costs anywhere yields nil",
-			traces:  []clients.TraceInfo{{ID: "t1", Timestamp: "2026-06-22T14:30:00Z"}},
+			traces:  []platform.TraceInfo{{ID: "t1", Timestamp: "2026-06-22T14:30:00Z"}},
 			wantNil: true,
 		},
 	}
