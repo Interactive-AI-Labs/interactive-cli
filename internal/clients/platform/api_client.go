@@ -1038,9 +1038,6 @@ type CreatePromptBody struct {
 	CommitMessage string         `json:"commitMessage,omitempty"`
 }
 
-// PromptVersionMeta is one version as the history endpoint returns it. Under
-// API-key auth only Version is populated: the endpoint carrying the rest is
-// cookie/bearer-only.
 type PromptVersionMeta struct {
 	Version       int    `json:"version"`
 	CommitMessage string `json:"commitMessage"`
@@ -1492,12 +1489,8 @@ func (c *APIClient) GetAgentSchema(
 	return &result, nil
 }
 
-// ListPromptVersions returns every version of a prompt with the metadata the
-// platform UI shows in its history: message, date and author.
-//
 // The history endpoint is a tRPC query and answers 501 for API-key callers, so
-// in that mode the version numbers are read from the prompt list instead and
-// the remaining fields are left empty.
+// in that mode only the version numbers are available, from the prompt list.
 func (c *APIClient) ListPromptVersions(
 	ctx context.Context,
 	projectId string,
@@ -1545,8 +1538,6 @@ func (c *APIClient) ListPromptVersions(
 	return versionsData.PromptVersions, nil
 }
 
-// listPromptVersionNumbers finds a prompt in the project listing and returns
-// its version numbers with no further metadata.
 func (c *APIClient) listPromptVersionNumbers(
 	ctx context.Context,
 	projectId string,

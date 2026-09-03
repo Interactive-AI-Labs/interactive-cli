@@ -701,8 +701,6 @@ func TestAPIClientListPromptVersions(t *testing.T) {
 	}
 }
 
-// Under API-key auth the history endpoint answers 501, so the client reads the
-// version numbers from the prompt listing and leaves the rest empty.
 func TestAPIClientListPromptVersionsAPIKeyMode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

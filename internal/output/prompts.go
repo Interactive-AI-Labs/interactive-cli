@@ -105,9 +105,6 @@ func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	return w.Flush()
 }
 
-// PrintPromptVersions renders the version history newest-first, showing the
-// same three facts as the platform UI's history row. Metadata the API-key path
-// cannot supply renders as an em dash.
 func PrintPromptVersions(out io.Writer, versions []platform.PromptVersionMeta) error {
 	if len(versions) == 0 {
 		fmt.Fprintln(out, "No versions found.")
@@ -139,8 +136,6 @@ func PrintPromptVersions(out io.Writer, versions []platform.PromptVersionMeta) e
 	return PrintTable(out, headers, rows)
 }
 
-// promptVersionAuthor prefers the resolved display name, as the UI history row
-// does, and falls back to the raw user id.
 func promptVersionAuthor(v platform.PromptVersionMeta) string {
 	if v.Creator != "" {
 		return v.Creator
