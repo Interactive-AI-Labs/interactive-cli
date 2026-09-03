@@ -113,42 +113,44 @@ func TestPrintPromptList(t *testing.T) {
 func TestPrintPromptVersions(t *testing.T) {
 	tests := []struct {
 		name     string
-		versions []int
+		versions []platform.PromptVersionMeta
 		want     string
 	}{
 		{
-			name:     "empty list prints message",
-			versions: []int{},
-			want:     "No versions found.\n",
+			name: "empty list prints message",
+			want: "No versions found.\n",
 		},
 		{
-			name:     "nil list prints message",
-			versions: nil,
-			want:     "No versions found.\n",
+			name: "history with messages, and rows missing metadata",
+			versions: []platform.PromptVersionMeta{
+				{
+					Version:       2,
+					CommitMessage: "add identity check",
+					CreatedAt:     "2026-09-03",
+					CreatedBy:     "cmqf92wgu0115su07j8p600o8",
+					Creator:       "Daniel Loefgren",
+				},
+				{
+					Version:   1,
+					CreatedAt: "2026-08-27",
+					CreatedBy: "cmmjdzmai00uozn079s95gbnf",
+				},
+			},
+			want: "    VERSION   UPDATED      BY                          MESSAGE\n" +
+				"*   2         2026-09-03   Daniel Loefgren             add identity check\n" +
+				"    1         2026-08-27   cmmjdzmai00uozn079s95gbnf   —\n",
 		},
 		{
-			name:     "single version",
-			versions: []int{1},
-			want: "VERSION\n" +
-				"1\n",
-		},
-		{
-			name:     "multiple versions sorted descending",
-			versions: []int{1, 3, 2},
-			want: "VERSION\n" +
-				"3\n" +
-				"2\n" +
-				"1\n",
-		},
-		{
-			name:     "already sorted input still sorted descending",
-			versions: []int{5, 4, 3, 2, 1},
-			want: "VERSION\n" +
-				"5\n" +
-				"4\n" +
-				"3\n" +
-				"2\n" +
-				"1\n",
+			name: "version numbers only, as under API-key auth",
+			versions: []platform.PromptVersionMeta{
+				{Version: 1},
+				{Version: 3},
+				{Version: 2},
+			},
+			want: "    VERSION   UPDATED   BY   MESSAGE\n" +
+				"*   3         —         —    —\n" +
+				"    2         —         —    —\n" +
+				"    1         —         —    —\n",
 		},
 	}
 

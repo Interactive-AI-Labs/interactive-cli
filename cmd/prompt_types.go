@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -529,11 +528,14 @@ func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
-			versions, err := findPromptVersions(
-				cmd.Context(), apiClient, pCtx.projectId, ptCfg.RouteSegment, name, ptCfg.TypeName,
+			versions, err := apiClient.ListPromptVersions(
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name,
 			)
 			if err != nil {
 				return err
+			}
+			if len(versions) == 0 {
+				return fmt.Errorf("%s %q not found", ptCfg.TypeName, name)
 			}
 
 			return output.PrintPromptVersions(out, versions)
@@ -598,24 +600,4 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
-}
-
-func findPromptVersions(
-	ctx context.Context,
-	apiClient *platform.APIClient,
-	projectId, routeSegment, name, typeName string,
-) ([]int, error) {
-	opts := platform.PromptListOptions{Limit: 1000}
-	result, err := apiClient.ListPrompts(ctx, projectId, routeSegment, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, p := range result.Prompts {
-		if p.Name == name {
-			return p.Versions, nil
-		}
-	}
-
-	return nil, fmt.Errorf("%s %q not found", typeName, name)
 }

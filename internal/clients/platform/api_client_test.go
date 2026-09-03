@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -646,5 +647,122 @@ func TestAPIClientListMetricsDailyReturnsServerMessage(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "bad filter") {
 		t.Fatalf("error = %v, want extracted server message", err)
+	}
+}
+
+func TestAPIClientListPromptVersions(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("method = %s, want GET", r.Method)
+		}
+		if r.URL.EscapedPath() != "/api/platform/v1/projects/proj-1/prompts/routines/by-name/my%2Froutine/versions" {
+			t.Fatalf("path = %s", r.URL.EscapedPath())
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"promptVersions":[`+
+				`{"version":2,"commitMessage":"add identity check","createdAt":"2026-09-03T14:06:49.772Z",`+
+				`"createdBy":"user-1","creator":"Daniel Loefgren"},`+
+				`{"version":1,"commitMessage":null,"createdAt":"2026-08-27T09:41:00.000Z","createdBy":"user-2"}`+
+				`],"totalCount":2}}`,
+		)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	versions, err := client.ListPromptVersions(
+		context.Background(), "proj-1", "routines", "my/routine",
+	)
+	if err != nil {
+		t.Fatalf("ListPromptVersions() error = %v", err)
+	}
+	if len(versions) != 2 {
+		t.Fatalf("got %d versions, want 2", len(versions))
+	}
+	if versions[0].CommitMessage != "add identity check" {
+		t.Fatalf("commit message = %q", versions[0].CommitMessage)
+	}
+	if versions[0].Creator != "Daniel Loefgren" || versions[0].CreatedAt == "" {
+		t.Fatalf("unexpected metadata: %#v", versions[0])
+	}
+	if versions[1].CommitMessage != "" || versions[1].Creator != "" {
+		t.Fatalf("expected empty metadata on version 1: %#v", versions[1])
+	}
+}
+
+// Under API-key auth the history endpoint answers 501, so the client reads the
+// version numbers from the prompt listing and leaves the rest empty.
+func TestAPIClientListPromptVersionsAPIKeyMode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api/v1/validate-api-key":
+			w.Header().Set("x-org-id", "org-1")
+			w.Header().Set("x-org-name", "Org 1")
+			w.Header().Set("x-project-id", "proj-1")
+			w.Header().Set("x-project-name", "Project 1")
+			w.WriteHeader(http.StatusOK)
+		case r.URL.Path == "/api/platform/v1/projects/proj-1/prompts/routines":
+			_, _ = io.WriteString(
+				w,
+				`{"success":true,"data":{"prompts":[`+
+					`{"name":"other","versions":[9]},`+
+					`{"name":"my-routine","versions":[1,2]}`+
+					`],"totalCount":2}}`,
+			)
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(server.URL, 5*time.Second, "", "api-key", nil)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	versions, err := client.ListPromptVersions(
+		context.Background(), "proj-1", "routines", "my-routine",
+	)
+	if err != nil {
+		t.Fatalf("ListPromptVersions() error = %v", err)
+	}
+	want := []PromptVersionMeta{{Version: 1}, {Version: 2}}
+	if !reflect.DeepEqual(versions, want) {
+		t.Fatalf("versions = %#v, want %#v", versions, want)
+	}
+}
+
+func TestAPIClientListPromptVersionsNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `{"success":true,"data":{"promptVersions":[],"totalCount":0}}`)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL, 5*time.Second, "", "", []*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	versions, err := client.ListPromptVersions(
+		context.Background(), "proj-1", "routines", "missing",
+	)
+	if err != nil {
+		t.Fatalf("ListPromptVersions() error = %v", err)
+	}
+	if len(versions) != 0 {
+		t.Fatalf("got %d versions, want 0", len(versions))
 	}
 }

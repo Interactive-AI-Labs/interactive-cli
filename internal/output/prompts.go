@@ -105,23 +105,54 @@ func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	return w.Flush()
 }
 
-func PrintPromptVersions(out io.Writer, versions []int) error {
+// PrintPromptVersions renders the version history newest-first, showing the
+// same three facts as the platform UI's history row. Metadata the API-key path
+// cannot supply renders as an em dash.
+func PrintPromptVersions(out io.Writer, versions []platform.PromptVersionMeta) error {
 	if len(versions) == 0 {
 		fmt.Fprintln(out, "No versions found.")
 		return nil
 	}
 
-	sorted := make([]int, len(versions))
+	sorted := make([]platform.PromptVersionMeta, len(versions))
 	copy(sorted, versions)
-	sort.Sort(sort.Reverse(sort.IntSlice(sorted)))
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return sorted[i].Version > sorted[j].Version
+	})
 
-	headers := []string{"VERSION"}
+	headers := []string{"", "VERSION", "UPDATED", "BY", "MESSAGE"}
 	rows := make([][]string, len(sorted))
 	for i, v := range sorted {
-		rows[i] = []string{fmt.Sprintf("%d", v)}
+		marker := ""
+		if i == 0 {
+			marker = "*"
+		}
+		rows[i] = []string{
+			marker,
+			fmt.Sprintf("%d", v.Version),
+			orMissingMetadata(LocalTime(v.CreatedAt)),
+			orMissingMetadata(promptVersionAuthor(v)),
+			orMissingMetadata(v.CommitMessage),
+		}
 	}
 
 	return PrintTable(out, headers, rows)
+}
+
+// promptVersionAuthor prefers the resolved display name, as the UI history row
+// does, and falls back to the raw user id.
+func promptVersionAuthor(v platform.PromptVersionMeta) string {
+	if v.Creator != "" {
+		return v.Creator
+	}
+	return v.CreatedBy
+}
+
+func orMissingMetadata(s string) string {
+	if s == "" {
+		return missingRevisionMetadata
+	}
+	return s
 }
 
 func PrintPromptDiff(
