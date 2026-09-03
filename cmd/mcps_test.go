@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/spf13/cobra"
 )
 
@@ -103,4 +104,58 @@ func flagValueFor(name string) string {
 		return "3000"
 	}
 	return "x"
+}
+
+func TestCatalogAuthType(t *testing.T) {
+	tests := []struct {
+		name     string
+		methods  []string
+		explicit string
+		want     string
+		wantErr  bool
+	}{
+		{
+			name:     "explicit wins over the entry",
+			methods:  []string{"bearer"},
+			explicit: "oauth",
+			want:     "oauth",
+		},
+		{
+			name:    "a single declared method is inferred",
+			methods: []string{"bearer"},
+			want:    "bearer",
+		},
+		{
+			name:    "several methods leave the choice to the caller",
+			methods: []string{"bearer", "api_key"},
+			want:    "",
+		},
+		{
+			// The bug this guards: an undeclared entry used to be refused outright,
+			// which made 94 of the 188 dev entries uncreatable from the CLI while
+			// the API accepted the same create.
+			name:    "undeclared methods ask for the type",
+			methods: nil,
+			wantErr: true,
+		},
+		{
+			name:     "undeclared methods are fine once given",
+			methods:  nil,
+			explicit: "oauth",
+			want:     "oauth",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entry := &platform.McpCatalogEntry{ID: "example", AuthMethods: tt.methods}
+			got, err := catalogAuthType(entry, tt.explicit)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("catalogAuthType() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Errorf("catalogAuthType() = %q, want %q", got, tt.want)
+			}
+		})
+	}
 }

@@ -259,7 +259,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return output.PrintStructuredYAML(out, result)
 			}
 
-			return output.PrintPromptList(out, result.Prompts)
+			return output.PrintPromptList(out, ptCfg.Plural, result.Prompts)
 		},
 	}
 

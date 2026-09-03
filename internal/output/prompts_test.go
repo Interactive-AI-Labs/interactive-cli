@@ -13,18 +13,29 @@ func TestPrintPromptList(t *testing.T) {
 
 	tests := []struct {
 		name    string
+		noun    string
 		prompts []platform.PromptInfo
 		want    string
 	}{
 		{
 			name:    "empty list prints message",
+			noun:    "prompts",
 			prompts: []platform.PromptInfo{},
 			want:    "No prompts found.\n",
 		},
 		{
 			name:    "nil list prints message",
+			noun:    "prompts",
 			prompts: nil,
 			want:    "No prompts found.\n",
+		},
+		{
+			// The prompt-type commands (routines, policies, glossaries) share this
+			// renderer, so a hardcoded noun told a routines user about prompts.
+			name:    "empty list names what was listed",
+			noun:    "routines",
+			prompts: nil,
+			want:    "No routines found.\n",
 		},
 		{
 			name: "single prompt",
@@ -99,7 +110,7 @@ func TestPrintPromptList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := PrintPromptList(&buf, tt.prompts)
+			err := PrintPromptList(&buf, tt.noun, tt.prompts)
 			if err != nil {
 				t.Fatalf("PrintPromptList() error = %v", err)
 			}

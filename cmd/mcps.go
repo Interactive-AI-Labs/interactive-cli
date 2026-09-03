@@ -171,14 +171,9 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			if catErr != nil {
 				return catErr
 			}
-			if len(entry.GrantsAllowed) > 0 && len(entry.AuthMethods) == 0 {
-				return fmt.Errorf(
-					"catalog entry %q requires a sign-in; run create, then 'iai mcps connect %s'",
-					mcpCatalogID, mcpName,
-				)
-			}
-			if mcpAuthType == "" && len(entry.AuthMethods) == 1 {
-				mcpAuthType = entry.AuthMethods[0]
+			mcpAuthType, err = catalogAuthType(entry, mcpAuthType)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -635,6 +630,20 @@ connection stops working if your access does.`,
 }
 
 var workloadFlags = []string{"image-name", "image-tag", "port", "path", "memory", "cpu"}
+
+// An empty AuthMethods means unrestricted, not undeclared — ask for the type, don't refuse.
+func catalogAuthType(entry *platform.McpCatalogEntry, explicit string) (string, error) {
+	if explicit != "" || len(entry.AuthMethods) > 1 {
+		return explicit, nil
+	}
+	if len(entry.AuthMethods) == 1 {
+		return entry.AuthMethods[0], nil
+	}
+	return "", fmt.Errorf(
+		"catalog entry %q does not declare which auth methods it accepts, so it cannot be inferred — pass --auth-type (bearer, api_key, none, or oauth if the provider needs a sign-in)",
+		entry.ID,
+	)
+}
 
 // An internal update replaces the whole workload and the API does not return the
 // current one, so anything left out returns to a default rather than staying put.

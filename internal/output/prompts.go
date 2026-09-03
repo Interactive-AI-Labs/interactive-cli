@@ -14,9 +14,9 @@ import (
 
 const colorBlue = "\033[1;34m"
 
-func PrintPromptList(out io.Writer, prompts []platform.PromptInfo) error {
+func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) error {
 	if len(prompts) == 0 {
-		fmt.Fprintln(out, "No prompts found.")
+		fmt.Fprintf(out, "No %s found.\n", noun)
 		return nil
 	}
 
