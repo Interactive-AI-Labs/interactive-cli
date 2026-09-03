@@ -8,9 +8,7 @@ import (
 	"strings"
 )
 
-// missingMetadata is what a table cell shows when the API did not supply the
-// value, as distinct from the "-" the format helpers use for an absent number.
-const missingMetadata = "—"
+const missingMetadata = "—" // table cell the API supplied no value for
 
 // orMissingMetadata substitutes the missing-metadata dash for an empty string.
 func orMissingMetadata(s string) string {
