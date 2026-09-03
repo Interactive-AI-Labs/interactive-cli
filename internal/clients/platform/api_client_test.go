@@ -704,13 +704,13 @@ func TestAPIClientListPromptVersions(t *testing.T) {
 func TestAPIClientListPromptVersionsAPIKeyMode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.URL.Path == "/api/v1/validate-api-key":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/validate-api-key":
 			w.Header().Set("x-org-id", "org-1")
 			w.Header().Set("x-org-name", "Org 1")
 			w.Header().Set("x-project-id", "proj-1")
 			w.Header().Set("x-project-name", "Project 1")
 			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/platform/v1/projects/proj-1/prompts/routines":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/platform/v1/projects/proj-1/prompts/routines":
 			_, _ = io.WriteString(
 				w,
 				`{"success":true,"data":{"prompts":[`+
@@ -741,14 +741,18 @@ func TestAPIClientListPromptVersionsAPIKeyMode(t *testing.T) {
 	}
 }
 
-func TestAPIClientListPromptVersionsNotFound(t *testing.T) {
+func TestAPIClientListPromptVersionsEmptyHistory(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, `{"success":true,"data":{"promptVersions":[],"totalCount":0}}`)
 	}))
 	defer server.Close()
 
 	client, err := NewAPIClient(
-		server.URL, 5*time.Second, "", "", []*http.Cookie{{Name: "session", Value: "abc"}},
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
 	)
 	if err != nil {
 		t.Fatalf("NewAPIClient() error = %v", err)

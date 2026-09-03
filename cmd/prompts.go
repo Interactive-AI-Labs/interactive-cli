@@ -126,7 +126,7 @@ The server automatically assigns the "latest" label to new versions. Use
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().
-		StringVarP(&message, "message", "m", "", "Commit message describing the change, stored on the new version")
+		StringVarP(&message, "message", "m", "", "Commit message describing the change (stored on the new version)")
 	cmd.Flags().
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().
@@ -170,9 +170,8 @@ Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 			}
 
 			opts := platform.PromptListOptions{
-				Page:   page,
-				Limit:  limit,
-				Folder: "prompts",
+				Page:  page,
+				Limit: limit,
 			}
 			if folder != "" {
 				opts.Subfolder = strings.TrimSpace(folder)
@@ -362,7 +361,7 @@ Exactly one of --file or --content must be specified.`,
 	)
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().
-		StringVarP(&message, "message", "m", "", "Commit message describing the change, stored on the new version")
+		StringVarP(&message, "message", "m", "", "Commit message describing the change (stored on the new version)")
 	cmd.Flags().
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().

@@ -7,8 +7,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-const missingRevisionMetadata = "—"
-
 func PrintRevisions(out io.Writer, revisions []deployment.RevisionMeta) error {
 	if len(revisions) == 0 {
 		fmt.Fprintln(out, "No revisions found.")
@@ -48,7 +46,7 @@ func printRevisionAttribution(out io.Writer, revision deployment.RevisionMeta) {
 
 func formatRevisionActor(actor *deployment.RevisionActor) string {
 	if actor == nil {
-		return missingRevisionMetadata
+		return missingMetadata
 	}
 
 	name := actor.DisplayName
@@ -80,12 +78,12 @@ func formatRevisionActor(actor *deployment.RevisionActor) string {
 
 func formatRevisionSource(source *deployment.RevisionSource) string {
 	if source == nil {
-		return missingRevisionMetadata
+		return missingMetadata
 	}
 
 	sourceType := source.Type
 	if sourceType == "" && source.Version == "" {
-		return missingRevisionMetadata
+		return missingMetadata
 	}
 	if sourceType == "cli" {
 		sourceType = "iai"
