@@ -1035,6 +1035,7 @@ type CreatePromptBody struct {
 	PromptType    string         `json:"promptType,omitempty"`
 	Config        map[string]any `json:"config,omitempty"`
 	SchemaVersion string         `json:"schemaVersion,omitempty"`
+	CommitMessage string         `json:"commitMessage,omitempty"`
 }
 
 type promptAPIResponse struct {

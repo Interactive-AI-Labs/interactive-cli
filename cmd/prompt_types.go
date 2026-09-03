@@ -132,6 +132,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		project       string
 		org           string
 		schemaVersion string
+		message       string
 	)
 
 	cmd := &cobra.Command{
@@ -167,6 +168,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			Labels:        labels,
 			Tags:          tags,
 			SchemaVersion: schemaVersion,
+			CommitMessage: message,
 		}
 		if configBuilder != nil {
 			payload.Config = configBuilder()
@@ -196,6 +198,8 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().
 		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
+	cmd.Flags().
+		StringVarP(&message, "message", "m", "", "Commit message describing the change, stored on the new version")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
@@ -343,6 +347,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		project       string
 		org           string
 		schemaVersion string
+		message       string
 	)
 
 	cmd := &cobra.Command{
@@ -378,6 +383,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			Labels:        labels,
 			Tags:          tags,
 			SchemaVersion: schemaVersion,
+			CommitMessage: message,
 		}
 		if configBuilder != nil {
 			payload.Config = configBuilder()
@@ -410,6 +416,8 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().
 		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
+	cmd.Flags().
+		StringVarP(&message, "message", "m", "", "Commit message describing the change, stored on the new version")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
