@@ -48,6 +48,7 @@ func makeGenericCreateCmd() *cobra.Command {
 		promptType string
 		labels     []string
 		tags       []string
+		message    string
 		project    string
 		org        string
 	)
@@ -89,11 +90,12 @@ The server automatically assigns the "latest" label to new versions. Use
 			}
 
 			body := platform.CreatePromptBody{
-				Name:       name,
-				Prompt:     promptContent,
-				Labels:     labels,
-				Tags:       tags,
-				PromptType: promptType,
+				Name:          name,
+				Prompt:        promptContent,
+				Labels:        labels,
+				Tags:          tags,
+				PromptType:    promptType,
+				CommitMessage: message,
 			}
 
 			fmt.Fprintln(out)
@@ -123,6 +125,8 @@ The server automatically assigns the "latest" label to new versions. Use
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
+	cmd.Flags().
+		StringVarP(&message, "message", "m", "", "Commit message describing the change, stored on the new version")
 	cmd.Flags().
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().
@@ -289,6 +293,7 @@ func makeGenericUpdateCmd() *cobra.Command {
 		content string
 		labels  []string
 		tags    []string
+		message string
 		project string
 		org     string
 	)
@@ -322,10 +327,11 @@ Exactly one of --file or --content must be specified.`,
 			}
 
 			body := platform.CreatePromptBody{
-				Name:   name,
-				Prompt: promptContent,
-				Labels: labels,
-				Tags:   tags,
+				Name:          name,
+				Prompt:        promptContent,
+				Labels:        labels,
+				Tags:          tags,
+				CommitMessage: message,
 			}
 
 			fmt.Fprintln(out)
@@ -355,6 +361,8 @@ Exactly one of --file or --content must be specified.`,
 		&labels, "labels", nil, "Labels for the new prompt version (comma-separated)",
 	)
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
+	cmd.Flags().
+		StringVarP(&message, "message", "m", "", "Commit message describing the change, stored on the new version")
 	cmd.Flags().
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().
