@@ -1065,12 +1065,13 @@ type PromptListResponse struct {
 	TotalCount int          `json:"totalCount"`
 }
 
+// genericPromptFolder is the folder the generic /prompts endpoint filters on to
+// exclude typed prompts (routines, policies, and the rest).
 const genericPromptFolder = "prompts"
 
 type PromptListOptions struct {
 	Page      int
 	Limit     int
-	Folder    string // prompt-type filter for the generic /prompts endpoint
 	Subfolder string // optional user-supplied sub-path for folder browsing
 }
 
@@ -1139,10 +1140,6 @@ func (c *APIClient) ListPrompts(
 	routeSegment string,
 	opts PromptListOptions,
 ) (*PromptListResponse, error) {
-	if routeSegment == "" && opts.Folder == "" {
-		opts.Folder = genericPromptFolder
-	}
-
 	path := promptBasePath(projectId, routeSegment)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
@@ -1159,9 +1156,7 @@ func (c *APIClient) ListPrompts(
 			"filter":  []interface{}{},
 			"orderBy": map[string]interface{}{},
 		}
-		if opts.Folder != "" {
-			inputMap["folder"] = opts.Folder
-		}
+		inputMap["folder"] = genericPromptFolder
 		if opts.Subfolder != "" {
 			inputMap["subfolder"] = opts.Subfolder
 		}
@@ -1495,7 +1490,9 @@ func (c *APIClient) GetAgentSchema(
 	return &result, nil
 }
 
-// ListPromptVersions returns a prompt's version history (numbers only under API-key auth).
+// ListPromptVersions returns a prompt's version history. The history endpoint is
+// a tRPC query and answers 501 for API-key callers, so under API-key auth only
+// version numbers are available, read from the prompt list.
 func (c *APIClient) ListPromptVersions(
 	ctx context.Context,
 	projectId string,

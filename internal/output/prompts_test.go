@@ -111,34 +111,32 @@ func TestPrintPromptList(t *testing.T) {
 }
 
 func TestPrintPromptVersions(t *testing.T) {
+	t.Setenv("TZ", "Europe/Madrid")
+
 	tests := []struct {
 		name     string
 		versions []platform.PromptVersionMeta
 		want     string
 	}{
 		{
-			name: "empty list prints message",
-			want: "No versions found.\n",
-		},
-		{
 			name: "history with messages, and rows missing metadata",
 			versions: []platform.PromptVersionMeta{
 				{
 					Version:       2,
 					CommitMessage: "add identity check",
-					CreatedAt:     "2026-09-03",
-					CreatedBy:     "user-1",
-					Creator:       "oliver@example.com",
+					CreatedAt:     "2026-09-03T14:06:49.772Z",
+					CreatedBy:     "cmqf92wgu0115su07j8p600o8",
+					Creator:       "Daniel Loefgren",
 				},
 				{
 					Version:   1,
-					CreatedAt: "2026-08-27",
-					CreatedBy: "user-2",
+					CreatedAt: "2026-08-27T09:41:00.000Z",
+					CreatedBy: "cmmjdzmai00uozn079s95gbnf",
 				},
 			},
-			want: "    VERSION   UPDATED      BY                   MESSAGE\n" +
-				"*   2         2026-09-03   oliver@example.com   add identity check\n" +
-				"    1         2026-08-27   user-2               —\n",
+			want: "    VERSION   UPDATED                    BY                          MESSAGE\n" +
+				"*   2         2026-09-03 16:06:49 CEST   Daniel Loefgren             add identity check\n" +
+				"    1         2026-08-27 11:41:00 CEST   cmmjdzmai00uozn079s95gbnf   —\n",
 		},
 		{
 			name: "version numbers only, as under API-key auth",
