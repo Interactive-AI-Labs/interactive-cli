@@ -127,18 +127,18 @@ func TestPrintPromptVersions(t *testing.T) {
 					Version:       2,
 					CommitMessage: "add identity check",
 					CreatedAt:     "2026-09-03",
-					CreatedBy:     "cmqf92wgu0115su07j8p600o8",
-					Creator:       "Daniel Loefgren",
+					CreatedBy:     "user-1",
+					Creator:       "oliver@example.com",
 				},
 				{
 					Version:   1,
 					CreatedAt: "2026-08-27",
-					CreatedBy: "cmmjdzmai00uozn079s95gbnf",
+					CreatedBy: "user-2",
 				},
 			},
-			want: "    VERSION   UPDATED      BY                          MESSAGE\n" +
-				"*   2         2026-09-03   Daniel Loefgren             add identity check\n" +
-				"    1         2026-08-27   cmmjdzmai00uozn079s95gbnf   —\n",
+			want: "    VERSION   UPDATED      BY                   MESSAGE\n" +
+				"*   2         2026-09-03   oliver@example.com   add identity check\n" +
+				"    1         2026-08-27   user-2               —\n",
 		},
 		{
 			name: "version numbers only, as under API-key auth",
