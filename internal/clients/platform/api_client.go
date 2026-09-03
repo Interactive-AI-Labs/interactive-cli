@@ -1065,8 +1065,6 @@ type PromptListResponse struct {
 	TotalCount int          `json:"totalCount"`
 }
 
-// genericPromptFolder is the folder the generic /prompts endpoint filters on to
-// exclude typed prompts (routines, policies, and the rest).
 const genericPromptFolder = "prompts"
 
 type PromptListOptions struct {
@@ -1497,9 +1495,7 @@ func (c *APIClient) GetAgentSchema(
 	return &result, nil
 }
 
-// ListPromptVersions returns the version history for a prompt. The history
-// endpoint is a tRPC query and answers 501 for API-key callers, so under API-key
-// auth only version numbers are available, read from the prompt list.
+// ListPromptVersions returns a prompt's version history (numbers only under API-key auth).
 func (c *APIClient) ListPromptVersions(
 	ctx context.Context,
 	projectId string,
