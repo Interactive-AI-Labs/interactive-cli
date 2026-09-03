@@ -1503,7 +1503,8 @@ func (c *APIClient) ListPromptVersions(
 		return c.listPromptVersionNumbers(ctx, projectId, routeSegment, name)
 	}
 
-	path := promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name) + "/versions"
+	basePath := promptBasePath(projectId, routeSegment)
+	path := basePath + "/by-name/" + url.PathEscape(name) + "/versions"
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
