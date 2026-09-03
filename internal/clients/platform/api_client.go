@@ -1038,6 +1038,21 @@ type CreatePromptBody struct {
 	CommitMessage string         `json:"commitMessage,omitempty"`
 }
 
+// PromptVersionMeta is one version as the history endpoint returns it. Under
+// API-key auth only Version is populated: the endpoint carrying the rest is
+// cookie/bearer-only.
+type PromptVersionMeta struct {
+	Version       int    `json:"version"`
+	CommitMessage string `json:"commitMessage"`
+	CreatedAt     string `json:"createdAt"`
+	CreatedBy     string `json:"createdBy"`
+	Creator       string `json:"creator"`
+}
+
+type promptVersionsData struct {
+	PromptVersions []PromptVersionMeta `json:"promptVersions"`
+}
+
 type promptAPIResponse struct {
 	Success bool            `json:"success"`
 	Data    json.RawMessage `json:"data"`
@@ -1475,6 +1490,91 @@ func (c *APIClient) GetAgentSchema(
 	}
 
 	return &result, nil
+}
+
+// ListPromptVersions returns every version of a prompt with the metadata the
+// platform UI shows in its history: message, date and author.
+//
+// The history endpoint is a tRPC query and answers 501 for API-key callers, so
+// in that mode the version numbers are read from the prompt list instead and
+// the remaining fields are left empty.
+func (c *APIClient) ListPromptVersions(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+) ([]PromptVersionMeta, error) {
+	if c.isApiKeyMode {
+		return c.listPromptVersionNumbers(ctx, projectId, routeSegment, name)
+	}
+
+	path := promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name) + "/versions"
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt versions request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list prompt versions: server returned %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt versions response: %w", err)
+	}
+
+	var versionsData promptVersionsData
+	if err := json.Unmarshal(envelope.Data, &versionsData); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt versions data: %w", err)
+	}
+
+	return versionsData.PromptVersions, nil
+}
+
+// listPromptVersionNumbers finds a prompt in the project listing and returns
+// its version numbers with no further metadata.
+func (c *APIClient) listPromptVersionNumbers(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+) ([]PromptVersionMeta, error) {
+	opts := PromptListOptions{Limit: 1000}
+	if routeSegment == "" {
+		opts.Folder = "prompts"
+	}
+
+	result, err := c.ListPrompts(ctx, projectId, routeSegment, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range result.Prompts {
+		if p.Name != name {
+			continue
+		}
+		versions := make([]PromptVersionMeta, len(p.Versions))
+		for i, v := range p.Versions {
+			versions[i] = PromptVersionMeta{Version: v}
+		}
+		return versions, nil
+	}
+
+	return nil, nil
 }
 
 func (c *APIClient) DeletePromptByName(

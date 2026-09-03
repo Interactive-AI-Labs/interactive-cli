@@ -518,22 +518,13 @@ func makeGenericVersionsCmd() *cobra.Command {
 				return err
 			}
 
-			opts := platform.PromptListOptions{Limit: 1000, Folder: "prompts"}
-			result, err := apiClient.ListPrompts(
-				cmd.Context(), pCtx.projectId, "", opts,
+			versions, err := apiClient.ListPromptVersions(
+				cmd.Context(), pCtx.projectId, "", name,
 			)
 			if err != nil {
 				return err
 			}
-
-			var versions []int
-			for _, p := range result.Prompts {
-				if p.Name == name {
-					versions = p.Versions
-					break
-				}
-			}
-			if versions == nil {
+			if len(versions) == 0 {
 				return fmt.Errorf("prompt %q not found", name)
 			}
 
