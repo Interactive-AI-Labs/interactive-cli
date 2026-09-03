@@ -30,7 +30,7 @@ func PrintRevisions(out io.Writer, revisions []deployment.RevisionMeta) error {
 		rows[i] = []string{
 			marker,
 			fmt.Sprintf("%d", revision.Revision),
-			LocalTime(revision.Updated),
+			orMissingMetadata(LocalTime(revision.Updated)),
 			formatRevisionActor(revision.Actor),
 			formatRevisionSource(revision.Source),
 		}

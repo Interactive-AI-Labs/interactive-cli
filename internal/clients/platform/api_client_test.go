@@ -663,8 +663,9 @@ func TestAPIClientListPromptVersions(t *testing.T) {
 			w,
 			`{"success":true,"data":{"promptVersions":[`+
 				`{"version":2,"commitMessage":"add identity check","createdAt":"2026-09-03T14:06:49.772Z",`+
-				`"createdBy":"user-1","creator":"oliver@example.com"},`+
-				`{"version":1,"commitMessage":null,"createdAt":"2026-08-27T09:41:00.000Z","createdBy":"user-2"}`+
+				`"createdBy":"cmqf92wgu0115su07j8p600o8","creator":"Daniel Loefgren"},`+
+				`{"version":1,"commitMessage":null,"createdAt":"2026-08-27T09:41:00.000Z",`+
+				`"createdBy":"cmmjdzmai00uozn079s95gbnf"}`+
 				`],"totalCount":2}}`,
 		)
 	}))
@@ -693,7 +694,7 @@ func TestAPIClientListPromptVersions(t *testing.T) {
 	if versions[0].CommitMessage != "add identity check" {
 		t.Fatalf("commit message = %q", versions[0].CommitMessage)
 	}
-	if versions[0].Creator != "oliver@example.com" || versions[0].CreatedAt == "" {
+	if versions[0].Creator != "Daniel Loefgren" || versions[0].CreatedAt == "" {
 		t.Fatalf("unexpected metadata: %#v", versions[0])
 	}
 	if versions[1].CommitMessage != "" || versions[1].Creator != "" {

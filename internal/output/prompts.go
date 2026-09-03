@@ -106,11 +106,6 @@ func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 }
 
 func PrintPromptVersions(out io.Writer, versions []platform.PromptVersionMeta) error {
-	if len(versions) == 0 {
-		fmt.Fprintln(out, "No versions found.")
-		return nil
-	}
-
 	sorted := make([]platform.PromptVersionMeta, len(versions))
 	copy(sorted, versions)
 	sort.SliceStable(sorted, func(i, j int) bool {
