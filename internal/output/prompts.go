@@ -143,13 +143,6 @@ func promptVersionAuthor(v platform.PromptVersionMeta) string {
 	return v.CreatedBy
 }
 
-func orMissingMetadata(s string) string {
-	if s == "" {
-		return missingRevisionMetadata
-	}
-	return s
-}
-
 func PrintPromptDiff(
 	out io.Writer,
 	versionA string,

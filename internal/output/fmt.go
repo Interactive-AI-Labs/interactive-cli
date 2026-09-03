@@ -8,6 +8,18 @@ import (
 	"strings"
 )
 
+// missingMetadata is what a table cell shows when the API did not supply the
+// value, as distinct from the "-" the format helpers use for an absent number.
+const missingMetadata = "—"
+
+// orMissingMetadata substitutes the missing-metadata dash for an empty string.
+func orMissingMetadata(s string) string {
+	if s == "" {
+		return missingMetadata
+	}
+	return s
+}
+
 // formatCost formats a pointer cost as dollars for terminal output.
 func formatCost(v *float64) string {
 	if v == nil {
