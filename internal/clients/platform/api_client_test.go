@@ -900,7 +900,7 @@ func TestAPIClientListPromptVersionsAPIKeyModeScanCap(t *testing.T) {
 		{
 			name:      "at the cap says the search was capped",
 			promptQty: promptScanLimit,
-			wantErr:   "under API-key authentication",
+			wantErr:   "could not search this project's prompts under API-key authentication",
 		},
 	}
 

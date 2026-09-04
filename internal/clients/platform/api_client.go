@@ -1541,7 +1541,7 @@ func (c *APIClient) ListPromptVersions(
 
 const promptScanLimit = 1000
 
-// This API-key fallback cannot see folder contents, and gives up past promptScanLimit prompts.
+// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past promptScanLimit.
 func (c *APIClient) listPromptVersionNumbers(
 	ctx context.Context,
 	projectId string,
