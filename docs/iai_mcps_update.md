@@ -5,10 +5,17 @@ Update an mcp's spec
 ### Synopsis
 
 Partial update — only the fields whose flags you pass are changed; everything
-else keeps its current value. port/path/image/memory/cpu/env/secret only apply
-to internal mcps. Use --clear-env, --clear-secret, or --clear-headers to remove
-those entirely. The type (internal/external) and, for external mcps, the
-endpoint/catalog cannot change — delete and recreate instead.
+else keeps its current value. The type (internal/external) and, for external
+mcps, the endpoint/catalog cannot change — delete and recreate instead.
+
+An internal mcp is the exception to "partial": its workload is replaced whole,
+so --image-name and --image-tag are required whenever you touch it, and
+--port/--path/--memory/--cpu return to their defaults unless you pass them too.
+That applies even to a description-only change.
+
+--env, --secret, --header, --clear-env, --clear-secret, --clear-headers and
+--stack-id come from the shared mcps flag set and are not supported here yet;
+passing one is refused rather than ignored. Recreate the mcp to change them.
 
 Changing --credential, or switching --auth-type to "none", rotates the mcp's
 Secret and restarts the mcp (if internal) and every agent currently attached
@@ -23,8 +30,7 @@ iai mcps update <mcp_name> [flags]
 ```
   iai mcps update my-tool --image-name my-mcp --image-tag v2 --port 3000 --path /mcp --memory 1G --cpu 500m
   iai mcps update acme --credential "$NEW_TOKEN"
-  iai mcps update my-tool --clear-headers
-  iai mcps update my-tool --description "notes for the team"
+  iai mcps update acme --description "notes for the team"
 ```
 
 ### Options
