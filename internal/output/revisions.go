@@ -1,6 +1,7 @@
 package output
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 
@@ -30,7 +31,7 @@ func PrintRevisions(out io.Writer, revisions []deployment.RevisionMeta) error {
 		rows[i] = []string{
 			marker,
 			fmt.Sprintf("%d", revision.Revision),
-			orMissingMetadata(LocalTime(revision.Updated)),
+			cmp.Or(LocalTime(revision.Updated), missingMetadata),
 			formatRevisionActor(revision.Actor),
 			formatRevisionSource(revision.Source),
 		}

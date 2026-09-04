@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -122,21 +123,14 @@ func PrintPromptVersions(out io.Writer, versions []platform.PromptVersionMeta) e
 		rows[i] = []string{
 			marker,
 			fmt.Sprintf("%d", v.Version),
-			orMissingMetadata(LocalTime(v.CreatedAt)),
-			orMissingMetadata(promptVersionAuthor(v)),
-			orMissingMetadata(v.CommitMessage),
+			cmp.Or(LocalTime(v.CreatedAt), missingMetadata),
+			// createdBy is a Langfuse user id, or "API"; the UI falls back the same way.
+			cmp.Or(v.Creator, v.CreatedBy, missingMetadata),
+			cmp.Or(v.CommitMessage, missingMetadata),
 		}
 	}
 
 	return PrintTable(out, headers, rows)
-}
-
-// createdBy is a Langfuse user id, or "API" for public-API writes; the UI falls back the same way.
-func promptVersionAuthor(v platform.PromptVersionMeta) string {
-	if v.Creator != "" {
-		return v.Creator
-	}
-	return v.CreatedBy
 }
 
 func PrintPromptDiff(

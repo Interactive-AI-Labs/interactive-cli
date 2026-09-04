@@ -829,8 +829,7 @@ func TestAPIClientCreatePromptSendsCommitMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Decoded loosely, not into CreatePromptBody: a typed decode cannot tell
-			// an absent key from an empty string, which is what omitempty promises.
+			// Decoded loosely: a typed decode cannot tell an absent key from an empty string.
 			var gotBody map[string]any
 			server := httptest.NewServer(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -901,7 +900,7 @@ func TestAPIClientListPromptVersionsAPIKeyModeScanCap(t *testing.T) {
 		{
 			name:      "at the cap says the search was capped",
 			promptQty: promptScanLimit,
-			wantErr:   "capped at 1000 prompts",
+			wantErr:   "under API-key authentication",
 		},
 	}
 

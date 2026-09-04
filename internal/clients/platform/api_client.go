@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -1065,8 +1066,7 @@ type PromptListResponse struct {
 	TotalCount int          `json:"totalCount"`
 }
 
-// genericPromptFolder is the folder the generic /prompts endpoint filters on to
-// exclude typed prompts (routines, policies, and the rest).
+// genericPromptFolder is the folder the generic /prompts endpoint filters on to exclude typed prompts.
 const genericPromptFolder = "prompts"
 
 type PromptListOptions struct {
@@ -1490,8 +1490,7 @@ func (c *APIClient) GetAgentSchema(
 	return &result, nil
 }
 
-// ListPromptVersions returns a prompt's version history. The endpoint is a tRPC
-// query that answers 501 for API-key callers, so those get version numbers only.
+// ListPromptVersions returns a version history; the endpoint 501s for API-key callers, so those get numbers only.
 func (c *APIClient) ListPromptVersions(
 	ctx context.Context,
 	projectId string,
@@ -1540,10 +1539,9 @@ func (c *APIClient) ListPromptVersions(
 	return versionsData.PromptVersions, nil
 }
 
-// Scanning the prompt list is the API-key fallback: folder contents are invisible
-// here, and a project with more prompts than this cannot be searched at all.
 const promptScanLimit = 1000
 
+// This API-key fallback cannot see folder contents, and gives up past promptScanLimit prompts.
 func (c *APIClient) listPromptVersionNumbers(
 	ctx context.Context,
 	projectId string,
@@ -1568,8 +1566,8 @@ func (c *APIClient) listPromptVersionNumbers(
 	}
 
 	if len(result.Prompts) == promptScanLimit {
-		return nil, fmt.Errorf(
-			"cannot list versions: prompt search capped at %d prompts", promptScanLimit,
+		return nil, errors.New(
+			"could not search this project's prompts under API-key authentication",
 		)
 	}
 

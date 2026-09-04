@@ -518,7 +518,10 @@ func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Short:   fmt.Sprintf("List versions of a %s", ptCfg.TypeName),
 		Long: fmt.Sprintf(`List all versions of a %s, sorted newest-first.
 
-Each row shows the version number, update time, updater, and commit message (set with -m); a "—" means the value is unavailable, as under API-key authentication only version numbers can be read.`, ptCfg.TypeName),
+Each row shows the version number, when it was updated, who updated it, and the
+commit message recorded with that version (set with -m on create and update).
+A "—" means the value is unavailable: under API-key authentication only version
+numbers can be read.`, ptCfg.TypeName),
 		Example: fmt.Sprintf(`  iai %s versions my-%s`, ptCfg.Plural, ptCfg.TypeName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

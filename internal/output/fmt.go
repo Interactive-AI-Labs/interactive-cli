@@ -10,14 +10,6 @@ import (
 
 const missingMetadata = "—" // table cell the API supplied no value for
 
-// orMissingMetadata substitutes the missing-metadata dash for an empty string.
-func orMissingMetadata(s string) string {
-	if s == "" {
-		return missingMetadata
-	}
-	return s
-}
-
 // formatCost formats a pointer cost as dollars for terminal output.
 func formatCost(v *float64) string {
 	if v == nil {
