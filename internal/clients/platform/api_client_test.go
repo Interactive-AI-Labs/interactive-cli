@@ -3,10 +3,12 @@ package platform
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -742,8 +744,6 @@ func TestAPIClientListPromptVersionsAPIKeyMode(t *testing.T) {
 	}
 }
 
-// The generic /prompts endpoint filters on the "prompts" folder to exclude typed
-// prompts, and carries the user-supplied sub-path separately.
 func TestAPIClientListPromptsGenericSendsFolder(t *testing.T) {
 	var gotInput map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -804,5 +804,152 @@ func TestAPIClientListPromptVersionsEmptyHistory(t *testing.T) {
 	}
 	if len(versions) != 0 {
 		t.Fatalf("got %d versions, want 0", len(versions))
+	}
+}
+
+func TestAPIClientCreatePromptSendsCommitMessage(t *testing.T) {
+	tests := []struct {
+		name          string
+		commitMessage string
+		wantPresent   bool
+		wantValue     string
+	}{
+		{
+			name:          "message is sent when set",
+			commitMessage: "add identity check",
+			wantPresent:   true,
+			wantValue:     "add identity check",
+		},
+		{
+			name:          "key is omitted when empty",
+			commitMessage: "",
+			wantPresent:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Decoded loosely, not into CreatePromptBody: a typed decode cannot tell
+			// an absent key from an empty string, which is what omitempty promises.
+			var gotBody map[string]any
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Method != http.MethodPost {
+						t.Fatalf("method = %s, want POST", r.Method)
+					}
+					if r.URL.Path != "/api/platform/v1/projects/proj-1/prompts/routines" {
+						t.Fatalf("path = %s", r.URL.Path)
+					}
+					body, err := io.ReadAll(r.Body)
+					if err != nil {
+						t.Fatalf("reading body: %v", err)
+					}
+					if err := json.Unmarshal(body, &gotBody); err != nil {
+						t.Fatalf("decoding body: %v", err)
+					}
+					_, _ = io.WriteString(
+						w,
+						`{"success":true,"data":{"id":"p-1","name":"routines/my-routine","version":2}}`,
+					)
+				}),
+			)
+			defer server.Close()
+
+			client, err := NewAPIClient(
+				server.URL,
+				5*time.Second,
+				"",
+				"",
+				[]*http.Cookie{{Name: "session", Value: "abc"}},
+			)
+			if err != nil {
+				t.Fatalf("NewAPIClient() error = %v", err)
+			}
+
+			prompt, err := client.CreatePrompt(
+				context.Background(), "proj-1", "routines", CreatePromptBody{
+					Name:          "my-routine",
+					Prompt:        "do the thing",
+					CommitMessage: tt.commitMessage,
+				},
+			)
+			if err != nil {
+				t.Fatalf("CreatePrompt() error = %v", err)
+			}
+			if prompt.Version != 2 {
+				t.Fatalf("version = %d, want 2", prompt.Version)
+			}
+
+			got, present := gotBody["commitMessage"]
+			if present != tt.wantPresent {
+				t.Fatalf("commitMessage present = %v, want %v", present, tt.wantPresent)
+			}
+			if tt.wantPresent && got != tt.wantValue {
+				t.Fatalf("commitMessage = %v, want %q", got, tt.wantValue)
+			}
+		})
+	}
+}
+
+func TestAPIClientListPromptVersionsAPIKeyModeScanCap(t *testing.T) {
+	tests := []struct {
+		name      string
+		promptQty int
+		wantErr   string
+	}{
+		{name: "under the cap reports not found", promptQty: 3},
+		{
+			name:      "at the cap says the search was capped",
+			promptQty: promptScanLimit,
+			wantErr:   "capped at 1000 prompts",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path == "/api/v1/validate-api-key" {
+						w.Header().Set("x-org-id", "org-1")
+						w.Header().Set("x-org-name", "Org 1")
+						w.Header().Set("x-project-id", "proj-1")
+						w.Header().Set("x-project-name", "Project 1")
+						w.WriteHeader(http.StatusOK)
+						return
+					}
+					rows := make([]string, tt.promptQty)
+					for i := range rows {
+						rows[i] = fmt.Sprintf(`{"name":"other-%d","versions":[1]}`, i)
+					}
+					_, _ = io.WriteString(
+						w,
+						`{"success":true,"data":{"prompts":[`+strings.Join(rows, ",")+
+							`],"totalCount":`+strconv.Itoa(tt.promptQty)+`}}`,
+					)
+				}),
+			)
+			defer server.Close()
+
+			client, err := NewAPIClient(server.URL, 5*time.Second, "", "api-key", nil)
+			if err != nil {
+				t.Fatalf("NewAPIClient() error = %v", err)
+			}
+
+			versions, err := client.ListPromptVersions(
+				context.Background(), "proj-1", "routines", "absent",
+			)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("ListPromptVersions() error = %v, want nil", err)
+				}
+				if len(versions) != 0 {
+					t.Fatalf("got %d versions, want 0", len(versions))
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("error = %v, want it to contain %q", err, tt.wantErr)
+			}
+		})
 	}
 }

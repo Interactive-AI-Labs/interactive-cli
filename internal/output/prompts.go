@@ -131,6 +131,7 @@ func PrintPromptVersions(out io.Writer, versions []platform.PromptVersionMeta) e
 	return PrintTable(out, headers, rows)
 }
 
+// createdBy is a Langfuse user id, or "API" for public-API writes; the UI falls back the same way.
 func promptVersionAuthor(v platform.PromptVersionMeta) string {
 	if v.Creator != "" {
 		return v.Creator
