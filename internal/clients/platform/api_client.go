@@ -1490,9 +1490,8 @@ func (c *APIClient) GetAgentSchema(
 	return &result, nil
 }
 
-// ListPromptVersions returns a prompt's version history. The history endpoint is
-// a tRPC query and answers 501 for API-key callers, so under API-key auth only
-// version numbers are available, read from the prompt list.
+// ListPromptVersions returns a prompt's version history. The endpoint is a tRPC
+// query that answers 501 for API-key callers, so those get version numbers only.
 func (c *APIClient) ListPromptVersions(
 	ctx context.Context,
 	projectId string,
@@ -1541,13 +1540,18 @@ func (c *APIClient) ListPromptVersions(
 	return versionsData.PromptVersions, nil
 }
 
+// Scanning the prompt list is the API-key fallback: folder contents are invisible
+// here, and a project with more prompts than this cannot be searched at all.
+const promptScanLimit = 1000
+
 func (c *APIClient) listPromptVersionNumbers(
 	ctx context.Context,
 	projectId string,
 	routeSegment string,
 	name string,
 ) ([]PromptVersionMeta, error) {
-	result, err := c.ListPrompts(ctx, projectId, routeSegment, PromptListOptions{Limit: 1000})
+	opts := PromptListOptions{Limit: promptScanLimit}
+	result, err := c.ListPrompts(ctx, projectId, routeSegment, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -1561,6 +1565,12 @@ func (c *APIClient) listPromptVersionNumbers(
 			versions[i] = PromptVersionMeta{Version: v}
 		}
 		return versions, nil
+	}
+
+	if len(result.Prompts) == promptScanLimit {
+		return nil, fmt.Errorf(
+			"cannot list versions: prompt search capped at %d prompts", promptScanLimit,
+		)
 	}
 
 	return nil, nil
