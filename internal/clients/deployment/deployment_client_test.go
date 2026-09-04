@@ -282,3 +282,49 @@ func TestFormatAgentValidationError(t *testing.T) {
 		})
 	}
 }
+
+// TestNamedHost covers the annotation that tells a wrong-host mistake apart from
+// a permissions one: --hostname and --deployment-hostname default independently,
+// so overriding only the first leaves this client on production.
+func TestNamedHost(t *testing.T) {
+	c := &DeploymentClient{hostname: "https://deployment.interactive.ai"}
+	tests := []struct {
+		name   string
+		status int
+		msg    string
+		want   string
+	}{
+		{
+			name:   "unauthorized names the host that answered",
+			status: http.StatusUnauthorized,
+			msg:    "Unauthorized",
+			want:   "Unauthorized (deployment API at https://deployment.interactive.ai)",
+		},
+		{
+			name:   "forbidden names it too",
+			status: http.StatusForbidden,
+			msg:    "Forbidden",
+			want:   "Forbidden (deployment API at https://deployment.interactive.ai)",
+		},
+		{
+			name:   "a not-found is about the resource, not the host",
+			status: http.StatusNotFound,
+			msg:    "Revision not found",
+			want:   "Revision not found",
+		},
+		{
+			name:   "a server error is left alone",
+			status: http.StatusInternalServerError,
+			msg:    "boom",
+			want:   "boom",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := c.namedHost(tt.status, tt.msg); got != tt.want {
+				t.Errorf("namedHost() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

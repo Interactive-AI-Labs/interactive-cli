@@ -151,12 +151,14 @@ func TestPrintMcpListIncludesStack(t *testing.T) {
 
 func TestPrintMcpTools(t *testing.T) {
 	tests := []struct {
-		name  string
-		tools []platform.McpToolSchema
-		want  string
+		name    string
+		backend platform.McpBackend
+		tools   []platform.McpToolSchema
+		want    string
 	}{
 		{
-			name: "one tool with description",
+			name:    "one tool with description",
+			backend: platform.McpBackendExternal,
 			tools: []platform.McpToolSchema{
 				{Name: "search", Description: strPtr("Search the knowledge base")},
 				{Name: "ping", Description: strPtr("No-arg health check")},
@@ -164,16 +166,25 @@ func TestPrintMcpTools(t *testing.T) {
 			want: "Tools (2):\n  search - Search the knowledge base\n  ping - No-arg health check\n",
 		},
 		{
-			name:  "no tools cached",
-			tools: nil,
-			want:  "No tools cached - run 'iai mcps verify' first.\n",
+			name:    "an external mcp with no tools is sent to verify",
+			backend: platform.McpBackendExternal,
+			tools:   nil,
+			want:    "No tools cached - run 'iai mcps verify' first.\n",
+		},
+		{
+			// `verify` refuses an internal mcp, so sending the user there is a dead end.
+			name:    "an internal mcp is not sent to verify",
+			backend: platform.McpBackendInternal,
+			tools:   nil,
+			want: "No tools cached - an internal mcp verifies itself when its workload " +
+				"becomes ready; redeploy it to run that again.\n",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := PrintMcpTools(&buf, tt.tools); err != nil {
+			if err := PrintMcpTools(&buf, tt.backend, tt.tools); err != nil {
 				t.Fatalf("PrintMcpTools() error = %v", err)
 			}
 			if got := buf.String(); got != tt.want {

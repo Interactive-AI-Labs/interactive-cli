@@ -161,9 +161,19 @@ func NeedsSignIn(m platform.McpSchema) bool {
 	return false
 }
 
-func PrintMcpTools(out io.Writer, tools []platform.McpToolSchema) error {
+func PrintMcpTools(
+	out io.Writer,
+	backend platform.McpBackend,
+	tools []platform.McpToolSchema,
+) error {
 	if len(tools) == 0 {
-		fmt.Fprintln(out, "No tools cached - run 'iai mcps verify' first.")
+		// `verify` refuses an internal MCP, so only an external one can be sent there.
+		if backend == platform.McpBackendInternal {
+			fmt.Fprintln(out, "No tools cached - an internal mcp verifies itself when its "+
+				"workload becomes ready; redeploy it to run that again.")
+		} else {
+			fmt.Fprintln(out, "No tools cached - run 'iai mcps verify' first.")
+		}
 		return nil
 	}
 	fmt.Fprintf(out, "Tools (%d):\n", len(tools))
