@@ -166,7 +166,10 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		if mcpImageName != "" {
 			backend = platform.McpBackendInternal
 		}
-		if mcpCatalogID != "" && cred == "" {
+		// Ask the catalog whenever there is an entry: gating this on an absent
+		// credential let --credential decide the type for an entry that does not
+		// accept bearer, and refused the create the entry would have allowed.
+		if mcpCatalogID != "" {
 			entry, catErr := catalogEntry(cmd.Context(), apiClient, pCtx, mcpCatalogID)
 			if catErr != nil {
 				return catErr
@@ -212,7 +215,8 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			}
 		}
 
-		auth := platform.McpAuth{Type: mcpAuthTypeOr(backend, mcpAuthType, cred)}
+		authType := mcpAuthTypeOr(backend, mcpAuthType, cred)
+		auth := platform.McpAuth{Type: authType}
 		if cred != "" {
 			auth.Credential = &cred
 		}
@@ -236,7 +240,7 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		}
 		_ = raw
 
-		if mcpAuthType == "oauth" || (mcpCatalogID != "" && cred == "") {
+		if authType == "oauth" {
 			fmt.Fprintf(
 				out,
 				"Created %s — it needs a sign-in before it can be used.\n  iai mcps connect %s\n",
