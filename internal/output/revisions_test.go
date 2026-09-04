@@ -97,11 +97,11 @@ func TestPrintRevisions(t *testing.T) {
 					},
 					Source: &deployment.RevisionSource{Type: "cli", Version: "0.39.0"},
 				},
-				{Revision: 47, Updated: "2026-07-24"},
+				{Revision: 47},
 			},
 			want: "    REVISION   UPDATED      BY                             SOURCE\n" +
 				"*   48         2026-07-28   silverspin-release (API key)   iai 0.39.0\n" +
-				"    47         2026-07-24   —                              —\n",
+				"    47         —            —                              —\n",
 		},
 	}
 

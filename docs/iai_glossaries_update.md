@@ -38,6 +38,7 @@ glossary accepts any number of entries.
 
 ```
   iai glossaries update finance-terms --file glossary.json
+  iai glossaries update finance-terms --file glossary.json -m "add chargeback and settlement"
   iai glossaries update finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries update finance-terms --file glossary.json --labels staging,qa
 ```

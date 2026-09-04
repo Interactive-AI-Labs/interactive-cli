@@ -38,6 +38,7 @@ Example (routine.yaml):
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai routines create onboarding-flow --file routine.yaml
+  iai routines create onboarding-flow --file routine.yaml -m "initial onboarding flow"
   iai routines create onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines create onboarding-flow --file routine.yaml --labels staging
   iai routines create onboarding-flow --file routine.yaml --tags v2,experimental`,
@@ -83,6 +84,7 @@ Example (routine.yaml):
       tools: crm:get_user
       tool_instruction: Fetch user data`,
 		UpdateExample: `  iai routines update onboarding-flow --file routine.yaml
+  iai routines update onboarding-flow --file routine.yaml -m "add identity check before refund step"
   iai routines update onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines update onboarding-flow --file routine.yaml --labels staging,qa`,
 		DeleteLong: `Delete a routine and all its versions, or delete specific versions.

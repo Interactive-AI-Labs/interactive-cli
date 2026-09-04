@@ -22,6 +22,7 @@ No schema validation is applied — any text content is accepted.
 
 ```
   iai macros update disclaimer --file disclaimer.md
+  iai macros update disclaimer --file disclaimer.md -m "update disclaimer wording for EU"
   iai macros update disclaimer --file disclaimer.md --labels staging,qa
 ```
 

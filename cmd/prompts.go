@@ -66,6 +66,7 @@ The --type flag selects the prompt type: "text" (default) or "chat".
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
 		Example: `  iai prompts create greeting --content "Hello, how can I help you?"
+  iai prompts create greeting --content "Hello, how can I help you?" -m "initial greeting copy"
   iai prompts create greeting --file greeting.txt
   iai prompts create greeting --file greeting.txt --type chat
   iai prompts create greeting --content "Hi!" --labels staging
@@ -308,6 +309,7 @@ by version number.
 
 Exactly one of --file or --content must be specified.`,
 		Example: `  iai prompts update greeting --content "Hello! How may I assist you today?"
+  iai prompts update greeting --content "Hello! How may I assist you today?" -m "friendlier greeting wording"
   iai prompts update greeting --file greeting.txt
   iai prompts update greeting --file greeting.txt --labels staging,qa`,
 		Args: cobra.ExactArgs(1),
@@ -505,7 +507,12 @@ func makeGenericVersionsCmd() *cobra.Command {
 		Use:     "versions <name>",
 		Aliases: []string{"vers"},
 		Short:   "List versions of a prompt",
-		Long:    `List all versions of a prompt, sorted newest-first.`,
+		Long: `List all versions of a prompt, sorted newest-first.
+
+Each row shows the version number, when it was updated, who updated it, and the
+commit message recorded with that version (set with -m on create and update).
+A "—" means the value is unavailable: under API-key authentication only version
+numbers can be read.`,
 		Example: `  iai prompts versions greeting`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

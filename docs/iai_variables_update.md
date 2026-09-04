@@ -36,6 +36,7 @@ the set accepts any number of variables.
 
 ```
   iai variables update session-vars --file variables.json
+  iai variables update session-vars --file variables.json -m "add locale to session variables"
   iai variables update session-vars --file variables.json --schema-version 2.1.0
   iai variables update session-vars --file variables.json --labels staging,qa
 ```
