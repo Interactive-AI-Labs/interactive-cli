@@ -20,6 +20,7 @@ iai prompts update <name> [flags]
 
 ```
   iai prompts update greeting --content "Hello! How may I assist you today?"
+  iai prompts update greeting --content "Hello! How may I assist you today?" -m "friendlier greeting wording"
   iai prompts update greeting --file greeting.txt
   iai prompts update greeting --file greeting.txt --labels staging,qa
 ```
@@ -31,6 +32,7 @@ iai prompts update <name> [flags]
       --file string           Path to the file containing the updated prompt content
   -h, --help                  help for update
       --labels strings        Labels for the new prompt version (comma-separated)
+  -m, --message string        Commit message describing the change (stored on the new version)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --tags strings          Tags for the prompt (comma-separated)

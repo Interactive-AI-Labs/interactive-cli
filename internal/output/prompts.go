@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -105,20 +106,28 @@ func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	return w.Flush()
 }
 
-func PrintPromptVersions(out io.Writer, versions []int) error {
-	if len(versions) == 0 {
-		fmt.Fprintln(out, "No versions found.")
-		return nil
-	}
-
-	sorted := make([]int, len(versions))
+func PrintPromptVersions(out io.Writer, versions []platform.PromptVersionMeta) error {
+	sorted := make([]platform.PromptVersionMeta, len(versions))
 	copy(sorted, versions)
-	sort.Sort(sort.Reverse(sort.IntSlice(sorted)))
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return sorted[i].Version > sorted[j].Version
+	})
 
-	headers := []string{"VERSION"}
+	headers := []string{"", "VERSION", "UPDATED", "BY", "MESSAGE"}
 	rows := make([][]string, len(sorted))
 	for i, v := range sorted {
-		rows[i] = []string{fmt.Sprintf("%d", v)}
+		marker := ""
+		if i == 0 {
+			marker = "*"
+		}
+		rows[i] = []string{
+			marker,
+			fmt.Sprintf("%d", v.Version),
+			cmp.Or(LocalTime(v.CreatedAt), missingMetadata),
+			// createdBy is a Langfuse user id, or "API"; the UI falls back the same way.
+			cmp.Or(v.Creator, v.CreatedBy, missingMetadata),
+			cmp.Or(v.CommitMessage, missingMetadata),
+		}
 	}
 
 	return PrintTable(out, headers, rows)

@@ -34,6 +34,7 @@ the set accepts any number of variables.
 
 ```
   iai variables create session-vars --file variables.json
+  iai variables create session-vars --file variables.json -m "initial session variables"
   iai variables create session-vars --file variables.json --schema-version 2.1.0
   iai variables create session-vars --file variables.json --labels staging
   iai variables create session-vars --file variables.json --tags core
@@ -45,6 +46,7 @@ the set accepts any number of variables.
       --file string             Path to the file containing the prompt content
   -h, --help                    help for create
       --labels strings          Labels for the prompt version (comma-separated)
+  -m, --message string          Commit message describing the change (stored on the new version)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the prompts
       --schema-version string   Schema version to validate against (defaults to latest stable)

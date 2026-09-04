@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -132,6 +131,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		project       string
 		org           string
 		schemaVersion string
+		message       string
 	)
 
 	cmd := &cobra.Command{
@@ -167,6 +167,7 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			Labels:        labels,
 			Tags:          tags,
 			SchemaVersion: schemaVersion,
+			CommitMessage: message,
 		}
 		if configBuilder != nil {
 			payload.Config = configBuilder()
@@ -196,6 +197,8 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().
 		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
+	cmd.Flags().
+		StringVarP(&message, "message", "m", "", "Commit message describing the change (stored on the new version)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
@@ -343,6 +346,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		project       string
 		org           string
 		schemaVersion string
+		message       string
 	)
 
 	cmd := &cobra.Command{
@@ -378,6 +382,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			Labels:        labels,
 			Tags:          tags,
 			SchemaVersion: schemaVersion,
+			CommitMessage: message,
 		}
 		if configBuilder != nil {
 			payload.Config = configBuilder()
@@ -410,6 +415,8 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
 	cmd.Flags().
 		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
+	cmd.Flags().
+		StringVarP(&message, "message", "m", "", "Commit message describing the change (stored on the new version)")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
@@ -509,7 +516,12 @@ func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Use:     "versions <name>",
 		Aliases: []string{"vers"},
 		Short:   fmt.Sprintf("List versions of a %s", ptCfg.TypeName),
-		Long:    fmt.Sprintf(`List all versions of a %s, sorted newest-first.`, ptCfg.TypeName),
+		Long: fmt.Sprintf(`List all versions of a %s, sorted newest-first.
+
+Each row shows the version number, when it was updated, who updated it, and the
+commit message recorded with that version (set with -m on create and update).
+A "—" means the value is unavailable: under API-key authentication only version
+numbers can be read.`, ptCfg.TypeName),
 		Example: fmt.Sprintf(`  iai %s versions my-%s`, ptCfg.Plural, ptCfg.TypeName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -521,11 +533,14 @@ func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
-			versions, err := findPromptVersions(
-				cmd.Context(), apiClient, pCtx.projectId, ptCfg.RouteSegment, name, ptCfg.TypeName,
+			versions, err := apiClient.ListPromptVersions(
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name,
 			)
 			if err != nil {
 				return err
+			}
+			if len(versions) == 0 {
+				return fmt.Errorf("%s %q not found", ptCfg.TypeName, name)
 			}
 
 			return output.PrintPromptVersions(out, versions)
@@ -590,24 +605,4 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
-}
-
-func findPromptVersions(
-	ctx context.Context,
-	apiClient *platform.APIClient,
-	projectId, routeSegment, name, typeName string,
-) ([]int, error) {
-	opts := platform.PromptListOptions{Limit: 1000}
-	result, err := apiClient.ListPrompts(ctx, projectId, routeSegment, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, p := range result.Prompts {
-		if p.Name == name {
-			return p.Versions, nil
-		}
-	}
-
-	return nil, fmt.Errorf("%s %q not found", typeName, name)
 }

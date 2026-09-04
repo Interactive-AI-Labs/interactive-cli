@@ -26,6 +26,7 @@ iai skills update <name> [flags]
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
   iai skills update summarize-trace --file ./skill.md --labels active
+  iai skills update summarize-trace --file ./skill.md -m "handle traces with no observations"
 ```
 
 ### Options
@@ -36,6 +37,7 @@ iai skills update <name> [flags]
   -h, --help                    help for update
       --intents stringArray     Natural-language intent that triggers this skill — repeat the flag once per intent (stored in config.skill.intents)
       --labels strings          Labels for the new prompt version (comma-separated)
+  -m, --message string          Commit message describing the change (stored on the new version)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the prompts
       --schema-version string   Schema version to validate against (defaults to latest stable)

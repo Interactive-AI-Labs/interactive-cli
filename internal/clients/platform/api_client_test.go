@@ -3,9 +3,12 @@ package platform
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -646,5 +649,306 @@ func TestAPIClientListMetricsDailyReturnsServerMessage(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "bad filter") {
 		t.Fatalf("error = %v, want extracted server message", err)
+	}
+}
+
+func TestAPIClientListPromptVersions(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("method = %s, want GET", r.Method)
+		}
+		if r.URL.EscapedPath() != "/api/platform/v1/projects/proj-1/prompts/routines/by-name/my%2Froutine/versions" {
+			t.Fatalf("path = %s", r.URL.EscapedPath())
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(
+			w,
+			`{"success":true,"data":{"promptVersions":[`+
+				`{"version":2,"commitMessage":"add identity check","createdAt":"2026-09-03T14:06:49.772Z",`+
+				`"createdBy":"cmqf92wgu0115su07j8p600o8","creator":"Daniel Loefgren"},`+
+				`{"version":1,"commitMessage":null,"createdAt":"2026-08-27T09:41:00.000Z",`+
+				`"createdBy":"cmmjdzmai00uozn079s95gbnf"}`+
+				`],"totalCount":2}}`,
+		)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	versions, err := client.ListPromptVersions(
+		context.Background(), "proj-1", "routines", "my/routine",
+	)
+	if err != nil {
+		t.Fatalf("ListPromptVersions() error = %v", err)
+	}
+	if len(versions) != 2 {
+		t.Fatalf("got %d versions, want 2", len(versions))
+	}
+	if versions[0].CommitMessage != "add identity check" {
+		t.Fatalf("commit message = %q", versions[0].CommitMessage)
+	}
+	if versions[0].Creator != "Daniel Loefgren" || versions[0].CreatedAt == "" {
+		t.Fatalf("unexpected metadata: %#v", versions[0])
+	}
+	if versions[1].CommitMessage != "" || versions[1].Creator != "" {
+		t.Fatalf("expected empty metadata on version 1: %#v", versions[1])
+	}
+}
+
+func TestAPIClientListPromptVersionsAPIKeyMode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/validate-api-key":
+			w.Header().Set("x-org-id", "org-1")
+			w.Header().Set("x-org-name", "Org 1")
+			w.Header().Set("x-project-id", "proj-1")
+			w.Header().Set("x-project-name", "Project 1")
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/platform/v1/projects/proj-1/prompts/routines":
+			_, _ = io.WriteString(
+				w,
+				`{"success":true,"data":{"prompts":[`+
+					`{"name":"other","versions":[9]},`+
+					`{"name":"my-routine","versions":[1,2]}`+
+					`],"totalCount":2}}`,
+			)
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(server.URL, 5*time.Second, "", "api-key", nil)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	versions, err := client.ListPromptVersions(
+		context.Background(), "proj-1", "routines", "my-routine",
+	)
+	if err != nil {
+		t.Fatalf("ListPromptVersions() error = %v", err)
+	}
+	want := []PromptVersionMeta{{Version: 1}, {Version: 2}}
+	if !reflect.DeepEqual(versions, want) {
+		t.Fatalf("versions = %#v, want %#v", versions, want)
+	}
+}
+
+func TestAPIClientListPromptsGenericSendsFolder(t *testing.T) {
+	var gotInput map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.Unmarshal([]byte(r.URL.Query().Get("input")), &gotInput); err != nil {
+			t.Fatalf("decoding input param: %v", err)
+		}
+		_, _ = io.WriteString(w, `{"success":true,"data":{"prompts":[],"totalCount":0}}`)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	if _, err := client.ListPrompts(
+		context.Background(), "proj-1", "", PromptListOptions{Subfolder: "my-folder"},
+	); err != nil {
+		t.Fatalf("ListPrompts() error = %v", err)
+	}
+
+	if gotInput["folder"] != "prompts" {
+		t.Fatalf("folder = %v, want \"prompts\"", gotInput["folder"])
+	}
+	if gotInput["subfolder"] != "my-folder" {
+		t.Fatalf("subfolder = %v, want \"my-folder\"", gotInput["subfolder"])
+	}
+}
+
+func TestAPIClientListPromptVersionsEmptyHistory(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `{"success":true,"data":{"promptVersions":[],"totalCount":0}}`)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	versions, err := client.ListPromptVersions(
+		context.Background(), "proj-1", "routines", "missing",
+	)
+	if err != nil {
+		t.Fatalf("ListPromptVersions() error = %v", err)
+	}
+	if len(versions) != 0 {
+		t.Fatalf("got %d versions, want 0", len(versions))
+	}
+}
+
+func TestAPIClientCreatePromptSendsCommitMessage(t *testing.T) {
+	tests := []struct {
+		name          string
+		commitMessage string
+		wantPresent   bool
+		wantValue     string
+	}{
+		{
+			name:          "message is sent when set",
+			commitMessage: "add identity check",
+			wantPresent:   true,
+			wantValue:     "add identity check",
+		},
+		{
+			name:          "key is omitted when empty",
+			commitMessage: "",
+			wantPresent:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Decoded loosely: a typed decode cannot tell an absent key from an empty string.
+			var gotBody map[string]any
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Method != http.MethodPost {
+						t.Fatalf("method = %s, want POST", r.Method)
+					}
+					if r.URL.Path != "/api/platform/v1/projects/proj-1/prompts/routines" {
+						t.Fatalf("path = %s", r.URL.Path)
+					}
+					body, err := io.ReadAll(r.Body)
+					if err != nil {
+						t.Fatalf("reading body: %v", err)
+					}
+					if err := json.Unmarshal(body, &gotBody); err != nil {
+						t.Fatalf("decoding body: %v", err)
+					}
+					_, _ = io.WriteString(
+						w,
+						`{"success":true,"data":{"id":"p-1","name":"routines/my-routine","version":2}}`,
+					)
+				}),
+			)
+			defer server.Close()
+
+			client, err := NewAPIClient(
+				server.URL,
+				5*time.Second,
+				"",
+				"",
+				[]*http.Cookie{{Name: "session", Value: "abc"}},
+			)
+			if err != nil {
+				t.Fatalf("NewAPIClient() error = %v", err)
+			}
+
+			prompt, err := client.CreatePrompt(
+				context.Background(), "proj-1", "routines", CreatePromptBody{
+					Name:          "my-routine",
+					Prompt:        "do the thing",
+					CommitMessage: tt.commitMessage,
+				},
+			)
+			if err != nil {
+				t.Fatalf("CreatePrompt() error = %v", err)
+			}
+			if prompt.Version != 2 {
+				t.Fatalf("version = %d, want 2", prompt.Version)
+			}
+
+			got, present := gotBody["commitMessage"]
+			if present != tt.wantPresent {
+				t.Fatalf("commitMessage present = %v, want %v", present, tt.wantPresent)
+			}
+			if tt.wantPresent && got != tt.wantValue {
+				t.Fatalf("commitMessage = %v, want %q", got, tt.wantValue)
+			}
+		})
+	}
+}
+
+func TestAPIClientListPromptVersionsAPIKeyModeScanCap(t *testing.T) {
+	tests := []struct {
+		name      string
+		promptQty int
+		wantErr   string
+	}{
+		{name: "under the cap reports not found", promptQty: 3},
+		{
+			name:      "at the cap says the search was capped",
+			promptQty: promptScanLimit,
+			wantErr:   "could not search this project's prompts under API-key authentication",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path == "/api/v1/validate-api-key" {
+						w.Header().Set("x-org-id", "org-1")
+						w.Header().Set("x-org-name", "Org 1")
+						w.Header().Set("x-project-id", "proj-1")
+						w.Header().Set("x-project-name", "Project 1")
+						w.WriteHeader(http.StatusOK)
+						return
+					}
+					rows := make([]string, tt.promptQty)
+					for i := range rows {
+						rows[i] = fmt.Sprintf(`{"name":"other-%d","versions":[1]}`, i)
+					}
+					_, _ = io.WriteString(
+						w,
+						`{"success":true,"data":{"prompts":[`+strings.Join(rows, ",")+
+							`],"totalCount":`+strconv.Itoa(tt.promptQty)+`}}`,
+					)
+				}),
+			)
+			defer server.Close()
+
+			client, err := NewAPIClient(server.URL, 5*time.Second, "", "api-key", nil)
+			if err != nil {
+				t.Fatalf("NewAPIClient() error = %v", err)
+			}
+
+			versions, err := client.ListPromptVersions(
+				context.Background(), "proj-1", "routines", "absent",
+			)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("ListPromptVersions() error = %v, want nil", err)
+				}
+				if len(versions) != 0 {
+					t.Fatalf("got %d versions, want 0", len(versions))
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("error = %v, want it to contain %q", err, tt.wantErr)
+			}
+		})
 	}
 }

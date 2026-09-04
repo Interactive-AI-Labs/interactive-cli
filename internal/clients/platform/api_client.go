@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -1035,6 +1036,19 @@ type CreatePromptBody struct {
 	PromptType    string         `json:"promptType,omitempty"`
 	Config        map[string]any `json:"config,omitempty"`
 	SchemaVersion string         `json:"schemaVersion,omitempty"`
+	CommitMessage string         `json:"commitMessage,omitempty"`
+}
+
+type PromptVersionMeta struct {
+	Version       int    `json:"version"`
+	CommitMessage string `json:"commitMessage"`
+	CreatedAt     string `json:"createdAt"`
+	CreatedBy     string `json:"createdBy"`
+	Creator       string `json:"creator"`
+}
+
+type promptVersionsData struct {
+	PromptVersions []PromptVersionMeta `json:"promptVersions"`
 }
 
 type promptAPIResponse struct {
@@ -1052,10 +1066,12 @@ type PromptListResponse struct {
 	TotalCount int          `json:"totalCount"`
 }
 
+// genericPromptFolder is the folder the generic /prompts endpoint filters on to exclude typed prompts.
+const genericPromptFolder = "prompts"
+
 type PromptListOptions struct {
 	Page      int
 	Limit     int
-	Folder    string // prompt-type filter for the generic /prompts endpoint
 	Subfolder string // optional user-supplied sub-path for folder browsing
 }
 
@@ -1140,9 +1156,7 @@ func (c *APIClient) ListPrompts(
 			"filter":  []interface{}{},
 			"orderBy": map[string]interface{}{},
 		}
-		if opts.Folder != "" {
-			inputMap["folder"] = opts.Folder
-		}
+		inputMap["folder"] = genericPromptFolder
 		if opts.Subfolder != "" {
 			inputMap["subfolder"] = opts.Subfolder
 		}
@@ -1474,6 +1488,90 @@ func (c *APIClient) GetAgentSchema(
 	}
 
 	return &result, nil
+}
+
+// ListPromptVersions returns a version history; the endpoint 501s for API-key callers, so those get numbers only.
+func (c *APIClient) ListPromptVersions(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+) ([]PromptVersionMeta, error) {
+	if c.isApiKeyMode {
+		return c.listPromptVersionNumbers(ctx, projectId, routeSegment, name)
+	}
+
+	basePath := promptBasePath(projectId, routeSegment)
+	path := basePath + "/by-name/" + url.PathEscape(name) + "/versions"
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt versions request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list prompt versions: server returned %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt versions response: %w", err)
+	}
+
+	var versionsData promptVersionsData
+	if err := json.Unmarshal(envelope.Data, &versionsData); err != nil {
+		return nil, fmt.Errorf("failed to decode prompt versions data: %w", err)
+	}
+
+	return versionsData.PromptVersions, nil
+}
+
+const promptScanLimit = 1000
+
+// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past promptScanLimit.
+func (c *APIClient) listPromptVersionNumbers(
+	ctx context.Context,
+	projectId string,
+	routeSegment string,
+	name string,
+) ([]PromptVersionMeta, error) {
+	opts := PromptListOptions{Limit: promptScanLimit}
+	result, err := c.ListPrompts(ctx, projectId, routeSegment, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range result.Prompts {
+		if p.Name != name {
+			continue
+		}
+		versions := make([]PromptVersionMeta, len(p.Versions))
+		for i, v := range p.Versions {
+			versions[i] = PromptVersionMeta{Version: v}
+		}
+		return versions, nil
+	}
+
+	if len(result.Prompts) == promptScanLimit {
+		return nil, errors.New(
+			"could not search this project's prompts under API-key authentication",
+		)
+	}
+
+	return nil, nil
 }
 
 func (c *APIClient) DeletePromptByName(

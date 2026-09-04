@@ -33,6 +33,7 @@ steps:
 
 ```
   iai routines update onboarding-flow --file routine.yaml
+  iai routines update onboarding-flow --file routine.yaml -m "add identity check before refund step"
   iai routines update onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines update onboarding-flow --file routine.yaml --labels staging,qa
 ```
@@ -43,6 +44,7 @@ steps:
       --file string             Path to the file containing the updated prompt content
   -h, --help                    help for update
       --labels strings          Labels for the new prompt version (comma-separated)
+  -m, --message string          Commit message describing the change (stored on the new version)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the prompts
       --schema-version string   Schema version to validate against (defaults to latest stable)

@@ -22,6 +22,7 @@ iai prompts create <name> [flags]
 
 ```
   iai prompts create greeting --content "Hello, how can I help you?"
+  iai prompts create greeting --content "Hello, how can I help you?" -m "initial greeting copy"
   iai prompts create greeting --file greeting.txt
   iai prompts create greeting --file greeting.txt --type chat
   iai prompts create greeting --content "Hi!" --labels staging
@@ -35,6 +36,7 @@ iai prompts create <name> [flags]
       --file string           Path to the file containing the prompt content
   -h, --help                  help for create
       --labels strings        Labels for the prompt version (comma-separated)
+  -m, --message string        Commit message describing the change (stored on the new version)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --tags strings          Tags for the prompt (comma-separated)

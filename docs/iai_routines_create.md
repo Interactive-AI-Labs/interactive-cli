@@ -31,6 +31,7 @@ steps:
 
 ```
   iai routines create onboarding-flow --file routine.yaml
+  iai routines create onboarding-flow --file routine.yaml -m "initial onboarding flow"
   iai routines create onboarding-flow --file routine.yaml --schema-version 2.1.0
   iai routines create onboarding-flow --file routine.yaml --labels staging
   iai routines create onboarding-flow --file routine.yaml --tags v2,experimental
@@ -42,6 +43,7 @@ steps:
       --file string             Path to the file containing the prompt content
   -h, --help                    help for create
       --labels strings          Labels for the prompt version (comma-separated)
+  -m, --message string          Commit message describing the change (stored on the new version)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the prompts
       --schema-version string   Schema version to validate against (defaults to latest stable)

@@ -6,6 +6,11 @@ List versions of a routine
 
 List all versions of a routine, sorted newest-first.
 
+Each row shows the version number, when it was updated, who updated it, and the
+commit message recorded with that version (set with -m on create and update).
+A "—" means the value is unavailable: under API-key authentication only version
+numbers can be read.
+
 ```
 iai routines versions <name> [flags]
 ```

@@ -28,6 +28,7 @@ criticality: HIGH
 
 ```
   iai policies update safety-rules --file policy.yaml
+  iai policies update safety-rules --file policy.yaml -m "tighten refund approval limits"
   iai policies update safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies update safety-rules --file policy.yaml --labels staging,qa
 ```
@@ -38,6 +39,7 @@ criticality: HIGH
       --file string             Path to the file containing the updated prompt content
   -h, --help                    help for update
       --labels strings          Labels for the new prompt version (comma-separated)
+  -m, --message string          Commit message describing the change (stored on the new version)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the prompts
       --schema-version string   Schema version to validate against (defaults to latest stable)

@@ -43,6 +43,7 @@ Example (glossary.json):
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai glossaries create finance-terms --file glossary.json
+  iai glossaries create finance-terms --file glossary.json -m "initial finance terms"
   iai glossaries create finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries create finance-terms --file glossary.json --labels staging
   iai glossaries create finance-terms --file glossary.json --tags domain`,
@@ -93,6 +94,7 @@ Example (glossary.json):
 
   Add as many entries under 'terms' as you need — each key must be unique.`,
 		UpdateExample: `  iai glossaries update finance-terms --file glossary.json
+  iai glossaries update finance-terms --file glossary.json -m "add chargeback and settlement"
   iai glossaries update finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries update finance-terms --file glossary.json --labels staging,qa`,
 		DeleteLong: `Delete a glossary definition and all its versions, or delete specific versions.

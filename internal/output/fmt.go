@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const missingMetadata = "—" // table cell the API supplied no value for
+
 // formatCost formats a pointer cost as dollars for terminal output.
 func formatCost(v *float64) string {
 	if v == nil {

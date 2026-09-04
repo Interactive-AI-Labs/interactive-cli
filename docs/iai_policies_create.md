@@ -26,6 +26,7 @@ criticality: HIGH
 
 ```
   iai policies create safety-rules --file policy.yaml
+  iai policies create safety-rules --file policy.yaml -m "initial safety rules"
   iai policies create safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies create safety-rules --file policy.yaml --labels staging
   iai policies create safety-rules --file policy.yaml --tags compliance
@@ -37,6 +38,7 @@ criticality: HIGH
       --file string             Path to the file containing the prompt content
   -h, --help                    help for create
       --labels strings          Labels for the prompt version (comma-separated)
+  -m, --message string          Commit message describing the change (stored on the new version)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the prompts
       --schema-version string   Schema version to validate against (defaults to latest stable)

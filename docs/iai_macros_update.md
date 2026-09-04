@@ -22,6 +22,7 @@ No schema validation is applied — any text content is accepted.
 
 ```
   iai macros update disclaimer --file disclaimer.md
+  iai macros update disclaimer --file disclaimer.md -m "update disclaimer wording for EU"
   iai macros update disclaimer --file disclaimer.md --labels staging,qa
 ```
 
@@ -31,6 +32,7 @@ No schema validation is applied — any text content is accepted.
       --file string             Path to the file containing the updated prompt content
   -h, --help                    help for update
       --labels strings          Labels for the new prompt version (comma-separated)
+  -m, --message string          Commit message describing the change (stored on the new version)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name that owns the prompts
       --schema-version string   Schema version to validate against (defaults to latest stable)
