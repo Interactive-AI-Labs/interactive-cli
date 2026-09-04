@@ -187,7 +187,7 @@ func (c *DeploymentClient) sendJSONRequest(
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg := clients.ExtractServerMessage(respBody); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
+			return nil, fmt.Errorf("%s", c.namedHost(resp.StatusCode, msg))
 		}
 		return nil, fmt.Errorf("request failed with status %s", resp.Status)
 	}
@@ -2080,6 +2080,17 @@ func (c *DeploymentClient) DescribeServiceRevision(
 	return &result, nil
 }
 
+// namedHost annotates an auth failure with the deployment host that produced it.
+// --hostname and --deployment-hostname default independently, so overriding only
+// the first leaves this client pointed at production, where a dev session is
+// simply Unauthorized — a message that reads as a permissions problem.
+func (c *DeploymentClient) namedHost(status int, msg string) string {
+	if status != http.StatusUnauthorized && status != http.StatusForbidden {
+		return msg
+	}
+	return fmt.Sprintf("%s (deployment API at %s)", msg, c.hostname)
+}
+
 func (c *DeploymentClient) fetchRevisions(
 	ctx context.Context,
 	path, label string,
@@ -2102,7 +2113,7 @@ func (c *DeploymentClient) fetchRevisions(
 		}
 		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
-			return nil, fmt.Errorf("%s", msg)
+			return nil, fmt.Errorf("%s", c.namedHost(resp.StatusCode, msg))
 		}
 		return nil, fmt.Errorf("%s request failed with status %s", label, resp.Status)
 	}

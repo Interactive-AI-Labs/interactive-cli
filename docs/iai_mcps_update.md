@@ -5,10 +5,17 @@ Update an mcp's spec
 ### Synopsis
 
 Partial update — only the fields whose flags you pass are changed; everything
-else keeps its current value. port/path/image/memory/cpu/env/secret only apply
-to internal mcps. Use --clear-env, --clear-secret, or --clear-headers to remove
-those entirely. Use --clear-stack-id to remove the mcp from its stack. The type (internal/external) and, for external mcps, the
-endpoint/catalog cannot change — delete and recreate instead.
+else keeps its current value. The type (internal/external) and, for external
+mcps, the endpoint/catalog cannot change — delete and recreate instead.
+
+An internal mcp is the exception to "partial": its workload is replaced whole,
+so --image-name and --image-tag are required whenever you touch it, and
+--port/--path/--memory/--cpu return to their defaults unless you pass them too.
+That applies even to a description-only change.
+
+--env, --secret, --header, --clear-env, --clear-secret, --clear-headers and
+--stack-id come from the shared mcps flag set and are not supported here yet;
+passing one is refused rather than ignored. Recreate the mcp to change them.
 
 Changing --credential, or switching --auth-type to "none", rotates the mcp's
 Secret and restarts the mcp (if internal) and every agent currently attached
@@ -21,11 +28,9 @@ iai mcps update <mcp_name> [flags]
 ### Examples
 
 ```
-  iai mcps update my-tool --image-tag v2
-  iai mcps update my-tool --memory 1G --cpu 500m
+  iai mcps update my-tool --image-name my-mcp --image-tag v2 --port 3000 --path /mcp --memory 1G --cpu 500m
   iai mcps update acme --credential "$NEW_TOKEN"
-  iai mcps update my-tool --clear-headers
-  iai mcps update my-tool --stack-id my-stack
+  iai mcps update acme --description "notes for the team"
 ```
 
 ### Options
@@ -33,14 +38,14 @@ iai mcps update <mcp_name> [flags]
 ```
       --auth-header string          Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)
       --auth-header-prefix string   Credential value prefix — only valid with --auth-type custom
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth" — the user signs in, no credential to pass (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none"; with --catalog-id the entry decides)
       --clear-env                   Remove all environment variables from the mcp
       --clear-headers               Remove all extra request headers from the mcp
       --clear-secret                Remove all secret references from the mcp
-      --clear-stack-id              Remove the mcp from its stack
       --cpu string                  CPU request/limit, e.g. 250m (required for internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
+      --description string          Human-readable description of the mcp
       --env stringArray             Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)
       --header stringArray          Extra non-secret request header (NAME=VALUE); can be repeated
   -h, --help                        help for update

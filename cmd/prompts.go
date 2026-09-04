@@ -201,7 +201,7 @@ Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 				return output.PrintStructuredYAML(out, result)
 			}
 
-			return output.PrintPromptList(out, result.Prompts)
+			return output.PrintPromptList(out, "prompts", result.Prompts)
 		},
 	}
 
