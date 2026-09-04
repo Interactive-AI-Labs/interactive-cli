@@ -742,6 +742,43 @@ func TestAPIClientListPromptVersionsAPIKeyMode(t *testing.T) {
 	}
 }
 
+// The generic /prompts endpoint filters on the "prompts" folder to exclude typed
+// prompts, and carries the user-supplied sub-path separately.
+func TestAPIClientListPromptsGenericSendsFolder(t *testing.T) {
+	var gotInput map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.Unmarshal([]byte(r.URL.Query().Get("input")), &gotInput); err != nil {
+			t.Fatalf("decoding input param: %v", err)
+		}
+		_, _ = io.WriteString(w, `{"success":true,"data":{"prompts":[],"totalCount":0}}`)
+	}))
+	defer server.Close()
+
+	client, err := NewAPIClient(
+		server.URL,
+		5*time.Second,
+		"",
+		"",
+		[]*http.Cookie{{Name: "session", Value: "abc"}},
+	)
+	if err != nil {
+		t.Fatalf("NewAPIClient() error = %v", err)
+	}
+
+	if _, err := client.ListPrompts(
+		context.Background(), "proj-1", "", PromptListOptions{Subfolder: "my-folder"},
+	); err != nil {
+		t.Fatalf("ListPrompts() error = %v", err)
+	}
+
+	if gotInput["folder"] != "prompts" {
+		t.Fatalf("folder = %v, want \"prompts\"", gotInput["folder"])
+	}
+	if gotInput["subfolder"] != "my-folder" {
+		t.Fatalf("subfolder = %v, want \"my-folder\"", gotInput["subfolder"])
+	}
+}
+
 func TestAPIClientListPromptVersionsEmptyHistory(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, `{"success":true,"data":{"promptVersions":[],"totalCount":0}}`)

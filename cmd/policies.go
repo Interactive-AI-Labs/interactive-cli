@@ -33,6 +33,7 @@ Example (policy.yaml):
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai policies create safety-rules --file policy.yaml
+  iai policies create safety-rules --file policy.yaml -m "initial safety rules"
   iai policies create safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies create safety-rules --file policy.yaml --labels staging
   iai policies create safety-rules --file policy.yaml --tags compliance`,
@@ -73,6 +74,7 @@ Example (policy.yaml):
   action: Transfer to human
   criticality: HIGH`,
 		UpdateExample: `  iai policies update safety-rules --file policy.yaml
+  iai policies update safety-rules --file policy.yaml -m "tighten refund approval limits"
   iai policies update safety-rules --file policy.yaml --schema-version 2.1.0
   iai policies update safety-rules --file policy.yaml --labels staging,qa`,
 		DeleteLong: `Delete a policy and all its versions, or delete specific versions.

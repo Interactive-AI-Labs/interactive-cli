@@ -34,6 +34,7 @@ the set accepts any number of variables.
 
 ```
   iai variables create session-vars --file variables.json
+  iai variables create session-vars --file variables.json -m "initial session variables"
   iai variables create session-vars --file variables.json --schema-version 2.1.0
   iai variables create session-vars --file variables.json --labels staging
   iai variables create session-vars --file variables.json --tags core

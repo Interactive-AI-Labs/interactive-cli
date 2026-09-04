@@ -20,6 +20,7 @@ iai prompts update <name> [flags]
 
 ```
   iai prompts update greeting --content "Hello! How may I assist you today?"
+  iai prompts update greeting --content "Hello! How may I assist you today?" -m "friendlier greeting wording"
   iai prompts update greeting --file greeting.txt
   iai prompts update greeting --file greeting.txt --labels staging,qa
 ```

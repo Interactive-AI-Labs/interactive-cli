@@ -36,6 +36,7 @@ glossary accepts any number of entries.
 
 ```
   iai glossaries create finance-terms --file glossary.json
+  iai glossaries create finance-terms --file glossary.json -m "initial finance terms"
   iai glossaries create finance-terms --file glossary.json --schema-version 2.1.0
   iai glossaries create finance-terms --file glossary.json --labels staging
   iai glossaries create finance-terms --file glossary.json --tags domain

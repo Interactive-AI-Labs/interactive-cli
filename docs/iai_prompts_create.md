@@ -22,6 +22,7 @@ iai prompts create <name> [flags]
 
 ```
   iai prompts create greeting --content "Hello, how can I help you?"
+  iai prompts create greeting --content "Hello, how can I help you?" -m "initial greeting copy"
   iai prompts create greeting --file greeting.txt
   iai prompts create greeting --file greeting.txt --type chat
   iai prompts create greeting --content "Hi!" --labels staging

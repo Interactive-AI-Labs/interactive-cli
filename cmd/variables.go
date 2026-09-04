@@ -41,6 +41,7 @@ Example (variables.json):
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai variables create session-vars --file variables.json
+  iai variables create session-vars --file variables.json -m "initial session variables"
   iai variables create session-vars --file variables.json --schema-version 2.1.0
   iai variables create session-vars --file variables.json --labels staging
   iai variables create session-vars --file variables.json --tags core`,
@@ -89,6 +90,7 @@ Example (variables.json):
 
   Add as many entries under 'variables' as you need — each key must be unique.`,
 		UpdateExample: `  iai variables update session-vars --file variables.json
+  iai variables update session-vars --file variables.json -m "add locale to session variables"
   iai variables update session-vars --file variables.json --schema-version 2.1.0
   iai variables update session-vars --file variables.json --labels staging,qa`,
 		DeleteLong: `Delete a variable definition and all its versions, or delete specific versions.

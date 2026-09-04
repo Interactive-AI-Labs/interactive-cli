@@ -6,6 +6,11 @@ List versions of a glossary
 
 List all versions of a glossary, sorted newest-first.
 
+Each row shows the version number, when it was updated, who updated it, and the
+commit message recorded with that version (set with -m on create and update).
+A "—" means the value is unavailable: under API-key authentication only version
+numbers can be read.
+
 ```
 iai glossaries versions <name> [flags]
 ```

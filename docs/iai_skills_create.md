@@ -34,6 +34,7 @@ iai skills create <name> [flags]
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
   iai skills create summarize-trace --file ./skill.md --labels active
+  iai skills create summarize-trace --file ./skill.md -m "initial trace summary skill"
 ```
 
 ### Options

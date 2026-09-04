@@ -42,7 +42,8 @@ a skill the one Copilot uses.`,
 		CreateExample: `  iai skills create summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills create summarize-trace --file ./skill.md --labels active`,
+  iai skills create summarize-trace --file ./skill.md --labels active
+  iai skills create summarize-trace --file ./skill.md -m "initial trace summary skill"`,
 		ListLong: `List Copilot skills in a project.
 
 Returns all Copilot skills with their name, labels, tags, and last update time.
@@ -73,7 +74,8 @@ Pass --intents once per intent (the flag is repeatable).`,
 		UpdateExample: `  iai skills update summarize-trace --file ./skill.md \
     --description "Summarize a Langfuse trace" \
     --intents "summarize trace" --intents "explain trace"
-  iai skills update summarize-trace --file ./skill.md --labels active`,
+  iai skills update summarize-trace --file ./skill.md --labels active
+  iai skills update summarize-trace --file ./skill.md -m "handle traces with no observations"`,
 		DeleteLong: `Delete a Copilot skill and all its versions, or delete specific versions.
 
 Without flags, deletes the skill and all its versions (requires confirmation).
