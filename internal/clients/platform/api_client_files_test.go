@@ -347,3 +347,83 @@ func writeFileMetadataResponse(w http.ResponseWriter, id, versionID string, size
 	}
 	_, _ = w.Write(b)
 }
+
+func TestDownloadFile_ParsesFilenameAndStreamsBytes(t *testing.T) {
+	content := []byte("the current version's bytes")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/files/file-1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Disposition", `attachment; filename="evil.txt"; filename*=UTF-8''%2E%2E`)
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(content)))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(content)
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	var buf bytes.Buffer
+	var gotProgress int64
+	filename, length, err := client.DownloadFile(
+		context.Background(), "org-1", "proj-1", "file-1", &buf,
+		func(n int64) { gotProgress += n },
+	)
+	if err != nil {
+		t.Fatalf("DownloadFile() error = %v", err)
+	}
+	if filename != ".." {
+		t.Errorf("filename = %q, want %q (raw, unreduced)", filename, "..")
+	}
+	if length != int64(len(content)) {
+		t.Errorf("length = %d, want %d", length, len(content))
+	}
+	if !bytes.Equal(buf.Bytes(), content) {
+		t.Errorf("downloaded bytes = %q, want %q", buf.Bytes(), content)
+	}
+	if gotProgress != int64(len(content)) {
+		t.Errorf("progress reported = %d, want %d", gotProgress, len(content))
+	}
+}
+
+func TestDownloadFileVersion_HitsVersionPath(t *testing.T) {
+	content := []byte("an older version's bytes")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/files/file-1/versions/v-0" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Disposition", `attachment; filename="report.txt"; filename*=UTF-8''report.txt`)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(content)
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	var buf bytes.Buffer
+	filename, _, err := client.DownloadFileVersion(
+		context.Background(), "org-1", "proj-1", "file-1", "v-0", &buf, nil,
+	)
+	if err != nil {
+		t.Fatalf("DownloadFileVersion() error = %v", err)
+	}
+	if filename != "report.txt" {
+		t.Errorf("filename = %q, want report.txt", filename)
+	}
+	if !bytes.Equal(buf.Bytes(), content) {
+		t.Errorf("downloaded bytes = %q, want %q", buf.Bytes(), content)
+	}
+}
+
+func TestDownloadFile_ErrorStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"detail":{"error":{"message":"file not found"}}}`))
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	var buf bytes.Buffer
+	_, _, err := client.DownloadFile(context.Background(), "org-1", "proj-1", "missing", &buf, nil)
+	if err == nil {
+		t.Fatal("DownloadFile() error = nil, want a not-found error")
+	}
+}
