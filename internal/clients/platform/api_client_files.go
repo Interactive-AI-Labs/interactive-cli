@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -203,4 +204,76 @@ func retryAfterDelay(header string) time.Duration {
 		return time.Second
 	}
 	return time.Duration(seconds) * time.Second
+}
+
+// DownloadFile streams a file's current version into dest, reporting progress via onProgress.
+func (c *APIClient) DownloadFile(
+	ctx context.Context,
+	orgID, projectID, fileID string,
+	dest io.Writer,
+	onProgress func(n int64),
+) (string, int64, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + fileID
+	return c.downloadTo(ctx, path, dest, onProgress)
+}
+
+// DownloadFileVersion streams one specific version's bytes into dest.
+func (c *APIClient) DownloadFileVersion(
+	ctx context.Context,
+	orgID, projectID, fileID, versionID string,
+	dest io.Writer,
+	onProgress func(n int64),
+) (string, int64, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + fileID + "/versions/" + versionID
+	return c.downloadTo(ctx, path, dest, onProgress)
+}
+
+func (c *APIClient) downloadTo(
+	ctx context.Context,
+	path string,
+	dest io.Writer,
+	onProgress func(n int64),
+) (string, int64, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to download file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		if msg := clients.ExtractServerMessage(body); msg != "" {
+			return "", 0, errors.New(msg)
+		}
+		return "", 0, fmt.Errorf("failed to download file: server returned %s", resp.Status)
+	}
+
+	filename := parseDispositionFilename(resp.Header.Get("Content-Disposition"))
+
+	src := io.Reader(resp.Body)
+	if onProgress != nil {
+		src = &countingReader{r: resp.Body, onRead: onProgress}
+	}
+	written, err := io.Copy(dest, src)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to read download body: %w", err)
+	}
+
+	return filename, written, nil
+}
+
+func parseDispositionFilename(header string) string {
+	if header == "" {
+		return ""
+	}
+	_, params, err := mime.ParseMediaType(header)
+	if err != nil {
+		return ""
+	}
+	return params["filename"]
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -27,6 +28,13 @@ var (
 	filesListYAML    bool
 	filesListOrg     string
 	filesListProject string
+
+	filesDownloadVersion string
+	filesDownloadOutput  string
+	filesDownloadForce   bool
+	filesDownloadTimeout time.Duration
+	filesDownloadOrg     string
+	filesDownloadProject string
 )
 
 var filesCmd = &cobra.Command{
@@ -133,6 +141,80 @@ var filesListCmd = &cobra.Command{
 	},
 }
 
+var filesDownloadCmd = &cobra.Command{
+	Use:   "download <id>",
+	Short: "Download a file's bytes",
+	Long: `Download a file's current version, or an older one with --version.
+
+Without --output, the file is written under the name the server reports,
+reduced to a safe local filename; --output - streams to stdout instead.`,
+	Example: `  iai files download <id>
+  iai files download <id> --version <version-id>
+  iai files download <id> --output report.pdf
+  iai files download <id> --output - > report.pdf`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fileID := args[0]
+
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(), filesDownloadOrg, filesDownloadProject,
+			resolveOpts{deployTimeout: defaultHTTPTimeout, filesTimeout: filesDownloadTimeout},
+		)
+		if err != nil {
+			return err
+		}
+
+		bar := output.NewProgressBar(cmd.ErrOrStderr(), 0, fmt.Sprintf("Downloading %s", fileID))
+		download := func(dest io.Writer) (string, int64, error) {
+			if filesDownloadVersion != "" {
+				return apiClient.DownloadFileVersion(
+					cmd.Context(), pCtx.orgId, pCtx.projectId, fileID, filesDownloadVersion, dest, bar.Add,
+				)
+			}
+			return apiClient.DownloadFile(cmd.Context(), pCtx.orgId, pCtx.projectId, fileID, dest, bar.Add)
+		}
+
+		if filesDownloadOutput == "-" {
+			_, _, err := download(cmd.OutOrStdout())
+			bar.Finish()
+			return err
+		}
+
+		tmp, err := os.CreateTemp(".", ".iai-files-download-*")
+		if err != nil {
+			return fmt.Errorf("failed to create temp download file: %w", err)
+		}
+		tmpPath := tmp.Name()
+		rawName, _, err := download(tmp)
+		bar.Finish()
+		closeErr := tmp.Close()
+		if err != nil {
+			os.Remove(tmpPath)
+			return err
+		}
+		if closeErr != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("failed to write download to disk: %w", closeErr)
+		}
+
+		target := filesDownloadOutput
+		if target == "" {
+			target = safeDownloadFilename(rawName, fileID)
+		}
+		if _, err := os.Stat(target); err == nil && !filesDownloadForce {
+			os.Remove(tmpPath)
+			return fmt.Errorf("%s already exists; use --force to overwrite", target)
+		}
+		if err := os.Rename(tmpPath, target); err != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("failed to write %s: %w", target, err)
+		}
+
+		fmt.Fprintf(cmd.OutOrStdout(), "%s\n", target)
+		return nil
+	},
+}
+
 func init() {
 	filesUploadCmd.Flags().StringVar(&filesUploadName, "name", "", "Name to store the file under (default: the local file's name)")
 	filesUploadCmd.Flags().
@@ -149,7 +231,25 @@ func init() {
 	filesListCmd.Flags().StringVarP(&filesListOrg, "organization", "o", "", "Organization name that owns the project")
 	filesListCmd.Flags().StringVarP(&filesListProject, "project", "p", "", "Project name")
 
+	filesDownloadCmd.Flags().StringVar(&filesDownloadVersion, "version", "", "Download this specific version instead of the current one")
+	filesDownloadCmd.Flags().StringVar(&filesDownloadOutput, "output", "", "Local path to write to (default: the stored name); - for stdout")
+	filesDownloadCmd.Flags().BoolVarP(&filesDownloadForce, "force", "f", false, "Overwrite an existing local file")
+	filesDownloadCmd.Flags().
+		DurationVar(&filesDownloadTimeout, "timeout", defaultFilesTimeout, "HTTP timeout for the download")
+	filesDownloadCmd.Flags().
+		StringVarP(&filesDownloadOrg, "organization", "o", "", "Organization name that owns the project")
+	filesDownloadCmd.Flags().StringVarP(&filesDownloadProject, "project", "p", "", "Project name")
+
 	filesCmd.AddCommand(filesUploadCmd)
 	filesCmd.AddCommand(filesListCmd)
+	filesCmd.AddCommand(filesDownloadCmd)
 	rootCmd.AddCommand(filesCmd)
+}
+
+func safeDownloadFilename(raw, fileID string) string {
+	base := filepath.Base(raw)
+	if base == "" || base == "." || base == ".." || base == string(filepath.Separator) {
+		return fileID
+	}
+	return base
 }
