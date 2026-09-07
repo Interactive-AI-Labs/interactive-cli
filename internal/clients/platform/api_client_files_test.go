@@ -700,3 +700,64 @@ func TestAddFileVersion_AmbiguousRef(t *testing.T) {
 		t.Errorf("Ref = %q, want report.pdf", ambiguous.Ref)
 	}
 }
+
+func TestDeleteFile_HitsWholeFilePath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("method = %s, want DELETE", r.Method)
+		}
+		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/files/f-1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		fmt.Fprint(w, `{"success":true,"data":{"id":"f-1","versionId":null}}`)
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	id, err := client.DeleteFile(context.Background(), "org-1", "proj-1", "f-1")
+	if err != nil {
+		t.Fatalf("DeleteFile() error = %v", err)
+	}
+	if id != "f-1" {
+		t.Errorf("id = %q, want f-1", id)
+	}
+}
+
+func TestDeleteFileVersion_HitsVersionPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/files/f-1/versions/v-1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		fmt.Fprint(w, `{"success":true,"data":{"id":"f-1","versionId":"v-1"}}`)
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	id, err := client.DeleteFileVersion(context.Background(), "org-1", "proj-1", "f-1", "v-1")
+	if err != nil {
+		t.Fatalf("DeleteFileVersion() error = %v", err)
+	}
+	if id != "f-1" {
+		t.Errorf("id = %q, want f-1", id)
+	}
+}
+
+func TestDeleteFile_AmbiguousRef(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"detail":{"success":false,"error":{"code":"FILE_REF_AMBIGUOUS",` +
+			`"message":"ambiguous","details":{"candidates":[` +
+			`{"fileId":"f-1","name":"report.pdf","size":10,"createdAt":"2026-01-01T00:00:00Z"},` +
+			`{"fileId":"f-2","name":"report.pdf","size":20,"createdAt":"2026-01-02T00:00:00Z"}` +
+			`]}}}}`))
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	_, err := client.DeleteFile(context.Background(), "org-1", "proj-1", "report.pdf")
+
+	var ambiguous *FileRefAmbiguousError
+	if !errors.As(err, &ambiguous) {
+		t.Fatalf("DeleteFile() error = %v, want a *FileRefAmbiguousError", err)
+	}
+}
