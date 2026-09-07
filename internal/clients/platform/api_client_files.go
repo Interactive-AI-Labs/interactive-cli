@@ -1,0 +1,172 @@
+package platform
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
+)
+
+// FileVersion is one version of a stored file, as reported by the files API.
+type FileVersion struct {
+	VersionId   string    `json:"versionId"`
+	Size        int64     `json:"size"`
+	Name        string    `json:"name"`
+	ContentType string    `json:"contentType"`
+	CreatedAt   time.Time `json:"createdAt"`
+	CreatedBy   string    `json:"createdBy"`
+	IsCurrent   bool      `json:"isCurrent"`
+}
+
+// FileMetadata is a stored file and its current version, as reported by the files API.
+type FileMetadata struct {
+	Id       string        `json:"id"`
+	Current  FileVersion   `json:"current"`
+	Versions []FileVersion `json:"versions,omitempty"`
+}
+
+// filesUploadMaxAttempts bounds retries against a persistently unavailable store.
+const filesUploadMaxAttempts = 4
+
+// uploadRetryDelay sleeps between upload retries; overridable in tests.
+var uploadRetryDelay = time.Sleep
+
+// countingReader reports every successful Read to onRead.
+type countingReader struct {
+	r      io.Reader
+	onRead func(n int64)
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	if n > 0 && c.onRead != nil {
+		c.onRead(int64(n))
+	}
+	return n, err
+}
+
+// buildFileUploadFraming builds the multipart header/footer around an omitted file body, so it can stream straight from disk.
+func buildFileUploadFraming(name, filename string) (header, footer []byte, contentType string, err error) {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+
+	if name != "" {
+		if err := mw.WriteField("name", name); err != nil {
+			return nil, nil, "", fmt.Errorf("failed to write name field: %w", err)
+		}
+	}
+	if _, err := mw.CreateFormFile("file", filename); err != nil {
+		return nil, nil, "", fmt.Errorf("failed to write file field: %w", err)
+	}
+
+	contentType = mw.FormDataContentType()
+	header = append([]byte(nil), buf.Bytes()...)
+	footer = []byte("\r\n--" + mw.Boundary() + "--\r\n")
+	return header, footer, contentType, nil
+}
+
+// CreateFile uploads localPath as a new file, using name as the stored name if set and reporting bytes read via onProgress.
+func (c *APIClient) CreateFile(
+	ctx context.Context,
+	orgID, projectID string,
+	localPath string,
+	name string,
+	onProgress func(n int64),
+) (*FileMetadata, error) {
+	f, err := os.Open(localPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open %s: %w", localPath, err)
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat %s: %w", localPath, err)
+	}
+	size := info.Size()
+
+	header, footer, contentType, err := buildFileUploadFraming(name, filepath.Base(localPath))
+	if err != nil {
+		return nil, err
+	}
+	contentLength := int64(len(header)) + size + int64(len(footer))
+
+	path := evalBasePath(orgID, projectID) + "/files"
+
+	var lastErr error
+	for attempt := 1; attempt <= filesUploadMaxAttempts; attempt++ {
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return nil, fmt.Errorf("failed to rewind %s: %w", localPath, err)
+		}
+
+		body := io.MultiReader(
+			bytes.NewReader(header),
+			&countingReader{r: f, onRead: onProgress},
+			bytes.NewReader(footer),
+		)
+
+		req, err := c.newRequest(ctx, http.MethodPost, path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Body = io.NopCloser(body)
+		req.ContentLength = contentLength
+		req.Header.Set("Content-Type", contentType)
+
+		resp, err := c.do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload file: %w", err)
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read upload response: %w", err)
+		}
+
+		if resp.StatusCode == http.StatusServiceUnavailable && attempt < filesUploadMaxAttempts {
+			lastErr = errors.New("file storage unavailable")
+			if msg := clients.ExtractServerMessage(respBody); msg != "" {
+				lastErr = errors.New(msg)
+			}
+			uploadRetryDelay(retryAfterDelay(resp.Header.Get("Retry-After")))
+			continue
+		}
+
+		if resp.StatusCode != http.StatusCreated {
+			if msg := clients.ExtractServerMessage(respBody); msg != "" {
+				return nil, errors.New(msg)
+			}
+			return nil, fmt.Errorf("failed to upload file: server returned %s", resp.Status)
+		}
+
+		data, err := decodeSuccess[FileMetadata](respBody, "upload file")
+		if err != nil {
+			return nil, err
+		}
+		return &data, nil
+	}
+
+	return nil, fmt.Errorf("failed to upload file after %d attempts: %w", filesUploadMaxAttempts, lastErr)
+}
+
+// retryAfterDelay parses Retry-After (seconds), or falls back to a short delay.
+func retryAfterDelay(header string) time.Duration {
+	if header == "" {
+		return time.Second
+	}
+	seconds, err := strconv.Atoi(header)
+	if err != nil || seconds < 0 {
+		return time.Second
+	}
+	return time.Duration(seconds) * time.Second
+}

@@ -61,7 +61,7 @@ func PrintCollectionDescribe(out io.Writer, c *deployment.DescribeCollectionResp
 func PrintCollectionStats(out io.Writer, s *deployment.CollectionStats) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Chunks:\t%d\n", s.ChunkCount)
-	fmt.Fprintf(w, "Size:\t%s\n", humanBytes(s.SizeBytes))
+	fmt.Fprintf(w, "Size:\t%s\n", HumanBytes(s.SizeBytes))
 	if err := w.Flush(); err != nil {
 		return err
 	}
@@ -121,23 +121,4 @@ func indexType(slot deployment.CollectionSlot) string {
 		return idx.Type
 	}
 	return fmt.Sprintf("%s (%s)", idx.Type, strings.Join(params, ", "))
-}
-
-// humanBytes renders a byte count in the largest unit that keeps it >= 1.
-func humanBytes(n int64) string {
-	const unit = 1024
-	if n < unit {
-		return fmt.Sprintf("%d B", n)
-	}
-	div, exp := int64(unit), 0
-	for v := n / unit; v >= unit; v /= unit {
-		div *= unit
-		exp++
-	}
-	val := float64(n) / float64(div)
-	if val >= 1023.95 { // %.1f would render 1024.0; step up to the next unit
-		val /= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", val, "KMGTPE"[exp])
 }

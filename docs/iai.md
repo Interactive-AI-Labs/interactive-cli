@@ -94,6 +94,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai dataset-items](iai_dataset-items.md)	 - Manage items in evaluation datasets
 * [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
 * [iai datasets](iai_datasets.md)	 - Create and list evaluation datasets
+* [iai files](iai_files.md)	 - Manage documents stored in a project
 * [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
 * [iai images](iai_images.md)	 - Manage container images
 * [iai login](iai_login.md)	 - Authenticate with InteractiveAI
