@@ -1,35 +1,29 @@
-## iai files list
+## iai files get
 
-List the files a project holds
+Read a file's metadata and version history
 
 ### Synopsis
 
-List a project's files, one entry per document at its current version.
+Read a file's current version and every version it holds, without transferring any bytes.
 
 ```
-iai files list [flags]
+iai files get <id|name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai files list
-  iai files list --limit 20
-  iai files list --cursor <cursor>
-  iai files list --json
+  iai files get <id|name>
+  iai files get <id|name> --json
 ```
 
 ### Options
 
 ```
-      --columns strings       Columns to display
-      --cursor string         Cursor from a previous page's next-page footer
-  -h, --help                  help for list
+  -h, --help                  help for get
       --json                  Output raw API response as JSON
-      --limit int             Results per page (server default: 50)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
-      --versions              Show every version of each listed file
       --yaml                  Output raw API response as YAML
 ```
 

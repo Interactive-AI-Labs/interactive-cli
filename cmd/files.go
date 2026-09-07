@@ -22,13 +22,14 @@ var (
 	filesUploadOrg     string
 	filesUploadProject string
 
-	filesListLimit   int
-	filesListCursor  string
-	filesListColumns []string
-	filesListJSON    bool
-	filesListYAML    bool
-	filesListOrg     string
-	filesListProject string
+	filesListLimit    int
+	filesListCursor   string
+	filesListColumns  []string
+	filesListVersions bool
+	filesListJSON     bool
+	filesListYAML     bool
+	filesListOrg      string
+	filesListProject  string
 
 	filesDownloadVersion string
 	filesDownloadOutput  string
@@ -36,6 +37,11 @@ var (
 	filesDownloadTimeout time.Duration
 	filesDownloadOrg     string
 	filesDownloadProject string
+
+	filesGetJSON    bool
+	filesGetYAML    bool
+	filesGetOrg     string
+	filesGetProject string
 )
 
 var filesCmd = &cobra.Command{
@@ -126,7 +132,7 @@ var filesListCmd = &cobra.Command{
 			return err
 		}
 
-		opts := platform.FileListOptions{Cursor: filesListCursor}
+		opts := platform.FileListOptions{Cursor: filesListCursor, IncludeVersions: filesListVersions}
 		if cmd.Flags().Changed("limit") {
 			opts.Limit = &filesListLimit
 		}
@@ -141,7 +147,39 @@ var filesListCmd = &cobra.Command{
 		if filesListYAML {
 			return output.PrintRawYAML(out, rawJSON)
 		}
-		return output.PrintFileList(out, files, meta, columns)
+		return output.PrintFileList(out, files, meta, columns, filesListVersions)
+	},
+}
+
+var filesGetCmd = &cobra.Command{
+	Use:     "get <id|name>",
+	Aliases: []string{"describe", "desc"},
+	Short:   "Read a file's metadata and version history",
+	Long:    `Read a file's current version and every version it holds, without transferring any bytes.`,
+	Example: `  iai files get <id|name>
+  iai files get <id|name> --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fileRef := args[0]
+		out := cmd.OutOrStdout()
+
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), filesGetOrg, filesGetProject)
+		if err != nil {
+			return err
+		}
+
+		meta, rawJSON, err := apiClient.GetFileMetadata(cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef)
+		if err != nil {
+			return reportFileRefAmbiguous(cmd, err)
+		}
+
+		if filesGetJSON {
+			return output.PrintRawJSON(out, rawJSON)
+		}
+		if filesGetYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+		return output.PrintFileDetail(out, meta)
 	},
 }
 
@@ -230,6 +268,7 @@ func init() {
 	filesListCmd.Flags().IntVar(&filesListLimit, "limit", 0, "Results per page (server default: 50)")
 	filesListCmd.Flags().StringVar(&filesListCursor, "cursor", "", "Cursor from a previous page's next-page footer")
 	filesListCmd.Flags().StringSliceVar(&filesListColumns, "columns", nil, "Columns to display")
+	filesListCmd.Flags().BoolVar(&filesListVersions, "versions", false, "Show every version of each listed file")
 	filesListCmd.Flags().BoolVar(&filesListJSON, "json", false, "Output raw API response as JSON")
 	filesListCmd.Flags().BoolVar(&filesListYAML, "yaml", false, "Output raw API response as YAML")
 	filesListCmd.Flags().StringVarP(&filesListOrg, "organization", "o", "", "Organization name that owns the project")
@@ -244,9 +283,15 @@ func init() {
 		StringVarP(&filesDownloadOrg, "organization", "o", "", "Organization name that owns the project")
 	filesDownloadCmd.Flags().StringVarP(&filesDownloadProject, "project", "p", "", "Project name")
 
+	filesGetCmd.Flags().BoolVar(&filesGetJSON, "json", false, "Output raw API response as JSON")
+	filesGetCmd.Flags().BoolVar(&filesGetYAML, "yaml", false, "Output raw API response as YAML")
+	filesGetCmd.Flags().StringVarP(&filesGetOrg, "organization", "o", "", "Organization name that owns the project")
+	filesGetCmd.Flags().StringVarP(&filesGetProject, "project", "p", "", "Project name")
+
 	filesCmd.AddCommand(filesUploadCmd)
 	filesCmd.AddCommand(filesListCmd)
 	filesCmd.AddCommand(filesDownloadCmd)
+	filesCmd.AddCommand(filesGetCmd)
 	rootCmd.AddCommand(filesCmd)
 }
 
