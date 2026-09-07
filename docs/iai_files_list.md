@@ -1,0 +1,47 @@
+## iai files list
+
+List the files a project holds
+
+### Synopsis
+
+List a project's files, one entry per document at its current version.
+
+```
+iai files list [flags]
+```
+
+### Examples
+
+```
+  iai files list
+  iai files list --limit 20
+  iai files list --cursor <cursor>
+  iai files list --json
+```
+
+### Options
+
+```
+      --columns strings       Columns to display
+      --cursor string         Cursor from a previous page's next-page footer
+  -h, --help                  help for list
+      --json                  Output raw API response as JSON
+      --limit int             Results per page (server default: 50)
+  -o, --organization string   Organization name that owns the project
+  -p, --project string        Project name
+      --yaml                  Output raw API response as YAML
+```
+
+### Options inherited from parent commands
+
+```
+      --api-key string               API key for authentication
+      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
+      --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
+      --hostname string              Hostname for the API (default "https://app.interactive.ai")
+```
+
+### SEE ALSO
+
+* [iai files](iai_files.md)	 - Manage documents stored in a project
+

@@ -24,5 +24,6 @@ Put documents into a project, list what it holds, and fetch them back. Works wit
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
+* [iai files list](iai_files_list.md)	 - List the files a project holds
 * [iai files upload](iai_files_upload.md)	 - Upload a document into a project
 

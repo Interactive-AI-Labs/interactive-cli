@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -239,6 +240,85 @@ func TestCreateFile_SHA256Identity(t *testing.T) {
 	client := newEvalTestClient(t, server.URL)
 	if _, err := client.CreateFile(context.Background(), "org-1", "proj-1", localPath, "", nil); err != nil {
 		t.Fatalf("CreateFile() error = %v", err)
+	}
+}
+
+func TestListFiles_QueryParams(t *testing.T) {
+	const path = "/api/platform/v1/organizations/org-1/projects/proj-1/files"
+	const body = `{"success":true,"data":{"files":[],"meta":{"cursor":null,"total_items":null,"limit":50}}}`
+
+	tests := []struct {
+		name      string
+		opts      FileListOptions
+		wantQuery url.Values
+	}{
+		{
+			name:      "omits everything unset",
+			opts:      FileListOptions{},
+			wantQuery: url.Values{},
+		},
+		{
+			name:      "sends limit and cursor",
+			opts:      FileListOptions{Limit: 10, Cursor: "abc"},
+			wantQuery: url.Values{"limit": {"10"}, "cursor": {"abc"}},
+		},
+		{
+			name:      "sends includeVersions",
+			opts:      FileListOptions{IncludeVersions: true},
+			wantQuery: url.Values{"includeVersions": {"true"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newListTestServer(t, path, tt.wantQuery, body)
+			defer server.Close()
+
+			client := newEvalTestClient(t, server.URL)
+			if _, _, _, err := client.ListFiles(context.Background(), "org-1", "proj-1", tt.opts); err != nil {
+				t.Fatalf("ListFiles() error = %v", err)
+			}
+		})
+	}
+}
+
+func TestListFiles_DecodesNameAndEmail(t *testing.T) {
+	const path = "/api/platform/v1/organizations/org-1/projects/proj-1/files"
+	const body = `{"success":true,"data":{"files":[` +
+		`{"id":"f-1","name":"report.pdf","current":{"versionId":"v-1","size":10,` +
+		`"name":"report.pdf","contentType":"application/pdf","createdAt":"2026-01-01T00:00:00Z",` +
+		`"createdBy":"user-1","createdByEmail":"a@example.com","isCurrent":true}},` +
+		`{"id":"f-2","name":"notes.txt","current":{"versionId":"v-2","size":5,` +
+		`"name":"notes.txt","contentType":"text/plain","createdAt":"2026-01-02T00:00:00Z",` +
+		`"createdBy":"pk-abc","createdByEmail":null,"isCurrent":true}}` +
+		`],"meta":{"cursor":"next-page","total_items":null,"limit":50}}}`
+
+	server := newListTestServer(t, path, url.Values{}, body)
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	files, meta, _, err := client.ListFiles(context.Background(), "org-1", "proj-1", FileListOptions{})
+	if err != nil {
+		t.Fatalf("ListFiles() error = %v", err)
+	}
+
+	if len(files) != 2 {
+		t.Fatalf("len(files) = %d, want 2", len(files))
+	}
+	if files[0].Name != "report.pdf" {
+		t.Errorf("files[0].Name = %q, want report.pdf", files[0].Name)
+	}
+	if files[0].Current.CreatedByEmail == nil || *files[0].Current.CreatedByEmail != "a@example.com" {
+		t.Errorf("files[0].Current.CreatedByEmail = %v, want a@example.com", files[0].Current.CreatedByEmail)
+	}
+	if files[1].Current.CreatedByEmail != nil {
+		t.Errorf("files[1].Current.CreatedByEmail = %v, want nil", *files[1].Current.CreatedByEmail)
+	}
+	if meta.Cursor == nil || *meta.Cursor != "next-page" {
+		t.Errorf("meta.Cursor = %v, want next-page", meta.Cursor)
+	}
+	if meta.Limit != 50 {
+		t.Errorf("meta.Limit = %d, want 50", meta.Limit)
 	}
 }
 

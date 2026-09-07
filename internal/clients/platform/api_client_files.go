@@ -3,6 +3,7 @@ package platform
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,20 +19,53 @@ import (
 
 // FileVersion is one version of a stored file, as reported by the files API.
 type FileVersion struct {
-	VersionId   string    `json:"versionId"`
-	Size        int64     `json:"size"`
-	Name        string    `json:"name"`
-	ContentType string    `json:"contentType"`
-	CreatedAt   time.Time `json:"createdAt"`
-	CreatedBy   string    `json:"createdBy"`
-	IsCurrent   bool      `json:"isCurrent"`
+	VersionId      string    `json:"versionId"`
+	Size           int64     `json:"size"`
+	Name           string    `json:"name"`
+	ContentType    string    `json:"contentType"`
+	CreatedAt      time.Time `json:"createdAt"`
+	CreatedBy      string    `json:"createdBy"`
+	CreatedByEmail *string   `json:"createdByEmail"`
+	IsCurrent      bool      `json:"isCurrent"`
 }
 
 // FileMetadata is a stored file and its current version, as reported by the files API.
 type FileMetadata struct {
 	Id       string        `json:"id"`
+	Name     string        `json:"name"`
 	Current  FileVersion   `json:"current"`
 	Versions []FileVersion `json:"versions,omitempty"`
+}
+
+type FileListOptions struct {
+	Limit           int    `url:"limit,omitempty"`
+	Cursor          string `url:"cursor,omitempty"`
+	IncludeVersions bool   `url:"includeVersions,omitempty"`
+}
+
+type FileListMeta struct {
+	Cursor     *string `json:"cursor"`
+	TotalItems *int    `json:"total_items"`
+	Limit      int     `json:"limit"`
+}
+
+type fileListData struct {
+	Files []FileMetadata `json:"files"`
+	Meta  FileListMeta   `json:"meta"`
+}
+
+// ListFiles retrieves one page of a project's files.
+func (c *APIClient) ListFiles(
+	ctx context.Context,
+	orgID, projectID string,
+	opts FileListOptions,
+) ([]FileMetadata, FileListMeta, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/files"
+	data, raw, err := doList[fileListData](c, ctx, path, opts, "list files")
+	if err != nil {
+		return nil, FileListMeta{}, nil, err
+	}
+	return data.Files, data.Meta, raw, nil
 }
 
 // filesUploadMaxAttempts bounds retries against a persistently unavailable store.
