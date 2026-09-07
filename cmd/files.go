@@ -47,6 +47,11 @@ var (
 	filesUpdateTimeout time.Duration
 	filesUpdateOrg     string
 	filesUpdateProject string
+
+	filesDeleteVersion string
+	filesDeleteForce   bool
+	filesDeleteOrg     string
+	filesDeleteProject string
 )
 
 var filesCmd = &cobra.Command{
@@ -235,6 +240,58 @@ The file keeps its stored name unless --name is given.`,
 	},
 }
 
+var filesDeleteCmd = &cobra.Command{
+	Use:     "delete <id|name>",
+	Aliases: []string{"rm"},
+	Short:   "Delete a file, or one of its versions",
+	Long: `Delete a file and all its versions, or one superseded version with --version.
+
+Deleting a whole file asks for confirmation unless -f is given. Deleting a
+single version never asks, since the target is already specific.`,
+	Example: `  iai files delete <id|name>
+  iai files delete <id|name> -f
+  iai files delete <id|name> --version <version-id>`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		fileRef := args[0]
+
+		if filesDeleteVersion == "" && !filesDeleteForce {
+			confirmed, err := confirmDeletion(cmd.InOrStdin(), out, fmt.Sprintf("file %q", fileRef))
+			if err != nil {
+				return err
+			}
+			if !confirmed {
+				fmt.Fprintln(out, "Aborted.")
+				return nil
+			}
+		}
+
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), filesDeleteOrg, filesDeleteProject)
+		if err != nil {
+			return err
+		}
+
+		if filesDeleteVersion != "" {
+			id, err := apiClient.DeleteFileVersion(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, filesDeleteVersion,
+			)
+			if err != nil {
+				return reportFileRefAmbiguous(cmd, err)
+			}
+			fmt.Fprintf(out, "Deleted version %s of file %s\n", filesDeleteVersion, id)
+			return nil
+		}
+
+		id, err := apiClient.DeleteFile(cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef)
+		if err != nil {
+			return reportFileRefAmbiguous(cmd, err)
+		}
+		fmt.Fprintf(out, "Deleted file %s\n", id)
+		return nil
+	},
+}
+
 var filesDownloadCmd = &cobra.Command{
 	Use:   "download <id|name>",
 	Short: "Download a file's bytes",
@@ -347,11 +404,17 @@ func init() {
 		StringVarP(&filesUpdateOrg, "organization", "o", "", "Organization name that owns the project")
 	filesUpdateCmd.Flags().StringVarP(&filesUpdateProject, "project", "p", "", "Project name")
 
+	filesDeleteCmd.Flags().StringVar(&filesDeleteVersion, "version", "", "Delete this specific version instead of the whole file")
+	filesDeleteCmd.Flags().BoolVarP(&filesDeleteForce, "force", "f", false, "Skip the confirmation prompt")
+	filesDeleteCmd.Flags().StringVarP(&filesDeleteOrg, "organization", "o", "", "Organization name that owns the project")
+	filesDeleteCmd.Flags().StringVarP(&filesDeleteProject, "project", "p", "", "Project name")
+
 	filesCmd.AddCommand(filesUploadCmd)
 	filesCmd.AddCommand(filesListCmd)
 	filesCmd.AddCommand(filesDownloadCmd)
 	filesCmd.AddCommand(filesGetCmd)
 	filesCmd.AddCommand(filesUpdateCmd)
+	filesCmd.AddCommand(filesDeleteCmd)
 	rootCmd.AddCommand(filesCmd)
 }
 

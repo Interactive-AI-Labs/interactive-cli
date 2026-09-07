@@ -346,6 +346,54 @@ func (c *APIClient) GetFileMetadata(
 	return &data.File, json.RawMessage(body), nil
 }
 
+type fileDeleteData struct {
+	Id        string  `json:"id"`
+	VersionId *string `json:"versionId"`
+}
+
+func (c *APIClient) deleteFileRef(ctx context.Context, path, ref, action string) (string, error) {
+	req, err := c.newRequest(ctx, http.MethodDelete, path)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to %s: %w", action, err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fileRefError(ref, body, resp.Status)
+	}
+
+	data, err := decodeSuccess[fileDeleteData](body, action)
+	if err != nil {
+		return "", err
+	}
+	return data.Id, nil
+}
+
+// DeleteFile deletes a file and all its versions.
+func (c *APIClient) DeleteFile(ctx context.Context, orgID, projectID, ref string) (string, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + ref
+	return c.deleteFileRef(ctx, path, ref, "delete file")
+}
+
+// DeleteFileVersion deletes one superseded version of a file.
+func (c *APIClient) DeleteFileVersion(
+	ctx context.Context,
+	orgID, projectID, ref, versionID string,
+) (string, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + ref + "/versions/" + versionID
+	return c.deleteFileRef(ctx, path, ref, "delete file version")
+}
+
 func parseDispositionFilename(header string) string {
 	if header == "" {
 		return ""
