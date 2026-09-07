@@ -117,6 +117,35 @@ func (c *APIClient) CreateFile(
 	name string,
 	onProgress func(n int64),
 ) (*FileMetadata, error) {
+	path := evalBasePath(orgID, projectID) + "/files"
+	return c.putOrPostFile(
+		ctx, http.MethodPost, path, "", localPath, name, onProgress, http.StatusCreated, "upload file",
+	)
+}
+
+// AddFileVersion uploads localPath as a new version of ref, keeping its stored name unless name is given.
+func (c *APIClient) AddFileVersion(
+	ctx context.Context,
+	orgID, projectID, ref string,
+	localPath string,
+	name string,
+	onProgress func(n int64),
+) (*FileMetadata, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + ref
+	return c.putOrPostFile(
+		ctx, http.MethodPut, path, ref, localPath, name, onProgress, http.StatusOK, "add file version",
+	)
+}
+
+func (c *APIClient) putOrPostFile(
+	ctx context.Context,
+	method, path, ref string,
+	localPath string,
+	name string,
+	onProgress func(n int64),
+	wantStatus int,
+	action string,
+) (*FileMetadata, error) {
 	f, err := os.Open(localPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open %s: %w", localPath, err)
@@ -135,8 +164,6 @@ func (c *APIClient) CreateFile(
 	}
 	contentLength := int64(len(header)) + size + int64(len(footer))
 
-	path := evalBasePath(orgID, projectID) + "/files"
-
 	var lastErr error
 	for attempt := 1; attempt <= filesUploadMaxAttempts; attempt++ {
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -149,7 +176,7 @@ func (c *APIClient) CreateFile(
 			bytes.NewReader(footer),
 		)
 
-		req, err := c.newRequest(ctx, http.MethodPost, path)
+		req, err := c.newRequest(ctx, method, path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
@@ -159,13 +186,13 @@ func (c *APIClient) CreateFile(
 
 		resp, err := c.do(req)
 		if err != nil {
-			return nil, fmt.Errorf("failed to upload file: %w", err)
+			return nil, fmt.Errorf("failed to %s: %w", action, err)
 		}
 
 		respBody, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
-			return nil, fmt.Errorf("failed to read upload response: %w", err)
+			return nil, fmt.Errorf("failed to read %s response: %w", action, err)
 		}
 
 		if resp.StatusCode == http.StatusServiceUnavailable && attempt < filesUploadMaxAttempts {
@@ -177,21 +204,18 @@ func (c *APIClient) CreateFile(
 			continue
 		}
 
-		if resp.StatusCode != http.StatusCreated {
-			if msg := clients.ExtractServerMessage(respBody); msg != "" {
-				return nil, errors.New(msg)
-			}
-			return nil, fmt.Errorf("failed to upload file: server returned %s", resp.Status)
+		if resp.StatusCode != wantStatus {
+			return nil, fileRefError(ref, respBody, resp.Status)
 		}
 
-		data, err := decodeSuccess[FileMetadata](respBody, "upload file")
+		data, err := decodeSuccess[FileMetadata](respBody, action)
 		if err != nil {
 			return nil, err
 		}
 		return &data, nil
 	}
 
-	return nil, fmt.Errorf("failed to upload file after %d attempts: %w", filesUploadMaxAttempts, lastErr)
+	return nil, fmt.Errorf("failed to %s after %d attempts: %w", action, filesUploadMaxAttempts, lastErr)
 }
 
 // retryAfterDelay parses Retry-After (seconds), or falls back to a short delay.
