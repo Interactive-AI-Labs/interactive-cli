@@ -5,9 +5,31 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
+
+func TestPrintFileRefCandidates(t *testing.T) {
+	createdAt := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	candidates := []clients.FileRefCandidate{
+		{FileId: "f-1", Name: "report.pdf", Size: 1024, CreatedAt: createdAt},
+		{FileId: "f-2", Name: "report.pdf", Size: 10, CreatedAt: createdAt},
+	}
+
+	var buf bytes.Buffer
+	if err := PrintFileRefCandidates(&buf, "report.pdf", candidates); err != nil {
+		t.Fatalf("PrintFileRefCandidates() error = %v", err)
+	}
+
+	want := "\"report.pdf\" matches more than one file:\n" +
+		"ID    NAME         SIZE      CREATED AT\n" +
+		"f-1   report.pdf   1.0 KiB   " + LocalTime(createdAt.Format(time.RFC3339)) + "\n" +
+		"f-2   report.pdf   10 B      " + LocalTime(createdAt.Format(time.RFC3339)) + "\n"
+	if got := buf.String(); got != want {
+		t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, want)
+	}
+}
 
 func TestPrintFileList(t *testing.T) {
 	email := "a@example.com"

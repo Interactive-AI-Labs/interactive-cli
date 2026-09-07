@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -247,6 +248,8 @@ func TestListFiles_QueryParams(t *testing.T) {
 	const path = "/api/platform/v1/organizations/org-1/projects/proj-1/files"
 	const body = `{"success":true,"data":{"files":[],"meta":{"cursor":null,"total_items":null,"limit":50}}}`
 
+	intPtr := func(n int) *int { return &n }
+
 	tests := []struct {
 		name      string
 		opts      FileListOptions
@@ -259,13 +262,18 @@ func TestListFiles_QueryParams(t *testing.T) {
 		},
 		{
 			name:      "sends limit and cursor",
-			opts:      FileListOptions{Limit: 10, Cursor: "abc"},
+			opts:      FileListOptions{Limit: intPtr(10), Cursor: "abc"},
 			wantQuery: url.Values{"limit": {"10"}, "cursor": {"abc"}},
 		},
 		{
 			name:      "sends includeVersions",
 			opts:      FileListOptions{IncludeVersions: true},
 			wantQuery: url.Values{"includeVersions": {"true"}},
+		},
+		{
+			name:      "sends an explicit zero limit as a written zero",
+			opts:      FileListOptions{Limit: intPtr(0)},
+			wantQuery: url.Values{"limit": {"0"}},
 		},
 	}
 
@@ -425,5 +433,32 @@ func TestDownloadFile_ErrorStatus(t *testing.T) {
 	_, _, err := client.DownloadFile(context.Background(), "org-1", "proj-1", "missing", &buf, nil)
 	if err == nil {
 		t.Fatal("DownloadFile() error = nil, want a not-found error")
+	}
+}
+
+func TestDownloadFile_AmbiguousRef(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"detail":{"success":false,"error":{"code":"FILE_REF_AMBIGUOUS",` +
+			`"message":"ambiguous","details":{"candidates":[` +
+			`{"fileId":"f-1","name":"report.pdf","size":10,"createdAt":"2026-01-01T00:00:00Z"},` +
+			`{"fileId":"f-2","name":"report.pdf","size":20,"createdAt":"2026-01-02T00:00:00Z"}` +
+			`]}}}}`))
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	var buf bytes.Buffer
+	_, _, err := client.DownloadFile(context.Background(), "org-1", "proj-1", "report.pdf", &buf, nil)
+
+	var ambiguous *FileRefAmbiguousError
+	if !errors.As(err, &ambiguous) {
+		t.Fatalf("DownloadFile() error = %v, want a *FileRefAmbiguousError", err)
+	}
+	if len(ambiguous.Candidates) != 2 {
+		t.Fatalf("len(Candidates) = %d, want 2", len(ambiguous.Candidates))
+	}
+	if ambiguous.Ref != "report.pdf" {
+		t.Errorf("Ref = %q, want report.pdf", ambiguous.Ref)
 	}
 }

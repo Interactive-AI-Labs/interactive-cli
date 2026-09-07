@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
@@ -71,4 +72,17 @@ func PrintFileList(
 		fmt.Fprintf(out, "\nMore results — next page: --cursor %s\n", *meta.Cursor)
 	}
 	return nil
+}
+
+func PrintFileRefCandidates(out io.Writer, ref string, candidates []clients.FileRefCandidate) error {
+	fmt.Fprintf(out, "%q matches more than one file:\n", ref)
+
+	headers := []string{"ID", "NAME", "SIZE", "CREATED AT"}
+	rows := make([][]string, len(candidates))
+	for i, c := range candidates {
+		rows[i] = []string{
+			c.FileId, c.Name, HumanBytes(c.Size), LocalTime(c.CreatedAt.Format(time.RFC3339)),
+		}
+	}
+	return PrintTable(out, headers, rows)
 }

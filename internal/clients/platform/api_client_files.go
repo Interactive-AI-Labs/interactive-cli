@@ -39,7 +39,7 @@ type FileMetadata struct {
 }
 
 type FileListOptions struct {
-	Limit           int    `url:"limit,omitempty"`
+	Limit           *int   `url:"limit,omitempty"`
 	Cursor          string `url:"cursor,omitempty"`
 	IncludeVersions bool   `url:"includeVersions,omitempty"`
 }
@@ -206,6 +206,27 @@ func retryAfterDelay(header string) time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
+// FileRefAmbiguousError is returned when a name matches more than one file.
+type FileRefAmbiguousError struct {
+	Ref        string
+	Candidates []clients.FileRefCandidate
+}
+
+func (e *FileRefAmbiguousError) Error() string {
+	return fmt.Sprintf("%q matches more than one file", e.Ref)
+}
+
+// fileRefError builds the error for a non-2xx response on a ref-addressed file route.
+func fileRefError(ref string, body []byte, status string) error {
+	if candidates := clients.ExtractFileRefCandidates(body); len(candidates) > 0 {
+		return &FileRefAmbiguousError{Ref: ref, Candidates: candidates}
+	}
+	if msg := clients.ExtractServerMessage(body); msg != "" {
+		return errors.New(msg)
+	}
+	return fmt.Errorf("server returned %s", status)
+}
+
 // DownloadFile streams a file's current version into dest, reporting progress via onProgress.
 func (c *APIClient) DownloadFile(
 	ctx context.Context,
@@ -214,7 +235,7 @@ func (c *APIClient) DownloadFile(
 	onProgress func(n int64),
 ) (string, int64, error) {
 	path := evalBasePath(orgID, projectID) + "/files/" + fileID
-	return c.downloadTo(ctx, path, dest, onProgress)
+	return c.downloadTo(ctx, path, fileID, dest, onProgress)
 }
 
 // DownloadFileVersion streams one specific version's bytes into dest.
@@ -225,12 +246,12 @@ func (c *APIClient) DownloadFileVersion(
 	onProgress func(n int64),
 ) (string, int64, error) {
 	path := evalBasePath(orgID, projectID) + "/files/" + fileID + "/versions/" + versionID
-	return c.downloadTo(ctx, path, dest, onProgress)
+	return c.downloadTo(ctx, path, fileID, dest, onProgress)
 }
 
 func (c *APIClient) downloadTo(
 	ctx context.Context,
-	path string,
+	path, ref string,
 	dest io.Writer,
 	onProgress func(n int64),
 ) (string, int64, error) {
@@ -247,10 +268,7 @@ func (c *APIClient) downloadTo(
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		if msg := clients.ExtractServerMessage(body); msg != "" {
-			return "", 0, errors.New(msg)
-		}
-		return "", 0, fmt.Errorf("failed to download file: server returned %s", resp.Status)
+		return "", 0, fileRefError(ref, body, resp.Status)
 	}
 
 	filename := parseDispositionFilename(resp.Header.Get("Content-Disposition"))
