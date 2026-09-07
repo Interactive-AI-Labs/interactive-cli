@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -17,6 +19,14 @@ var (
 	filesUploadTimeout time.Duration
 	filesUploadOrg     string
 	filesUploadProject string
+
+	filesListLimit   int
+	filesListCursor  string
+	filesListColumns []string
+	filesListJSON    bool
+	filesListYAML    bool
+	filesListOrg     string
+	filesListProject string
 )
 
 var filesCmd = &cobra.Command{
@@ -76,6 +86,53 @@ it under a different name.`,
 	},
 }
 
+var filesListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List the files a project holds",
+	Long:    `List a project's files, one entry per document at its current version.`,
+	Example: `  iai files list
+  iai files list --limit 20
+  iai files list --cursor <cursor>
+  iai files list --json`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		columns := filesListColumns
+		if len(columns) == 0 {
+			columns = inputs.DefaultFileColumns
+		}
+		if err := validateTableOnlyColumns(cmd, filesListJSON, filesListYAML); err != nil {
+			return err
+		}
+		if !filesListJSON && !filesListYAML {
+			if err := inputs.ValidateColumns(columns, inputs.AllFileColumns); err != nil {
+				return err
+			}
+		}
+
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), filesListOrg, filesListProject)
+		if err != nil {
+			return err
+		}
+
+		opts := platform.FileListOptions{Limit: filesListLimit, Cursor: filesListCursor}
+		files, meta, rawJSON, err := apiClient.ListFiles(cmd.Context(), pCtx.orgId, pCtx.projectId, opts)
+		if err != nil {
+			return err
+		}
+
+		if filesListJSON {
+			return output.PrintRawJSON(out, rawJSON)
+		}
+		if filesListYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+		return output.PrintFileList(out, files, meta, columns)
+	},
+}
+
 func init() {
 	filesUploadCmd.Flags().StringVar(&filesUploadName, "name", "", "Name to store the file under (default: the local file's name)")
 	filesUploadCmd.Flags().
@@ -84,6 +141,15 @@ func init() {
 		StringVarP(&filesUploadOrg, "organization", "o", "", "Organization name that owns the project")
 	filesUploadCmd.Flags().StringVarP(&filesUploadProject, "project", "p", "", "Project name")
 
+	filesListCmd.Flags().IntVar(&filesListLimit, "limit", 0, "Results per page (server default: 50)")
+	filesListCmd.Flags().StringVar(&filesListCursor, "cursor", "", "Cursor from a previous page's next-page footer")
+	filesListCmd.Flags().StringSliceVar(&filesListColumns, "columns", nil, "Columns to display")
+	filesListCmd.Flags().BoolVar(&filesListJSON, "json", false, "Output raw API response as JSON")
+	filesListCmd.Flags().BoolVar(&filesListYAML, "yaml", false, "Output raw API response as YAML")
+	filesListCmd.Flags().StringVarP(&filesListOrg, "organization", "o", "", "Organization name that owns the project")
+	filesListCmd.Flags().StringVarP(&filesListProject, "project", "p", "", "Project name")
+
 	filesCmd.AddCommand(filesUploadCmd)
+	filesCmd.AddCommand(filesListCmd)
 	rootCmd.AddCommand(filesCmd)
 }
