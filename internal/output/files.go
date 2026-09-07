@@ -40,6 +40,7 @@ func PrintFileList(
 	files []platform.FileMetadata,
 	meta platform.FileListMeta,
 	columns []string,
+	includeVersions bool,
 ) error {
 	if len(files) == 0 {
 		fmt.Fprintln(out, "No files found.")
@@ -68,10 +69,51 @@ func PrintFileList(
 		return err
 	}
 
+	if includeVersions {
+		for _, f := range files {
+			fmt.Fprintf(out, "\n%s versions:\n", f.Name)
+			if err := PrintFileVersions(out, f.Versions); err != nil {
+				return err
+			}
+		}
+	}
+
 	if meta.Cursor != nil && *meta.Cursor != "" {
 		fmt.Fprintf(out, "\nMore results — next page: --cursor %s\n", *meta.Cursor)
 	}
 	return nil
+}
+
+func PrintFileVersions(out io.Writer, versions []platform.FileVersion) error {
+	headers := []string{"VERSION ID", "NAME", "SIZE", "UPLOADED BY", "CREATED AT", "CURRENT"}
+	rows := make([][]string, len(versions))
+	for i, v := range versions {
+		current := ""
+		if v.IsCurrent {
+			current = "yes"
+		}
+		rows[i] = []string{
+			v.VersionId, v.Name, HumanBytes(v.Size), uploadedBy(v),
+			LocalTime(v.CreatedAt.Format(time.RFC3339)), current,
+		}
+	}
+	return PrintTable(out, headers, rows)
+}
+
+func PrintFileDetail(out io.Writer, f *platform.FileMetadata) error {
+	w := NewDescribeWriter(out)
+	fmt.Fprintf(w, "ID:\t%s\n", f.Id)
+	fmt.Fprintf(w, "Name:\t%s\n", f.Name)
+	fmt.Fprintf(w, "Current Version:\t%s\n", f.Current.VersionId)
+	fmt.Fprintf(w, "Size:\t%s\n", HumanBytes(f.Current.Size))
+	fmt.Fprintf(w, "Uploaded By:\t%s\n", uploadedBy(f.Current))
+	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(f.Current.CreatedAt.Format(time.RFC3339)))
+	if err := w.Flush(); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(out, "\nVersions:")
+	return PrintFileVersions(out, f.Versions)
 }
 
 func PrintFileRefCandidates(out io.Writer, ref string, candidates []clients.FileRefCandidate) error {

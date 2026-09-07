@@ -285,6 +285,43 @@ func (c *APIClient) downloadTo(
 	return filename, written, nil
 }
 
+type fileDetailData struct {
+	File FileMetadata `json:"file"`
+}
+
+// GetFileMetadata reads a file's current version and full version history.
+func (c *APIClient) GetFileMetadata(
+	ctx context.Context,
+	orgID, projectID, ref string,
+) (*FileMetadata, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + ref + "/metadata"
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get file metadata: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, fileRefError(ref, body, resp.Status)
+	}
+
+	data, err := decodeSuccess[fileDetailData](body, "get file metadata")
+	if err != nil {
+		return nil, nil, err
+	}
+	return &data.File, json.RawMessage(body), nil
+}
+
 func parseDispositionFilename(header string) string {
 	if header == "" {
 		return ""

@@ -462,3 +462,110 @@ func TestDownloadFile_AmbiguousRef(t *testing.T) {
 		t.Errorf("Ref = %q, want report.pdf", ambiguous.Ref)
 	}
 }
+
+func TestGetFileMetadata_DecodesDetailEnvelope(t *testing.T) {
+	const body = `{"success":true,"data":{"file":{"id":"f-1","name":"report.pdf",` +
+		`"current":{"versionId":"v-3","size":30,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-03T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":true},` +
+		`"versions":[` +
+		`{"versionId":"v-1","size":10,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-01T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":false},` +
+		`{"versionId":"v-2","size":20,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-02T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":false},` +
+		`{"versionId":"v-3","size":30,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-03T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":true}` +
+		`]}}}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/files/f-1/metadata" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	meta, _, err := client.GetFileMetadata(context.Background(), "org-1", "proj-1", "f-1")
+	if err != nil {
+		t.Fatalf("GetFileMetadata() error = %v", err)
+	}
+
+	ids := map[string]bool{}
+	current := 0
+	for _, v := range meta.Versions {
+		ids[v.VersionId] = true
+		if v.IsCurrent {
+			current++
+		}
+	}
+	if want := map[string]bool{"v-1": true, "v-2": true, "v-3": true}; len(ids) != len(want) {
+		t.Errorf("version ids = %v, want %v", ids, want)
+	}
+	if current != 1 {
+		t.Errorf("current count = %d, want 1", current)
+	}
+}
+
+func TestGetFileMetadata_AmbiguousRef(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"detail":{"success":false,"error":{"code":"FILE_REF_AMBIGUOUS",` +
+			`"message":"ambiguous","details":{"candidates":[` +
+			`{"fileId":"f-1","name":"report.pdf","size":10,"createdAt":"2026-01-01T00:00:00Z"},` +
+			`{"fileId":"f-2","name":"report.pdf","size":20,"createdAt":"2026-01-02T00:00:00Z"}` +
+			`]}}}}`))
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	_, _, err := client.GetFileMetadata(context.Background(), "org-1", "proj-1", "report.pdf")
+
+	var ambiguous *FileRefAmbiguousError
+	if !errors.As(err, &ambiguous) {
+		t.Fatalf("GetFileMetadata() error = %v, want a *FileRefAmbiguousError", err)
+	}
+}
+
+func TestListFiles_DecodesVersionsWhenIncluded(t *testing.T) {
+	const body = `{"success":true,"data":{"files":[{"id":"f-1","name":"report.pdf",` +
+		`"current":{"versionId":"v-3","size":30,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-03T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":true},` +
+		`"versions":[` +
+		`{"versionId":"v-1","size":10,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-01T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":false},` +
+		`{"versionId":"v-2","size":20,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-02T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":false},` +
+		`{"versionId":"v-3","size":30,"name":"report.pdf","contentType":"text/plain",` +
+		`"createdAt":"2026-01-03T00:00:00Z","createdBy":"user-1","createdByEmail":null,"isCurrent":true}` +
+		`]}],"meta":{"cursor":null,"total_items":null,"limit":50}}}`
+
+	server := newListTestServer(t, "/api/platform/v1/organizations/org-1/projects/proj-1/files",
+		url.Values{"includeVersions": {"true"}}, body)
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	files, _, _, err := client.ListFiles(
+		context.Background(), "org-1", "proj-1", FileListOptions{IncludeVersions: true},
+	)
+	if err != nil {
+		t.Fatalf("ListFiles() error = %v", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("len(files) = %d, want 1", len(files))
+	}
+
+	ids := map[string]bool{}
+	current := 0
+	for _, v := range files[0].Versions {
+		ids[v.VersionId] = true
+		if v.IsCurrent {
+			current++
+		}
+	}
+	if want := map[string]bool{"v-1": true, "v-2": true, "v-3": true}; len(ids) != len(want) {
+		t.Errorf("version ids = %v, want %v", ids, want)
+	}
+	if current != 1 {
+		t.Errorf("current count = %d, want 1", current)
+	}
+}

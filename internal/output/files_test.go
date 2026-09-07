@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"time"
 
@@ -85,12 +86,62 @@ func TestPrintFileList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := PrintFileList(&buf, tt.files, tt.meta, tt.columns); err != nil {
+			if err := PrintFileList(&buf, tt.files, tt.meta, tt.columns, false); err != nil {
 				t.Fatalf("PrintFileList() error = %v", err)
 			}
 			if got := buf.String(); got != tt.want {
 				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPrintFileVersions(t *testing.T) {
+	t1 := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	t2 := time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC)
+	t3 := time.Date(2026, 1, 3, 12, 0, 0, 0, time.UTC)
+	versions := []platform.FileVersion{
+		{VersionId: "v-1", Size: 10, Name: "report.pdf", CreatedAt: t1, CreatedBy: "user-1", IsCurrent: false},
+		{VersionId: "v-2", Size: 20, Name: "report.pdf", CreatedAt: t2, CreatedBy: "user-1", IsCurrent: false},
+		{VersionId: "v-3", Size: 30, Name: "report.pdf", CreatedAt: t3, CreatedBy: "user-1", IsCurrent: true},
+	}
+
+	var buf bytes.Buffer
+	if err := PrintFileVersions(&buf, versions); err != nil {
+		t.Fatalf("PrintFileVersions() error = %v", err)
+	}
+	got := buf.String()
+
+	ids := map[string]bool{"v-1": false, "v-2": false, "v-3": false}
+	for id := range ids {
+		if !strings.Contains(got, id) {
+			t.Errorf("output missing version id %q:\n%s", id, got)
+		}
+	}
+	if n := strings.Count(got, "yes"); n != 1 {
+		t.Errorf("current marker count = %d, want exactly 1 in:\n%s", n, got)
+	}
+}
+
+func TestPrintFileDetail(t *testing.T) {
+	createdAt := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	meta := &platform.FileMetadata{
+		Id:   "f-1",
+		Name: "report.pdf",
+		Current: platform.FileVersion{
+			VersionId: "v-1", Size: 1024, CreatedAt: createdAt, CreatedBy: "user-1",
+		},
+		Versions: []platform.FileVersion{
+			{VersionId: "v-1", Size: 1024, Name: "report.pdf", CreatedAt: createdAt, CreatedBy: "user-1", IsCurrent: true},
+		},
+	}
+
+	var buf bytes.Buffer
+	if err := PrintFileDetail(&buf, meta); err != nil {
+		t.Fatalf("PrintFileDetail() error = %v", err)
+	}
+	got := buf.String()
+	if !strings.Contains(got, "f-1") || !strings.Contains(got, "report.pdf") || !strings.Contains(got, "v-1") {
+		t.Errorf("detail output missing expected fields:\n%s", got)
 	}
 }
