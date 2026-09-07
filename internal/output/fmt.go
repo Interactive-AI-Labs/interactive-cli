@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 const missingMetadata = "—" // table cell the API supplied no value for
@@ -81,6 +82,16 @@ func formatSummaryValue(v any) string {
 		b, _ := json.Marshal(t)
 		return string(b)
 	}
+}
+
+// Printable neutralises terminal control characters in server-supplied text.
+func Printable(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == ' ' || unicode.IsPrint(r) {
+			return r
+		}
+		return '\ufffd'
+	}, s)
 }
 
 // HumanBytes renders a byte count in the largest unit that keeps it >= 1.

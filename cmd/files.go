@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -15,6 +16,9 @@ import (
 )
 
 const defaultFilesTimeout = 15 * time.Minute
+
+// renameDownload is a seam: tests assert the rename never crosses a directory.
+var renameDownload = os.Rename
 
 var (
 	filesUploadName    string
@@ -82,14 +86,14 @@ it under a different name.`,
 		out := cmd.OutOrStdout()
 		localPath := args[0]
 
-		info, err := os.Stat(localPath)
+		info, err := regularFileInfo(localPath)
 		if err != nil {
-			return fmt.Errorf("failed to open %s: %w", localPath, err)
+			return err
 		}
 
 		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(), filesUploadOrg, filesUploadProject,
-			resolveOpts{deployTimeout: defaultHTTPTimeout, filesTimeout: filesUploadTimeout},
+			resolveOpts{deployTimeout: defaultHTTPTimeout, apiTimeout: filesUploadTimeout},
 		)
 		if err != nil {
 			return err
@@ -106,10 +110,7 @@ it under a different name.`,
 			return err
 		}
 
-		fmt.Fprintf(out, "Uploaded %s\n", result.Current.Name)
-		fmt.Fprintf(out, "  id:      %s\n", result.Id)
-		fmt.Fprintf(out, "  version: %s\n", result.Current.VersionId)
-		fmt.Fprintf(out, "  size:    %s\n", output.HumanBytes(result.Current.Size))
+		printFileResult(out, "Uploaded", result)
 
 		return nil
 	},
@@ -146,11 +147,19 @@ var filesListCmd = &cobra.Command{
 			return err
 		}
 
-		opts := platform.FileListOptions{Cursor: filesListCursor, IncludeVersions: filesListVersions}
+		opts := platform.FileListOptions{
+			Cursor:          filesListCursor,
+			IncludeVersions: filesListVersions,
+		}
 		if cmd.Flags().Changed("limit") {
 			opts.Limit = &filesListLimit
 		}
-		files, meta, rawJSON, err := apiClient.ListFiles(cmd.Context(), pCtx.orgId, pCtx.projectId, opts)
+		files, meta, rawJSON, err := apiClient.ListFiles(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			opts,
+		)
 		if err != nil {
 			return err
 		}
@@ -182,7 +191,12 @@ var filesGetCmd = &cobra.Command{
 			return err
 		}
 
-		meta, rawJSON, err := apiClient.GetFileMetadata(cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef)
+		meta, rawJSON, err := apiClient.GetFileMetadata(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			fileRef,
+		)
 		if err != nil {
 			return reportFileRefAmbiguous(cmd, err)
 		}
@@ -198,49 +212,29 @@ var filesGetCmd = &cobra.Command{
 }
 
 var filesUpdateCmd = &cobra.Command{
-	Use:   "update <id|name> <local-file>",
-	Short: "Upload a new version of a file",
-	Long: `Upload local-file as a new version of an existing document.
+	Use:   "update <id|name> [local-file]",
+	Short: "Update a file's contents or name",
+	Long: `Upload local-file as a new version of an existing document, or omit
+local-file and use --name to rename the file without creating a version.
 
-The file keeps its stored name unless --name is given.`,
+When uploading a version, the file keeps its stored name unless --name is given.`,
 	Example: `  iai files update <id|name> ./report.pdf
-  iai files update <id|name> ./report.pdf --name "Q3 Report.pdf"`,
-	Args: cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		out := cmd.OutOrStdout()
-		fileRef := args[0]
-		localPath := args[1]
-
-		info, err := os.Stat(localPath)
-		if err != nil {
-			return fmt.Errorf("failed to open %s: %w", localPath, err)
-		}
-
-		pCtx, apiClient, _, err := resolveProject(
-			cmd.Context(), filesUpdateOrg, filesUpdateProject,
-			resolveOpts{deployTimeout: defaultHTTPTimeout, filesTimeout: filesUpdateTimeout},
-		)
-		if err != nil {
+  iai files update <id|name> ./report.pdf --name "Q3 Report.pdf"
+  iai files update <id|name> --name "Q3 Report Final.pdf"`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if err := cobra.RangeArgs(1, 2)(cmd, args); err != nil {
 			return err
 		}
-
-		label := fmt.Sprintf("Updating %s", fileRef)
-		bar := output.NewProgressBar(cmd.ErrOrStderr(), info.Size(), label)
-		result, err := apiClient.AddFileVersion(
-			cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, localPath, filesUpdateName,
-			bar.Add,
-		)
-		bar.Finish()
-		if err != nil {
-			return reportFileRefAmbiguous(cmd, err)
+		if len(args) == 1 && !cmd.Flags().Changed("name") {
+			return errors.New("--name is required when local-file is omitted")
 		}
-
-		fmt.Fprintf(out, "Updated %s\n", result.Current.Name)
-		fmt.Fprintf(out, "  id:      %s\n", result.Id)
-		fmt.Fprintf(out, "  version: %s\n", result.Current.VersionId)
-		fmt.Fprintf(out, "  size:    %s\n", output.HumanBytes(result.Current.Size))
-
 		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 1 {
+			return runFilesRename(cmd, args[0], filesUpdateName)
+		}
+		return runFilesVersionUpdate(cmd, args[0], args[1])
 	},
 }
 
@@ -297,12 +291,9 @@ single version never asks, since the target is already specific.`,
 }
 
 var filesRestoreCmd = &cobra.Command{
-	Use:   "restore <id|name> <version-id>",
-	Short: "Make an earlier version of a file current again",
-	Long: `Make an earlier version current again, without moving its bytes through this client.
-
-The store copies the version's bytes server-side under a new version id; the
-source version stays fetchable under its own id, and the file's name is unchanged.`,
+	Use:     "restore <id|name> <version-id>",
+	Short:   "Make an earlier version of a file current again",
+	Long:    `Restore an earlier version's contents as a new current version. The source version remains available under its original ID, and the file's name is unchanged.`,
 	Example: `  iai files restore <id|name> <version-id>`,
 	Args:    cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -312,21 +303,24 @@ source version stays fetchable under its own id, and the file's name is unchange
 
 		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(), filesRestoreOrg, filesRestoreProject,
-			resolveOpts{deployTimeout: defaultHTTPTimeout, filesTimeout: filesRestoreTimeout},
+			resolveOpts{deployTimeout: defaultHTTPTimeout, apiTimeout: filesRestoreTimeout},
 		)
 		if err != nil {
 			return err
 		}
 
-		result, err := apiClient.RestoreVersion(cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, versionID)
+		result, err := apiClient.RestoreVersion(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			fileRef,
+			versionID,
+		)
 		if err != nil {
 			return reportFileRefAmbiguous(cmd, err)
 		}
 
-		fmt.Fprintf(out, "Restored %s\n", result.Name)
-		fmt.Fprintf(out, "  id:      %s\n", result.Id)
-		fmt.Fprintf(out, "  version: %s\n", result.Current.VersionId)
-		fmt.Fprintf(out, "  size:    %s\n", output.HumanBytes(result.Current.Size))
+		printFileResult(out, "Restored", result)
 
 		return nil
 	},
@@ -347,9 +341,16 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fileRef := args[0]
 
+		// Refuse a known target before transferring; the post-transfer check still covers server-named ones.
+		if filesDownloadOutput != "" && filesDownloadOutput != "-" {
+			if err := refuseExistingTarget(filesDownloadOutput, filesDownloadForce); err != nil {
+				return err
+			}
+		}
+
 		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(), filesDownloadOrg, filesDownloadProject,
-			resolveOpts{deployTimeout: defaultHTTPTimeout, filesTimeout: filesDownloadTimeout},
+			resolveOpts{deployTimeout: defaultHTTPTimeout, apiTimeout: filesDownloadTimeout},
 		)
 		if err != nil {
 			return err
@@ -359,10 +360,19 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 		download := func(dest io.Writer) (string, int64, error) {
 			if filesDownloadVersion != "" {
 				return apiClient.DownloadFileVersion(
-					cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, filesDownloadVersion, dest, bar.Add,
+					cmd.Context(),
+					pCtx.orgId,
+					pCtx.projectId,
+					fileRef,
+					filesDownloadVersion,
+					dest,
+					bar.Add,
+					bar.SetTotal,
 				)
 			}
-			return apiClient.DownloadFile(cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, dest, bar.Add)
+			return apiClient.DownloadFile(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, dest, bar.Add, bar.SetTotal,
+			)
 		}
 
 		if filesDownloadOutput == "-" {
@@ -371,9 +381,15 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 			return reportFileRefAmbiguous(cmd, err)
 		}
 
-		tmp, err := os.CreateTemp(".", ".iai-files-download-*")
+		// Staging beside the target keeps the rename on one filesystem; Dir("") is "." when --output is unset.
+		tmp, err := os.CreateTemp(filepath.Dir(filesDownloadOutput), ".iai-files-download-*")
 		if err != nil {
-			return fmt.Errorf("failed to create temp download file: %w", err)
+			// Unwrap so the staging name, which the user never typed, stays out of the message.
+			var pathErr *os.PathError
+			if errors.As(err, &pathErr) {
+				err = pathErr.Err
+			}
+			return fmt.Errorf("failed to write %s: %w", filesDownloadOutput, err)
 		}
 		tmpPath := tmp.Name()
 		rawName, _, err := download(tmp)
@@ -390,13 +406,17 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 
 		target := filesDownloadOutput
 		if target == "" {
-			target = safeDownloadFilename(rawName, fileRef)
+			target, err = safeDownloadFilename(rawName, fileRef)
+			if err != nil {
+				os.Remove(tmpPath)
+				return err
+			}
 		}
-		if _, err := os.Stat(target); err == nil && !filesDownloadForce {
+		if err := refuseExistingTarget(target, filesDownloadForce); err != nil {
 			os.Remove(tmpPath)
-			return fmt.Errorf("%s already exists; use --force to overwrite", target)
+			return err
 		}
-		if err := os.Rename(tmpPath, target); err != nil {
+		if err := renameDownload(tmpPath, target); err != nil {
 			os.Remove(tmpPath)
 			return fmt.Errorf("failed to write %s: %w", target, err)
 		}
@@ -407,25 +427,33 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 }
 
 func init() {
-	filesUploadCmd.Flags().StringVar(&filesUploadName, "name", "", "Name to store the file under (default: the local file's name)")
+	filesUploadCmd.Flags().
+		StringVar(&filesUploadName, "name", "", "Name to store the file under (default: the local file's name)")
 	filesUploadCmd.Flags().
 		DurationVar(&filesUploadTimeout, "timeout", defaultFilesTimeout, "HTTP timeout for the upload")
 	filesUploadCmd.Flags().
 		StringVarP(&filesUploadOrg, "organization", "o", "", "Organization name that owns the project")
 	filesUploadCmd.Flags().StringVarP(&filesUploadProject, "project", "p", "", "Project name")
 
-	filesListCmd.Flags().IntVar(&filesListLimit, "limit", 0, "Results per page (server default: 50)")
-	filesListCmd.Flags().StringVar(&filesListCursor, "cursor", "", "Cursor from a previous page's next-page footer")
+	filesListCmd.Flags().
+		IntVar(&filesListLimit, "limit", 0, "Results per page (server default: 50)")
+	filesListCmd.Flags().
+		StringVar(&filesListCursor, "cursor", "", "Cursor from a previous page's next-page footer")
 	filesListCmd.Flags().StringSliceVar(&filesListColumns, "columns", nil, "Columns to display")
-	filesListCmd.Flags().BoolVar(&filesListVersions, "versions", false, "Show every version of each listed file")
+	filesListCmd.Flags().
+		BoolVar(&filesListVersions, "versions", false, "Show every version of each listed file")
 	filesListCmd.Flags().BoolVar(&filesListJSON, "json", false, "Output raw API response as JSON")
 	filesListCmd.Flags().BoolVar(&filesListYAML, "yaml", false, "Output raw API response as YAML")
-	filesListCmd.Flags().StringVarP(&filesListOrg, "organization", "o", "", "Organization name that owns the project")
+	filesListCmd.Flags().
+		StringVarP(&filesListOrg, "organization", "o", "", "Organization name that owns the project")
 	filesListCmd.Flags().StringVarP(&filesListProject, "project", "p", "", "Project name")
 
-	filesDownloadCmd.Flags().StringVar(&filesDownloadVersion, "version", "", "Download this specific version instead of the current one")
-	filesDownloadCmd.Flags().StringVar(&filesDownloadOutput, "output", "", "Local path to write to (default: the stored name); - for stdout")
-	filesDownloadCmd.Flags().BoolVarP(&filesDownloadForce, "force", "f", false, "Overwrite an existing local file")
+	filesDownloadCmd.Flags().
+		StringVar(&filesDownloadVersion, "version", "", "Download this specific version instead of the current one")
+	filesDownloadCmd.Flags().
+		StringVar(&filesDownloadOutput, "output", "", "Local path to write to (default: the stored name); - for stdout")
+	filesDownloadCmd.Flags().
+		BoolVarP(&filesDownloadForce, "force", "f", false, "Overwrite an existing local file")
 	filesDownloadCmd.Flags().
 		DurationVar(&filesDownloadTimeout, "timeout", defaultFilesTimeout, "HTTP timeout for the download")
 	filesDownloadCmd.Flags().
@@ -434,19 +462,24 @@ func init() {
 
 	filesGetCmd.Flags().BoolVar(&filesGetJSON, "json", false, "Output raw API response as JSON")
 	filesGetCmd.Flags().BoolVar(&filesGetYAML, "yaml", false, "Output raw API response as YAML")
-	filesGetCmd.Flags().StringVarP(&filesGetOrg, "organization", "o", "", "Organization name that owns the project")
+	filesGetCmd.Flags().
+		StringVarP(&filesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	filesGetCmd.Flags().StringVarP(&filesGetProject, "project", "p", "", "Project name")
 
-	filesUpdateCmd.Flags().StringVar(&filesUpdateName, "name", "", "Rename the file as part of this update (default: keep its stored name)")
+	filesUpdateCmd.Flags().
+		StringVar(&filesUpdateName, "name", "", "New stored name (default when uploading: keep the current name)")
 	filesUpdateCmd.Flags().
 		DurationVar(&filesUpdateTimeout, "timeout", defaultFilesTimeout, "HTTP timeout for the update")
 	filesUpdateCmd.Flags().
 		StringVarP(&filesUpdateOrg, "organization", "o", "", "Organization name that owns the project")
 	filesUpdateCmd.Flags().StringVarP(&filesUpdateProject, "project", "p", "", "Project name")
 
-	filesDeleteCmd.Flags().StringVar(&filesDeleteVersion, "version", "", "Delete this specific version instead of the whole file")
-	filesDeleteCmd.Flags().BoolVarP(&filesDeleteForce, "force", "f", false, "Skip the confirmation prompt")
-	filesDeleteCmd.Flags().StringVarP(&filesDeleteOrg, "organization", "o", "", "Organization name that owns the project")
+	filesDeleteCmd.Flags().
+		StringVar(&filesDeleteVersion, "version", "", "Delete this specific version instead of the whole file")
+	filesDeleteCmd.Flags().
+		BoolVarP(&filesDeleteForce, "force", "f", false, "Skip the confirmation prompt")
+	filesDeleteCmd.Flags().
+		StringVarP(&filesDeleteOrg, "organization", "o", "", "Organization name that owns the project")
 	filesDeleteCmd.Flags().StringVarP(&filesDeleteProject, "project", "p", "", "Project name")
 
 	filesRestoreCmd.Flags().
@@ -465,20 +498,126 @@ func init() {
 	rootCmd.AddCommand(filesCmd)
 }
 
-func safeDownloadFilename(raw, fileID string) string {
-	base := filepath.Base(raw)
+func runFilesVersionUpdate(cmd *cobra.Command, fileRef, localPath string) error {
+	info, err := regularFileInfo(localPath)
+	if err != nil {
+		return err
+	}
+
+	pCtx, apiClient, _, err := resolveProject(
+		cmd.Context(), filesUpdateOrg, filesUpdateProject,
+		resolveOpts{deployTimeout: defaultHTTPTimeout, apiTimeout: filesUpdateTimeout},
+	)
+	if err != nil {
+		return err
+	}
+
+	bar := output.NewProgressBar(
+		cmd.ErrOrStderr(),
+		info.Size(),
+		fmt.Sprintf("Updating %s", fileRef),
+	)
+	result, err := apiClient.AddFileVersion(
+		cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, localPath, filesUpdateName,
+		bar.Add,
+	)
+	bar.Finish()
+	if err != nil {
+		return reportFileRefAmbiguous(cmd, err)
+	}
+
+	out := cmd.OutOrStdout()
+	printFileResult(out, "Updated", result)
+	return nil
+}
+
+func regularFileInfo(path string) (os.FileInfo, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open %s: %w", path, err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("%s is not a regular file", path)
+	}
+	return info, nil
+}
+
+func printFileResult(out io.Writer, action string, result *platform.FileMetadata) {
+	fmt.Fprintf(out, "%s %s\n", action, output.Printable(result.Name))
+	fmt.Fprintf(out, "  id:      %s\n", result.ID)
+	fmt.Fprintf(out, "  version: %s\n", result.Current.VersionID)
+	fmt.Fprintf(out, "  size:    %s\n", output.HumanBytes(result.Current.Size))
+}
+
+func runFilesRename(cmd *cobra.Command, fileRef, newName string) error {
+	pCtx, apiClient, _, err := resolveProject(
+		cmd.Context(), filesUpdateOrg, filesUpdateProject,
+		resolveOpts{deployTimeout: defaultHTTPTimeout, apiTimeout: filesUpdateTimeout},
+	)
+	if err != nil {
+		return err
+	}
+
+	result, err := apiClient.RenameFile(
+		cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, newName,
+	)
+	if err != nil {
+		return reportFileRefAmbiguous(cmd, err)
+	}
+
+	out := cmd.OutOrStdout()
+	fmt.Fprintf(out, "Renamed to %s\n", output.Printable(result.Name))
+	fmt.Fprintf(out, "  id: %s\n", result.ID)
+	return nil
+}
+
+func refuseExistingTarget(target string, force bool) error {
+	info, err := os.Stat(target)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("failed to inspect %s: %w", target, err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("%s is a directory", target)
+	}
+	if !force {
+		return fmt.Errorf("%s already exists; use --force to overwrite", target)
+	}
+	return nil
+}
+
+// safeBase reduces a name to a local filename, or "" when nothing usable remains.
+func safeBase(name string) string {
+	if strings.ContainsFunc(name, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+		return ""
+	}
+	base := filepath.Base(name)
 	if base == "" || base == "." || base == ".." || base == string(filepath.Separator) {
-		return fileID
+		return ""
 	}
 	return base
 }
 
-// reportFileRefAmbiguous prints the candidate files behind a *platform.FileRefAmbiguousError
-// and returns err unchanged, so every files verb can inherit the same rendering by calling this.
+func safeDownloadFilename(raw, fileID string) (string, error) {
+	if base := safeBase(raw); base != "" {
+		return base, nil
+	}
+	if base := safeBase(fileID); base != "" {
+		return base, nil
+	}
+	return "", fmt.Errorf("cannot derive a local filename; pass --output")
+}
+
 func reportFileRefAmbiguous(cmd *cobra.Command, err error) error {
 	var ambiguous *platform.FileRefAmbiguousError
 	if errors.As(err, &ambiguous) {
-		output.PrintFileRefCandidates(cmd.ErrOrStderr(), ambiguous.Ref, ambiguous.Candidates)
+		if renderErr := output.PrintFileRefCandidates(
+			cmd.ErrOrStderr(), ambiguous.Ref, ambiguous.Candidates,
+		); renderErr != nil {
+			return errors.Join(err, fmt.Errorf("failed to print matching files: %w", renderErr))
+		}
 	}
 	return err
 }

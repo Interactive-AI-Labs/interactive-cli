@@ -11,12 +11,10 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/buildinfo"
 )
 
-// FileRefAmbiguousCode is the platform's error code for a name matching more than one file.
 const FileRefAmbiguousCode = "FILE_REF_AMBIGUOUS"
 
-// FileRefCandidate is one file a name matched, as reported alongside a FileRefAmbiguousCode refusal.
 type FileRefCandidate struct {
-	FileId    string    `json:"fileId"`
+	FileID    string    `json:"fileId"`
 	Name      string    `json:"name"`
 	Size      int64     `json:"size"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -151,8 +149,7 @@ func ExtractServerMessage(body []byte) string {
 	return ""
 }
 
-// ExtractFileRefCandidates returns the candidate files from a FileRefAmbiguousCode
-// refusal, or nil for any other response.
+// ExtractFileRefCandidates returns nil unless body is a file-reference ambiguity refusal.
 func ExtractFileRefCandidates(body []byte) []FileRefCandidate {
 	var pp platformError
 	if err := json.Unmarshal(body, &pp); err != nil {

@@ -10,17 +10,18 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
-// FileVersion is one version of a stored file, as reported by the files API.
 type FileVersion struct {
-	VersionId      string    `json:"versionId"`
+	VersionID      string    `json:"versionId"`
 	Size           int64     `json:"size"`
 	Name           string    `json:"name"`
 	ContentType    string    `json:"contentType"`
@@ -30,9 +31,8 @@ type FileVersion struct {
 	IsCurrent      bool      `json:"isCurrent"`
 }
 
-// FileMetadata is a stored file and its current version, as reported by the files API.
 type FileMetadata struct {
-	Id       string        `json:"id"`
+	ID       string        `json:"id"`
 	Name     string        `json:"name"`
 	Current  FileVersion   `json:"current"`
 	Versions []FileVersion `json:"versions,omitempty"`
@@ -45,9 +45,7 @@ type FileListOptions struct {
 }
 
 type FileListMeta struct {
-	Cursor     *string `json:"cursor"`
-	TotalItems *int    `json:"total_items"`
-	Limit      int     `json:"limit"`
+	Cursor *string `json:"cursor"`
 }
 
 type fileListData struct {
@@ -55,7 +53,6 @@ type fileListData struct {
 	Meta  FileListMeta   `json:"meta"`
 }
 
-// ListFiles retrieves one page of a project's files.
 func (c *APIClient) ListFiles(
 	ctx context.Context,
 	orgID, projectID string,
@@ -69,13 +66,6 @@ func (c *APIClient) ListFiles(
 	return data.Files, data.Meta, raw, nil
 }
 
-// filesUploadMaxAttempts bounds retries against a persistently unavailable store.
-const filesUploadMaxAttempts = 4
-
-// uploadRetryDelay sleeps between upload retries; overridable in tests.
-var uploadRetryDelay = time.Sleep
-
-// countingReader reports every successful Read to onRead.
 type countingReader struct {
 	r      io.Reader
 	onRead func(n int64)
@@ -89,8 +79,35 @@ func (c *countingReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// buildFileUploadFraming builds the multipart header/footer around an omitted file body, so it can stream straight from disk.
-func buildFileUploadFraming(name, filename string) (header, footer []byte, contentType string, err error) {
+// quoteEscaper matches mime/multipart's escaping for content dispositions.
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"", "\r", "%0D", "\n", "%0A")
+
+func filePartHeader(filename string) (textproto.MIMEHeader, error) {
+	if strings.ContainsFunc(filename, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+		return nil, fmt.Errorf(
+			"%s contains a control character; use --name to choose a stored name",
+			filename,
+		)
+	}
+
+	contentType := mime.TypeByExtension(filepath.Ext(filename))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	h := make(textproto.MIMEHeader)
+	h.Set(
+		"Content-Disposition",
+		fmt.Sprintf(`form-data; name="file"; filename="%s"`, quoteEscaper.Replace(filename)),
+	)
+	h.Set("Content-Type", contentType)
+	return h, nil
+}
+
+func buildFileUploadFraming(
+	name, filename string,
+) (header, footer []byte, contentType string, err error) {
+	// Keep the file body out of the buffer so it can stream directly from disk.
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
 
@@ -99,7 +116,11 @@ func buildFileUploadFraming(name, filename string) (header, footer []byte, conte
 			return nil, nil, "", fmt.Errorf("failed to write name field: %w", err)
 		}
 	}
-	if _, err := mw.CreateFormFile("file", filename); err != nil {
+	part, err := filePartHeader(filename)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	if _, err := mw.CreatePart(part); err != nil {
 		return nil, nil, "", fmt.Errorf("failed to write file field: %w", err)
 	}
 
@@ -109,7 +130,6 @@ func buildFileUploadFraming(name, filename string) (header, footer []byte, conte
 	return header, footer, contentType, nil
 }
 
-// CreateFile uploads localPath as a new file, using name as the stored name if set and reporting bytes read via onProgress.
 func (c *APIClient) CreateFile(
 	ctx context.Context,
 	orgID, projectID string,
@@ -119,11 +139,18 @@ func (c *APIClient) CreateFile(
 ) (*FileMetadata, error) {
 	path := evalBasePath(orgID, projectID) + "/files"
 	return c.putOrPostFile(
-		ctx, http.MethodPost, path, "", localPath, name, onProgress, http.StatusCreated, "upload file",
+		ctx,
+		http.MethodPost,
+		path,
+		"",
+		localPath,
+		name,
+		onProgress,
+		http.StatusCreated,
+		"upload file",
 	)
 }
 
-// AddFileVersion uploads localPath as a new version of ref, keeping its stored name unless name is given.
 func (c *APIClient) AddFileVersion(
 	ctx context.Context,
 	orgID, projectID, ref string,
@@ -131,9 +158,17 @@ func (c *APIClient) AddFileVersion(
 	name string,
 	onProgress func(n int64),
 ) (*FileMetadata, error) {
-	path := evalBasePath(orgID, projectID) + "/files/" + ref
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(ref)
 	return c.putOrPostFile(
-		ctx, http.MethodPut, path, ref, localPath, name, onProgress, http.StatusOK, "add file version",
+		ctx,
+		http.MethodPut,
+		path,
+		ref,
+		localPath,
+		name,
+		onProgress,
+		http.StatusOK,
+		"add file version",
 	)
 }
 
@@ -164,73 +199,42 @@ func (c *APIClient) putOrPostFile(
 	}
 	contentLength := int64(len(header)) + size + int64(len(footer))
 
-	var lastErr error
-	for attempt := 1; attempt <= filesUploadMaxAttempts; attempt++ {
-		if _, err := f.Seek(0, io.SeekStart); err != nil {
-			return nil, fmt.Errorf("failed to rewind %s: %w", localPath, err)
-		}
+	body := io.MultiReader(
+		bytes.NewReader(header),
+		&countingReader{r: f, onRead: onProgress},
+		bytes.NewReader(footer),
+	)
 
-		body := io.MultiReader(
-			bytes.NewReader(header),
-			&countingReader{r: f, onRead: onProgress},
-			bytes.NewReader(footer),
-		)
+	req, err := c.newRequest(ctx, method, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Body = io.NopCloser(body)
+	req.ContentLength = contentLength
+	req.Header.Set("Content-Type", contentType)
 
-		req, err := c.newRequest(ctx, method, path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
-		}
-		req.Body = io.NopCloser(body)
-		req.ContentLength = contentLength
-		req.Header.Set("Content-Type", contentType)
-
-		resp, err := c.do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to %s: %w", action, err)
-		}
-
-		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read %s response: %w", action, err)
-		}
-
-		if resp.StatusCode == http.StatusServiceUnavailable && attempt < filesUploadMaxAttempts {
-			lastErr = errors.New("file storage unavailable")
-			if msg := clients.ExtractServerMessage(respBody); msg != "" {
-				lastErr = errors.New(msg)
-			}
-			uploadRetryDelay(retryAfterDelay(resp.Header.Get("Retry-After")))
-			continue
-		}
-
-		if resp.StatusCode != wantStatus {
-			return nil, fileRefError(ref, respBody, resp.Status)
-		}
-
-		data, err := decodeSuccess[FileMetadata](respBody, action)
-		if err != nil {
-			return nil, err
-		}
-		return &data, nil
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to %s: %w", action, err)
 	}
 
-	return nil, fmt.Errorf("failed to %s after %d attempts: %w", action, filesUploadMaxAttempts, lastErr)
+	respBody, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s response: %w", action, err)
+	}
+
+	if resp.StatusCode != wantStatus {
+		return nil, fileRefError(ref, respBody, resp.Status)
+	}
+
+	data, err := decodeSuccess[FileMetadata](respBody, action)
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
 }
 
-// retryAfterDelay parses Retry-After (seconds), or falls back to a short delay.
-func retryAfterDelay(header string) time.Duration {
-	if header == "" {
-		return time.Second
-	}
-	seconds, err := strconv.Atoi(header)
-	if err != nil || seconds < 0 {
-		return time.Second
-	}
-	return time.Duration(seconds) * time.Second
-}
-
-// FileRefAmbiguousError is returned when a name matches more than one file.
 type FileRefAmbiguousError struct {
 	Ref        string
 	Candidates []clients.FileRefCandidate
@@ -240,7 +244,6 @@ func (e *FileRefAmbiguousError) Error() string {
 	return fmt.Sprintf("%q matches more than one file", e.Ref)
 }
 
-// fileRefError builds the error for a non-2xx response on a ref-addressed file route.
 func fileRefError(ref string, body []byte, status string) error {
 	if candidates := clients.ExtractFileRefCandidates(body); len(candidates) > 0 {
 		return &FileRefAmbiguousError{Ref: ref, Candidates: candidates}
@@ -251,26 +254,27 @@ func fileRefError(ref string, body []byte, status string) error {
 	return fmt.Errorf("server returned %s", status)
 }
 
-// DownloadFile streams a file's current version into dest, reporting progress via onProgress.
 func (c *APIClient) DownloadFile(
 	ctx context.Context,
 	orgID, projectID, fileID string,
 	dest io.Writer,
 	onProgress func(n int64),
+	onStart func(total int64),
 ) (string, int64, error) {
-	path := evalBasePath(orgID, projectID) + "/files/" + fileID
-	return c.downloadTo(ctx, path, fileID, dest, onProgress)
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(fileID)
+	return c.downloadTo(ctx, path, fileID, dest, onProgress, onStart)
 }
 
-// DownloadFileVersion streams one specific version's bytes into dest.
 func (c *APIClient) DownloadFileVersion(
 	ctx context.Context,
 	orgID, projectID, fileID, versionID string,
 	dest io.Writer,
 	onProgress func(n int64),
+	onStart func(total int64),
 ) (string, int64, error) {
-	path := evalBasePath(orgID, projectID) + "/files/" + fileID + "/versions/" + versionID
-	return c.downloadTo(ctx, path, fileID, dest, onProgress)
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(fileID) +
+		"/versions/" + url.PathEscape(versionID)
+	return c.downloadTo(ctx, path, fileID, dest, onProgress, onStart)
 }
 
 func (c *APIClient) downloadTo(
@@ -278,6 +282,7 @@ func (c *APIClient) downloadTo(
 	path, ref string,
 	dest io.Writer,
 	onProgress func(n int64),
+	onStart func(total int64),
 ) (string, int64, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
@@ -293,6 +298,10 @@ func (c *APIClient) downloadTo(
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", 0, fileRefError(ref, body, resp.Status)
+	}
+
+	if onStart != nil && resp.ContentLength >= 0 {
+		onStart(resp.ContentLength)
 	}
 
 	filename := parseDispositionFilename(resp.Header.Get("Content-Disposition"))
@@ -313,12 +322,11 @@ type fileDetailData struct {
 	File FileMetadata `json:"file"`
 }
 
-// GetFileMetadata reads a file's current version and full version history.
 func (c *APIClient) GetFileMetadata(
 	ctx context.Context,
 	orgID, projectID, ref string,
 ) (*FileMetadata, json.RawMessage, error) {
-	path := evalBasePath(orgID, projectID) + "/files/" + ref + "/metadata"
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(ref) + "/metadata"
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
@@ -347,8 +355,7 @@ func (c *APIClient) GetFileMetadata(
 }
 
 type fileDeleteData struct {
-	Id        string  `json:"id"`
-	VersionId *string `json:"versionId"`
+	ID string `json:"id"`
 }
 
 func (c *APIClient) deleteFileRef(ctx context.Context, path, ref, action string) (string, error) {
@@ -376,16 +383,16 @@ func (c *APIClient) deleteFileRef(ctx context.Context, path, ref, action string)
 	if err != nil {
 		return "", err
 	}
-	return data.Id, nil
+	return data.ID, nil
 }
 
-// RestoreVersion makes an earlier version of ref current again, without moving its
-// bytes through this client: the server copies them.
+// RestoreVersion asks the platform to restore an earlier version's contents.
 func (c *APIClient) RestoreVersion(
 	ctx context.Context,
 	orgID, projectID, ref, versionID string,
 ) (*FileMetadata, error) {
-	path := evalBasePath(orgID, projectID) + "/files/" + ref + "/versions/" + versionID
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(ref) +
+		"/versions/" + url.PathEscape(versionID)
 	req, err := c.newRequest(ctx, http.MethodPost, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -413,18 +420,53 @@ func (c *APIClient) RestoreVersion(
 	return &data, nil
 }
 
-// DeleteFile deletes a file and all its versions.
+type renameFileRequest struct {
+	Name string `json:"name"`
+}
+
+func (c *APIClient) RenameFile(
+	ctx context.Context,
+	orgID, projectID, ref, name string,
+) (*FileMetadata, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(ref)
+	req, err := c.newJSONRequest(ctx, http.MethodPatch, path, renameFileRequest{Name: name})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to rename file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fileRefError(ref, body, resp.Status)
+	}
+
+	data, err := decodeSuccess[FileMetadata](body, "rename file")
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
 func (c *APIClient) DeleteFile(ctx context.Context, orgID, projectID, ref string) (string, error) {
-	path := evalBasePath(orgID, projectID) + "/files/" + ref
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(ref)
 	return c.deleteFileRef(ctx, path, ref, "delete file")
 }
 
-// DeleteFileVersion deletes one superseded version of a file.
 func (c *APIClient) DeleteFileVersion(
 	ctx context.Context,
 	orgID, projectID, ref, versionID string,
 ) (string, error) {
-	path := evalBasePath(orgID, projectID) + "/files/" + ref + "/versions/" + versionID
+	path := evalBasePath(orgID, projectID) + "/files/" + url.PathEscape(ref) +
+		"/versions/" + url.PathEscape(versionID)
 	return c.deleteFileRef(ctx, path, ref, "delete file version")
 }
 

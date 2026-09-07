@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -9,17 +8,16 @@ import (
 	"testing"
 )
 
-func filesDeleteTestServer(t *testing.T, requests *[]string) *httptest.Server {
+func filesDeleteTestServer(t *testing.T, requests *filesRequestLog) *httptest.Server {
 	t.Helper()
 	base := "/api/platform/v1/organizations/org-1/projects/proj-1/files"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeFilesTestSessionResponse(w, r) {
+			return
+		}
 		switch {
-		case r.URL.Path == "/api/v1/session/organizations":
-			fmt.Fprint(w, `{"organizations":[{"id":"org-1","name":"acme"}]}`)
-		case r.URL.Path == "/api/v1/session/organizations/org-1/projects":
-			fmt.Fprint(w, `{"projects":[{"id":"proj-1","name":"alunafi"}]}`)
 		case strings.HasPrefix(r.URL.Path, base):
-			*requests = append(*requests, r.Method+" "+r.URL.Path)
+			requests.add(r.Method + " " + r.URL.Path)
 			fmt.Fprint(w, `{"success":true,"data":{"id":"f-1","versionId":null}}`)
 		default:
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
@@ -32,94 +30,71 @@ func filesDeleteTestServer(t *testing.T, requests *[]string) *httptest.Server {
 
 func setupFilesDeleteTest(t *testing.T, server *httptest.Server, stdin string) {
 	t.Helper()
-	t.Setenv("HOME", t.TempDir())
-	origHostname, origToken, origApiKey := hostname, token, apiKey
+	setupFilesCommandTest(t, server, filesDeleteCmd)
 	t.Cleanup(func() {
-		hostname, token, apiKey = origHostname, origToken, origApiKey
 		filesDeleteOrg, filesDeleteProject = "", ""
 		filesDeleteVersion, filesDeleteForce = "", false
 		for _, name := range []string{"version", "force"} {
 			filesDeleteCmd.Flags().Lookup(name).Changed = false
 		}
-		filesDeleteCmd.SetIn(nil)
-		filesDeleteCmd.SetOut(nil)
 	})
-	hostname, token, apiKey = server.URL, "test-token", ""
 	filesDeleteOrg, filesDeleteProject = "acme", "alunafi"
 	filesDeleteCmd.SetIn(strings.NewReader(stdin))
-	filesDeleteCmd.SetOut(new(strings.Builder))
-	filesDeleteCmd.SetContext(context.Background())
 }
 
-func TestFilesDelete_VersionWithClosedStdin(t *testing.T) {
-	var requests []string
-	server := filesDeleteTestServer(t, &requests)
-	setupFilesDeleteTest(t, server, "")
-
-	if err := filesDeleteCmd.Flags().Set("version", "v-1"); err != nil {
-		t.Fatalf("set --version: %v", err)
+func TestFilesDelete_Modes(t *testing.T) {
+	const filesPath = "/api/platform/v1/organizations/org-1/projects/proj-1/files/f-1"
+	tests := []struct {
+		name        string
+		stdin       string
+		version     string
+		force       bool
+		wantRequest string
+	}{
+		{
+			name:        "version with closed stdin",
+			version:     "v-1",
+			wantRequest: "DELETE " + filesPath + "/versions/v-1",
+		},
+		{name: "whole file declined", stdin: "n\n"},
+		{name: "whole file confirmed", stdin: "y\n", wantRequest: "DELETE " + filesPath},
+		{name: "whole file forced", force: true, wantRequest: "DELETE " + filesPath},
 	}
 
-	if err := filesDeleteCmd.RunE(filesDeleteCmd, []string{"f-1"}); err != nil {
-		t.Fatalf("files delete --version (closed stdin): %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			requests := new(filesRequestLog)
+			server := filesDeleteTestServer(t, requests)
+			setupFilesDeleteTest(t, server, tt.stdin)
 
-	if len(requests) != 1 {
-		t.Fatalf("requests = %v, want exactly 1", requests)
-	}
-	if requests[0] != "DELETE /api/platform/v1/organizations/org-1/projects/proj-1/files/f-1/versions/v-1" {
-		t.Errorf("request = %q, want a versioned DELETE", requests[0])
-	}
-}
+			if tt.version != "" {
+				if err := filesDeleteCmd.Flags().Set("version", tt.version); err != nil {
+					t.Fatalf("set --version: %v", err)
+				}
+			}
+			if tt.force {
+				if err := filesDeleteCmd.Flags().Set("force", "true"); err != nil {
+					t.Fatalf("set --force: %v", err)
+				}
+			}
 
-func TestFilesDelete_NoVersionAnswerNo(t *testing.T) {
-	var requests []string
-	server := filesDeleteTestServer(t, &requests)
-	setupFilesDeleteTest(t, server, "n\n")
+			if err := filesDeleteCmd.RunE(filesDeleteCmd, []string{"f-1"}); err != nil {
+				t.Fatalf("files delete: %v", err)
+			}
 
-	if err := filesDeleteCmd.RunE(filesDeleteCmd, []string{"f-1"}); err != nil {
-		t.Fatalf("files delete (answer n): %v", err)
-	}
-
-	if len(requests) != 0 {
-		t.Fatalf("requests = %v, want none", requests)
-	}
-}
-
-func TestFilesDelete_NoVersionAnswerYes(t *testing.T) {
-	var requests []string
-	server := filesDeleteTestServer(t, &requests)
-	setupFilesDeleteTest(t, server, "y\n")
-
-	if err := filesDeleteCmd.RunE(filesDeleteCmd, []string{"f-1"}); err != nil {
-		t.Fatalf("files delete (answer y): %v", err)
-	}
-
-	if len(requests) != 1 {
-		t.Fatalf("requests = %v, want exactly 1", requests)
-	}
-	if requests[0] != "DELETE /api/platform/v1/organizations/org-1/projects/proj-1/files/f-1" {
-		t.Errorf("request = %q, want a whole-file DELETE", requests[0])
-	}
-}
-
-func TestFilesDelete_Force(t *testing.T) {
-	var requests []string
-	server := filesDeleteTestServer(t, &requests)
-	setupFilesDeleteTest(t, server, "")
-
-	if err := filesDeleteCmd.Flags().Set("force", "true"); err != nil {
-		t.Fatalf("set --force: %v", err)
-	}
-
-	if err := filesDeleteCmd.RunE(filesDeleteCmd, []string{"f-1"}); err != nil {
-		t.Fatalf("files delete -f: %v", err)
-	}
-
-	if len(requests) != 1 {
-		t.Fatalf("requests = %v, want exactly 1", requests)
-	}
-	if requests[0] != "DELETE /api/platform/v1/organizations/org-1/projects/proj-1/files/f-1" {
-		t.Errorf("request = %q, want a whole-file DELETE", requests[0])
+			got := requests.all()
+			if tt.wantRequest == "" {
+				if len(got) != 0 {
+					t.Fatalf("requests = %v, want none", got)
+				}
+				return
+			}
+			if len(got) != 1 {
+				t.Fatalf("requests = %v, want exactly 1", got)
+			}
+			if got[0] != tt.wantRequest {
+				t.Errorf("request = %q, want %q", got[0], tt.wantRequest)
+			}
+		})
 	}
 }

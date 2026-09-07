@@ -8,4 +8,12 @@ var DefaultFileColumns = []string{
 	"created_at",
 }
 
-var AllFileColumns = DefaultFileColumns
+var AllFileColumns = []string{
+	"id",
+	"name",
+	"size",
+	"uploaded_by",
+	"created_at",
+	"content_type",
+	"version_id",
+}

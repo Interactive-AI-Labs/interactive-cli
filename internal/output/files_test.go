@@ -2,6 +2,9 @@ package output
 
 import (
 	"bytes"
+	"errors"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -11,11 +14,19 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
+type failingFileOutputWriter struct {
+	err error
+}
+
+func (w failingFileOutputWriter) Write([]byte) (int, error) {
+	return 0, w.err
+}
+
 func TestPrintFileRefCandidates(t *testing.T) {
 	createdAt := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	candidates := []clients.FileRefCandidate{
-		{FileId: "f-1", Name: "report.pdf", Size: 1024, CreatedAt: createdAt},
-		{FileId: "f-2", Name: "report.pdf", Size: 10, CreatedAt: createdAt},
+		{FileID: "f-1", Name: "report.pdf", Size: 1024, CreatedAt: createdAt},
+		{FileID: "f-2", Name: "report.pdf", Size: 10, CreatedAt: createdAt},
 	}
 
 	var buf bytes.Buffer
@@ -25,10 +36,22 @@ func TestPrintFileRefCandidates(t *testing.T) {
 
 	want := "\"report.pdf\" matches more than one file:\n" +
 		"ID    NAME         SIZE      CREATED AT\n" +
-		"f-1   report.pdf   1.0 KiB   " + LocalTime(createdAt.Format(time.RFC3339)) + "\n" +
-		"f-2   report.pdf   10 B      " + LocalTime(createdAt.Format(time.RFC3339)) + "\n"
+		"f-1   report.pdf   1.0 KiB   " + createdAt.Local().Format("2006-01-02 15:04:05 MST") + "\n" +
+		"f-2   report.pdf   10 B      " + createdAt.Local().Format("2006-01-02 15:04:05 MST") + "\n"
 	if got := buf.String(); got != want {
 		t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, want)
+	}
+}
+
+func TestPrintFileRefCandidates_ReturnsHeaderWriteError(t *testing.T) {
+	writeErr := errors.New("writer closed")
+	err := PrintFileRefCandidates(
+		failingFileOutputWriter{err: writeErr},
+		"report.pdf",
+		nil,
+	)
+	if !errors.Is(err, writeErr) {
+		t.Fatalf("PrintFileRefCandidates() error = %v, want %v", err, writeErr)
 	}
 }
 
@@ -53,7 +76,7 @@ func TestPrintFileList(t *testing.T) {
 			name: "falls back to raw id without an email, prints cursor footer",
 			files: []platform.FileMetadata{
 				{
-					Id:   "file-1",
+					ID:   "file-1",
 					Name: "report.pdf",
 					Current: platform.FileVersion{
 						Size:           1024,
@@ -63,7 +86,7 @@ func TestPrintFileList(t *testing.T) {
 					},
 				},
 				{
-					Id:   "file-2",
+					ID:   "file-2",
 					Name: "notes.txt",
 					Current: platform.FileVersion{
 						Size:      10,
@@ -76,9 +99,9 @@ func TestPrintFileList(t *testing.T) {
 			columns: inputs.DefaultFileColumns,
 			want: "ID       NAME         SIZE      UPLOADED BY     CREATED AT\n" +
 				"file-1   report.pdf   1.0 KiB   a@example.com   " +
-				LocalTime(createdAt.Format(time.RFC3339)) + "\n" +
+				createdAt.Local().Format("2006-01-02 15:04:05 MST") + "\n" +
 				"file-2   notes.txt    10 B      pk-abc          " +
-				LocalTime(createdAt.Format(time.RFC3339)) + "\n" +
+				createdAt.Local().Format("2006-01-02 15:04:05 MST") + "\n" +
 				"\nMore results — next page: --cursor next-page\n",
 		},
 	}
@@ -101,9 +124,30 @@ func TestPrintFileVersions(t *testing.T) {
 	t2 := time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC)
 	t3 := time.Date(2026, 1, 3, 12, 0, 0, 0, time.UTC)
 	versions := []platform.FileVersion{
-		{VersionId: "v-1", Size: 10, Name: "report.pdf", CreatedAt: t1, CreatedBy: "user-1", IsCurrent: false},
-		{VersionId: "v-2", Size: 20, Name: "report.pdf", CreatedAt: t2, CreatedBy: "user-1", IsCurrent: false},
-		{VersionId: "v-3", Size: 30, Name: "report.pdf", CreatedAt: t3, CreatedBy: "user-1", IsCurrent: true},
+		{
+			VersionID: "v-1",
+			Size:      10,
+			Name:      "report.pdf",
+			CreatedAt: t1,
+			CreatedBy: "user-1",
+			IsCurrent: false,
+		},
+		{
+			VersionID: "v-2",
+			Size:      20,
+			Name:      "report.pdf",
+			CreatedAt: t2,
+			CreatedBy: "user-1",
+			IsCurrent: false,
+		},
+		{
+			VersionID: "v-3",
+			Size:      30,
+			Name:      "report.pdf",
+			CreatedAt: t3,
+			CreatedBy: "user-1",
+			IsCurrent: true,
+		},
 	}
 
 	var buf bytes.Buffer
@@ -126,13 +170,20 @@ func TestPrintFileVersions(t *testing.T) {
 func TestPrintFileDetail(t *testing.T) {
 	createdAt := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	meta := &platform.FileMetadata{
-		Id:   "f-1",
+		ID:   "f-1",
 		Name: "report.pdf",
 		Current: platform.FileVersion{
-			VersionId: "v-1", Size: 1024, CreatedAt: createdAt, CreatedBy: "user-1",
+			VersionID: "v-1", Size: 1024, CreatedAt: createdAt, CreatedBy: "user-1",
 		},
 		Versions: []platform.FileVersion{
-			{VersionId: "v-1", Size: 1024, Name: "report.pdf", CreatedAt: createdAt, CreatedBy: "user-1", IsCurrent: true},
+			{
+				VersionID: "v-1",
+				Size:      1024,
+				Name:      "report.pdf",
+				CreatedAt: createdAt,
+				CreatedBy: "user-1",
+				IsCurrent: true,
+			},
 		},
 	}
 
@@ -141,7 +192,31 @@ func TestPrintFileDetail(t *testing.T) {
 		t.Fatalf("PrintFileDetail() error = %v", err)
 	}
 	got := buf.String()
-	if !strings.Contains(got, "f-1") || !strings.Contains(got, "report.pdf") || !strings.Contains(got, "v-1") {
-		t.Errorf("detail output missing expected fields:\n%s", got)
+
+	fields := map[string]string{
+		"ID:":              "f-1",
+		"Name:":            "report.pdf",
+		"Current Version:": "v-1",
+		"Size:":            "1.0 KiB",
+		"Uploaded By:":     "user-1",
+	}
+	for label, value := range fields {
+		if !regexp.MustCompile(regexp.QuoteMeta(label) + `\s+` + regexp.QuoteMeta(value) + `\b`).
+			MatchString(got) {
+			t.Errorf("detail output has no %q line with value %q:\n%s", label, value, got)
+		}
+	}
+}
+
+func TestFileColumnMapCoversAllFileColumns(t *testing.T) {
+	for _, col := range inputs.AllFileColumns {
+		if _, ok := fileColumnMap[col]; !ok {
+			t.Errorf("AllFileColumns lists %q but fileColumnMap has no renderer for it", col)
+		}
+	}
+	for col := range fileColumnMap {
+		if !slices.Contains(inputs.AllFileColumns, col) {
+			t.Errorf("fileColumnMap renders %q but AllFileColumns does not accept it", col)
+		}
 	}
 }
