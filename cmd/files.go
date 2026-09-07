@@ -52,6 +52,10 @@ var (
 	filesDeleteForce   bool
 	filesDeleteOrg     string
 	filesDeleteProject string
+
+	filesRestoreTimeout time.Duration
+	filesRestoreOrg     string
+	filesRestoreProject string
 )
 
 var filesCmd = &cobra.Command{
@@ -292,6 +296,42 @@ single version never asks, since the target is already specific.`,
 	},
 }
 
+var filesRestoreCmd = &cobra.Command{
+	Use:   "restore <id|name> <version-id>",
+	Short: "Make an earlier version of a file current again",
+	Long: `Make an earlier version current again, without moving its bytes through this client.
+
+The store copies the version's bytes server-side under a new version id; the
+source version stays fetchable under its own id, and the file's name is unchanged.`,
+	Example: `  iai files restore <id|name> <version-id>`,
+	Args:    cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		fileRef := args[0]
+		versionID := args[1]
+
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(), filesRestoreOrg, filesRestoreProject,
+			resolveOpts{deployTimeout: defaultHTTPTimeout, filesTimeout: filesRestoreTimeout},
+		)
+		if err != nil {
+			return err
+		}
+
+		result, err := apiClient.RestoreVersion(cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, versionID)
+		if err != nil {
+			return reportFileRefAmbiguous(cmd, err)
+		}
+
+		fmt.Fprintf(out, "Restored %s\n", result.Name)
+		fmt.Fprintf(out, "  id:      %s\n", result.Id)
+		fmt.Fprintf(out, "  version: %s\n", result.Current.VersionId)
+		fmt.Fprintf(out, "  size:    %s\n", output.HumanBytes(result.Current.Size))
+
+		return nil
+	},
+}
+
 var filesDownloadCmd = &cobra.Command{
 	Use:   "download <id|name>",
 	Short: "Download a file's bytes",
@@ -409,12 +449,19 @@ func init() {
 	filesDeleteCmd.Flags().StringVarP(&filesDeleteOrg, "organization", "o", "", "Organization name that owns the project")
 	filesDeleteCmd.Flags().StringVarP(&filesDeleteProject, "project", "p", "", "Project name")
 
+	filesRestoreCmd.Flags().
+		DurationVar(&filesRestoreTimeout, "timeout", defaultFilesTimeout, "HTTP timeout for the restore")
+	filesRestoreCmd.Flags().
+		StringVarP(&filesRestoreOrg, "organization", "o", "", "Organization name that owns the project")
+	filesRestoreCmd.Flags().StringVarP(&filesRestoreProject, "project", "p", "", "Project name")
+
 	filesCmd.AddCommand(filesUploadCmd)
 	filesCmd.AddCommand(filesListCmd)
 	filesCmd.AddCommand(filesDownloadCmd)
 	filesCmd.AddCommand(filesGetCmd)
 	filesCmd.AddCommand(filesUpdateCmd)
 	filesCmd.AddCommand(filesDeleteCmd)
+	filesCmd.AddCommand(filesRestoreCmd)
 	rootCmd.AddCommand(filesCmd)
 }
 

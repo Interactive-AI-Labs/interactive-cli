@@ -742,6 +742,66 @@ func TestDeleteFileVersion_HitsVersionPath(t *testing.T) {
 	}
 }
 
+func TestRestoreVersion_HitsPostVersionPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %s, want POST", r.Method)
+		}
+		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/files/f-1/versions/v-1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		fmt.Fprint(w, `{"success":true,"data":{"id":"f-1","name":"report.pdf",`+
+			`"current":{"versionId":"v-2","size":42,"name":"report.pdf",`+
+			`"contentType":"application/pdf","createdAt":"2026-01-02T00:00:00Z",`+
+			`"createdBy":"user-1","isCurrent":true}}}`)
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	result, err := client.RestoreVersion(context.Background(), "org-1", "proj-1", "f-1", "v-1")
+	if err != nil {
+		t.Fatalf("RestoreVersion() error = %v", err)
+	}
+	if result.Id != "f-1" || result.Current.VersionId != "v-2" {
+		t.Errorf("result = %+v, want id f-1, current version v-2", result)
+	}
+}
+
+func TestRestoreVersion_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"detail":{"success":false,"error":{"code":"FILE_NOT_FOUND",` +
+			`"message":"Version 'v-9' not found"}}}`))
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	_, err := client.RestoreVersion(context.Background(), "org-1", "proj-1", "f-1", "v-9")
+	if err == nil || err.Error() != "Version 'v-9' not found" {
+		t.Errorf("err = %v, want the server's message", err)
+	}
+}
+
+func TestRestoreVersion_AmbiguousRef(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"detail":{"success":false,"error":{"code":"FILE_REF_AMBIGUOUS",` +
+			`"message":"ambiguous","details":{"candidates":[` +
+			`{"fileId":"f-1","name":"report.pdf","size":10,"createdAt":"2026-01-01T00:00:00Z"},` +
+			`{"fileId":"f-2","name":"report.pdf","size":20,"createdAt":"2026-01-02T00:00:00Z"}` +
+			`]}}}}`))
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	_, err := client.RestoreVersion(context.Background(), "org-1", "proj-1", "report.pdf", "v-1")
+
+	var ambiguous *FileRefAmbiguousError
+	if !errors.As(err, &ambiguous) {
+		t.Fatalf("RestoreVersion() error = %v, want a *FileRefAmbiguousError", err)
+	}
+}
+
 func TestDeleteFile_AmbiguousRef(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)

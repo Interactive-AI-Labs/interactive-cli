@@ -379,6 +379,40 @@ func (c *APIClient) deleteFileRef(ctx context.Context, path, ref, action string)
 	return data.Id, nil
 }
 
+// RestoreVersion makes an earlier version of ref current again, without moving its
+// bytes through this client: the server copies them.
+func (c *APIClient) RestoreVersion(
+	ctx context.Context,
+	orgID, projectID, ref, versionID string,
+) (*FileMetadata, error) {
+	path := evalBasePath(orgID, projectID) + "/files/" + ref + "/versions/" + versionID
+	req, err := c.newRequest(ctx, http.MethodPost, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore version: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fileRefError(ref, body, resp.Status)
+	}
+
+	data, err := decodeSuccess[FileMetadata](body, "restore version")
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
 // DeleteFile deletes a file and all its versions.
 func (c *APIClient) DeleteFile(ctx context.Context, orgID, projectID, ref string) (string, error) {
 	path := evalBasePath(orgID, projectID) + "/files/" + ref
