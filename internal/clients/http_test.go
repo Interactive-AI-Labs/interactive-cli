@@ -102,6 +102,32 @@ func TestExtractServerMessage(t *testing.T) {
 	}
 }
 
+func TestExtractFileRefCandidates(t *testing.T) {
+	ambiguous := []byte(`{"detail":{"success":false,"error":{"code":"FILE_REF_AMBIGUOUS",` +
+		`"message":"ambiguous","details":{"candidates":[` +
+		`{"fileId":"f-1","name":"report.pdf","size":10,"createdAt":"2026-01-01T00:00:00Z"},` +
+		`{"fileId":"f-2","name":"report.pdf","size":20,"createdAt":"2026-01-02T00:00:00Z"}` +
+		`]}}}}`)
+	candidates := ExtractFileRefCandidates(ambiguous)
+	if len(candidates) != 2 {
+		t.Fatalf("len(candidates) = %d, want 2", len(candidates))
+	}
+	if candidates[0].FileId != "f-1" || candidates[1].FileId != "f-2" {
+		t.Errorf("candidates = %+v, want f-1 then f-2", candidates)
+	}
+
+	otherCode := []byte(`{"detail":{"success":false,"error":{"code":"FILE_VERSION_CONFLICT",` +
+		`"message":"lost the race","details":{}}}}`)
+	if got := ExtractFileRefCandidates(otherCode); got != nil {
+		t.Errorf("candidates for a different error code = %+v, want nil", got)
+	}
+
+	plainMessage := []byte(`{"detail":{"error":{"message":"not found"}}}`)
+	if got := ExtractFileRefCandidates(plainMessage); got != nil {
+		t.Errorf("candidates for a body with no code = %+v, want nil", got)
+	}
+}
+
 func TestApplyRequestHeaders(t *testing.T) {
 	t.Run("applies Bearer token auth", func(t *testing.T) {
 		req, err := newTestRequest()

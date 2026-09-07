@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -125,7 +126,10 @@ var filesListCmd = &cobra.Command{
 			return err
 		}
 
-		opts := platform.FileListOptions{Limit: filesListLimit, Cursor: filesListCursor}
+		opts := platform.FileListOptions{Cursor: filesListCursor}
+		if cmd.Flags().Changed("limit") {
+			opts.Limit = &filesListLimit
+		}
 		files, meta, rawJSON, err := apiClient.ListFiles(cmd.Context(), pCtx.orgId, pCtx.projectId, opts)
 		if err != nil {
 			return err
@@ -142,19 +146,19 @@ var filesListCmd = &cobra.Command{
 }
 
 var filesDownloadCmd = &cobra.Command{
-	Use:   "download <id>",
+	Use:   "download <id|name>",
 	Short: "Download a file's bytes",
 	Long: `Download a file's current version, or an older one with --version.
 
 Without --output, the file is written under the name the server reports,
 reduced to a safe local filename; --output - streams to stdout instead.`,
-	Example: `  iai files download <id>
-  iai files download <id> --version <version-id>
-  iai files download <id> --output report.pdf
-  iai files download <id> --output - > report.pdf`,
+	Example: `  iai files download <id|name>
+  iai files download <id|name> --version <version-id>
+  iai files download <id|name> --output report.pdf
+  iai files download <id|name> --output - > report.pdf`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fileID := args[0]
+		fileRef := args[0]
 
 		pCtx, apiClient, _, err := resolveProject(
 			cmd.Context(), filesDownloadOrg, filesDownloadProject,
@@ -164,20 +168,20 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 			return err
 		}
 
-		bar := output.NewProgressBar(cmd.ErrOrStderr(), 0, fmt.Sprintf("Downloading %s", fileID))
+		bar := output.NewProgressBar(cmd.ErrOrStderr(), 0, fmt.Sprintf("Downloading %s", fileRef))
 		download := func(dest io.Writer) (string, int64, error) {
 			if filesDownloadVersion != "" {
 				return apiClient.DownloadFileVersion(
-					cmd.Context(), pCtx.orgId, pCtx.projectId, fileID, filesDownloadVersion, dest, bar.Add,
+					cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, filesDownloadVersion, dest, bar.Add,
 				)
 			}
-			return apiClient.DownloadFile(cmd.Context(), pCtx.orgId, pCtx.projectId, fileID, dest, bar.Add)
+			return apiClient.DownloadFile(cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, dest, bar.Add)
 		}
 
 		if filesDownloadOutput == "-" {
 			_, _, err := download(cmd.OutOrStdout())
 			bar.Finish()
-			return err
+			return reportFileRefAmbiguous(cmd, err)
 		}
 
 		tmp, err := os.CreateTemp(".", ".iai-files-download-*")
@@ -190,7 +194,7 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 		closeErr := tmp.Close()
 		if err != nil {
 			os.Remove(tmpPath)
-			return err
+			return reportFileRefAmbiguous(cmd, err)
 		}
 		if closeErr != nil {
 			os.Remove(tmpPath)
@@ -199,7 +203,7 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 
 		target := filesDownloadOutput
 		if target == "" {
-			target = safeDownloadFilename(rawName, fileID)
+			target = safeDownloadFilename(rawName, fileRef)
 		}
 		if _, err := os.Stat(target); err == nil && !filesDownloadForce {
 			os.Remove(tmpPath)
@@ -252,4 +256,14 @@ func safeDownloadFilename(raw, fileID string) string {
 		return fileID
 	}
 	return base
+}
+
+// reportFileRefAmbiguous prints the candidate files behind a *platform.FileRefAmbiguousError
+// and returns err unchanged, so every files verb can inherit the same rendering by calling this.
+func reportFileRefAmbiguous(cmd *cobra.Command, err error) error {
+	var ambiguous *platform.FileRefAmbiguousError
+	if errors.As(err, &ambiguous) {
+		output.PrintFileRefCandidates(cmd.ErrOrStderr(), ambiguous.Ref, ambiguous.Candidates)
+	}
+	return err
 }

@@ -10,16 +10,16 @@ Without --output, the file is written under the name the server reports,
 reduced to a safe local filename; --output - streams to stdout instead.
 
 ```
-iai files download <id> [flags]
+iai files download <id|name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai files download <id>
-  iai files download <id> --version <version-id>
-  iai files download <id> --output report.pdf
-  iai files download <id> --output - > report.pdf
+  iai files download <id|name>
+  iai files download <id|name> --version <version-id>
+  iai files download <id|name> --output report.pdf
+  iai files download <id|name> --output - > report.pdf
 ```
 
 ### Options
