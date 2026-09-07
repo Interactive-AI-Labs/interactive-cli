@@ -4,10 +4,7 @@ Make an earlier version of a file current again
 
 ### Synopsis
 
-Make an earlier version current again, without moving its bytes through this client.
-
-The store copies the version's bytes server-side under a new version id; the
-source version stays fetchable under its own id, and the file's name is unchanged.
+Restore an earlier version's contents as a new current version. The source version remains available under its original ID, and the file's name is unchanged.
 
 ```
 iai files restore <id|name> <version-id> [flags]

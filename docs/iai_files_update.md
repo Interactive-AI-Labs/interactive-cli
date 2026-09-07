@@ -1,15 +1,16 @@
 ## iai files update
 
-Upload a new version of a file
+Update a file's contents or name
 
 ### Synopsis
 
-Upload local-file as a new version of an existing document.
+Upload local-file as a new version of an existing document, or omit
+local-file and use --name to rename the file without creating a version.
 
-The file keeps its stored name unless --name is given.
+When uploading a version, the file keeps its stored name unless --name is given.
 
 ```
-iai files update <id|name> <local-file> [flags]
+iai files update <id|name> [local-file] [flags]
 ```
 
 ### Examples
@@ -17,13 +18,14 @@ iai files update <id|name> <local-file> [flags]
 ```
   iai files update <id|name> ./report.pdf
   iai files update <id|name> ./report.pdf --name "Q3 Report.pdf"
+  iai files update <id|name> --name "Q3 Report Final.pdf"
 ```
 
 ### Options
 
 ```
   -h, --help                  help for update
-      --name string           Rename the file as part of this update (default: keep its stored name)
+      --name string           New stored name (default when uploading: keep the current name)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
       --timeout duration      HTTP timeout for the update (default 15m0s)

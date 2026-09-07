@@ -13,8 +13,8 @@ var fileColumnMap = map[string]struct {
 	Header string
 	Value  func(f *platform.FileMetadata) string
 }{
-	"id":   {"ID", func(f *platform.FileMetadata) string { return f.Id }},
-	"name": {"NAME", func(f *platform.FileMetadata) string { return f.Name }},
+	"id":   {"ID", func(f *platform.FileMetadata) string { return f.ID }},
+	"name": {"NAME", func(f *platform.FileMetadata) string { return Printable(f.Name) }},
 	"size": {"SIZE", func(f *platform.FileMetadata) string { return HumanBytes(f.Current.Size) }},
 	"uploaded_by": {
 		"UPLOADED BY",
@@ -26,13 +26,21 @@ var fileColumnMap = map[string]struct {
 			return LocalTime(f.Current.CreatedAt.Format(time.RFC3339))
 		},
 	},
+	"content_type": {
+		"CONTENT TYPE",
+		func(f *platform.FileMetadata) string { return Printable(f.Current.ContentType) },
+	},
+	"version_id": {
+		"VERSION ID",
+		func(f *platform.FileMetadata) string { return f.Current.VersionID },
+	},
 }
 
 func uploadedBy(v platform.FileVersion) string {
 	if v.CreatedByEmail != nil {
-		return *v.CreatedByEmail
+		return Printable(*v.CreatedByEmail)
 	}
-	return v.CreatedBy
+	return Printable(v.CreatedBy)
 }
 
 func PrintFileList(
@@ -71,7 +79,7 @@ func PrintFileList(
 
 	if includeVersions {
 		for _, f := range files {
-			fmt.Fprintf(out, "\n%s versions:\n", f.Name)
+			fmt.Fprintf(out, "\n%s versions:\n", Printable(f.Name))
 			if err := PrintFileVersions(out, f.Versions); err != nil {
 				return err
 			}
@@ -79,7 +87,7 @@ func PrintFileList(
 	}
 
 	if meta.Cursor != nil && *meta.Cursor != "" {
-		fmt.Fprintf(out, "\nMore results — next page: --cursor %s\n", *meta.Cursor)
+		fmt.Fprintf(out, "\nMore results — next page: --cursor %s\n", Printable(*meta.Cursor))
 	}
 	return nil
 }
@@ -93,7 +101,7 @@ func PrintFileVersions(out io.Writer, versions []platform.FileVersion) error {
 			current = "yes"
 		}
 		rows[i] = []string{
-			v.VersionId, v.Name, HumanBytes(v.Size), uploadedBy(v),
+			v.VersionID, Printable(v.Name), HumanBytes(v.Size), uploadedBy(v),
 			LocalTime(v.CreatedAt.Format(time.RFC3339)), current,
 		}
 	}
@@ -102,9 +110,9 @@ func PrintFileVersions(out io.Writer, versions []platform.FileVersion) error {
 
 func PrintFileDetail(out io.Writer, f *platform.FileMetadata) error {
 	w := NewDescribeWriter(out)
-	fmt.Fprintf(w, "ID:\t%s\n", f.Id)
-	fmt.Fprintf(w, "Name:\t%s\n", f.Name)
-	fmt.Fprintf(w, "Current Version:\t%s\n", f.Current.VersionId)
+	fmt.Fprintf(w, "ID:\t%s\n", f.ID)
+	fmt.Fprintf(w, "Name:\t%s\n", Printable(f.Name))
+	fmt.Fprintf(w, "Current Version:\t%s\n", f.Current.VersionID)
 	fmt.Fprintf(w, "Size:\t%s\n", HumanBytes(f.Current.Size))
 	fmt.Fprintf(w, "Uploaded By:\t%s\n", uploadedBy(f.Current))
 	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(f.Current.CreatedAt.Format(time.RFC3339)))
@@ -116,14 +124,23 @@ func PrintFileDetail(out io.Writer, f *platform.FileMetadata) error {
 	return PrintFileVersions(out, f.Versions)
 }
 
-func PrintFileRefCandidates(out io.Writer, ref string, candidates []clients.FileRefCandidate) error {
-	fmt.Fprintf(out, "%q matches more than one file:\n", ref)
+func PrintFileRefCandidates(
+	out io.Writer,
+	ref string,
+	candidates []clients.FileRefCandidate,
+) error {
+	if _, err := fmt.Fprintf(out, "%q matches more than one file:\n", ref); err != nil {
+		return err
+	}
 
 	headers := []string{"ID", "NAME", "SIZE", "CREATED AT"}
 	rows := make([][]string, len(candidates))
 	for i, c := range candidates {
 		rows[i] = []string{
-			c.FileId, c.Name, HumanBytes(c.Size), LocalTime(c.CreatedAt.Format(time.RFC3339)),
+			c.FileID,
+			Printable(c.Name),
+			HumanBytes(c.Size),
+			LocalTime(c.CreatedAt.Format(time.RFC3339)),
 		}
 	}
 	return PrintTable(out, headers, rows)
