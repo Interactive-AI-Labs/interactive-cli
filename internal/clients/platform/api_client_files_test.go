@@ -569,3 +569,134 @@ func TestListFiles_DecodesVersionsWhenIncluded(t *testing.T) {
 		t.Errorf("current count = %d, want 1", current)
 	}
 }
+
+func TestAddFileVersion_NoNameByDefault(t *testing.T) {
+	content := []byte("new version bytes")
+	localPath := writeTempFile(t, "local-name.txt", content)
+
+	var gotHasNameKey bool
+	var gotContentLength int64
+	var gotBodyLen int
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("method = %s, want PUT", r.Method)
+		}
+		if r.URL.Path != "/api/platform/v1/organizations/org-1/projects/proj-1/files/f-1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		gotContentLength = r.ContentLength
+
+		counted := &countingReader{r: r.Body, onRead: func(n int64) { gotBodyLen += int(n) }}
+		r.Body = io.NopCloser(counted)
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("failed to parse multipart form: %v", err)
+		}
+		_, gotHasNameKey = r.MultipartForm.Value["name"]
+
+		w.WriteHeader(http.StatusOK)
+		writeFileMetadataResponse(w, "f-1", "v-2", int64(len(content)), "stored-name.txt")
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	result, err := client.AddFileVersion(context.Background(), "org-1", "proj-1", "f-1", localPath, "", nil)
+	if err != nil {
+		t.Fatalf("AddFileVersion() error = %v", err)
+	}
+	if result.Id != "f-1" {
+		t.Errorf("result.Id = %q, want f-1", result.Id)
+	}
+	if gotHasNameKey {
+		t.Error("multipart form carries a name part, want none")
+	}
+	if gotContentLength <= 0 || gotContentLength != int64(gotBodyLen) {
+		t.Errorf("ContentLength = %d, want it to equal the actual body length %d", gotContentLength, gotBodyLen)
+	}
+}
+
+func TestAddFileVersion_WithName(t *testing.T) {
+	content := []byte("new version bytes")
+	localPath := writeTempFile(t, "local-name.txt", content)
+
+	var gotName string
+	var gotContentLength int64
+	var gotBodyLen int
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotContentLength = r.ContentLength
+		counted := &countingReader{r: r.Body, onRead: func(n int64) { gotBodyLen += int(n) }}
+		r.Body = io.NopCloser(counted)
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("failed to parse multipart form: %v", err)
+		}
+		gotName = r.FormValue("name")
+
+		w.WriteHeader(http.StatusOK)
+		writeFileMetadataResponse(w, "f-1", "v-2", int64(len(content)), gotName)
+	}))
+	defer server.Close()
+
+	client := newEvalTestClient(t, server.URL)
+	result, err := client.AddFileVersion(
+		context.Background(), "org-1", "proj-1", "f-1", localPath, "renamed.txt", nil,
+	)
+	if err != nil {
+		t.Fatalf("AddFileVersion() error = %v", err)
+	}
+	if gotName != "renamed.txt" {
+		t.Errorf("server-observed name field = %q, want renamed.txt", gotName)
+	}
+	if result.Current.Name != "renamed.txt" {
+		t.Errorf("result.Current.Name = %q, want renamed.txt", result.Current.Name)
+	}
+	if gotContentLength <= 0 || gotContentLength != int64(gotBodyLen) {
+		t.Errorf("ContentLength = %d, want it to equal the actual body length %d", gotContentLength, gotBodyLen)
+	}
+}
+
+func TestAddFileVersion_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"detail":{"error":{"message":"File 'missing' not found"}}}`))
+	}))
+	defer server.Close()
+
+	localPath := writeTempFile(t, "f.txt", []byte("x"))
+	client := newEvalTestClient(t, server.URL)
+	_, err := client.AddFileVersion(context.Background(), "org-1", "proj-1", "missing", localPath, "", nil)
+	if err == nil {
+		t.Fatal("AddFileVersion() error = nil, want a not-found error")
+	}
+	var ambiguous *FileRefAmbiguousError
+	if errors.As(err, &ambiguous) {
+		t.Fatalf("AddFileVersion() error = %v, want a plain error, not ambiguous", err)
+	}
+	if err.Error() != "File 'missing' not found" {
+		t.Errorf("error message = %q, want the server's message", err.Error())
+	}
+}
+
+func TestAddFileVersion_AmbiguousRef(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"detail":{"success":false,"error":{"code":"FILE_REF_AMBIGUOUS",` +
+			`"message":"ambiguous","details":{"candidates":[` +
+			`{"fileId":"f-1","name":"report.pdf","size":10,"createdAt":"2026-01-01T00:00:00Z"},` +
+			`{"fileId":"f-2","name":"report.pdf","size":20,"createdAt":"2026-01-02T00:00:00Z"}` +
+			`]}}}}`))
+	}))
+	defer server.Close()
+
+	localPath := writeTempFile(t, "f.txt", []byte("x"))
+	client := newEvalTestClient(t, server.URL)
+	_, err := client.AddFileVersion(context.Background(), "org-1", "proj-1", "report.pdf", localPath, "", nil)
+
+	var ambiguous *FileRefAmbiguousError
+	if !errors.As(err, &ambiguous) {
+		t.Fatalf("AddFileVersion() error = %v, want a *FileRefAmbiguousError", err)
+	}
+	if ambiguous.Ref != "report.pdf" {
+		t.Errorf("Ref = %q, want report.pdf", ambiguous.Ref)
+	}
+}

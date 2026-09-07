@@ -42,6 +42,11 @@ var (
 	filesGetYAML    bool
 	filesGetOrg     string
 	filesGetProject string
+
+	filesUpdateName    string
+	filesUpdateTimeout time.Duration
+	filesUpdateOrg     string
+	filesUpdateProject string
 )
 
 var filesCmd = &cobra.Command{
@@ -183,6 +188,53 @@ var filesGetCmd = &cobra.Command{
 	},
 }
 
+var filesUpdateCmd = &cobra.Command{
+	Use:   "update <id|name> <local-file>",
+	Short: "Upload a new version of a file",
+	Long: `Upload local-file as a new version of an existing document.
+
+The file keeps its stored name unless --name is given.`,
+	Example: `  iai files update <id|name> ./report.pdf
+  iai files update <id|name> ./report.pdf --name "Q3 Report.pdf"`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		fileRef := args[0]
+		localPath := args[1]
+
+		info, err := os.Stat(localPath)
+		if err != nil {
+			return fmt.Errorf("failed to open %s: %w", localPath, err)
+		}
+
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(), filesUpdateOrg, filesUpdateProject,
+			resolveOpts{deployTimeout: defaultHTTPTimeout, filesTimeout: filesUpdateTimeout},
+		)
+		if err != nil {
+			return err
+		}
+
+		label := fmt.Sprintf("Updating %s", fileRef)
+		bar := output.NewProgressBar(cmd.ErrOrStderr(), info.Size(), label)
+		result, err := apiClient.AddFileVersion(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, localPath, filesUpdateName,
+			bar.Add,
+		)
+		bar.Finish()
+		if err != nil {
+			return reportFileRefAmbiguous(cmd, err)
+		}
+
+		fmt.Fprintf(out, "Updated %s\n", result.Current.Name)
+		fmt.Fprintf(out, "  id:      %s\n", result.Id)
+		fmt.Fprintf(out, "  version: %s\n", result.Current.VersionId)
+		fmt.Fprintf(out, "  size:    %s\n", output.HumanBytes(result.Current.Size))
+
+		return nil
+	},
+}
+
 var filesDownloadCmd = &cobra.Command{
 	Use:   "download <id|name>",
 	Short: "Download a file's bytes",
@@ -288,10 +340,18 @@ func init() {
 	filesGetCmd.Flags().StringVarP(&filesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	filesGetCmd.Flags().StringVarP(&filesGetProject, "project", "p", "", "Project name")
 
+	filesUpdateCmd.Flags().StringVar(&filesUpdateName, "name", "", "Rename the file as part of this update (default: keep its stored name)")
+	filesUpdateCmd.Flags().
+		DurationVar(&filesUpdateTimeout, "timeout", defaultFilesTimeout, "HTTP timeout for the update")
+	filesUpdateCmd.Flags().
+		StringVarP(&filesUpdateOrg, "organization", "o", "", "Organization name that owns the project")
+	filesUpdateCmd.Flags().StringVarP(&filesUpdateProject, "project", "p", "", "Project name")
+
 	filesCmd.AddCommand(filesUploadCmd)
 	filesCmd.AddCommand(filesListCmd)
 	filesCmd.AddCommand(filesDownloadCmd)
 	filesCmd.AddCommand(filesGetCmd)
+	filesCmd.AddCommand(filesUpdateCmd)
 	rootCmd.AddCommand(filesCmd)
 }
 
