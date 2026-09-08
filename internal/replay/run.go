@@ -57,6 +57,16 @@ type Options struct {
 // an error when it did not: refused, unreachable, timed out, lost, interrupted,
 // or finished with status error.
 func Run(ctx context.Context, deps Deps, opts Options) error {
+	// Local validation first, so a bad file fails before any network call.
+	var scenarioBody map[string]any
+	if opts.Input.File != "" {
+		body, err := inputs.LoadScenarioFile(opts.Input.File)
+		if err != nil {
+			return err
+		}
+		scenarioBody = body
+	}
+
 	described, err := deps.Deploy.DescribeAgent(ctx, opts.OrgID, opts.ProjectID, opts.AgentName)
 	if err != nil {
 		return fmt.Errorf("failed to describe agent %q: %w", opts.AgentName, err)
@@ -83,13 +93,6 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 		described.Revision,
 		baseURL,
 	)
-
-	var scenarioBody map[string]any
-	if opts.Input.File != "" {
-		if scenarioBody, err = inputs.LoadScenarioFile(opts.Input.File); err != nil {
-			return err
-		}
-	}
 
 	bearer, err := ResolveBearer(
 		ctx,
@@ -127,6 +130,9 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 		Interval:    pollInterval,
 		Timeout:     opts.Timeout,
 		NotFoundCap: notFoundCap,
+		OnRetry: func(err error) {
+			output.PrintReplayRetry(deps.Stderr, err, notFoundCap.String())
+		},
 		OnProgress: func(r *agent.Run) {
 			if finished := countFinished(r); finished != lastFinished && len(r.Batches) > 0 {
 				lastFinished = finished
@@ -155,9 +161,10 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 		if _, err := deps.Stdout.Write(append(run.Raw, '\n')); err != nil {
 			return err
 		}
-	} else if err := output.PrintReplayRun(deps.Stdout, deps.Stderr, run); err != nil {
+	} else if err := output.PrintReplayRun(deps.Stdout, run, opts.Input.Scenarios); err != nil {
 		return err
 	}
+	output.PrintReplayPointer(deps.Stderr, run)
 
 	if run.Status == agent.StatusError {
 		return fmt.Errorf("replay %s could not be completed: %s", runID, errorSummary(run))

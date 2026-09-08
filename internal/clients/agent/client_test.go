@@ -182,12 +182,18 @@ func TestWait(t *testing.T) {
 			}
 			fmt.Fprint(w, `{"run_id":"r1","status":"failed"}`)
 		})
-		run, err := client.Wait(context.Background(), "r1", waitOpts(nil))
+		opts := waitOpts(nil)
+		var retries []error
+		opts.OnRetry = func(err error) { retries = append(retries, err) }
+		run, err := client.Wait(context.Background(), "r1", opts)
 		if err != nil {
 			t.Fatalf("Wait() error = %v", err)
 		}
 		if run.Status != StatusFailed {
 			t.Errorf("status = %s", run.Status)
+		}
+		if len(retries) != 1 || !strings.Contains(retries[0].Error(), "No such replay run") {
+			t.Errorf("OnRetry calls = %v, want exactly one for the streak", retries)
 		}
 	})
 

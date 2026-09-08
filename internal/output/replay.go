@@ -1,6 +1,7 @@
 package output
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"strings"
@@ -20,19 +21,7 @@ func PrintReplayTarget(w io.Writer, name, version string, revision int, baseURL 
 // reports the whole dataset even for a subset, so with requested names only
 // those are shown; a long list collapses to a count.
 func PrintReplaySkipped(w io.Writer, skipped []agent.Skipped, requested []string) {
-	if len(requested) > 0 {
-		want := make(map[string]bool, len(requested))
-		for _, r := range requested {
-			want[r] = true
-		}
-		var kept []agent.Skipped
-		for _, s := range skipped {
-			if want[s.ID] {
-				kept = append(kept, s)
-			}
-		}
-		skipped = kept
-	}
+	skipped = filterSkipped(skipped, requested)
 	if len(skipped) == 0 {
 		return
 	}
@@ -45,55 +34,101 @@ func PrintReplaySkipped(w io.Writer, skipped []agent.Skipped, requested []string
 	}
 }
 
+func filterSkipped(skipped []agent.Skipped, requested []string) []agent.Skipped {
+	if len(requested) == 0 {
+		return skipped
+	}
+	want := make(map[string]bool, len(requested))
+	for _, r := range requested {
+		want[r] = true
+	}
+	var kept []agent.Skipped
+	for _, s := range skipped {
+		if want[s.ID] {
+			kept = append(kept, s)
+		}
+	}
+	return kept
+}
+
 func PrintReplayProgress(w io.Writer, finished, total int) {
 	fmt.Fprintf(w, "%d/%d scenarios finished\n", finished, total)
 }
 
+// PrintReplayRetry reports a transient poll failure once per streak, so a
+// 404 from a replica that never saw the POST does not look like a hang.
+func PrintReplayRetry(w io.Writer, err error, limit string) {
+	fmt.Fprintf(w, "%v; retrying for up to %s\n", err, limit)
+}
+
 // PrintReplayRun renders a finished run. A scenario is expanded iteration by
 // iteration when it is the only one or when it failed or errored; passed
-// scenarios in a multi-scenario run are one row each.
-func PrintReplayRun(out, errOut io.Writer, run *agent.Run) error {
-	printReplaySummary(out, run)
+// scenarios in a multi-scenario run are one row each. A run that errored
+// before producing any scenario prints its own error instead.
+func PrintReplayRun(out io.Writer, run *agent.Run, requested []string) error {
+	printReplaySummary(out, run, requested)
 	fmt.Fprintln(out)
 
+	if len(run.Batches) == 0 {
+		fmt.Fprintf(
+			out,
+			"  ERROR          %s\n",
+			cmp.Or(run.Error, "the run produced no scenarios"),
+		)
+		fmt.Fprintln(out)
+		fmt.Fprintf(out, "%-6s run %s\n", verdictShort(run.Status), run.RunID)
+		return nil
+	}
+
 	single := len(run.Batches) == 1
+	width := nameWidth(run.Batches)
 	for _, b := range run.Batches {
-		if single || b.Status != agent.StatusPassed {
-			printBatchExpanded(out, b, single)
+		if single {
+			fmt.Fprintln(out, b.Scenario)
 		} else {
 			fmt.Fprintf(
 				out,
-				"%-7s %-32s %d/%d\n",
+				"%-7s %-*s %d/%d\n",
 				verdictWord(b.Status),
+				width,
 				b.Scenario,
 				b.Passed,
 				b.Repeat,
 			)
 		}
+		if single || b.Status != agent.StatusPassed {
+			printBatchExpanded(out, b)
+		}
 	}
 
 	fmt.Fprintln(out)
 	printReplayVerdict(out, run)
-
-	if trace := pointerTrace(run); trace != "" {
-		fmt.Fprintf(
-			errOut,
-			"scores: iai scores list --name replay.verdict --columns name,value,trace_id,comment"+
-				" · eval trace: iai traces get %s\n",
-			trace,
-		)
-	}
 	return nil
 }
 
-func printReplaySummary(w io.Writer, run *agent.Run) {
+// PrintReplayPointer tells the reader where the verdict lives on the platform:
+// the scores query and the eval trace worth opening first.
+func PrintReplayPointer(w io.Writer, run *agent.Run) {
+	scenario, trace := pointerTrace(run)
+	if trace == "" {
+		return
+	}
+	fmt.Fprintf(
+		w,
+		"scores: iai scores list --name replay.verdict --columns name,trace_id,comment"+
+			" · eval trace (%s): iai traces get %s\n",
+		scenario,
+		trace,
+	)
+}
+
+func printReplaySummary(w io.Writer, run *agent.Run, requested []string) {
 	var parts []string
 	if run.Dataset != "" {
 		parts = append(parts, "dataset "+run.Dataset)
-		parts = append(
-			parts,
-			fmt.Sprintf("%d scenario%s", len(run.Batches), plural(len(run.Batches))),
-		)
+		if n := len(run.Batches); n > 0 {
+			parts = append(parts, fmt.Sprintf("%d scenario%s", n, plural(n)))
+		}
 	} else if run.Scenario != "" {
 		parts = append(parts, "scenario "+run.Scenario)
 	}
@@ -101,18 +136,23 @@ func printReplaySummary(w io.Writer, run *agent.Run) {
 	if run.Concurrency > 0 {
 		parts = append(parts, fmt.Sprintf("concurrency %d", run.Concurrency))
 	}
-	if n := len(run.Skipped); n > 0 {
+	if n := len(filterSkipped(run.Skipped, requested)); n > 0 {
 		parts = append(parts, fmt.Sprintf("skipped %d", n))
 	}
 	fmt.Fprintln(w, strings.Join(parts, "   "))
 }
 
-func printBatchExpanded(w io.Writer, b agent.Batch, single bool) {
-	if single {
-		fmt.Fprintln(w, b.Scenario)
-	} else {
-		fmt.Fprintf(w, "%-7s %-32s %d/%d\n", verdictWord(b.Status), b.Scenario, b.Passed, b.Repeat)
+func nameWidth(batches []agent.Batch) int {
+	width := 0
+	for _, b := range batches {
+		if len(b.Scenario) > width {
+			width = len(b.Scenario)
+		}
 	}
+	return width
+}
+
+func printBatchExpanded(w io.Writer, b agent.Batch) {
 	if b.Error != "" {
 		fmt.Fprintf(w, "  ERROR          %s\n", b.Error)
 		return
@@ -174,38 +214,33 @@ func printReplayVerdict(w io.Writer, run *agent.Run) {
 			passed++
 		}
 	}
-	pct := 0
-	if len(run.Batches) > 0 {
-		pct = passed * 100 / len(run.Batches)
-	}
 	fmt.Fprintf(
 		w,
 		"%-6s %d%% of %d scenarios passed     run %s\n",
 		word,
-		pct,
+		passed*100/len(run.Batches),
 		len(run.Batches),
 		run.RunID,
 	)
 }
 
-// pointerTrace is the eval trace worth opening first: the first failing or
-// errored iteration's, else the first iteration's.
-func pointerTrace(run *agent.Run) string {
-	first := ""
+// pointerTrace is the eval trace worth opening first, with its scenario: the
+// first failing or errored iteration's, else the first iteration's.
+func pointerTrace(run *agent.Run) (scenario, trace string) {
 	for _, b := range run.Batches {
 		for _, it := range b.Iterations {
 			if it.EvalTraceID == "" {
 				continue
 			}
-			if first == "" {
-				first = it.EvalTraceID
+			if trace == "" {
+				scenario, trace = b.Scenario, it.EvalTraceID
 			}
 			if it.Status != agent.StatusPassed {
-				return it.EvalTraceID
+				return b.Scenario, it.EvalTraceID
 			}
 		}
 	}
-	return first
+	return scenario, trace
 }
 
 func verdictWord(status string) string {

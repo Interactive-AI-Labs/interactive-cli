@@ -174,8 +174,8 @@ func TestAgentReplayEndToEnd(t *testing.T) {
 	wantStderr := "agent-chat-dev  0.15.1  rev 592    " + agentServer.URL + "\n" +
 		"using AGENT_API_KEY from secret platform-dev\n" +
 		"1/1 scenarios finished\n" +
-		"scores: iai scores list --name replay.verdict --columns name,value,trace_id,comment" +
-		" · eval trace: iai traces get ev1\n"
+		"scores: iai scores list --name replay.verdict --columns name,trace_id,comment" +
+		" · eval trace (account-lock): iai traces get ev1\n"
 	if got := stderr.String(); got != wantStderr {
 		t.Errorf("stderr mismatch\ngot:\n%s\nwant:\n%s", got, wantStderr)
 	}

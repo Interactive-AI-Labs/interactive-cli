@@ -24,6 +24,11 @@ func TestValidateReplayInput(t *testing.T) {
 			mutate: func(in *ReplayInput) { in.Scenarios = []string{"a"} },
 		},
 		{
+			name:    "scenarios only gets the specific message",
+			mutate:  func(in *ReplayInput) { in.Dataset = ""; in.Scenarios = []string{"a"} },
+			wantErr: "--scenarios requires --dataset",
+		},
+		{
 			name:    "no mode",
 			mutate:  func(in *ReplayInput) { in.Dataset = "" },
 			wantErr: "one of --dataset, --file, or --run-id is required",

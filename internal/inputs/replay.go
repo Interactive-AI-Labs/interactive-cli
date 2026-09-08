@@ -22,11 +22,11 @@ type ReplayInput struct {
 // enforces. Pairwise exclusions are declared on the cobra command; this covers
 // what cobra cannot express.
 func ValidateReplayInput(in ReplayInput) error {
-	if in.Dataset == "" && in.File == "" && in.RunID == "" {
-		return fmt.Errorf("one of --dataset, --file, or --run-id is required")
-	}
 	if len(in.Scenarios) > 0 && in.Dataset == "" {
 		return fmt.Errorf("--scenarios requires --dataset")
+	}
+	if in.Dataset == "" && in.File == "" && in.RunID == "" {
+		return fmt.Errorf("one of --dataset, --file, or --run-id is required")
 	}
 	// The agent enforces the same ranges and returns 422 when they are exceeded;
 	// these copies exist for early feedback and must stay in sync with it.

@@ -98,6 +98,8 @@ type WaitOptions struct {
 	// that lost the run for good. Retry, but not forever.
 	NotFoundCap time.Duration
 	OnProgress  func(*Run)
+	// OnRetry fires once at the start of each transient-failure streak.
+	OnRetry func(error)
 }
 
 // Wait polls GET /replays/{run_id} until the run is no longer running.
@@ -124,6 +126,9 @@ func (c *Client) Wait(ctx context.Context, runID string, opts WaitOptions) (*Run
 		case isTransient(err):
 			if firstFailure.IsZero() {
 				firstFailure = time.Now()
+				if opts.OnRetry != nil {
+					opts.OnRetry(err)
+				}
 			}
 			if time.Since(firstFailure) >= opts.NotFoundCap {
 				return nil, fmt.Errorf(

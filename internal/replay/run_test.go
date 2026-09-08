@@ -18,13 +18,15 @@ import (
 
 type fakeDeploy struct {
 	fakeSecrets
-	agent *deployment.DescribeAgentResponse
-	err   error
+	agent         *deployment.DescribeAgentResponse
+	err           error
+	describeCalls int
 }
 
 func (f *fakeDeploy) DescribeAgent(
 	_ context.Context, _, _, _ string,
 ) (*deployment.DescribeAgentResponse, error) {
+	f.describeCalls++
 	return f.agent, f.err
 }
 
@@ -37,6 +39,7 @@ type fakeAgent struct {
 	waitRun         *agent.Run
 	waitErr         error
 	progress        []*agent.Run
+	retryErr        error
 }
 
 func (f *fakeAgent) StartReplay(
@@ -53,6 +56,9 @@ func (f *fakeAgent) Wait(
 	opts agent.WaitOptions,
 ) (*agent.Run, error) {
 	f.waitRunID = runID
+	if f.retryErr != nil {
+		opts.OnRetry(f.retryErr)
+	}
 	for _, r := range f.progress {
 		opts.OnProgress(r)
 	}
@@ -184,6 +190,42 @@ func TestRunJSONWritesRawOnly(t *testing.T) {
 	}
 	if !strings.Contains(h.stderr.String(), "0/1 scenarios finished\n") {
 		t.Errorf("progress missing from stderr: %q", h.stderr.String())
+	}
+	if !strings.Contains(h.stderr.String(), "eval trace (account-lock): iai traces get eval-1") {
+		t.Errorf("pointer missing from stderr in --json mode: %q", h.stderr.String())
+	}
+}
+
+func TestRunFileErrorBeforeAnyNetworkCall(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "list.yaml")
+	if err := os.WriteFile(path, []byte("- a\n- b\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	h := newHarness()
+	err := h.run(func(o *Options) {
+		o.Input = inputs.ReplayInput{File: path, Repeat: 1, Concurrency: 8}
+	})
+	if err == nil || !strings.Contains(err.Error(), "must be a YAML or JSON object") {
+		t.Fatalf("error = %v", err)
+	}
+	if h.deploy.describeCalls != 0 || len(h.deploy.fetched) != 0 {
+		t.Errorf("network calls before file validation: describe=%d secrets=%v",
+			h.deploy.describeCalls, h.deploy.fetched)
+	}
+	if h.stderr.Len() != 0 {
+		t.Errorf("stderr should be empty, got %q", h.stderr.String())
+	}
+}
+
+func TestRunPrintsRetryNote(t *testing.T) {
+	h := newHarness()
+	h.agent.retryErr = &agent.Error{Status: 404, Detail: "No such replay run: run-1"}
+	if err := h.run(nil); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	want := "agent returned 404: No such replay run: run-1; retrying for up to 5m0s\n"
+	if !strings.Contains(h.stderr.String(), want) {
+		t.Errorf("stderr = %q, want to contain %q", h.stderr.String(), want)
 	}
 }
 

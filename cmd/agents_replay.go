@@ -50,6 +50,11 @@ Iterations run in parallel on the agent, up to --concurrency across the whole
 run. A replay writes a synthetic customer, a session, and variable values to
 the target agent and spends router quota: prefer a non-production agent.
 
+Output expands every iteration of a scenario when it is the only one in the
+run or when it failed or errored; passed scenarios in a multi-scenario run
+are one row each. Progress and the pointer to the platform scores go to
+stderr, so stdout carries only the verdict (or the --json payload).
+
 The agent's API key is taken from --agent-api-key, then INTERACTIVE_AGENT_API_KEY,
 then resolved from the agent's own configuration by reading the project
 secret it mounts. That last step needs secret-read permission, so CI should
