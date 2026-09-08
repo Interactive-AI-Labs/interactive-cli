@@ -59,7 +59,7 @@ iai agents replay <agent_name> [flags]
       --dataset string          Dataset holding the scenarios (required unless --file or --run-id)
       --file string             Local scenario file (YAML or JSON), posted inline
   -h, --help                    help for replay
-      --json                    Print the final run payload exactly as the agent returned it
+      --json                    Print the final run payload exactly as the agent returned it; progress still goes to stderr
   -o, --organization string     Organization name
   -p, --project string          Project name
       --repeat int              Iterations per scenario (1-20) (default 1)

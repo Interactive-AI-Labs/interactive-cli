@@ -28,6 +28,8 @@ func ValidateReplayInput(in ReplayInput) error {
 	if len(in.Scenarios) > 0 && in.Dataset == "" {
 		return fmt.Errorf("--scenarios requires --dataset")
 	}
+	// The agent enforces the same ranges and returns 422 when they are exceeded;
+	// these copies exist for early feedback and must stay in sync with it.
 	if in.Repeat < 1 || in.Repeat > 20 {
 		return fmt.Errorf("--repeat must be between 1 and 20")
 	}

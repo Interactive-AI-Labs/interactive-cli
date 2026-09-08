@@ -148,7 +148,7 @@ func init() {
 		&replayJSON,
 		"json",
 		false,
-		"Print the final run payload exactly as the agent returned it",
+		"Print the final run payload exactly as the agent returned it; progress still goes to stderr",
 	)
 
 	agentReplayCmd.MarkFlagsMutuallyExclusive("dataset", "file", "run-id")

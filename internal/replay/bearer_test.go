@@ -115,6 +115,19 @@ func TestResolveBearer(t *testing.T) {
 		}
 	})
 
+	t.Run("raw key that is valid base64 is kept raw", func(t *testing.T) {
+		// "deadbeefcafe" decodes to non-printable bytes; it must reach the agent unchanged.
+		secrets := &fakeSecrets{
+			secrets: map[string]map[string]string{"s1": {"AGENT_API_KEY": "deadbeefcafe"}},
+		}
+		got, err := ResolveBearer(
+			context.Background(), secrets, "o", "p", describedAgent("s1"), "", "", &bytes.Buffer{},
+		)
+		if err != nil || got != "deadbeefcafe" {
+			t.Errorf("got %q err %v", got, err)
+		}
+	})
+
 	t.Run("raw value kept when not base64", func(t *testing.T) {
 		secrets := &fakeSecrets{
 			secrets: map[string]map[string]string{"s1": {"AGENT_API_KEY": "not base64!"}},

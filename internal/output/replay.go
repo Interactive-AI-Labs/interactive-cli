@@ -87,7 +87,7 @@ func PrintReplayRun(out, errOut io.Writer, run *agent.Run) error {
 }
 
 func printReplaySummary(w io.Writer, run *agent.Run) {
-	parts := []string{}
+	var parts []string
 	if run.Dataset != "" {
 		parts = append(parts, "dataset "+run.Dataset)
 		parts = append(
