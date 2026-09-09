@@ -1,5 +1,6 @@
-// Package agent is the HTTP client for the replay API served by an agent
-// itself, as opposed to the platform or deployment APIs.
+// Package agent is the HTTP client for the replay API. The routes are the agent's
+// own (/replays, /replays/{run_id}), served either by the platform under an agent's
+// path or, with --agent-url, by the agent itself.
 package agent
 
 import (
@@ -16,16 +17,19 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/buildinfo"
 )
 
+// Auth applies the credentials for whichever replay endpoint the client was built for.
+type Auth func(*http.Request) error
+
 type Client struct {
 	baseURL string
-	bearer  string
+	auth    Auth
 	http    *http.Client
 }
 
-func NewClient(baseURL, bearer string, timeout time.Duration) *Client {
+func NewClient(baseURL string, auth Auth, timeout time.Duration) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		bearer:  bearer,
+		auth:    auth,
 		http:    &http.Client{Timeout: timeout},
 	}
 }
@@ -163,20 +167,22 @@ func (c *Client) do(ctx context.Context, method, path string, body io.Reader) ([
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("User-Agent", buildinfo.UserAgent)
-	req.Header.Set("Authorization", "Bearer "+c.bearer)
+	if err := c.auth(req); err != nil {
+		return nil, err
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("agent request failed: %w", err)
+		return nil, fmt.Errorf("replay request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read agent response: %w", err)
+		return nil, fmt.Errorf("failed to read the replay response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, decodeError(resp.StatusCode, raw)

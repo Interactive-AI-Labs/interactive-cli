@@ -16,7 +16,10 @@ func newTestClient(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	return NewClient(server.URL, "test-bearer", 5*time.Second)
+	return NewClient(server.URL, func(req *http.Request) error {
+		req.Header.Set("Authorization", "Bearer test-bearer")
+		return nil
+	}, 5*time.Second)
 }
 
 func waitOpts(onProgress func(*Run)) WaitOptions {
