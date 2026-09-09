@@ -112,6 +112,7 @@ func TestMcpPath(t *testing.T) {
 
 func TestMcpCreateRequestJSON(t *testing.T) {
 	credential, endpoint := "token", "https://example.com/mcp"
+	header, prefix := "X-Token", "Token "
 	tests := []struct {
 		name    string
 		request McpCreateRequest
@@ -127,6 +128,21 @@ func TestMcpCreateRequestJSON(t *testing.T) {
 			want: `{"name":"demo","backend":"external",` +
 				`"endpoint_url":"https://example.com/mcp","transport":"streamable_http",` +
 				`"auth":{"type":"bearer","credential":"token"}}`,
+		},
+		{
+			name: "custom auth is explicit and carries its header routing",
+			request: McpCreateRequest{
+				Name: "demo", Backend: McpBackendExternal,
+				Transport: "streamable_http", EndpointURL: &endpoint,
+				Auth: McpAuth{
+					Type: "custom", Credential: &credential,
+					HeaderName: &header, HeaderPrefix: &prefix,
+				},
+			},
+			want: `{"name":"demo","backend":"external",` +
+				`"endpoint_url":"https://example.com/mcp","transport":"streamable_http",` +
+				`"auth":{"type":"custom","credential":"token",` +
+				`"header_name":"X-Token","header_prefix":"Token "}}`,
 		},
 	}
 	for _, tt := range tests {

@@ -129,17 +129,14 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-The mcp is verified against the live server before it's kept: an internal mcp
-is verified automatically once ready; an external mcp (custom or catalog) is verified immediately,
-and the create fails if the server is unreachable. Verification lists the
-server's tools, so it only catches a bad credential on providers that require
-auth to list them — some serve tool discovery anonymously.
-An --auth-type oauth mcp is the exception: there is no credential until the
-user signs in, so it is created unverified and reports no tools until then.`,
+An internal mcp is verified automatically once ready. Verify an external mcp
+with 'iai mcps verify <mcp_name>' after creation. An --auth-type oauth mcp has
+no credential until the user signs in; run 'iai mcps connect <mcp_name>' first.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
+  iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
@@ -233,6 +230,9 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		}
 
 		authType := mcpAuthTypeOr(backend, mcpAuthType, cred, mcpAuthHeader, mcpAuthHeaderPfx)
+		if err := validateMcpCreateAuth(cmd, authType); err != nil {
+			return err
+		}
 		auth := platform.McpAuth{
 			Type:         authType,
 			HeaderName:   utils.NilIfZero(mcpAuthHeader),
@@ -281,8 +281,10 @@ func mcpAuthTypeOr(
 	if explicit != "" {
 		return explicit
 	}
-	if backend == platform.McpBackendExternal &&
-		(credential != "" || headerName != "" || headerPrefix != "") {
+	if headerName != "" || headerPrefix != "" {
+		return "custom"
+	}
+	if backend == platform.McpBackendExternal && credential != "" {
 		return "bearer"
 	}
 	return "none"
@@ -316,6 +318,7 @@ require --auth-type.`,
   iai mcps update my-tool --clear-stack-id
   iai mcps update my-tool --credential-stdin < token.txt
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
+  iai mcps update acme --auth-type custom --credential "$NEW_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
   iai mcps update acme --description "notes for the team"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -368,6 +371,9 @@ require --auth-type.`,
 			return err
 		}
 		if err := validateMcpBackendFlags(cmd, current.Backend); err != nil {
+			return err
+		}
+		if err := validateMcpUpdateAuth(cmd, current.Backend); err != nil {
 			return err
 		}
 
@@ -646,6 +652,22 @@ func validateMcpBackendFlags(cmd *cobra.Command, backend platform.McpBackend) er
 	return nil
 }
 
+func validateMcpCreateAuth(cmd *cobra.Command, authType string) error {
+	hasHeader := cmd.Flags().Changed("auth-header")
+	hasPrefix := cmd.Flags().Changed("auth-header-prefix")
+	headerName, err := cmd.Flags().GetString("auth-header")
+	if err != nil {
+		return err
+	}
+	if authType == "custom" && (!hasHeader || headerName == "") {
+		return fmt.Errorf("--auth-type custom requires --auth-header")
+	}
+	if authType != "custom" && (hasHeader || hasPrefix) {
+		return fmt.Errorf("--auth-header and --auth-header-prefix require --auth-type custom")
+	}
+	return nil
+}
+
 func validateMcpUpdateFlags(cmd *cobra.Command) error {
 	nameChanged := cmd.Flags().Changed("image-name")
 	tagChanged := cmd.Flags().Changed("image-tag")
@@ -653,6 +675,22 @@ func validateMcpUpdateFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("--image-name and --image-tag must be passed together")
 	}
 	return nil
+}
+
+func validateMcpUpdateAuth(cmd *cobra.Command, backend platform.McpBackend) error {
+	if backend == platform.McpBackendInternal {
+		return nil
+	}
+	for _, name := range []string{"credential", "credential-stdin", "auth-header", "auth-header-prefix"} {
+		if cmd.Flags().Changed(name) && !cmd.Flags().Changed("auth-type") {
+			return fmt.Errorf("--%s requires --auth-type", name)
+		}
+	}
+	authType, err := cmd.Flags().GetString("auth-type")
+	if err != nil {
+		return err
+	}
+	return validateMcpCreateAuth(cmd, authType)
 }
 
 var mcpDisconnectCmd = &cobra.Command{
@@ -873,13 +911,13 @@ func init() {
 		c.Flags().
 			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)")
 		c.Flags().
-			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create`)
+			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth"; inferred on create`)
 		c.Flags().
-			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
+			StringVar(&mcpCredential, "credential", "", "Credential required by the mcp server")
 		c.Flags().
 			BoolVar(&mcpCredentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
 		c.Flags().
-			StringVar(&mcpAuthHeader, "auth-header", "", "Header used to send the credential")
+			StringVar(&mcpAuthHeader, "auth-header", "", "Custom header used to send the credential")
 		c.Flags().
 			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", "Credential value prefix")
 		c.Flags().

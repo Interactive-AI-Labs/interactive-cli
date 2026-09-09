@@ -134,6 +134,112 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 	}
 }
 
+func TestValidateMcpCreateAuth(t *testing.T) {
+	tests := []struct {
+		name    string
+		auth    string
+		header  string
+		prefix  string
+		wantErr string
+	}{
+		{name: "custom header", auth: "custom", header: "X-Token"},
+		{
+			name: "custom requires header", auth: "custom",
+			wantErr: "--auth-type custom requires --auth-header",
+		},
+		{
+			name: "custom rejects prefix without header", auth: "custom", prefix: "Token ",
+			wantErr: "--auth-type custom requires --auth-header",
+		},
+		{
+			name: "bearer rejects header", auth: "bearer", header: "X-Token",
+			wantErr: "--auth-header and --auth-header-prefix require --auth-type custom",
+		},
+		{
+			name: "bearer rejects prefix", auth: "bearer", prefix: "Token ",
+			wantErr: "--auth-header and --auth-header-prefix require --auth-type custom",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := &cobra.Command{Use: "create"}
+			cmd.Flags().String("auth-header", "", "")
+			cmd.Flags().String("auth-header-prefix", "", "")
+			for name, value := range map[string]string{
+				"auth-header": tt.header, "auth-header-prefix": tt.prefix,
+			} {
+				if value != "" {
+					if err := cmd.Flags().Set(name, value); err != nil {
+						t.Fatalf("set --%s: %v", name, err)
+					}
+				}
+			}
+			err := validateMcpCreateAuth(cmd, tt.auth)
+			if tt.wantErr == "" && err != nil {
+				t.Fatalf("validateMcpCreateAuth() error = %v", err)
+			}
+			if tt.wantErr != "" && (err == nil || err.Error() != tt.wantErr) {
+				t.Fatalf("validateMcpCreateAuth() error = %v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateMcpUpdateAuth(t *testing.T) {
+	tests := []struct {
+		name    string
+		backend platform.McpBackend
+		flags   []string
+		wantErr string
+	}{
+		{name: "internal credential only", backend: platform.McpBackendInternal, flags: []string{"credential=x"}},
+		{name: "internal custom type only", backend: platform.McpBackendInternal, flags: []string{"auth-type=custom"}},
+		{
+			name: "external credential requires auth type", backend: platform.McpBackendExternal,
+			flags: []string{"credential=x"}, wantErr: "--credential requires --auth-type",
+		},
+		{
+			name: "external custom requires header", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=custom"}, wantErr: "--auth-type custom requires --auth-header",
+		},
+		{
+			name: "external custom rejects empty header", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=custom", "auth-header="}, wantErr: "--auth-type custom requires --auth-header",
+		},
+		{
+			name: "external bearer rejects header", backend: platform.McpBackendExternal,
+			flags:   []string{"auth-type=bearer", "auth-header=X-Token"},
+			wantErr: "--auth-header and --auth-header-prefix require --auth-type custom",
+		},
+		{
+			name: "external custom header", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=custom", "auth-header=X-Token"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := &cobra.Command{Use: "update"}
+			for _, name := range []string{"auth-type", "credential", "auth-header", "auth-header-prefix"} {
+				cmd.Flags().String(name, "", "")
+			}
+			cmd.Flags().Bool("credential-stdin", false, "")
+			for _, flag := range tt.flags {
+				name, value, _ := strings.Cut(flag, "=")
+				if err := cmd.Flags().Set(name, value); err != nil {
+					t.Fatalf("set --%s: %v", name, err)
+				}
+			}
+			err := validateMcpUpdateAuth(cmd, tt.backend)
+			if tt.wantErr == "" && err != nil {
+				t.Fatalf("validateMcpUpdateAuth() error = %v", err)
+			}
+			if tt.wantErr != "" && (err == nil || err.Error() != tt.wantErr) {
+				t.Fatalf("validateMcpUpdateAuth() error = %v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidateMcpUpdateFlags(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -206,6 +312,36 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 			}
 			if tt.wantErr != "" && (err == nil || err.Error() != tt.wantErr) {
 				t.Fatalf("validateMcpUpdateFlags() error = %v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestMcpAuthTypeOr(t *testing.T) {
+	tests := []struct {
+		name       string
+		backend    platform.McpBackend
+		explicit   string
+		credential string
+		header     string
+		prefix     string
+		want       string
+	}{
+		{name: "explicit wins", backend: platform.McpBackendExternal, explicit: "api_key", want: "api_key"},
+		{name: "custom header", backend: platform.McpBackendExternal, header: "X-Token", want: "custom"},
+		{name: "internal custom header", backend: platform.McpBackendInternal, header: "X-Token", want: "custom"},
+		{name: "prefix also means custom", backend: platform.McpBackendExternal, prefix: "Token ", want: "custom"},
+		{
+			name: "external credential defaults to bearer", backend: platform.McpBackendExternal,
+			credential: "secret", want: "bearer",
+		},
+		{name: "no auth fields defaults to none", backend: platform.McpBackendExternal, want: "none"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := mcpAuthTypeOr(tt.backend, tt.explicit, tt.credential, tt.header, tt.prefix)
+			if got != tt.want {
+				t.Errorf("mcpAuthTypeOr() = %q, want %q", got, tt.want)
 			}
 		})
 	}
