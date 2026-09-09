@@ -187,15 +187,14 @@ func (c *DeploymentClient) sendJSONRequest(
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if msg := clients.ExtractServerMessage(respBody); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
+			return nil, fmt.Errorf("%s", c.namedHost(resp.StatusCode, msg))
 		}
 		return nil, fmt.Errorf("request failed with status %s", resp.Status)
 	}
 	return respBody, nil
 }
 
-// sendJSONInto issues a request with an optional JSON body and decodes the
-// response into dst. A nil body sends no payload (for bodyless POSTs).
+// sendJSONInto issues a request with optional JSON body and decodes into dst.
 func (c *DeploymentClient) sendJSONInto(
 	ctx context.Context,
 	method, path string,
@@ -354,12 +353,10 @@ func (c *DeploymentClient) CreateService(
 	return serverMessage, nil
 }
 
-// UpdatePatch is a partial-update body for PATCH calls. Fields omitted from
-// the map are kept by the server; a JSON `null` value clears a nullable field.
+// UpdatePatch is a partial-update body; omitted fields are kept, `null` clears.
 type UpdatePatch map[string]json.RawMessage
 
-// PutService PUTs the full service spec; the server resets every field that
-// isn't present in the body to its zero/default. Used by stack sync.
+// PutService PUTs the full service spec; the server resets omitted fields.
 func (c *DeploymentClient) PutService(
 	ctx context.Context,
 	orgId,
@@ -370,8 +367,7 @@ func (c *DeploymentClient) PutService(
 	return c.sendServiceUpdate(ctx, http.MethodPut, orgId, projectId, serviceName, body)
 }
 
-// PatchService PATCHes a partial update; only fields present in the patch are
-// applied. Used by `iai services update`.
+// PatchService PATCHes a partial update; only present fields are applied.
 func (c *DeploymentClient) PatchService(
 	ctx context.Context,
 	orgId,
@@ -1275,9 +1271,7 @@ func (c *DeploymentClient) fetchLogs(
 	}, nil
 }
 
-// ---------------------------------------------------------------------------
 // Agents
-// ---------------------------------------------------------------------------
 
 type RevisionActor struct {
 	Type        string `json:"type"`
@@ -1397,9 +1391,7 @@ type refValidationError struct {
 	Message           string  `json:"message"`
 }
 
-// fmtAgentValErr parses a 422 response from the deployment-operator
-// and returns a human-readable error message. The detail field contains either
-// a JSON array (structural/Pydantic errors) or a JSON object (reference errors).
+// fmtAgentValErr parses a 422 response into a human-readable error message.
 func fmtAgentValErr(body []byte) string {
 	var envelope agentValidationEnvelope
 	if err := json.Unmarshal(body, &envelope); err != nil || len(envelope.Detail) == 0 {
@@ -1541,8 +1533,7 @@ func (c *DeploymentClient) CreateAgent(
 	return serverMessage, nil
 }
 
-// PutAgent PUTs the full agent spec; the server resets every field that isn't
-// present in the body. Used by stack sync.
+// PutAgent PUTs the full agent spec; the server resets omitted fields.
 func (c *DeploymentClient) PutAgent(
 	ctx context.Context,
 	orgId,
@@ -1553,8 +1544,7 @@ func (c *DeploymentClient) PutAgent(
 	return c.sendAgentUpdate(ctx, http.MethodPut, orgId, projectId, agentName, body)
 }
 
-// PatchAgent PATCHes a partial update; only fields present in the patch are
-// applied. Used by `iai agents update`.
+// PatchAgent PATCHes a partial update; only present fields are applied.
 func (c *DeploymentClient) PatchAgent(
 	ctx context.Context,
 	orgId,
@@ -2080,6 +2070,14 @@ func (c *DeploymentClient) DescribeServiceRevision(
 	return &result, nil
 }
 
+// namedHost identifies which configured host rejected authentication.
+func (c *DeploymentClient) namedHost(status int, msg string) string {
+	if status != http.StatusUnauthorized && status != http.StatusForbidden {
+		return msg
+	}
+	return fmt.Sprintf("%s (from %s)", msg, c.hostname)
+}
+
 func (c *DeploymentClient) fetchRevisions(
 	ctx context.Context,
 	path, label string,
@@ -2102,7 +2100,7 @@ func (c *DeploymentClient) fetchRevisions(
 		}
 		msg := clients.ExtractServerMessage(respBody)
 		if msg != "" {
-			return nil, fmt.Errorf("%s", msg)
+			return nil, fmt.Errorf("%s", c.namedHost(resp.StatusCode, msg))
 		}
 		return nil, fmt.Errorf("%s request failed with status %s", label, resp.Status)
 	}
@@ -2115,9 +2113,7 @@ func (c *DeploymentClient) fetchRevisions(
 	return result.Revisions, nil
 }
 
-// ---------------------------------------------------------------------------
 // Databases
-// ---------------------------------------------------------------------------
 
 type databasesResponse struct {
 	Databases []DatabaseOutput `json:"databases"`

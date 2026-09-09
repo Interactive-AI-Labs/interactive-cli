@@ -4,23 +4,25 @@ Create an mcp in a project
 
 ### Synopsis
 
-Create an mcp — an in-cluster MCP server ("internal"), a custom external
-URL, or a catalog-backed provider.
+Create an mcp — a hosted MCP server ("internal"), a custom external URL,
+or a catalog-backed provider.
 
-Internal: --image-name, --image-tag, --port; --env and --secret load env vars
-from literal values or existing secrets. --path is the endpoint path the mcp's
-own server exposes (default "/mcp" — set to whatever the mcp owner actually
-configured, don't assume).
+Internal: --image-name and --image-tag identify the image. --port, --path,
+--memory, and --cpu configure how it runs.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
-derived from the catalog entry. Pass an auth type the entry supports; catalog
-entries provide their own credential header and prefix.
+derived from the catalog entry, which provides its own credential header and
+prefix. The entry decides the auth type — omit --auth-type unless it accepts
+more than one, in which case the error names the options.
 
 The mcp is verified against the live server before it's kept: an internal mcp
-is verified once its status is healthy (checked in the background — see 'iai
-mcps describe'); an external mcp (custom or catalog) is verified immediately,
-and the create fails if the server is unreachable or rejects the credential.
+is verified automatically once ready; an external mcp (custom or catalog) is verified immediately,
+and the create fails if the server is unreachable. Verification lists the
+server's tools, so it only catches a bad credential on providers that require
+auth to list them — some serve tool discovery anonymously.
+An --auth-type oauth mcp is the exception: there is no credential until the
+user signs in, so it is created unverified and reports no tools until then.
 
 ```
 iai mcps create <mcp_name> [flags]
@@ -34,31 +36,29 @@ iai mcps create <mcp_name> [flags]
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
+  iai mcps create notion --catalog-id notion
+  iai mcps create newrelic --catalog-id newrelic --auth-type oauth
 ```
 
 ### Options
 
 ```
-      --auth-header string          Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)
-      --auth-header-prefix string   Credential value prefix — only valid with --auth-type custom
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")
+      --auth-header string          Header used to send the credential
+      --auth-header-prefix string   Credential value prefix
+      --auth-type string            How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
-      --cpu string                  CPU request/limit, e.g. 250m (required for internal)
+      --cpu string                  CPU request/limit, e.g. 250m (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
-      --env stringArray             Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)
+      --description string          Human-readable description of the mcp
       --external-url string         External MCP server URL — not platform-owned, dialed directly (custom external mcp)
-      --header stringArray          Extra non-secret request header (NAME=VALUE); can be repeated
   -h, --help                        help for create
       --image-name string           Container image name (internal)
-      --image-repository string     Image repository (required for external images)
       --image-tag string            Container image tag (internal)
-      --image-type string           Image source: "internal" or "external" (internal) (default "internal")
-      --memory string               Memory request/limit, e.g. 512M (required for internal)
-      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume
+      --memory string               Memory request/limit, e.g. 512M (internal)
+      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
       --port int                    Port the mcp server listens on (internal)
-      --secret stringArray          Existing secret to load as env vars; can be repeated (internal)
-      --stack-id string             Stack ID to assign the mcp to
+      --stack-id string             Stack ID to assign the mcp to (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```
 

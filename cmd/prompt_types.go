@@ -12,8 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ConfigFlagBuilder assembles the payload's "config" field from flag values.
-// Returns nil if no config flags were set.
+// ConfigFlagBuilder assembles the payload's "config" field; nil if no flags set.
 type ConfigFlagBuilder func() map[string]any
 
 type PromptTypeConfig struct {
@@ -25,8 +24,7 @@ type PromptTypeConfig struct {
 	RouteSegment string   // API URL segment for type-specific routes, e.g. "routines"
 	HasSchema    bool     // whether this type supports the schema subcommand
 	GroupID      string   // command group shown in iai --help; defaults to groupContext
-	// BindPromptConfigFlags registers type-specific flags on create/update
-	// and returns a builder for the payload's config field.
+	// BindPromptConfigFlags registers type-specific flags and returns a config builder.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
 	CreateLong            string // long description for the create subcommand
 	ListLong              string // long description for the list subcommand
@@ -262,7 +260,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return output.PrintStructuredYAML(out, result)
 			}
 
-			return output.PrintPromptList(out, result.Prompts)
+			return output.PrintPromptList(out, ptCfg.Plural, result.Prompts)
 		},
 	}
 
@@ -391,8 +389,7 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		fmt.Fprintln(out)
 		fmt.Fprintf(out, "Updating %s %q...\n", ptCfg.TypeName, name)
 
-		// CreatePrompt is intentional: the API creates a new version when the
-		// prompt name already exists, so create and update use the same endpoint.
+		// CreatePrompt is intentional: the API creates a new version when the name exists.
 		result, err := apiClient.CreatePrompt(
 			cmd.Context(),
 			pCtx.projectId,
