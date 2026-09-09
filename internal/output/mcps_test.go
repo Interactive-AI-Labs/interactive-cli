@@ -336,6 +336,30 @@ func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
 	}
 }
 
+func TestPrintMcpDetailShowsCustomAuthRouting(t *testing.T) {
+	mcp := platform.McpSchema{
+		Name:             "acme",
+		Backend:          "external",
+		AuthType:         utils.ToPtr("custom"),
+		AuthHeaderName:   utils.ToPtr("X-Token"),
+		AuthHeaderPrefix: utils.ToPtr("Token "),
+	}
+	var buf bytes.Buffer
+	if err := PrintMcpDetail(&buf, &mcp); err != nil {
+		t.Fatalf("PrintMcpDetail() error = %v", err)
+	}
+	got := strings.Join(strings.Fields(buf.String()), " ")
+	for _, want := range []string{
+		"Auth Type: custom",
+		"Auth Header: X-Token",
+		`Auth Header Prefix: "Token "`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("output %q does not contain %q", got, want)
+		}
+	}
+}
+
 func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 	tests := []struct {
 		name    string

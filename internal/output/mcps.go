@@ -118,6 +118,12 @@ func PrintMcpDetail(out io.Writer, m *platform.McpSchema) error {
 	if m.AuthType != nil {
 		fmt.Fprintf(w, "Auth Type:\t%s\n", *m.AuthType)
 	}
+	if m.AuthHeaderName != nil {
+		fmt.Fprintf(w, "Auth Header:\t%s\n", *m.AuthHeaderName)
+	}
+	if m.AuthHeaderPrefix != nil {
+		fmt.Fprintf(w, "Auth Header Prefix:\t%q\n", *m.AuthHeaderPrefix)
+	}
 	if m.CatalogID != nil {
 		fmt.Fprintf(w, "Catalog ID:\t%s\n", *m.CatalogID)
 	}
