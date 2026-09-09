@@ -1,33 +1,29 @@
-## iai mcps delete
+## iai mcps disconnect
 
-Delete an mcp
+Forget an mcp's stored provider credential
 
 ### Synopsis
 
-Remove the mcp, its stored credential, and cached tools. The command is
-rejected while agents are attached. -f only skips the confirmation prompt.
+Remove the provider credential this mcp holds, so it can no longer be used
+until someone signs in again.
 
-Detach it from any attached agent first with 'iai agents update <agent> --detach-mcp <mcp_name>'.
-
-If you signed in to this mcp, the access you approved stays granted with the
-provider. Revoke it in your account there if you want it withdrawn.
+Every agent using this mcp loses access, for everyone in the project. The mcp
+itself is kept — use 'iai mcps delete' to remove that.
 
 ```
-iai mcps delete <mcp_name> [flags]
+iai mcps disconnect <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai mcps delete my-tool
-  iai mcps delete my-tool -f
+  iai mcps disconnect notion-demo
 ```
 
 ### Options
 
 ```
-  -f, --force   Skip confirmation prompt
-  -h, --help    help for delete
+  -h, --help   help for disconnect
 ```
 
 ### Options inherited from parent commands

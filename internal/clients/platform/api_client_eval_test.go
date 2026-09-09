@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -39,6 +40,39 @@ func newListTestServer(
 		}
 		_, _ = io.WriteString(w, body)
 	}))
+}
+
+func TestDoAndReadIncludesStatusOnBodyError(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		want   string
+	}{
+		{"success response", http.StatusCreated, "HTTP 201"},
+		{"error response", http.StatusFailedDependency, "HTTP 424"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					w.Header().Set("Content-Length", "10")
+					w.WriteHeader(tt.status)
+					_, _ = io.WriteString(w, "short")
+				}),
+			)
+			defer server.Close()
+
+			client := newEvalTestClient(t, server.URL)
+			req, err := client.newRequest(context.Background(), http.MethodGet, "/")
+			if err != nil {
+				t.Fatalf("newRequest() error = %v", err)
+			}
+			_, err = client.doAndRead(req, "test")
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("doAndRead() error = %v, want status %q", err, tt.want)
+			}
+		})
+	}
 }
 
 func TestAPIClientListAnnotationQueues(t *testing.T) {

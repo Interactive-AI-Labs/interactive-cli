@@ -5,14 +5,12 @@ Update an mcp's spec
 ### Synopsis
 
 Partial update — only the fields whose flags you pass are changed; everything
-else keeps its current value. port/path/image/memory/cpu/env/secret only apply
-to internal mcps. Use --clear-env, --clear-secret, or --clear-headers to remove
-those entirely. Use --clear-stack-id to remove the mcp from its stack. The type (internal/external) and, for external mcps, the
-endpoint/catalog cannot change — delete and recreate instead.
+else keeps its current value. The type (internal/external) and, for external
+mcps, the endpoint/catalog cannot change — delete and recreate instead.
 
-Changing --credential, or switching --auth-type to "none", rotates the mcp's
-Secret and restarts the mcp (if internal) and every agent currently attached
-to it. Auth routing cannot change while agents are attached — detach them first.
+Internal workload flags can be updated independently, except --image-name and
+--image-tag, which must be passed together. Changing authentication restarts an
+internal mcp and every attached agent. Detach agents before changing auth.
 
 ```
 iai mcps update <mcp_name> [flags]
@@ -21,38 +19,29 @@ iai mcps update <mcp_name> [flags]
 ### Examples
 
 ```
-  iai mcps update my-tool --image-tag v2
+  iai mcps update my-tool --image-name my-mcp --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
-  iai mcps update acme --credential "$NEW_TOKEN"
-  iai mcps update my-tool --clear-headers
-  iai mcps update my-tool --stack-id my-stack
+  iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
+  iai mcps update acme --description "notes for the team"
 ```
 
 ### Options
 
 ```
-      --auth-header string          Header the credential is sent in — only valid with --auth-type custom (bearer/api_key/none each imply their own)
-      --auth-header-prefix string   Credential value prefix — only valid with --auth-type custom
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", or "none" (inferred: "custom" if --auth-header/--auth-header-prefix is set, else "bearer" if --credential is set, else "none")
-      --clear-env                   Remove all environment variables from the mcp
-      --clear-headers               Remove all extra request headers from the mcp
-      --clear-secret                Remove all secret references from the mcp
-      --clear-stack-id              Remove the mcp from its stack
-      --cpu string                  CPU request/limit, e.g. 250m (required for internal)
+      --auth-header string          Header used to send the credential
+      --auth-header-prefix string   Credential value prefix
+      --auth-type string            How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)
+      --cpu string                  CPU request/limit, e.g. 250m (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
-      --env stringArray             Environment variable (NAME=VALUE) for the mcp server; can be repeated (internal)
-      --header stringArray          Extra non-secret request header (NAME=VALUE); can be repeated
+      --description string          Human-readable description of the mcp
   -h, --help                        help for update
       --image-name string           Container image name (internal)
-      --image-repository string     Image repository (required for external images)
       --image-tag string            Container image tag (internal)
-      --image-type string           Image source: "internal" or "external" (internal) (default "internal")
-      --memory string               Memory request/limit, e.g. 512M (required for internal)
-      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp") — set to whatever the mcp owner actually configured, don't assume
+      --memory string               Memory request/limit, e.g. 512M (internal)
+      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
       --port int                    Port the mcp server listens on (internal)
-      --secret stringArray          Existing secret to load as env vars; can be repeated (internal)
-      --stack-id string             Stack ID to assign the mcp to
+      --stack-id string             Stack ID to assign the mcp to (internal)
 ```
 
 ### Options inherited from parent commands

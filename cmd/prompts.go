@@ -201,7 +201,7 @@ Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 				return output.PrintStructuredYAML(out, result)
 			}
 
-			return output.PrintPromptList(out, result.Prompts)
+			return output.PrintPromptList(out, "prompts", result.Prompts)
 		},
 	}
 
@@ -338,8 +338,7 @@ Exactly one of --file or --content must be specified.`,
 			fmt.Fprintln(out)
 			fmt.Fprintf(out, "Updating prompt %q...\n", name)
 
-			// CreatePrompt is intentional: the API creates a new version when the
-			// prompt name already exists, so create and update use the same endpoint.
+			// CreatePrompt is intentional: the API creates a new version when the name exists.
 			result, err := apiClient.CreatePrompt(
 				cmd.Context(),
 				pCtx.projectId,
@@ -464,8 +463,7 @@ specific label. Use -f to skip the confirmation prompt.`,
 	return cmd
 }
 
-// resolveContent returns the prompt content from either the --file flag or the
-// --content flag. Exactly one must be provided.
+// resolveContent returns content from --file or --content; exactly one must be set.
 func resolveContent(file, content string) (string, error) {
 	if file == "" && content == "" {
 		return "", fmt.Errorf("either --file or --content must be provided")

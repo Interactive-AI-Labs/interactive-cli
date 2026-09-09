@@ -13,8 +13,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
-// doAndRead executes a request and returns the raw response body.
-// It handles status-code checking and server-message extraction.
+// doAndRead executes a request, checks status, and returns the raw body.
 func (c *APIClient) doAndRead(req *http.Request, action string) ([]byte, error) {
 	resp, err := c.do(req)
 	if err != nil {
@@ -24,7 +23,7 @@ func (c *APIClient) doAndRead(req *http.Request, action string) ([]byte, error) 
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, fmt.Errorf("failed to read response (HTTP %d): %w", resp.StatusCode, err)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -131,7 +130,13 @@ func doCreate[T any](
 	reqBody any,
 	action string,
 ) (T, json.RawMessage, error) {
-	req, err := c.newJSONRequest(ctx, http.MethodPost, path, reqBody)
+	var req *http.Request
+	var err error
+	if reqBody == nil {
+		req, err = c.newRequest(ctx, http.MethodPost, path)
+	} else {
+		req, err = c.newJSONRequest(ctx, http.MethodPost, path, reqBody)
+	}
 	if err != nil {
 		var zero T
 		return zero, nil, fmt.Errorf("failed to create request: %w", err)
@@ -152,8 +157,7 @@ func doCreate[T any](
 	return data, json.RawMessage(body), nil
 }
 
-// checkSuccess verifies the success field in a response body and extracts
-// the message. Returns the message on success, or an error if success=false.
+// checkSuccess verifies the success field and extracts the server message.
 func checkSuccess(body []byte, action string) (string, error) {
 	var envelope struct {
 		Success bool `json:"success"`
@@ -228,9 +232,7 @@ func evalBasePath(orgID, projectID string) string {
 	)
 }
 
-// ---------------------------------------------------------------------------
 // Datasets
-// ---------------------------------------------------------------------------
 
 type DatasetInfo struct {
 	ID          string          `json:"id"`
@@ -302,9 +304,7 @@ func (c *APIClient) CreateDataset(
 	return &data.Dataset, raw, nil
 }
 
-// ---------------------------------------------------------------------------
 // Dataset Items
-// ---------------------------------------------------------------------------
 
 type DatasetItemInfo struct {
 	ID                  string          `json:"id"`
@@ -400,9 +400,7 @@ func (c *APIClient) DeleteDatasetItem(
 	return c.doDelete(ctx, path, "delete dataset item")
 }
 
-// ---------------------------------------------------------------------------
 // Dataset Runs
-// ---------------------------------------------------------------------------
 
 type DatasetRunInfo struct {
 	ID          string          `json:"id"`
@@ -468,9 +466,7 @@ func (c *APIClient) DeleteDatasetRun(
 	return c.doDelete(ctx, path, "delete dataset run")
 }
 
-// ---------------------------------------------------------------------------
 // Dataset Run Items
-// ---------------------------------------------------------------------------
 
 type DatasetRunItemInfo struct {
 	ID             string          `json:"id"`
@@ -542,9 +538,7 @@ func (c *APIClient) CreateDatasetRunItem(
 	return &data.RunItem, raw, nil
 }
 
-// ---------------------------------------------------------------------------
 // Annotation Queues
-// ---------------------------------------------------------------------------
 
 type AnnotationQueueInfo struct {
 	ID                  string   `json:"id"`
@@ -698,9 +692,7 @@ func (c *APIClient) UnassignQueue(
 	return "User unassigned from queue successfully.", nil
 }
 
-// ---------------------------------------------------------------------------
 // Queue Items
-// ---------------------------------------------------------------------------
 
 type QueueItemInfo struct {
 	ID          string          `json:"id"`
@@ -811,9 +803,7 @@ func (c *APIClient) DeleteQueueItem(
 	return c.doDelete(ctx, path, "delete queue item")
 }
 
-// ---------------------------------------------------------------------------
 // Comments
-// ---------------------------------------------------------------------------
 
 type CommentInfo struct {
 	ID           string          `json:"id"`
@@ -892,9 +882,7 @@ func (c *APIClient) CreateComment(
 	return &data.Comment, raw, nil
 }
 
-// ---------------------------------------------------------------------------
 // Score Configs
-// ---------------------------------------------------------------------------
 
 type ScoreConfigInfo struct {
 	ID          string          `json:"id"`
