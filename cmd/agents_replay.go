@@ -29,41 +29,20 @@ var (
 var agentReplayCmd = &cobra.Command{
 	Use:   "replay <agent_name>",
 	Short: "Replay recorded scenarios against an agent and report the verdict",
-	Long: `Replay recorded scenarios against a deployed agent and report the verdict.
+	Long: `Test a deployed agent by replaying recorded scenarios and report the verdict.
 
-A scenario is a recorded conversation stored as a dataset item: customer
-messages, context variables, the tool results the agent saw, and optionally
-what the run must satisfy. Replaying re-runs those inputs with live reasoning,
-answers tool calls from the recorded fixtures, then checks the expectations
-and writes PASS/FAIL scores to the platform.
+A scenario is a dataset item: a recorded conversation's customer messages,
+context and tool results, plus what the run must satisfy. The platform re-runs
+it against the agent with live reasoning, answers tool calls from the recorded
+fixtures, checks the expectations and writes PASS/FAIL scores. Replay a whole
+dataset (--dataset, optionally narrowed with --scenarios), a local scenario
+file (--file), or re-attach to a run in flight (--run-id).
 
-The platform runs the replay against the agent and streams its progress back
-over one connection, so an agent without an endpoint replays like any other
-and the agent's own key is never needed here. Any agent on version 0.15.0 or
-later can be replayed; there is nothing to enable. Three modes:
-
-  --dataset D            replay every scenario in the dataset, or only the
-                         names given with --scenarios
-  --file PATH            replay a local scenario file (YAML or JSON) inline
-  --run-id ID            re-attach to a run already started on the agent
-
-Iterations run in parallel on the agent, up to --concurrency across the whole
-run. A replay writes a synthetic customer, a session, and variable values to
-the target agent and uses your project's quota: prefer a non-production agent.
-
-Output expands every iteration of a scenario when it is the only one in the
-run or when it failed or errored; passed scenarios in a multi-scenario run
-are one row each. Progress and the pointer to the platform scores go to
-stderr, so stdout carries only the verdict (or the --json payload).
-
-Replaying needs permission to run agents in the project; your login is what
-authorizes it. The agent's own API key is only needed with --agent-url, which
-talks straight to the given address: pass --agent-api-key or set
-INTERACTIVE_AGENT_API_KEY for that.
-
-Exit code is 0 when the run finished with a verdict, passed or failed, and 1
-when the replay could not run. The verdict itself is in the output; gate on
-it in CI with --json and jq -e '.status == "passed"'.`,
+A replay writes a synthetic customer and session to the agent and uses your
+project's quota: prefer a non-production agent. Progress goes to stderr and
+only the verdict to stdout. Exit code is 0 for any verdict, 1 when the replay
+could not run; gate in CI with --json and jq -e '.status == "passed"'.
+--agent-api-key is only needed with --agent-url.`,
 	Example: `  iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock
   iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock --scenarios bonus-misrouted --repeat 3
   iai agents replay agent-chat-dev --dataset replay-chat --repeat 3 --concurrency 16
