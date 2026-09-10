@@ -64,7 +64,10 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	if err != nil {
 		return fmt.Errorf("failed to describe agent %q: %w", opts.AgentName, err)
 	}
-	output.PrintReplayTarget(deps.Stderr, opts.AgentName, described.Version, described.Revision)
+	fmt.Fprintf(
+		deps.Stderr, "%s  %s  rev %d\n",
+		opts.AgentName, described.Version, described.Revision,
+	)
 
 	runID := opts.Input.RunID
 	if runID == "" {

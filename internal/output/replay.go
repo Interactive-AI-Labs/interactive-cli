@@ -11,12 +11,6 @@ import (
 
 const maxSkippedShown = 5
 
-// PrintReplayTarget names the agent a replay is about to hit, before anything
-// is sent, so a wrong target is visible.
-func PrintReplayTarget(w io.Writer, name, version string, revision int) {
-	fmt.Fprintf(w, "%s  %s  rev %d\n", name, version, revision)
-}
-
 // PrintReplaySkipped lists dataset items the agent will not replay. The agent
 // reports the whole dataset even for a subset, so with requested names only
 // those are shown; a long list collapses to a count.
@@ -88,7 +82,7 @@ func replayProgressFrame(run *deployment.ReplayRun, finished int) string {
 	rows := make([][]string, 0, len(run.Batches))
 	for _, b := range run.Batches {
 		rows = append(rows, []string{
-			verdictWord(b.Status), b.Scenario, fmt.Sprintf("%d/%d", b.Passed, b.Repeat),
+			strings.ToUpper(b.Status), b.Scenario, fmt.Sprintf("%d/%d", b.Passed, b.Repeat),
 		})
 	}
 	var frame strings.Builder
@@ -133,7 +127,7 @@ func PrintReplayRun(out io.Writer, run *deployment.ReplayRun, requested []string
 		rows := make([][]string, 0, len(run.Batches))
 		for _, b := range run.Batches {
 			rows = append(rows, []string{
-				verdictWord(b.Status), b.Scenario, fmt.Sprintf("%d/%d", b.Passed, b.Repeat),
+				strings.ToUpper(b.Status), b.Scenario, fmt.Sprintf("%d/%d", b.Passed, b.Repeat),
 			})
 		}
 		if err := PrintTable(out, nil, rows); err != nil {
@@ -205,7 +199,13 @@ func printBatchExpanded(out io.Writer, b deployment.ReplayBatch) error {
 		return w.Flush()
 	}
 	for i, it := range b.Iterations {
-		fmt.Fprintf(out, "--- run %d/%d  %s ---\n", i+1, len(b.Iterations), verdictWord(it.Status))
+		fmt.Fprintf(
+			out,
+			"--- run %d/%d  %s ---\n",
+			i+1,
+			len(b.Iterations),
+			strings.ToUpper(it.Status),
+		)
 		w := NewDescribeWriter(out)
 		printIteration(w, it)
 		if err := w.Flush(); err != nil {
@@ -297,18 +297,6 @@ func pointerTrace(run *deployment.ReplayRun) (scenario, trace string) {
 		}
 	}
 	return scenario, trace
-}
-
-func verdictWord(status string) string {
-	switch status {
-	case deployment.ReplayStatusPassed:
-		return "PASSED"
-	case deployment.ReplayStatusFailed:
-		return "FAILED"
-	case deployment.ReplayStatusError:
-		return "ERROR"
-	}
-	return strings.ToUpper(status)
 }
 
 func verdictShort(status string) string {
