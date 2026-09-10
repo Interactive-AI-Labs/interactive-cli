@@ -182,12 +182,10 @@ func printIteration(w io.Writer, it deployment.ReplayIteration) {
 	line("Policies", strings.Join(it.Observed.Policies, ", "))
 	if it.Judge != nil {
 		line("Judge", it.Judge.Score)
-		// Continuation rows: an empty label cell keeps every line of the
-		// reasoning in the value column, and the block's alignment.
-		for _, l := range strings.Split(it.Judge.Reasoning, "\n") {
-			if l != "" {
-				fmt.Fprintf(w, "  \t%s\n", l)
-			}
+		if it.Judge.Reasoning != "" {
+			// The tab in the prefix keeps each line a value cell, so the
+			// reasoning stays in the value column and the block stays aligned.
+			fmt.Fprintln(w, indentLines(it.Judge.Reasoning, "  \t"))
 		}
 	}
 	line("Session", it.SessionKey)

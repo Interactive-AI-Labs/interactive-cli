@@ -164,6 +164,41 @@ FAIL   1/2 passed     run r1
 `,
 		},
 		{
+			name: "judge reasoning keeps every line under the value column",
+			run: &deployment.ReplayRun{
+				RunID:    "r5",
+				Scenario: "account-lock",
+				Status:   deployment.ReplayStatusFailed,
+				Repeat:   1,
+				Batches: []deployment.ReplayBatch{{
+					Scenario: "account-lock", Status: deployment.ReplayStatusFailed, Repeat: 1,
+					Iterations: []deployment.ReplayIteration{{
+						Status: deployment.ReplayStatusFailed, Turns: 2, EvalTraceID: "9b1e",
+						Judge: &deployment.ReplayJudge{
+							Score: "FAIL",
+							Reasoning: "The rubric requires a greeting and an offer of help.\n\n" +
+								"The reply offers help but never greets the customer.\n" +
+								"So the greeting requirement is unmet.",
+						},
+					}},
+				}},
+			},
+			want: `scenario account-lock · repeat 1
+
+account-lock
+--- run 1/1  FAILED ---
+  Turns:        2
+  Judge:        FAIL
+                The rubric requires a greeting and an offer of help.
+                
+                The reply offers help but never greets the customer.
+                So the greeting requirement is unmet.
+  Eval Trace:   9b1e
+
+FAIL   0/1 passed     run r5
+`,
+		},
+		{
 			name: "multi scenario expands failed and errored, pads to longest name",
 			run: &deployment.ReplayRun{
 				RunID:       "r9",
