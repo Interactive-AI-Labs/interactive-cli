@@ -52,8 +52,8 @@ func TestPrintReplaySkipped(t *testing.T) {
 	}
 }
 
-var (
-	passedIt = deployment.ReplayIteration{
+func TestPrintReplayRun(t *testing.T) {
+	passedIt := deployment.ReplayIteration{
 		Status: deployment.ReplayStatusPassed, Turns: 4, SessionKey: "account-lock@r1-1-1",
 		TraceIDs: []string{"7c31", "0aa1"}, EvalTraceID: "9b1e",
 		Observed: deployment.ReplayObserved{
@@ -65,19 +65,17 @@ var (
 		},
 		Judge: &deployment.ReplayJudge{Score: "PASS", Reasoning: "Greets by name."},
 	}
-	failedIt = deployment.ReplayIteration{
+	failedIt := deployment.ReplayIteration{
 		Status: deployment.ReplayStatusFailed, Turns: 3, EvalTraceID: "fail-eval",
 		Observed: deployment.ReplayObserved{Steps: []string{"verify_identity"}},
 		Diverged: []string{"tools:create_jira_ticket"},
 		Failures: []string{"steps.reached: 'confirm_identity' not observed"},
 	}
-	errorIt = deployment.ReplayIteration{
+	errorIt := deployment.ReplayIteration{
 		Status: deployment.ReplayStatusError,
 		Error:  "JudgeError: the evaluator returned no verdict",
 	}
-)
 
-func TestPrintReplayRun(t *testing.T) {
 	tests := []struct {
 		name      string
 		run       *deployment.ReplayRun
@@ -360,15 +358,22 @@ func TestPrintReplayPointer(t *testing.T) {
 		{
 			name: "single passed iteration",
 			run: &deployment.ReplayRun{Batches: []deployment.ReplayBatch{{
-				Scenario: "account-lock", Iterations: []deployment.ReplayIteration{passedIt},
+				Scenario: "account-lock",
+				Iterations: []deployment.ReplayIteration{
+					{Status: deployment.ReplayStatusPassed, EvalTraceID: "9b1e"},
+				},
 			}}},
 			want: prefix + "(account-lock): iai traces get 9b1e\n",
 		},
 		{
 			name: "first failing iteration wins and names its scenario",
 			run: &deployment.ReplayRun{Batches: []deployment.ReplayBatch{
-				{Scenario: "account-lock", Iterations: []deployment.ReplayIteration{passedIt}},
-				{Scenario: "bonus-misrouted", Iterations: []deployment.ReplayIteration{failedIt}},
+				{Scenario: "account-lock", Iterations: []deployment.ReplayIteration{
+					{Status: deployment.ReplayStatusPassed, EvalTraceID: "9b1e"},
+				}},
+				{Scenario: "bonus-misrouted", Iterations: []deployment.ReplayIteration{
+					{Status: deployment.ReplayStatusFailed, EvalTraceID: "fail-eval"},
+				}},
 			}},
 			want: prefix + "(bonus-misrouted): iai traces get fail-eval\n",
 		},
@@ -376,7 +381,9 @@ func TestPrintReplayPointer(t *testing.T) {
 			name: "no eval traces prints nothing",
 			run: &deployment.ReplayRun{
 				Batches: []deployment.ReplayBatch{
-					{Scenario: "x", Iterations: []deployment.ReplayIteration{errorIt}},
+					{Scenario: "x", Iterations: []deployment.ReplayIteration{
+						{Status: deployment.ReplayStatusError},
+					}},
 				},
 			},
 			want: "",
