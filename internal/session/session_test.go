@@ -37,28 +37,48 @@ func TestResolveOrganization(t *testing.T) {
 		name        string
 		cfgOrg      string
 		flagOrg     string
+		envOrg      string
 		selectedOrg string
 		want        string
 		wantErr     bool
 	}{
 		{
-			name:        "flag org takes precedence over cfg and selected",
+			name:        "flag org takes precedence over cfg, env and selected",
 			cfgOrg:      "cfg-org",
 			flagOrg:     "flag-org",
+			envOrg:      "env-org",
 			selectedOrg: "selected-org",
 			want:        "flag-org",
 			wantErr:     false,
 		},
 		{
-			name:        "cfg org takes precedence over selected",
+			name:        "cfg org takes precedence over env and selected",
 			cfgOrg:      "cfg-org",
 			flagOrg:     "",
+			envOrg:      "env-org",
 			selectedOrg: "selected-org",
 			want:        "cfg-org",
 			wantErr:     false,
 		},
 		{
-			name:        "selected org when no flag or cfg",
+			name:        "env org takes precedence over selected",
+			envOrg:      "env-org",
+			selectedOrg: "selected-org",
+			want:        "env-org",
+		},
+		{
+			name:   "env org works without a saved selection and is trimmed",
+			envOrg: "  env-org\t",
+			want:   "env-org",
+		},
+		{
+			name:        "whitespace env org falls back to selected",
+			envOrg:      " \t\n",
+			selectedOrg: "selected-org",
+			want:        "selected-org",
+		},
+		{
+			name:        "selected org when no flag, cfg or env",
 			cfgOrg:      "",
 			flagOrg:     "",
 			selectedOrg: "selected-org",
@@ -93,6 +113,7 @@ func TestResolveOrganization(t *testing.T) {
 			name:        "whitespace-only values are treated as empty",
 			cfgOrg:      "   ",
 			flagOrg:     "  ",
+			envOrg:      "  ",
 			selectedOrg: "",
 			want:        "",
 			wantErr:     true,
@@ -101,12 +122,9 @@ func TestResolveOrganization(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			cfgDir := ".test-session-" + t.Name()
-			home := os.Getenv("HOME")
-			testHome := filepath.Join(tmpDir, "home")
-			os.Setenv("HOME", testHome)
-			defer os.Setenv("HOME", home)
+			t.Setenv("HOME", t.TempDir())
+			t.Setenv("INTERACTIVE_ORGANIZATION", tt.envOrg)
+			cfgDir := ".test-session"
 
 			if tt.selectedOrg != "" {
 				if err := files.SelectOrg(cfgDir, tt.selectedOrg); err != nil {
@@ -117,6 +135,12 @@ func TestResolveOrganization(t *testing.T) {
 			s := NewSession(cfgDir)
 			got, err := s.ResolveOrganization(tt.cfgOrg, tt.flagOrg)
 
+			if tt.selectedOrg == "" {
+				_, statErr := os.Stat(filepath.Join(os.Getenv("HOME"), cfgDir, "config.yaml"))
+				if !os.IsNotExist(statErr) {
+					t.Fatal("resolving organization must not create a saved selection")
+				}
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ResolveOrganization() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -141,28 +165,48 @@ func TestResolveProject(t *testing.T) {
 		name            string
 		cfgProject      string
 		flagProject     string
+		envProject      string
 		selectedProject string
 		want            string
 		wantErr         bool
 	}{
 		{
-			name:            "flag project takes precedence over cfg and selected",
+			name:            "flag project takes precedence over cfg, env and selected",
 			cfgProject:      "cfg-proj",
 			flagProject:     "flag-proj",
+			envProject:      "env-proj",
 			selectedProject: "selected-proj",
 			want:            "flag-proj",
 			wantErr:         false,
 		},
 		{
-			name:            "cfg project takes precedence over selected",
+			name:            "cfg project takes precedence over env and selected",
 			cfgProject:      "cfg-proj",
 			flagProject:     "",
+			envProject:      "env-proj",
 			selectedProject: "selected-proj",
 			want:            "cfg-proj",
 			wantErr:         false,
 		},
 		{
-			name:            "selected project when no flag or cfg",
+			name:            "env project takes precedence over selected",
+			envProject:      "env-proj",
+			selectedProject: "selected-proj",
+			want:            "env-proj",
+		},
+		{
+			name:       "env project works without a saved selection and is trimmed",
+			envProject: "  env-proj\t",
+			want:       "env-proj",
+		},
+		{
+			name:            "whitespace env project falls back to selected",
+			envProject:      " \t\n",
+			selectedProject: "selected-proj",
+			want:            "selected-proj",
+		},
+		{
+			name:            "selected project when no flag, cfg or env",
 			cfgProject:      "",
 			flagProject:     "",
 			selectedProject: "selected-proj",
@@ -197,6 +241,7 @@ func TestResolveProject(t *testing.T) {
 			name:            "whitespace-only values are treated as empty",
 			cfgProject:      "   ",
 			flagProject:     "  ",
+			envProject:      "  ",
 			selectedProject: "",
 			want:            "",
 			wantErr:         true,
@@ -205,12 +250,9 @@ func TestResolveProject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			cfgDir := ".test-session-" + t.Name()
-			home := os.Getenv("HOME")
-			testHome := filepath.Join(tmpDir, "home")
-			os.Setenv("HOME", testHome)
-			defer os.Setenv("HOME", home)
+			t.Setenv("HOME", t.TempDir())
+			t.Setenv("INTERACTIVE_PROJECT", tt.envProject)
+			cfgDir := ".test-session"
 
 			if tt.selectedProject != "" {
 				if err := files.SelectProject(cfgDir, tt.selectedProject); err != nil {
@@ -221,6 +263,12 @@ func TestResolveProject(t *testing.T) {
 			s := NewSession(cfgDir)
 			got, err := s.ResolveProject(tt.cfgProject, tt.flagProject)
 
+			if tt.selectedProject == "" {
+				_, statErr := os.Stat(filepath.Join(os.Getenv("HOME"), cfgDir, "config.yaml"))
+				if !os.IsNotExist(statErr) {
+					t.Fatal("resolving project must not create a saved selection")
+				}
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ResolveProject() error = %v, wantErr %v", err, tt.wantErr)
 				return

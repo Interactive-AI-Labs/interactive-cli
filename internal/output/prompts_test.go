@@ -13,18 +13,28 @@ func TestPrintPromptList(t *testing.T) {
 
 	tests := []struct {
 		name    string
+		noun    string
 		prompts []platform.PromptInfo
 		want    string
 	}{
 		{
 			name:    "empty list prints message",
+			noun:    "prompts",
 			prompts: []platform.PromptInfo{},
 			want:    "No prompts found.\n",
 		},
 		{
 			name:    "nil list prints message",
+			noun:    "prompts",
 			prompts: nil,
 			want:    "No prompts found.\n",
+		},
+		{
+			// prompt-type commands share this renderer, so a hardcoded noun mislabels them.
+			name:    "empty list names what was listed",
+			noun:    "routines",
+			prompts: nil,
+			want:    "No routines found.\n",
 		},
 		{
 			name: "single prompt",
@@ -99,7 +109,7 @@ func TestPrintPromptList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := PrintPromptList(&buf, tt.prompts)
+			err := PrintPromptList(&buf, tt.noun, tt.prompts)
 			if err != nil {
 				t.Fatalf("PrintPromptList() error = %v", err)
 			}
@@ -344,9 +354,7 @@ func TestPrintPromptDetail(t *testing.T) {
 				"Do the thing.\n",
 		},
 		{
-			// Existing typed prompts (routines, macros, etc.) often have an
-			// empty config object. The renderer must NOT print a Config
-			// block in that case — pre-PR behavior must be preserved.
+			// Typed prompts often have an empty config; the renderer must not print Config.
 			name: "empty config object is not rendered",
 			prompt: &platform.PromptDetail{
 				Name:    "no-config-prompt",

@@ -109,6 +109,23 @@ iai projects list
 
 (Depending on the CLI version, some commands may require you to have selected an organization or to be logged in first.)
 
+### Organization and project context
+
+For scripts and concurrent commands, set context without changing the saved selection:
+
+```bash
+INTERACTIVE_ORGANIZATION=my-org INTERACTIVE_PROJECT=my-project iai images list
+```
+
+Organization and project names resolve independently in this order:
+
+1. Explicit `--organization` / `--project` flags.
+2. Values in an explicitly supplied configuration file (for example, `--cfg-file`).
+3. `INTERACTIVE_ORGANIZATION` / `INTERACTIVE_PROJECT` environment variables.
+4. Saved selection from `iai organizations select` / `iai projects select`.
+
+Values are trimmed; empty or whitespace-only values fall through to the next source. Environment variables do not write configuration files. Authentication is separate: `INTERACTIVE_TOKEN` and `INTERACTIVE_API_KEY` retain their existing behavior.
+
 ---
 
 ## 6. Updating the CLI

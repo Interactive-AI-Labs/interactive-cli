@@ -1,33 +1,35 @@
-## iai mcps delete
+## iai mcps connect
 
-Delete an mcp
+Sign in to an mcp that authenticates with your account
 
 ### Synopsis
 
-Remove the mcp, its stored credential, and cached tools. The command is
-rejected while agents are attached. -f only skips the confirmation prompt.
+Open a browser and approve access, so the mcp can be used.
 
-Detach it from any attached agent first with 'iai agents update <agent> --detach-mcp <mcp_name>'.
+Your access token is kept and renewed for you, so this is normally needed once.
+Run it again if access is revoked at the provider, or to approve different
+permissions.
 
-If you signed in to this mcp, the access you approved stays granted with the
-provider. Revoke it in your account there if you want it withdrawn.
+The account you sign in with is shared — every agent using this mcp acts as you,
+for everyone in the project. The provider's audit log shows your name, and the
+connection stops working if your access does.
 
 ```
-iai mcps delete <mcp_name> [flags]
+iai mcps connect <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai mcps delete my-tool
-  iai mcps delete my-tool -f
+  iai mcps connect notion-demo
+  iai mcps connect notion-demo --no-browser
 ```
 
 ### Options
 
 ```
-  -f, --force   Skip confirmation prompt
-  -h, --help    help for delete
+  -h, --help         help for connect
+      --no-browser   Print the sign-in URL instead of opening it
 ```
 
 ### Options inherited from parent commands

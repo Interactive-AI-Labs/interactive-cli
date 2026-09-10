@@ -15,9 +15,9 @@ import (
 
 const colorBlue = "\033[1;34m"
 
-func PrintPromptList(out io.Writer, prompts []platform.PromptInfo) error {
+func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) error {
 	if len(prompts) == 0 {
-		fmt.Fprintln(out, "No prompts found.")
+		fmt.Fprintf(out, "No %s found.\n", noun)
 		return nil
 	}
 
@@ -40,9 +40,7 @@ func PrintPromptList(out io.Writer, prompts []platform.PromptInfo) error {
 	return PrintTable(out, headers, rows)
 }
 
-// colorizeFolder wraps name in blue ANSI escape codes when color is enabled.
-// The codes are bracketed with '\xff' so tabwriter excludes them from column
-// width calculations (see PrintTable).
+// colorizeFolder wraps name in blue ANSI codes ('\xff') when color is enabled.
 func colorizeFolder(name string, useColor bool) string {
 	if !useColor {
 		return name
