@@ -10,61 +10,95 @@ import (
 )
 
 func TestLoadScenarioFile(t *testing.T) {
-	dir := t.TempDir()
-	write := func(name, content string) string {
-		path := filepath.Join(dir, name)
-		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		return path
+	tests := []struct {
+		name           string
+		filename       string
+		content        string
+		want           map[string]any
+		wantErr        bool
+		errContains    string
+		useNonexistent bool
+	}{
+		{
+			name:     "yaml defaults the scenario name to the file name",
+			filename: "account-lock.yaml",
+			content: `customer_id: replay-1
+context_variables:
+  open_tickets: []
+  meta: {}
+messages:
+  - hi
+`,
+			want: map[string]any{
+				"scenario":    "account-lock",
+				"customer_id": "replay-1",
+				"context_variables": map[string]any{
+					"open_tickets": []any{},
+					"meta":         map[string]any{},
+				},
+				"messages": []any{"hi"},
+			},
+		},
+		{
+			name:     "json keeps an explicit scenario name",
+			filename: "x.json",
+			content:  `{"scenario":"named","customer_id":"replay-2","messages":["a"]}`,
+			want: map[string]any{
+				"scenario":    "named",
+				"customer_id": "replay-2",
+				"messages":    []any{"a"},
+			},
+		},
+		{
+			name:        "a document that is not an object",
+			filename:    "list.yaml",
+			content:     "- a\n- b\n",
+			wantErr:     true,
+			errContains: "must be a YAML or JSON object",
+		},
+		{
+			name:        "unparseable document",
+			filename:    "bad.yaml",
+			content:     "messages: [unclosed\n",
+			wantErr:     true,
+			errContains: "failed to parse scenario file",
+		},
+		{
+			name:           "missing file",
+			useNonexistent: true,
+			wantErr:        true,
+			errContains:    "failed to read scenario file",
+		},
 	}
 
-	t.Run("yaml with containers", func(t *testing.T) {
-		path := write(
-			"account-lock.yaml",
-			"customer_id: replay-1\ncontext_variables:\n  open_tickets: []\n  meta: {}\nmessages:\n  - hi\n",
-		)
-		got, err := LoadScenarioFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want := map[string]any{
-			"scenario":    "account-lock",
-			"customer_id": "replay-1",
-			"context_variables": map[string]any{
-				"open_tickets": []any{},
-				"meta":         map[string]any{},
-			},
-			"messages": []any{"hi"},
-		}
-		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf("mismatch:\n%s", diff)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := "/nonexistent/scenario.yaml"
+			if !tt.useNonexistent {
+				path = filepath.Join(t.TempDir(), tt.filename)
+				if err := os.WriteFile(path, []byte(tt.content), 0o600); err != nil {
+					t.Fatalf("failed to write test file: %v", err)
+				}
+			}
 
-	t.Run("json keeps explicit scenario", func(t *testing.T) {
-		path := write("x.json", `{"scenario":"named","customer_id":"replay-2","messages":["a"]}`)
-		got, err := LoadScenarioFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got["scenario"] != "named" {
-			t.Errorf("scenario = %v", got["scenario"])
-		}
-	})
+			got, err := LoadScenarioFile(path)
 
-	t.Run("not an object", func(t *testing.T) {
-		path := write("list.yaml", "- a\n- b\n")
-		_, err := LoadScenarioFile(path)
-		if err == nil || !strings.Contains(err.Error(), "must be a YAML or JSON object") {
-			t.Errorf("error = %v", err)
-		}
-	})
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("LoadScenarioFile() expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("error should contain %q, got: %v", tt.errContains, err)
+				}
+				return
+			}
 
-	t.Run("missing file", func(t *testing.T) {
-		_, err := LoadScenarioFile(filepath.Join(dir, "nope.yaml"))
-		if err == nil || !strings.Contains(err.Error(), "failed to read scenario file") {
-			t.Errorf("error = %v", err)
-		}
-	})
+			if err != nil {
+				t.Fatalf("LoadScenarioFile() unexpected error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("LoadScenarioFile() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
