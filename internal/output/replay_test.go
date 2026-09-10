@@ -2,7 +2,6 @@ package output
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
@@ -76,23 +75,6 @@ var (
 		Status: deployment.ReplayStatusError,
 		Error:  "JudgeError: the evaluator returned no verdict",
 	}
-	passedBlock = "--- run 1/1  PASSED ---\n" +
-		"  turns          4\n" +
-		"  tools called   crm:lookup_customer\n" +
-		"  tools denied   billing:issue_refund\n" +
-		"  steps          verify_identity, confirm_identity\n" +
-		"  routines       Account Access\n" +
-		"  policies       authenticated-greeting\n" +
-		"  judge          PASS\n" +
-		"    Greets by name.\n" +
-		"  session        account-lock@r1-1-1\n" +
-		"  eval trace     9b1e        turn-1 trace 7c31\n"
-	failedBlock = "--- run 1/1  FAILED ---\n" +
-		"  turns          3\n" +
-		"  steps          verify_identity\n" +
-		"  eval trace     fail-eval\n" +
-		"  DIVERGED       recorded but not replayed: tools:create_jira_ticket\n" +
-		"  FAIL           steps.reached: 'confirm_identity' not observed\n"
 )
 
 func TestPrintReplayRun(t *testing.T) {
@@ -119,12 +101,24 @@ func TestPrintReplayRun(t *testing.T) {
 					},
 				},
 			},
-			want: "scenario account-lock   repeat 1\n" +
-				"\n" +
-				"account-lock\n" +
-				passedBlock +
-				"\n" +
-				"PASS   1/1 passed     run r1\n",
+			want: `scenario account-lock · repeat 1
+
+account-lock
+--- run 1/1  PASSED ---
+  Turns:          4
+  Tools Called:   crm:lookup_customer
+  Tools Denied:   billing:issue_refund
+  Steps:          verify_identity, confirm_identity
+  Routines:       Account Access
+  Policies:       authenticated-greeting
+  Judge:          PASS
+                  Greets by name.
+  Session:        account-lock@r1-1-1
+  Eval Trace:     9b1e
+  Turn-1 Trace:   7c31
+
+PASS   1/1 passed     run r1
+`,
 		},
 		{
 			name: "single scenario fail with repeat",
@@ -144,13 +138,30 @@ func TestPrintReplayRun(t *testing.T) {
 					},
 				},
 			},
-			want: "dataset replay-chat   1 scenario   repeat 2   concurrency 8\n" +
-				"\n" +
-				"account-lock\n" +
-				strings.Replace(passedBlock, "run 1/1", "run 1/2", 1) +
-				strings.Replace(failedBlock, "run 1/1", "run 2/2", 1) +
-				"\n" +
-				"FAIL   1/2 passed     run r1\n",
+			want: `dataset replay-chat · 1 scenario · repeat 2 · concurrency 8
+
+account-lock
+--- run 1/2  PASSED ---
+  Turns:          4
+  Tools Called:   crm:lookup_customer
+  Tools Denied:   billing:issue_refund
+  Steps:          verify_identity, confirm_identity
+  Routines:       Account Access
+  Policies:       authenticated-greeting
+  Judge:          PASS
+                  Greets by name.
+  Session:        account-lock@r1-1-1
+  Eval Trace:     9b1e
+  Turn-1 Trace:   7c31
+--- run 2/2  FAILED ---
+  Turns:        3
+  Steps:        verify_identity
+  Eval Trace:   fail-eval
+  Diverged:     recorded but not replayed: tools:create_jira_ticket
+  Failure:      steps.reached: 'confirm_identity' not observed
+
+FAIL   1/2 passed     run r1
+`,
 		},
 		{
 			name: "multi scenario expands failed and errored, pads to longest name",
@@ -181,16 +192,26 @@ func TestPrintReplayRun(t *testing.T) {
 					},
 				},
 			},
-			want: "dataset replay-chat   3 scenarios   repeat 1   concurrency 16   skipped 2\n" +
-				"\n" +
-				"PASSED  account-lock    1/1\n" +
-				"FAILED  bonus-misrouted 0/1\n" +
-				failedBlock +
-				"ERROR   bet-id          0/1\n" +
-				"--- run 1/1  ERROR ---\n" +
-				"  ERROR          JudgeError: the evaluator returned no verdict\n" +
-				"\n" +
-				"ERROR  33% of 3 scenarios passed     run r9\n",
+			want: `dataset replay-chat · 3 scenarios · repeat 1 · concurrency 16 · skipped 2
+
+PASSED   account-lock      1/1
+FAILED   bonus-misrouted   0/1
+ERROR    bet-id            0/1
+
+bonus-misrouted
+--- run 1/1  FAILED ---
+  Turns:        3
+  Steps:        verify_identity
+  Eval Trace:   fail-eval
+  Diverged:     recorded but not replayed: tools:create_jira_ticket
+  Failure:      steps.reached: 'confirm_identity' not observed
+
+bet-id
+--- run 1/1  ERROR ---
+  Error:   JudgeError: the evaluator returned no verdict
+
+ERROR  33% of 3 scenarios passed     run r9
+`,
 		},
 		{
 			name: "skipped count filtered to requested scenarios",
@@ -211,12 +232,24 @@ func TestPrintReplayRun(t *testing.T) {
 				},
 			},
 			requested: []string{"account-lock"},
-			want: "dataset replay-email   1 scenario   repeat 1\n" +
-				"\n" +
-				"account-lock\n" +
-				passedBlock +
-				"\n" +
-				"PASS   1/1 passed     run r1\n",
+			want: `dataset replay-email · 1 scenario · repeat 1
+
+account-lock
+--- run 1/1  PASSED ---
+  Turns:          4
+  Tools Called:   crm:lookup_customer
+  Tools Denied:   billing:issue_refund
+  Steps:          verify_identity, confirm_identity
+  Routines:       Account Access
+  Policies:       authenticated-greeting
+  Judge:          PASS
+                  Greets by name.
+  Session:        account-lock@r1-1-1
+  Eval Trace:     9b1e
+  Turn-1 Trace:   7c31
+
+PASS   1/1 passed     run r1
+`,
 		},
 		{
 			name: "batch level error without iterations",
@@ -227,12 +260,13 @@ func TestPrintReplayRun(t *testing.T) {
 					Error: "unknown context variable",
 				}},
 			},
-			want: "scenario x   repeat 1\n" +
-				"\n" +
-				"x\n" +
-				"  ERROR          unknown context variable\n" +
-				"\n" +
-				"ERROR  0/1 passed     run r2\n",
+			want: `scenario x · repeat 1
+
+x
+  Error:   unknown context variable
+
+ERROR  0/1 passed     run r2
+`,
 		},
 		{
 			name: "run level error with no scenarios",
@@ -244,11 +278,12 @@ func TestPrintReplayRun(t *testing.T) {
 				Concurrency: 8,
 				Error:       "scenario 'inline-bad-customer' is invalid — customer_id: must start with 'replay-'",
 			},
-			want: "scenario inline-bad-customer   repeat 1   concurrency 8\n" +
-				"\n" +
-				"  ERROR          scenario 'inline-bad-customer' is invalid — customer_id: must start with 'replay-'\n" +
-				"\n" +
-				"ERROR  run 873c\n",
+			want: `scenario inline-bad-customer · repeat 1 · concurrency 8
+
+  Error:   scenario 'inline-bad-customer' is invalid — customer_id: must start with 'replay-'
+
+ERROR  run 873c
+`,
 		},
 		{
 			name: "run level error with no text",
@@ -258,11 +293,12 @@ func TestPrintReplayRun(t *testing.T) {
 				Status:  deployment.ReplayStatusError,
 				Repeat:  1,
 			},
-			want: "dataset replay-chat   repeat 1\n" +
-				"\n" +
-				"  ERROR          the run produced no scenarios\n" +
-				"\n" +
-				"ERROR  run r4\n",
+			want: `dataset replay-chat · repeat 1
+
+  Error:   the run produced no scenarios
+
+ERROR  run r4
+`,
 		},
 	}
 	for _, tt := range tests {

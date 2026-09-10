@@ -67,34 +67,40 @@ func PrintReplayRun(out io.Writer, run *deployment.ReplayRun, requested []string
 	fmt.Fprintln(out)
 
 	if len(run.Batches) == 0 {
-		fmt.Fprintf(
-			out,
-			"  ERROR          %s\n",
-			cmp.Or(run.Error, "the run produced no scenarios"),
-		)
+		w := NewDescribeWriter(out)
+		fmt.Fprintf(w, "  Error:\t%s\n", cmp.Or(run.Error, "the run produced no scenarios"))
+		if err := w.Flush(); err != nil {
+			return err
+		}
 		fmt.Fprintln(out)
-		fmt.Fprintf(out, "%-6s run %s\n", verdictShort(run.Status), run.RunID)
+		printReplayVerdict(out, run)
 		return nil
 	}
 
 	single := len(run.Batches) == 1
-	width := nameWidth(run.Batches)
-	for _, b := range run.Batches {
-		if single {
-			fmt.Fprintln(out, b.Scenario)
-		} else {
-			fmt.Fprintf(
-				out,
-				"%-7s %-*s %d/%d\n",
-				verdictWord(b.Status),
-				width,
-				b.Scenario,
-				b.Passed,
-				b.Repeat,
-			)
+	if !single {
+		rows := make([][]string, 0, len(run.Batches))
+		for _, b := range run.Batches {
+			rows = append(rows, []string{
+				verdictWord(b.Status), b.Scenario, fmt.Sprintf("%d/%d", b.Passed, b.Repeat),
+			})
 		}
-		if single || b.Status != deployment.ReplayStatusPassed {
-			printBatchExpanded(out, b)
+		if err := PrintTable(out, nil, rows); err != nil {
+			return err
+		}
+	}
+
+	for _, b := range run.Batches {
+		if !single && b.Status == deployment.ReplayStatusPassed {
+			continue
+		}
+		// The summary already left a blank line; the table needs one per group.
+		if !single {
+			fmt.Fprintln(out)
+		}
+		fmt.Fprintln(out, b.Scenario)
+		if err := printBatchExpanded(out, b); err != nil {
+			return err
 		}
 	}
 
@@ -136,70 +142,74 @@ func printReplaySummary(w io.Writer, run *deployment.ReplayRun, requested []stri
 	if n := len(filterSkipped(run.Skipped, requested)); n > 0 {
 		parts = append(parts, fmt.Sprintf("skipped %d", n))
 	}
-	fmt.Fprintln(w, strings.Join(parts, "   "))
+	fmt.Fprintln(w, joinHeader(parts...))
 }
 
-func nameWidth(batches []deployment.ReplayBatch) int {
-	width := 0
-	for _, b := range batches {
-		if len(b.Scenario) > width {
-			width = len(b.Scenario)
-		}
-	}
-	return width
-}
-
-func printBatchExpanded(w io.Writer, b deployment.ReplayBatch) {
+// printBatchExpanded gives each iteration its own describe writer, so one
+// iteration's long label cannot pad another's.
+func printBatchExpanded(out io.Writer, b deployment.ReplayBatch) error {
 	if b.Error != "" {
-		fmt.Fprintf(w, "  ERROR          %s\n", b.Error)
-		return
+		w := NewDescribeWriter(out)
+		fmt.Fprintf(w, "  Error:\t%s\n", b.Error)
+		return w.Flush()
 	}
 	for i, it := range b.Iterations {
-		fmt.Fprintf(w, "--- run %d/%d  %s ---\n", i+1, len(b.Iterations), verdictWord(it.Status))
+		fmt.Fprintf(out, "--- run %d/%d  %s ---\n", i+1, len(b.Iterations), verdictWord(it.Status))
+		w := NewDescribeWriter(out)
 		printIteration(w, it)
+		if err := w.Flush(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func printIteration(w io.Writer, it deployment.ReplayIteration) {
 	if it.Status == deployment.ReplayStatusError {
-		fmt.Fprintf(w, "  ERROR          %s\n", it.Error)
+		fmt.Fprintf(w, "  Error:\t%s\n", it.Error)
 		return
 	}
 	line := func(label, value string) {
 		if value != "" {
-			fmt.Fprintf(w, "  %-14s %s\n", label, value)
+			fmt.Fprintf(w, "  %s:\t%s\n", label, value)
 		}
 	}
-	line("turns", fmt.Sprintf("%d", it.Turns))
-	line("tools called", strings.Join(it.Observed.ToolsCalled, ", "))
-	line("tools denied", strings.Join(it.Observed.ToolsDenied, ", "))
-	line("steps", strings.Join(it.Observed.Steps, ", "))
-	line("routines", strings.Join(it.Observed.Routines, ", "))
-	line("policies", strings.Join(it.Observed.Policies, ", "))
+	line("Turns", fmt.Sprintf("%d", it.Turns))
+	line("Tools Called", strings.Join(it.Observed.ToolsCalled, ", "))
+	line("Tools Denied", strings.Join(it.Observed.ToolsDenied, ", "))
+	line("Steps", strings.Join(it.Observed.Steps, ", "))
+	line("Routines", strings.Join(it.Observed.Routines, ", "))
+	line("Policies", strings.Join(it.Observed.Policies, ", "))
 	if it.Judge != nil {
-		line("judge", it.Judge.Score)
-		if it.Judge.Reasoning != "" {
-			fmt.Fprintf(w, "    %s\n", it.Judge.Reasoning)
+		line("Judge", it.Judge.Score)
+		// Continuation rows: an empty label cell keeps every line of the
+		// reasoning in the value column, and the block's alignment.
+		for _, l := range strings.Split(it.Judge.Reasoning, "\n") {
+			if l != "" {
+				fmt.Fprintf(w, "  \t%s\n", l)
+			}
 		}
 	}
-	line("session", it.SessionKey)
-	if it.EvalTraceID != "" {
-		trace := it.EvalTraceID
-		if len(it.TraceIDs) > 0 {
-			trace += "        turn-1 trace " + it.TraceIDs[0]
-		}
-		line("eval trace", trace)
+	line("Session", it.SessionKey)
+	line("Eval Trace", it.EvalTraceID)
+	if len(it.TraceIDs) > 0 {
+		line("Turn-1 Trace", it.TraceIDs[0])
 	}
 	if len(it.Diverged) > 0 {
-		line("DIVERGED", "recorded but not replayed: "+strings.Join(it.Diverged, ", "))
+		line("Diverged", "recorded but not replayed: "+strings.Join(it.Diverged, ", "))
 	}
 	for _, f := range it.Failures {
-		line("FAIL", f)
+		line("Failure", f)
 	}
 }
 
 func printReplayVerdict(w io.Writer, run *deployment.ReplayRun) {
 	word := verdictShort(run.Status)
+	// A run that errored before producing any scenario has nothing to count.
+	if len(run.Batches) == 0 {
+		fmt.Fprintf(w, "%-6s run %s\n", word, run.RunID)
+		return
+	}
 	if len(run.Batches) == 1 {
 		b := run.Batches[0]
 		fmt.Fprintf(w, "%-6s %d/%d passed     run %s\n", word, b.Passed, b.Repeat, run.RunID)
