@@ -9,69 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestValidateReplayInput(t *testing.T) {
-	valid := ReplayInput{Dataset: "d", Repeat: 1, Concurrency: 8}
-	tests := []struct {
-		name    string
-		mutate  func(*ReplayInput)
-		wantErr string
-	}{
-		{name: "dataset", mutate: func(*ReplayInput) {}},
-		{name: "file", mutate: func(in *ReplayInput) { in.Dataset = ""; in.File = "x.yaml" }},
-		{name: "run-id", mutate: func(in *ReplayInput) { in.Dataset = ""; in.RunID = "abc" }},
-		{
-			name:   "scenarios with dataset",
-			mutate: func(in *ReplayInput) { in.Scenarios = []string{"a"} },
-		},
-		{
-			name:    "scenarios only gets the specific message",
-			mutate:  func(in *ReplayInput) { in.Dataset = ""; in.Scenarios = []string{"a"} },
-			wantErr: "--scenarios requires --dataset",
-		},
-		{
-			name:    "no mode",
-			mutate:  func(in *ReplayInput) { in.Dataset = "" },
-			wantErr: "one of --dataset, --file, or --run-id is required",
-		},
-		{
-			name:    "scenarios without dataset",
-			mutate:  func(in *ReplayInput) { in.Dataset = ""; in.File = "x"; in.Scenarios = []string{"a"} },
-			wantErr: "--scenarios requires --dataset",
-		},
-		{
-			name:    "repeat too low",
-			mutate:  func(in *ReplayInput) { in.Repeat = 0 },
-			wantErr: "--repeat must be between 1 and 20",
-		},
-		{
-			name:    "repeat too high",
-			mutate:  func(in *ReplayInput) { in.Repeat = 21 },
-			wantErr: "--repeat must be between 1 and 20",
-		},
-		{
-			name:    "concurrency too high",
-			mutate:  func(in *ReplayInput) { in.Concurrency = 33 },
-			wantErr: "--concurrency must be between 1 and 32",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			in := valid
-			tt.mutate(&in)
-			err := ValidateReplayInput(in)
-			if tt.wantErr == "" {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				return
-			}
-			if err == nil || err.Error() != tt.wantErr {
-				t.Errorf("error = %v, want %q", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestLoadScenarioFile(t *testing.T) {
 	dir := t.TempDir()
 	write := func(name, content string) string {

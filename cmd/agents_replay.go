@@ -28,7 +28,7 @@ var (
 
 var agentReplayCmd = &cobra.Command{
 	Use:   "replay <agent_name>",
-	Short: "Replay recorded scenarios against an agent and report the verdict",
+	Short: "Test an agent by replaying recorded scenarios and report the verdict",
 	Long: `Test a deployed agent by replaying recorded scenarios and report the verdict.
 
 A scenario is a dataset item: a recorded conversation's customer messages,
@@ -60,10 +60,6 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.
 			Repeat:      replayRepeat,
 			Concurrency: replayConcurrency,
 		}
-		if err := inputs.ValidateReplayInput(in); err != nil {
-			return err
-		}
-
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 

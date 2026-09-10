@@ -18,27 +18,6 @@ type ReplayInput struct {
 	Concurrency int
 }
 
-// ValidateReplayInput checks the flag combination and the ranges the agent
-// enforces. Pairwise exclusions are declared on the cobra command; this covers
-// what cobra cannot express.
-func ValidateReplayInput(in ReplayInput) error {
-	if len(in.Scenarios) > 0 && in.Dataset == "" {
-		return fmt.Errorf("--scenarios requires --dataset")
-	}
-	if in.Dataset == "" && in.File == "" && in.RunID == "" {
-		return fmt.Errorf("one of --dataset, --file, or --run-id is required")
-	}
-	// The agent enforces the same ranges and returns 422 when they are exceeded;
-	// these copies exist for early feedback and must stay in sync with it.
-	if in.Repeat < 1 || in.Repeat > 20 {
-		return fmt.Errorf("--repeat must be between 1 and 20")
-	}
-	if in.Concurrency < 1 || in.Concurrency > 32 {
-		return fmt.Errorf("--concurrency must be between 1 and 32")
-	}
-	return nil
-}
-
 // LoadScenarioFile reads a YAML or JSON scenario document into a generic map.
 // The agent owns the schema; the only local default is the scenario name,
 // taken from the file name when the document has none.

@@ -1,6 +1,6 @@
 ## iai agents replay
 
-Replay recorded scenarios against an agent and report the verdict
+Test an agent by replaying recorded scenarios and report the verdict
 
 ### Synopsis
 
