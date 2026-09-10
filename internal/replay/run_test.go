@@ -366,7 +366,7 @@ func TestRunStartErrors(t *testing.T) {
 			name: "404",
 			err:  &agent.Error{Status: 404, Detail: "Not Found"},
 			want: []string{
-				"agent agent-chat-dev (0.15.1) has no /replays route",
+				"agent agent-chat-dev (0.15.1) does not support replay",
 				"0.15.0 or later",
 			},
 		},

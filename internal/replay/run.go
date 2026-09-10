@@ -207,7 +207,7 @@ func startError(err error, agentName, version string, direct bool) error {
 		return fmt.Errorf("not authorized to replay %s; check you are logged in", agentName)
 	case http.StatusNotFound:
 		return fmt.Errorf(
-			"agent %s (%s) has no /replays route; replay needs agent-server 0.15.0 or later",
+			"agent %s (%s) does not support replay; it needs version 0.15.0 or later",
 			agentName, version,
 		)
 	}

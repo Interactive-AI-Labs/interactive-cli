@@ -39,9 +39,8 @@ and writes PASS/FAIL scores to the platform.
 
 The platform runs the replay against the agent and streams its progress back
 over one connection, so an agent without an endpoint replays like any other
-and the agent's own key is never needed here. Any agent running agent-server
-0.15.0 or later serves the replay routes; there is nothing to enable. Three
-modes:
+and the agent's own key is never needed here. Any agent on version 0.15.0 or
+later can be replayed; there is nothing to enable. Three modes:
 
   --dataset D            replay every scenario in the dataset, or only the
                          names given with --scenarios
@@ -50,7 +49,7 @@ modes:
 
 Iterations run in parallel on the agent, up to --concurrency across the whole
 run. A replay writes a synthetic customer, a session, and variable values to
-the target agent and spends router quota: prefer a non-production agent.
+the target agent and uses your project's quota: prefer a non-production agent.
 
 Output expands every iteration of a scenario when it is the only one in the
 run or when it failed or errored; passed scenarios in a multi-scenario run

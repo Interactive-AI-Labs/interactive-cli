@@ -222,8 +222,8 @@ func (c *Client) pollRun(ctx context.Context, runID string, opts WaitOptions) (*
 			}
 			if time.Since(firstFailure) >= opts.NotFoundCap {
 				return nil, fmt.Errorf(
-					"run %s not found for %s; the agent probably restarted and lost it "+
-						"(the run registry is in memory) — scores already written are still on the platform: %w",
+					"run %s not found for %s; the agent may have restarted and lost it — "+
+						"scores already written are still on the platform: %w",
 					runID, opts.NotFoundCap, err,
 				)
 			}
