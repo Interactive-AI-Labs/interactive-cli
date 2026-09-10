@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/agent"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/replay"
 	"github.com/spf13/cobra"
@@ -21,8 +20,6 @@ var (
 	replayRepeat      int
 	replayConcurrency int
 	replayTimeout     time.Duration
-	replayAgentURL    string
-	replayAPIKey      string
 	replayJSON        bool
 )
 
@@ -41,15 +38,13 @@ file (--file), or re-attach to a run in flight (--run-id).
 A replay writes a synthetic customer and session to the agent and uses your
 project's quota: prefer a non-production agent. Progress goes to stderr and
 only the verdict to stdout. Exit code is 0 for any verdict, 1 when the replay
-could not run; gate in CI with --json and jq -e '.status == "passed"'.
---agent-api-key is only needed with --agent-url.`,
+could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
 	Example: `  iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock
   iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock --scenarios bonus-misrouted --repeat 3
   iai agents replay agent-chat-dev --dataset replay-chat --repeat 3 --concurrency 16
   iai agents replay agent-chat-dev --file ./account-lock.yaml
   iai agents replay agent-chat-dev --dataset replay-chat --json > run.json
-  iai agents replay agent-chat-dev --run-id 9d0c44e1aa52
-  iai agents replay my-local-agent --file ./x.yaml --agent-url http://127.0.0.1:8080 --agent-api-key "$AGENT_API_KEY"`,
+  iai agents replay agent-chat-dev --run-id 9d0c44e1aa52`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		in := inputs.ReplayInput{
@@ -63,16 +58,16 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 
-		pCtx, _, deployClient, err := resolveProject(ctx, agentOrganization, agentProject)
+		// A followed run is one long response, so no client-wide timeout; as logs --follow.
+		pCtx, _, deployClient, err := resolveProject(
+			ctx, agentOrganization, agentProject, resolveOpts{deployTimeout: 0},
+		)
 		if err != nil {
 			return err
 		}
 
 		deps := replay.Deps{
 			Deploy: deployClient,
-			NewAgent: func(baseURL string, auth agent.Auth, follow bool) replay.AgentAPI {
-				return agent.NewClient(baseURL, auth, follow, defaultHTTPTimeout)
-			},
 			Stdout: cmd.OutOrStdout(),
 			Stderr: cmd.ErrOrStderr(),
 		}
@@ -81,9 +76,6 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.
 			ProjectID: pCtx.projectId,
 			AgentName: strings.TrimSpace(args[0]),
 			Input:     in,
-			AgentURL:  replayAgentURL,
-			APIKey:    replayAPIKey,
-			APIKeyEnv: os.Getenv(replay.APIKeyEnv),
 			Timeout:   replayTimeout,
 			JSON:      replayJSON,
 		})
@@ -121,18 +113,6 @@ func init() {
 		"timeout",
 		30*time.Minute,
 		"Give up waiting for the verdict after this long",
-	)
-	f.StringVar(
-		&replayAgentURL,
-		"agent-url",
-		"",
-		"Talk straight to an agent at this base URL instead of through the platform (e.g. http://127.0.0.1:8080)",
-	)
-	f.StringVar(
-		&replayAPIKey,
-		"agent-api-key",
-		"",
-		"Bearer for the agent; only used with --agent-url (else INTERACTIVE_AGENT_API_KEY)",
 	)
 	f.BoolVar(
 		&replayJSON,

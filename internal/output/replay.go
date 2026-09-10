@@ -6,21 +6,21 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/agent"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 const maxSkippedShown = 5
 
 // PrintReplayTarget names the agent a replay is about to hit, before anything
 // is sent, so a wrong target is visible.
-func PrintReplayTarget(w io.Writer, name, version string, revision int, baseURL string) {
-	fmt.Fprintf(w, "%s  %s  rev %d    %s\n", name, version, revision, baseURL)
+func PrintReplayTarget(w io.Writer, name, version string, revision int) {
+	fmt.Fprintf(w, "%s  %s  rev %d\n", name, version, revision)
 }
 
 // PrintReplaySkipped lists dataset items the agent will not replay. The agent
 // reports the whole dataset even for a subset, so with requested names only
 // those are shown; a long list collapses to a count.
-func PrintReplaySkipped(w io.Writer, skipped []agent.Skipped, requested []string) {
+func PrintReplaySkipped(w io.Writer, skipped []deployment.ReplaySkipped, requested []string) {
 	skipped = filterSkipped(skipped, requested)
 	if len(skipped) == 0 {
 		return
@@ -34,7 +34,10 @@ func PrintReplaySkipped(w io.Writer, skipped []agent.Skipped, requested []string
 	}
 }
 
-func filterSkipped(skipped []agent.Skipped, requested []string) []agent.Skipped {
+func filterSkipped(
+	skipped []deployment.ReplaySkipped,
+	requested []string,
+) []deployment.ReplaySkipped {
 	if len(requested) == 0 {
 		return skipped
 	}
@@ -42,7 +45,7 @@ func filterSkipped(skipped []agent.Skipped, requested []string) []agent.Skipped 
 	for _, r := range requested {
 		want[r] = true
 	}
-	var kept []agent.Skipped
+	var kept []deployment.ReplaySkipped
 	for _, s := range skipped {
 		if want[s.ID] {
 			kept = append(kept, s)
@@ -55,17 +58,11 @@ func PrintReplayProgress(w io.Writer, finished, total int) {
 	fmt.Fprintf(w, "%d/%d scenarios finished\n", finished, total)
 }
 
-// PrintReplayRetry reports a transient failure once per streak, so a run that
-// briefly looks lost does not look like a hang.
-func PrintReplayRetry(w io.Writer, err error, limit string) {
-	fmt.Fprintf(w, "%v; retrying for up to %s\n", err, limit)
-}
-
 // PrintReplayRun renders a finished run. A scenario is expanded iteration by
 // iteration when it is the only one or when it failed or errored; passed
 // scenarios in a multi-scenario run are one row each. A run that errored
 // before producing any scenario prints its own error instead.
-func PrintReplayRun(out io.Writer, run *agent.Run, requested []string) error {
+func PrintReplayRun(out io.Writer, run *deployment.ReplayRun, requested []string) error {
 	printReplaySummary(out, run, requested)
 	fmt.Fprintln(out)
 
@@ -96,7 +93,7 @@ func PrintReplayRun(out io.Writer, run *agent.Run, requested []string) error {
 				b.Repeat,
 			)
 		}
-		if single || b.Status != agent.StatusPassed {
+		if single || b.Status != deployment.ReplayStatusPassed {
 			printBatchExpanded(out, b)
 		}
 	}
@@ -108,7 +105,7 @@ func PrintReplayRun(out io.Writer, run *agent.Run, requested []string) error {
 
 // PrintReplayPointer tells the reader where the verdict lives on the platform:
 // the scores query and the eval trace worth opening first.
-func PrintReplayPointer(w io.Writer, run *agent.Run) {
+func PrintReplayPointer(w io.Writer, run *deployment.ReplayRun) {
 	scenario, trace := pointerTrace(run)
 	if trace == "" {
 		return
@@ -122,7 +119,7 @@ func PrintReplayPointer(w io.Writer, run *agent.Run) {
 	)
 }
 
-func printReplaySummary(w io.Writer, run *agent.Run, requested []string) {
+func printReplaySummary(w io.Writer, run *deployment.ReplayRun, requested []string) {
 	var parts []string
 	if run.Dataset != "" {
 		parts = append(parts, "dataset "+run.Dataset)
@@ -142,7 +139,7 @@ func printReplaySummary(w io.Writer, run *agent.Run, requested []string) {
 	fmt.Fprintln(w, strings.Join(parts, "   "))
 }
 
-func nameWidth(batches []agent.Batch) int {
+func nameWidth(batches []deployment.ReplayBatch) int {
 	width := 0
 	for _, b := range batches {
 		if len(b.Scenario) > width {
@@ -152,7 +149,7 @@ func nameWidth(batches []agent.Batch) int {
 	return width
 }
 
-func printBatchExpanded(w io.Writer, b agent.Batch) {
+func printBatchExpanded(w io.Writer, b deployment.ReplayBatch) {
 	if b.Error != "" {
 		fmt.Fprintf(w, "  ERROR          %s\n", b.Error)
 		return
@@ -163,8 +160,8 @@ func printBatchExpanded(w io.Writer, b agent.Batch) {
 	}
 }
 
-func printIteration(w io.Writer, it agent.Iteration) {
-	if it.Status == agent.StatusError {
+func printIteration(w io.Writer, it deployment.ReplayIteration) {
+	if it.Status == deployment.ReplayStatusError {
 		fmt.Fprintf(w, "  ERROR          %s\n", it.Error)
 		return
 	}
@@ -201,7 +198,7 @@ func printIteration(w io.Writer, it agent.Iteration) {
 	}
 }
 
-func printReplayVerdict(w io.Writer, run *agent.Run) {
+func printReplayVerdict(w io.Writer, run *deployment.ReplayRun) {
 	word := verdictShort(run.Status)
 	if len(run.Batches) == 1 {
 		b := run.Batches[0]
@@ -210,7 +207,7 @@ func printReplayVerdict(w io.Writer, run *agent.Run) {
 	}
 	passed := 0
 	for _, b := range run.Batches {
-		if b.Status == agent.StatusPassed {
+		if b.Status == deployment.ReplayStatusPassed {
 			passed++
 		}
 	}
@@ -226,7 +223,7 @@ func printReplayVerdict(w io.Writer, run *agent.Run) {
 
 // pointerTrace is the eval trace worth opening first, with its scenario: the
 // first failing or errored iteration's, else the first iteration's.
-func pointerTrace(run *agent.Run) (scenario, trace string) {
+func pointerTrace(run *deployment.ReplayRun) (scenario, trace string) {
 	for _, b := range run.Batches {
 		for _, it := range b.Iterations {
 			if it.EvalTraceID == "" {
@@ -235,7 +232,7 @@ func pointerTrace(run *agent.Run) (scenario, trace string) {
 			if trace == "" {
 				scenario, trace = b.Scenario, it.EvalTraceID
 			}
-			if it.Status != agent.StatusPassed {
+			if it.Status != deployment.ReplayStatusPassed {
 				return b.Scenario, it.EvalTraceID
 			}
 		}
@@ -245,11 +242,11 @@ func pointerTrace(run *agent.Run) (scenario, trace string) {
 
 func verdictWord(status string) string {
 	switch status {
-	case agent.StatusPassed:
+	case deployment.ReplayStatusPassed:
 		return "PASSED"
-	case agent.StatusFailed:
+	case deployment.ReplayStatusFailed:
 		return "FAILED"
-	case agent.StatusError:
+	case deployment.ReplayStatusError:
 		return "ERROR"
 	}
 	return strings.ToUpper(status)
@@ -257,11 +254,11 @@ func verdictWord(status string) string {
 
 func verdictShort(status string) string {
 	switch status {
-	case agent.StatusPassed:
+	case deployment.ReplayStatusPassed:
 		return "PASS"
-	case agent.StatusFailed:
+	case deployment.ReplayStatusFailed:
 		return "FAIL"
-	case agent.StatusError:
+	case deployment.ReplayStatusError:
 		return "ERROR"
 	}
 	return strings.ToUpper(status)

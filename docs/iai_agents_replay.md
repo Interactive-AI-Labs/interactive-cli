@@ -17,7 +17,6 @@ A replay writes a synthetic customer and session to the agent and uses your
 project's quota: prefer a non-production agent. Progress goes to stderr and
 only the verdict to stdout. Exit code is 0 for any verdict, 1 when the replay
 could not run; gate in CI with --json and jq -e '.status == "passed"'.
---agent-api-key is only needed with --agent-url.
 
 ```
 iai agents replay <agent_name> [flags]
@@ -32,14 +31,11 @@ iai agents replay <agent_name> [flags]
   iai agents replay agent-chat-dev --file ./account-lock.yaml
   iai agents replay agent-chat-dev --dataset replay-chat --json > run.json
   iai agents replay agent-chat-dev --run-id 9d0c44e1aa52
-  iai agents replay my-local-agent --file ./x.yaml --agent-url http://127.0.0.1:8080 --agent-api-key "$AGENT_API_KEY"
 ```
 
 ### Options
 
 ```
-      --agent-api-key string    Bearer for the agent; only used with --agent-url (else INTERACTIVE_AGENT_API_KEY)
-      --agent-url string        Talk straight to an agent at this base URL instead of through the platform (e.g. http://127.0.0.1:8080)
       --concurrency int         In-flight iterations across the whole run (1-32) (default 8)
       --dataset string          Dataset holding the scenarios (required unless --file or --run-id)
       --file string             Local scenario file (YAML or JSON), posted inline

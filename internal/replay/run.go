@@ -3,7 +3,6 @@
 package replay
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -12,54 +11,44 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/agent"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 )
 
-const (
-	pollInterval = 10 * time.Second
-	notFoundCap  = 5 * time.Minute
-)
-
-// APIKeyEnv supplies the agent's bearer for --agent-url runs; the default path needs no key.
-const APIKeyEnv = "INTERACTIVE_AGENT_API_KEY"
-
 type DeploymentAPI interface {
-	// ReplayEndpoint is where the platform serves one agent's replay routes.
-	ReplayEndpoint(orgID, projectID, agentName string) (string, func(*http.Request) error)
 	DescribeAgent(
 		ctx context.Context,
 		orgID, projectID, name string,
 	) (*deployment.DescribeAgentResponse, error)
-}
-
-type AgentAPI interface {
-	StartReplay(ctx context.Context, req agent.StartRequest) (*agent.StartResponse, error)
-	Wait(ctx context.Context, runID string, opts agent.WaitOptions) (*agent.Run, error)
+	StartReplay(
+		ctx context.Context,
+		orgID, projectID, agentName string,
+		req deployment.ReplayStartRequest,
+	) (*deployment.ReplayStartResponse, error)
+	FollowReplay(
+		ctx context.Context,
+		orgID, projectID, agentName, runID string,
+		onProgress func(*deployment.ReplayRun),
+	) (*deployment.ReplayRun, error)
 }
 
 type Deps struct {
 	Deploy DeploymentAPI
-	// NewAgent builds the replay client; follow is true when the endpoint streams a run's status.
-	NewAgent func(baseURL string, auth agent.Auth, follow bool) AgentAPI
-	Stdout   io.Writer
-	Stderr   io.Writer
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 type Options struct {
 	OrgID, ProjectID, AgentName string
 	Input                       inputs.ReplayInput
-	AgentURL                    string
-	APIKey, APIKeyEnv           string
 	Timeout                     time.Duration
 	JSON                        bool
 }
 
 // Run returns nil when the run finished with a verdict, passed or failed, and
-// an error when it did not: refused, unreachable, timed out, lost, interrupted,
-// or finished with status error.
+// an error when it did not: refused, unreachable, timed out, lost, or finished
+// with status error.
 func Run(ctx context.Context, deps Deps, opts Options) error {
 	// Local validation first, so a bad file fails before any network call.
 	var scenarioBody map[string]any
@@ -75,69 +64,39 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	if err != nil {
 		return fmt.Errorf("failed to describe agent %q: %w", opts.AgentName, err)
 	}
-
-	// Only --agent-url needs a key here; through the platform the agent's key never leaves it.
-	var baseURL string
-	var auth agent.Auth
-	target := "via platform"
-	if opts.AgentURL != "" {
-		bearer := cmp.Or(opts.APIKey, opts.APIKeyEnv)
-		if bearer == "" {
-			return fmt.Errorf(
-				"--agent-url talks straight to the agent, which authenticates the call itself: "+
-					"pass --agent-api-key or set %s",
-				APIKeyEnv,
-			)
-		}
-		baseURL, target = opts.AgentURL, opts.AgentURL
-		auth = func(req *http.Request) error {
-			req.Header.Set("Authorization", "Bearer "+bearer)
-			return nil
-		}
-	} else {
-		baseURL, auth = deps.Deploy.ReplayEndpoint(opts.OrgID, opts.ProjectID, opts.AgentName)
-	}
-	output.PrintReplayTarget(
-		deps.Stderr,
-		opts.AgentName,
-		described.Version,
-		described.Revision,
-		target,
-	)
-
-	api := deps.NewAgent(baseURL, auth, opts.AgentURL == "")
+	output.PrintReplayTarget(deps.Stderr, opts.AgentName, described.Version, described.Revision)
 
 	runID := opts.Input.RunID
 	if runID == "" {
-		resp, err := api.StartReplay(ctx, agent.StartRequest{
-			Dataset:      opts.Input.Dataset,
-			Scenarios:    opts.Input.Scenarios,
-			ScenarioBody: scenarioBody,
-			Repeat:       opts.Input.Repeat,
-			Concurrency:  opts.Input.Concurrency,
-		})
+		resp, err := deps.Deploy.StartReplay(
+			ctx, opts.OrgID, opts.ProjectID, opts.AgentName,
+			deployment.ReplayStartRequest{
+				Dataset:      opts.Input.Dataset,
+				Scenarios:    opts.Input.Scenarios,
+				ScenarioBody: scenarioBody,
+				Repeat:       opts.Input.Repeat,
+				Concurrency:  opts.Input.Concurrency,
+			},
+		)
 		if err != nil {
-			return startError(err, opts.AgentName, described.Version, opts.AgentURL != "")
+			return startError(err, opts.AgentName, described.Version)
 		}
 		output.PrintReplaySkipped(deps.Stderr, resp.Skipped, opts.Input.Scenarios)
 		runID = resp.RunID
 	}
 
+	waitCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
+	defer cancel()
 	lastFinished := -1
-	run, err := api.Wait(ctx, runID, agent.WaitOptions{
-		Interval:    pollInterval,
-		Timeout:     opts.Timeout,
-		NotFoundCap: notFoundCap,
-		OnRetry: func(err error) {
-			output.PrintReplayRetry(deps.Stderr, err, notFoundCap.String())
-		},
-		OnProgress: func(r *agent.Run) {
+	run, err := deps.Deploy.FollowReplay(
+		waitCtx, opts.OrgID, opts.ProjectID, opts.AgentName, runID,
+		func(r *deployment.ReplayRun) {
 			if finished := countFinished(r); finished != lastFinished && len(r.Batches) > 0 {
 				lastFinished = finished
 				output.PrintReplayProgress(deps.Stderr, finished, len(r.Batches))
 			}
 		},
-	})
+	)
 	if err != nil {
 		reattach := fmt.Sprintf("iai agents replay %s --run-id %s", opts.AgentName, runID)
 		switch {
@@ -156,7 +115,7 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 				opts.Timeout,
 				reattach,
 			)
-		case errors.Is(err, agent.ErrStreamEnded):
+		case errors.Is(err, deployment.ErrReplayStreamEnded):
 			return fmt.Errorf(
 				"run %s may still be running on the agent; follow it again with: %s",
 				runID, reattach,
@@ -174,16 +133,16 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	}
 	output.PrintReplayPointer(deps.Stderr, run)
 
-	if run.Status == agent.StatusError {
+	if run.Status == deployment.ReplayStatusError {
 		return fmt.Errorf("replay %s could not be completed: %s", runID, errorSummary(run))
 	}
 	return nil
 }
 
-func countFinished(r *agent.Run) int {
+func countFinished(r *deployment.ReplayRun) int {
 	n := 0
 	for _, b := range r.Batches {
-		if b.Status != agent.StatusRunning {
+		if b.Status != deployment.ReplayStatusRunning {
 			n++
 		}
 	}
@@ -192,18 +151,13 @@ func countFinished(r *agent.Run) int {
 
 // startError rewords the two refusals whose fix is on the caller's side and appends
 // skipped items to the rest so the agent's own explanation is never lost.
-func startError(err error, agentName, version string, direct bool) error {
-	var ae *agent.Error
-	if !errors.As(err, &ae) {
+func startError(err error, agentName, version string) error {
+	var re *deployment.ReplayError
+	if !errors.As(err, &re) {
 		return err
 	}
-	switch ae.Status {
+	switch re.Status {
 	case http.StatusUnauthorized:
-		if direct {
-			return fmt.Errorf(
-				"the agent rejected --agent-api-key; check it matches the key the agent expects",
-			)
-		}
 		return fmt.Errorf("not authorized to replay %s; check you are logged in", agentName)
 	case http.StatusNotFound:
 		return fmt.Errorf(
@@ -211,18 +165,18 @@ func startError(err error, agentName, version string, direct bool) error {
 			agentName, version,
 		)
 	}
-	if len(ae.Skipped) == 0 {
+	if len(re.Skipped) == 0 {
 		return err
 	}
 	var b strings.Builder
-	b.WriteString(ae.Error())
-	for _, s := range ae.Skipped {
+	b.WriteString(re.Error())
+	for _, s := range re.Skipped {
 		fmt.Fprintf(&b, "\n  skipped %s: %s", s.ID, s.Reason)
 	}
 	return errors.New(b.String())
 }
 
-func errorSummary(run *agent.Run) string {
+func errorSummary(run *deployment.ReplayRun) string {
 	if run.Error != "" {
 		return run.Error
 	}

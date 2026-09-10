@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/agent"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
 func TestPrintReplaySkipped(t *testing.T) {
-	five := []agent.Skipped{
+	five := []deployment.ReplaySkipped{
 		{ID: "a", Reason: "r"},
 		{ID: "b", Reason: "r"},
 		{ID: "c", Reason: "r"},
@@ -18,19 +18,21 @@ func TestPrintReplaySkipped(t *testing.T) {
 	}
 	tests := []struct {
 		name      string
-		skipped   []agent.Skipped
+		skipped   []deployment.ReplaySkipped
 		requested []string
 		want      string
 	}{
 		{name: "none", want: ""},
 		{
-			name:    "listed when few",
-			skipped: []agent.Skipped{{ID: "probe-1", Reason: "messages: Field required"}},
-			want:    "skipped probe-1: messages: Field required\n",
+			name: "listed when few",
+			skipped: []deployment.ReplaySkipped{
+				{ID: "probe-1", Reason: "messages: Field required"},
+			},
+			want: "skipped probe-1: messages: Field required\n",
 		},
 		{
 			name:    "collapsed past five",
-			skipped: append(five, agent.Skipped{ID: "f", Reason: "r"}),
+			skipped: append(five, deployment.ReplaySkipped{ID: "f", Reason: "r"}),
 			want:    "skipped 6 dataset items (see --json)\n",
 		},
 		{
@@ -52,26 +54,27 @@ func TestPrintReplaySkipped(t *testing.T) {
 }
 
 var (
-	passedIt = agent.Iteration{
-		Status: agent.StatusPassed, Turns: 4, SessionKey: "account-lock@r1-1-1",
+	passedIt = deployment.ReplayIteration{
+		Status: deployment.ReplayStatusPassed, Turns: 4, SessionKey: "account-lock@r1-1-1",
 		TraceIDs: []string{"7c31", "0aa1"}, EvalTraceID: "9b1e",
-		Observed: agent.Observed{
+		Observed: deployment.ReplayObserved{
 			ToolsCalled: []string{"crm:lookup_customer"},
 			ToolsDenied: []string{"billing:issue_refund"},
 			Steps:       []string{"verify_identity", "confirm_identity"},
 			Routines:    []string{"Account Access"},
 			Policies:    []string{"authenticated-greeting"},
 		},
-		Judge: &agent.Judge{Score: "PASS", Reasoning: "Greets by name."},
+		Judge: &deployment.ReplayJudge{Score: "PASS", Reasoning: "Greets by name."},
 	}
-	failedIt = agent.Iteration{
-		Status: agent.StatusFailed, Turns: 3, EvalTraceID: "fail-eval",
-		Observed: agent.Observed{Steps: []string{"verify_identity"}},
+	failedIt = deployment.ReplayIteration{
+		Status: deployment.ReplayStatusFailed, Turns: 3, EvalTraceID: "fail-eval",
+		Observed: deployment.ReplayObserved{Steps: []string{"verify_identity"}},
 		Diverged: []string{"tools:create_jira_ticket"},
 		Failures: []string{"steps.reached: 'confirm_identity' not observed"},
 	}
-	errorIt = agent.Iteration{
-		Status: agent.StatusError, Error: "JudgeError: the evaluator returned no verdict",
+	errorIt = deployment.ReplayIteration{
+		Status: deployment.ReplayStatusError,
+		Error:  "JudgeError: the evaluator returned no verdict",
 	}
 	passedBlock = "--- run 1/1  PASSED ---\n" +
 		"  turns          4\n" +
@@ -95,18 +98,26 @@ var (
 func TestPrintReplayRun(t *testing.T) {
 	tests := []struct {
 		name      string
-		run       *agent.Run
+		run       *deployment.ReplayRun
 		requested []string
 		want      string
 	}{
 		{
 			name: "single scenario pass",
-			run: &agent.Run{
-				RunID: "r1", Scenario: "account-lock", Status: agent.StatusPassed, Repeat: 1,
-				Batches: []agent.Batch{{
-					Scenario: "account-lock", Status: agent.StatusPassed, Repeat: 1, Passed: 1,
-					Iterations: []agent.Iteration{passedIt},
-				}},
+			run: &deployment.ReplayRun{
+				RunID:    "r1",
+				Scenario: "account-lock",
+				Status:   deployment.ReplayStatusPassed,
+				Repeat:   1,
+				Batches: []deployment.ReplayBatch{
+					{
+						Scenario:   "account-lock",
+						Status:     deployment.ReplayStatusPassed,
+						Repeat:     1,
+						Passed:     1,
+						Iterations: []deployment.ReplayIteration{passedIt},
+					},
+				},
 			},
 			want: "scenario account-lock   repeat 1\n" +
 				"\n" +
@@ -117,13 +128,21 @@ func TestPrintReplayRun(t *testing.T) {
 		},
 		{
 			name: "single scenario fail with repeat",
-			run: &agent.Run{
-				RunID: "r1", Dataset: "replay-chat", Status: agent.StatusFailed, Repeat: 2,
+			run: &deployment.ReplayRun{
+				RunID:       "r1",
+				Dataset:     "replay-chat",
+				Status:      deployment.ReplayStatusFailed,
+				Repeat:      2,
 				Concurrency: 8,
-				Batches: []agent.Batch{{
-					Scenario: "account-lock", Status: agent.StatusFailed, Repeat: 2, Passed: 1,
-					Iterations: []agent.Iteration{passedIt, failedIt},
-				}},
+				Batches: []deployment.ReplayBatch{
+					{
+						Scenario:   "account-lock",
+						Status:     deployment.ReplayStatusFailed,
+						Repeat:     2,
+						Passed:     1,
+						Iterations: []deployment.ReplayIteration{passedIt, failedIt},
+					},
+				},
 			},
 			want: "dataset replay-chat   1 scenario   repeat 2   concurrency 8\n" +
 				"\n" +
@@ -135,22 +154,30 @@ func TestPrintReplayRun(t *testing.T) {
 		},
 		{
 			name: "multi scenario expands failed and errored, pads to longest name",
-			run: &agent.Run{
-				RunID: "r9", Dataset: "replay-chat", Status: agent.StatusError, Repeat: 1,
+			run: &deployment.ReplayRun{
+				RunID:       "r9",
+				Dataset:     "replay-chat",
+				Status:      deployment.ReplayStatusError,
+				Repeat:      1,
 				Concurrency: 16,
-				Skipped:     []agent.Skipped{{ID: "x"}, {ID: "y"}},
-				Batches: []agent.Batch{
+				Skipped:     []deployment.ReplaySkipped{{ID: "x"}, {ID: "y"}},
+				Batches: []deployment.ReplayBatch{
 					{
-						Scenario: "account-lock", Status: agent.StatusPassed, Repeat: 1, Passed: 1,
-						Iterations: []agent.Iteration{passedIt},
+						Scenario:   "account-lock",
+						Status:     deployment.ReplayStatusPassed,
+						Repeat:     1,
+						Passed:     1,
+						Iterations: []deployment.ReplayIteration{passedIt},
 					},
 					{
-						Scenario: "bonus-misrouted", Status: agent.StatusFailed, Repeat: 1,
-						Iterations: []agent.Iteration{failedIt},
+						Scenario:   "bonus-misrouted",
+						Status:     deployment.ReplayStatusFailed,
+						Repeat:     1,
+						Iterations: []deployment.ReplayIteration{failedIt},
 					},
 					{
-						Scenario: "bet-id", Status: agent.StatusError, Repeat: 1,
-						Iterations: []agent.Iteration{errorIt},
+						Scenario: "bet-id", Status: deployment.ReplayStatusError, Repeat: 1,
+						Iterations: []deployment.ReplayIteration{errorIt},
 					},
 				},
 			},
@@ -167,13 +194,21 @@ func TestPrintReplayRun(t *testing.T) {
 		},
 		{
 			name: "skipped count filtered to requested scenarios",
-			run: &agent.Run{
-				RunID: "r1", Dataset: "replay-email", Status: agent.StatusPassed, Repeat: 1,
-				Skipped: []agent.Skipped{{ID: "archived-1"}, {ID: "archived-2"}},
-				Batches: []agent.Batch{{
-					Scenario: "account-lock", Status: agent.StatusPassed, Repeat: 1, Passed: 1,
-					Iterations: []agent.Iteration{passedIt},
-				}},
+			run: &deployment.ReplayRun{
+				RunID:   "r1",
+				Dataset: "replay-email",
+				Status:  deployment.ReplayStatusPassed,
+				Repeat:  1,
+				Skipped: []deployment.ReplaySkipped{{ID: "archived-1"}, {ID: "archived-2"}},
+				Batches: []deployment.ReplayBatch{
+					{
+						Scenario:   "account-lock",
+						Status:     deployment.ReplayStatusPassed,
+						Repeat:     1,
+						Passed:     1,
+						Iterations: []deployment.ReplayIteration{passedIt},
+					},
+				},
 			},
 			requested: []string{"account-lock"},
 			want: "dataset replay-email   1 scenario   repeat 1\n" +
@@ -185,10 +220,10 @@ func TestPrintReplayRun(t *testing.T) {
 		},
 		{
 			name: "batch level error without iterations",
-			run: &agent.Run{
-				RunID: "r2", Scenario: "x", Status: agent.StatusError, Repeat: 1,
-				Batches: []agent.Batch{{
-					Scenario: "x", Status: agent.StatusError, Repeat: 1,
+			run: &deployment.ReplayRun{
+				RunID: "r2", Scenario: "x", Status: deployment.ReplayStatusError, Repeat: 1,
+				Batches: []deployment.ReplayBatch{{
+					Scenario: "x", Status: deployment.ReplayStatusError, Repeat: 1,
 					Error: "unknown context variable",
 				}},
 			},
@@ -201,10 +236,10 @@ func TestPrintReplayRun(t *testing.T) {
 		},
 		{
 			name: "run level error with no scenarios",
-			run: &agent.Run{
+			run: &deployment.ReplayRun{
 				RunID:       "873c",
 				Scenario:    "inline-bad-customer",
-				Status:      agent.StatusError,
+				Status:      deployment.ReplayStatusError,
 				Repeat:      1,
 				Concurrency: 8,
 				Error:       "scenario 'inline-bad-customer' is invalid — customer_id: must start with 'replay-'",
@@ -217,8 +252,11 @@ func TestPrintReplayRun(t *testing.T) {
 		},
 		{
 			name: "run level error with no text",
-			run: &agent.Run{
-				RunID: "r4", Dataset: "replay-chat", Status: agent.StatusError, Repeat: 1,
+			run: &deployment.ReplayRun{
+				RunID:   "r4",
+				Dataset: "replay-chat",
+				Status:  deployment.ReplayStatusError,
+				Repeat:  1,
 			},
 			want: "dataset replay-chat   repeat 1\n" +
 				"\n" +
@@ -245,32 +283,34 @@ func TestPrintReplayPointer(t *testing.T) {
 		" · eval trace "
 	tests := []struct {
 		name string
-		run  *agent.Run
+		run  *deployment.ReplayRun
 		want string
 	}{
 		{
 			name: "single passed iteration",
-			run: &agent.Run{Batches: []agent.Batch{{
-				Scenario: "account-lock", Iterations: []agent.Iteration{passedIt},
+			run: &deployment.ReplayRun{Batches: []deployment.ReplayBatch{{
+				Scenario: "account-lock", Iterations: []deployment.ReplayIteration{passedIt},
 			}}},
 			want: prefix + "(account-lock): iai traces get 9b1e\n",
 		},
 		{
 			name: "first failing iteration wins and names its scenario",
-			run: &agent.Run{Batches: []agent.Batch{
-				{Scenario: "account-lock", Iterations: []agent.Iteration{passedIt}},
-				{Scenario: "bonus-misrouted", Iterations: []agent.Iteration{failedIt}},
+			run: &deployment.ReplayRun{Batches: []deployment.ReplayBatch{
+				{Scenario: "account-lock", Iterations: []deployment.ReplayIteration{passedIt}},
+				{Scenario: "bonus-misrouted", Iterations: []deployment.ReplayIteration{failedIt}},
 			}},
 			want: prefix + "(bonus-misrouted): iai traces get fail-eval\n",
 		},
 		{
 			name: "no eval traces prints nothing",
-			run: &agent.Run{
-				Batches: []agent.Batch{{Scenario: "x", Iterations: []agent.Iteration{errorIt}}},
+			run: &deployment.ReplayRun{
+				Batches: []deployment.ReplayBatch{
+					{Scenario: "x", Iterations: []deployment.ReplayIteration{errorIt}},
+				},
 			},
 			want: "",
 		},
-		{name: "no batches prints nothing", run: &agent.Run{}, want: ""},
+		{name: "no batches prints nothing", run: &deployment.ReplayRun{}, want: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -280,14 +320,5 @@ func TestPrintReplayPointer(t *testing.T) {
 				t.Errorf("got %q, want %q", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestPrintReplayRetry(t *testing.T) {
-	var buf bytes.Buffer
-	PrintReplayRetry(&buf, &agent.Error{Status: 404, Detail: "No such replay run: r1"}, "5m0s")
-	want := "agent returned 404: No such replay run: r1; retrying for up to 5m0s\n"
-	if got := buf.String(); got != want {
-		t.Errorf("got %q, want %q", got, want)
 	}
 }

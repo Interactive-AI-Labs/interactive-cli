@@ -2662,19 +2662,3 @@ func (c *DeploymentClient) RestoreDatabase(
 
 	return serverMessage, nil
 }
-
-// ReplayEndpoint returns the base URL and header applier for one agent's replay
-// routes, which the platform serves under the agent's path.
-func (c *DeploymentClient) ReplayEndpoint(
-	orgID, projectID, agentName string,
-) (string, func(*http.Request) error) {
-	baseURL := strings.TrimRight(c.hostname, "/") + fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/agents/%s",
-		url.PathEscape(orgID),
-		url.PathEscape(projectID),
-		url.PathEscape(agentName),
-	)
-	return baseURL, func(req *http.Request) error {
-		return clients.ApplyRequestHeaders(req, c.token, c.apiKey, c.cookies)
-	}
-}

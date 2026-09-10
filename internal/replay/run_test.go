@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/agent"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
@@ -21,19 +18,13 @@ type fakeDeploy struct {
 	agent         *deployment.DescribeAgentResponse
 	err           error
 	describeCalls int
-	replayCalls   int
-}
-
-func (f *fakeDeploy) ReplayEndpoint(
-	orgID, projectID, agentName string,
-) (string, func(*http.Request) error) {
-	f.replayCalls++
-	return "https://api.test/v1/organizations/" + orgID +
-			"/projects/" + projectID + "/agents/" + agentName,
-		func(req *http.Request) error {
-			req.Header.Set("Authorization", "Bearer platform-token")
-			return nil
-		}
+	startReq      *deployment.ReplayStartRequest
+	startResp     *deployment.ReplayStartResponse
+	startErr      error
+	waitRunID     string
+	waitRun       *deployment.ReplayRun
+	waitErr       error
+	progress      []*deployment.ReplayRun
 }
 
 func (f *fakeDeploy) DescribeAgent(
@@ -43,48 +34,29 @@ func (f *fakeDeploy) DescribeAgent(
 	return f.agent, f.err
 }
 
-type fakeAgent struct {
-	baseURL, authHeader string
-	follow              bool
-	startReq            *agent.StartRequest
-	startResp           *agent.StartResponse
-	startErr            error
-	waitRunID           string
-	waitRun             *agent.Run
-	waitErr             error
-	progress            []*agent.Run
-	retryErr            error
-}
-
-func (f *fakeAgent) StartReplay(
-	_ context.Context,
-	req agent.StartRequest,
-) (*agent.StartResponse, error) {
+func (f *fakeDeploy) StartReplay(
+	_ context.Context, _, _, _ string, req deployment.ReplayStartRequest,
+) (*deployment.ReplayStartResponse, error) {
 	f.startReq = &req
 	return f.startResp, f.startErr
 }
 
-func (f *fakeAgent) Wait(
-	_ context.Context,
-	runID string,
-	opts agent.WaitOptions,
-) (*agent.Run, error) {
+func (f *fakeDeploy) FollowReplay(
+	_ context.Context, _, _, _, runID string, onProgress func(*deployment.ReplayRun),
+) (*deployment.ReplayRun, error) {
 	f.waitRunID = runID
-	if f.retryErr != nil {
-		opts.OnRetry(f.retryErr)
-	}
 	for _, r := range f.progress {
-		opts.OnProgress(r)
+		onProgress(r)
 	}
 	return f.waitRun, f.waitErr
 }
 
-func finishedRun(status string) *agent.Run {
-	return &agent.Run{
+func finishedRun(status string) *deployment.ReplayRun {
+	return &deployment.ReplayRun{
 		RunID: "run-1", Dataset: "replay-chat", Status: status, Repeat: 1, Concurrency: 8,
-		Batches: []agent.Batch{{
+		Batches: []deployment.ReplayBatch{{
 			Scenario: "account-lock", Status: status, Repeat: 1, Passed: 1,
-			Iterations: []agent.Iteration{{Status: status, EvalTraceID: "eval-1"}},
+			Iterations: []deployment.ReplayIteration{{Status: status, EvalTraceID: "eval-1"}},
 		}},
 		Raw: []byte(`{"run_id":"run-1","status":"` + status + `"}`),
 	}
@@ -92,26 +64,19 @@ func finishedRun(status string) *agent.Run {
 
 type harness struct {
 	deploy *fakeDeploy
-	agent  *fakeAgent
+	// agent is the same fake seen from the replay side, for readable assertions.
+	agent  *fakeDeploy
 	stdout bytes.Buffer
 	stderr bytes.Buffer
 }
 
 func newHarness() *harness {
-	h := &harness{
-		deploy: &fakeDeploy{
-			agent: &deployment.DescribeAgentResponse{
-				Version:  "0.15.1",
-				Revision: 592,
-				Endpoint: "agent-chat-dev.example.com",
-			},
-		},
-		agent: &fakeAgent{
-			startResp: &agent.StartResponse{RunID: "run-1"},
-			waitRun:   finishedRun(agent.StatusPassed),
-		},
+	d := &fakeDeploy{
+		agent:     &deployment.DescribeAgentResponse{Version: "0.15.1", Revision: 592},
+		startResp: &deployment.ReplayStartResponse{RunID: "run-1"},
+		waitRun:   finishedRun(deployment.ReplayStatusPassed),
 	}
-	return h
+	return &harness{deploy: d, agent: d}
 }
 
 func (h *harness) run(mutate func(*Options)) error {
@@ -123,20 +88,7 @@ func (h *harness) run(mutate func(*Options)) error {
 	if mutate != nil {
 		mutate(&opts)
 	}
-	deps := Deps{
-		Deploy: h.deploy,
-		NewAgent: func(baseURL string, auth agent.Auth, follow bool) AgentAPI {
-			h.agent.baseURL, h.agent.follow = baseURL, follow
-			probe := httptest.NewRequest(http.MethodGet, "/", nil)
-			if err := auth(probe); err != nil {
-				panic(err)
-			}
-			h.agent.authHeader = probe.Header.Get("Authorization")
-			return h.agent
-		},
-		Stdout: &h.stdout,
-		Stderr: &h.stderr,
-	}
+	deps := Deps{Deploy: h.deploy, Stdout: &h.stdout, Stderr: &h.stderr}
 	return Run(context.Background(), deps, opts)
 }
 
@@ -150,7 +102,7 @@ func TestRunDatasetPassed(t *testing.T) {
 	}
 	if !strings.HasPrefix(
 		h.stderr.String(),
-		"agent-chat-dev  0.15.1  rev 592    via platform\n",
+		"agent-chat-dev  0.15.1  rev 592\n",
 	) {
 		t.Errorf("stderr = %q", h.stderr.String())
 	}
@@ -164,7 +116,7 @@ func TestRunDatasetPassed(t *testing.T) {
 
 func TestRunFailedVerdictIsNotAnError(t *testing.T) {
 	h := newHarness()
-	h.agent.waitRun = finishedRun(agent.StatusFailed)
+	h.agent.waitRun = finishedRun(deployment.ReplayStatusFailed)
 	if err := h.run(nil); err != nil {
 		t.Fatalf("Run() error = %v, want nil for a failed verdict", err)
 	}
@@ -175,7 +127,7 @@ func TestRunFailedVerdictIsNotAnError(t *testing.T) {
 
 func TestRunErrorStatusIsAnError(t *testing.T) {
 	h := newHarness()
-	h.agent.waitRun = finishedRun(agent.StatusError)
+	h.agent.waitRun = finishedRun(deployment.ReplayStatusError)
 	h.agent.waitRun.Batches[0].Iterations[0].Error = "JudgeError: no verdict"
 	err := h.run(nil)
 	if err == nil || !strings.Contains(err.Error(), "JudgeError: no verdict") {
@@ -188,8 +140,11 @@ func TestRunErrorStatusIsAnError(t *testing.T) {
 
 func TestRunJSONWritesRawOnly(t *testing.T) {
 	h := newHarness()
-	h.agent.progress = []*agent.Run{
-		{Status: agent.StatusRunning, Batches: []agent.Batch{{Status: agent.StatusRunning}}},
+	h.agent.progress = []*deployment.ReplayRun{
+		{
+			Status:  deployment.ReplayStatusRunning,
+			Batches: []deployment.ReplayBatch{{Status: deployment.ReplayStatusRunning}},
+		},
 	}
 	if err := h.run(func(o *Options) { o.JSON = true }); err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -217,24 +172,12 @@ func TestRunFileErrorBeforeAnyNetworkCall(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "must be a YAML or JSON object") {
 		t.Fatalf("error = %v", err)
 	}
-	if h.deploy.describeCalls != 0 || h.deploy.replayCalls != 0 {
-		t.Errorf("network calls before file validation: describe=%d replay=%d",
-			h.deploy.describeCalls, h.deploy.replayCalls)
+	if h.deploy.describeCalls != 0 || h.deploy.startReq != nil {
+		t.Errorf("network calls before file validation: describe=%d started=%v",
+			h.deploy.describeCalls, h.deploy.startReq != nil)
 	}
 	if h.stderr.Len() != 0 {
 		t.Errorf("stderr should be empty, got %q", h.stderr.String())
-	}
-}
-
-func TestRunPrintsRetryNote(t *testing.T) {
-	h := newHarness()
-	h.agent.retryErr = &agent.Error{Status: 404, Detail: "No such replay run: run-1"}
-	if err := h.run(nil); err != nil {
-		t.Fatalf("Run() error = %v", err)
-	}
-	want := "agent returned 404: No such replay run: run-1; retrying for up to 5m0s\n"
-	if !strings.Contains(h.stderr.String(), want) {
-		t.Errorf("stderr = %q, want to contain %q", h.stderr.String(), want)
 	}
 }
 
@@ -271,100 +214,20 @@ func TestRunReattachSkipsStart(t *testing.T) {
 	}
 }
 
-func TestRunTarget(t *testing.T) {
-	const platformURL = "https://api.test/v1/organizations/o/projects/p/agents/agent-chat-dev"
-
-	tests := []struct {
-		name       string
-		endpoint   string
-		agentURL   string
-		apiKey     string
-		wantURL    string
-		wantAuth   string
-		wantStderr string
-		wantErr    string
-	}{
-		{
-			name:       "default goes through the platform as the caller",
-			endpoint:   "agent-chat-dev.example.com",
-			wantURL:    platformURL,
-			wantAuth:   "Bearer platform-token",
-			wantStderr: "via platform",
-		},
-		{
-			// An agent with no endpoint used to be unreplayable.
-			name:       "an agent without an endpoint replays too",
-			wantURL:    platformURL,
-			wantAuth:   "Bearer platform-token",
-			wantStderr: "via platform",
-		},
-		{
-			name:       "agent-url talks straight to the agent with its own key",
-			endpoint:   "agent-chat-dev.example.com",
-			agentURL:   "http://127.0.0.1:8080",
-			apiKey:     "local-key",
-			wantURL:    "http://127.0.0.1:8080",
-			wantAuth:   "Bearer local-key",
-			wantStderr: "http://127.0.0.1:8080",
-		},
-		{
-			name:     "agent-url without a key is refused before any call",
-			agentURL: "http://127.0.0.1:8080",
-			wantErr:  "--agent-api-key",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := newHarness()
-			h.deploy.agent.Endpoint = tt.endpoint
-			err := h.run(func(o *Options) {
-				o.AgentURL, o.APIKey = tt.agentURL, tt.apiKey
-			})
-
-			if tt.wantErr != "" {
-				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
-					t.Fatalf("error = %v, want it to mention %q", err, tt.wantErr)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("Run() error = %v", err)
-			}
-			if h.agent.baseURL != tt.wantURL {
-				t.Errorf("baseURL = %q, want %q", h.agent.baseURL, tt.wantURL)
-			}
-			if h.agent.authHeader != tt.wantAuth {
-				t.Errorf("authHeader = %q, want %q", h.agent.authHeader, tt.wantAuth)
-			}
-			if !strings.Contains(h.stderr.String(), tt.wantStderr) {
-				t.Errorf("stderr = %q, want it to name %q", h.stderr.String(), tt.wantStderr)
-			}
-		})
-	}
-}
-
 func TestRunStartErrors(t *testing.T) {
 	tests := []struct {
-		name     string
-		err      error
-		agentURL string
-		want     []string
+		name string
+		err  error
+		want []string
 	}{
 		{
-			name: "401 through the platform blames the login",
-			err:  &agent.Error{Status: 401, Detail: "Unauthorized"},
+			name: "401 blames the login",
+			err:  &deployment.ReplayError{Status: 401, Detail: "Unauthorized"},
 			want: []string{"not authorized to replay", "logged in"},
 		},
 		{
-			name:     "401 on a direct call blames the flag",
-			err:      &agent.Error{Status: 401, Detail: "Unauthorized"},
-			agentURL: "http://127.0.0.1:8080",
-			want:     []string{"the agent rejected --agent-api-key"},
-		},
-		{
 			name: "404",
-			err:  &agent.Error{Status: 404, Detail: "Not Found"},
+			err:  &deployment.ReplayError{Status: 404, Detail: "Not Found"},
 			want: []string{
 				"agent agent-chat-dev (0.15.1) does not support replay",
 				"0.15.0 or later",
@@ -372,9 +235,12 @@ func TestRunStartErrors(t *testing.T) {
 		},
 		{
 			name: "400 with skipped",
-			err: &agent.Error{
-				Status: 400, Detail: "dataset 'x' holds no replayable scenario",
-				Skipped: []agent.Skipped{{ID: "probe-1", Reason: "messages: Field required"}},
+			err: &deployment.ReplayError{
+				Status: 400,
+				Detail: "dataset 'x' holds no replayable scenario",
+				Skipped: []deployment.ReplaySkipped{
+					{ID: "probe-1", Reason: "messages: Field required"},
+				},
 			},
 			want: []string{
 				"holds no replayable scenario",
@@ -383,7 +249,7 @@ func TestRunStartErrors(t *testing.T) {
 		},
 		{
 			name: "503 verbatim",
-			err: &agent.Error{
+			err: &deployment.ReplayError{
 				Status: 503,
 				Detail: "Replay is not available — missing: platform client.",
 			},
@@ -401,11 +267,7 @@ func TestRunStartErrors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHarness()
 			h.agent.startErr = tt.err
-			err := h.run(func(o *Options) {
-				if tt.agentURL != "" {
-					o.AgentURL, o.APIKey = tt.agentURL, "local-key"
-				}
-			})
+			err := h.run(nil)
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -420,7 +282,7 @@ func TestRunStartErrors(t *testing.T) {
 
 func TestRunSkippedPrintedOnStart(t *testing.T) {
 	h := newHarness()
-	h.agent.startResp.Skipped = []agent.Skipped{
+	h.agent.startResp.Skipped = []deployment.ReplaySkipped{
 		{ID: "account-lock", Reason: "not active"},
 		{ID: "other", Reason: "invalid"},
 	}
@@ -444,7 +306,7 @@ func TestRunWaitErrors(t *testing.T) {
 	}{
 		{
 			name: "the stream closed with the run still going",
-			err:  agent.ErrStreamEnded,
+			err:  deployment.ErrReplayStreamEnded,
 			want: []string{
 				"run run-1 may still be running",
 				"iai agents replay agent-chat-dev --run-id run-1",

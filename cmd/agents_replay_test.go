@@ -12,12 +12,12 @@ func resetReplayFlags(t *testing.T) {
 	t.Cleanup(func() {
 		hostname, deploymentHostname, token, apiKey = origHostname, origDeployHostname, origToken, origApiKey
 		agentOrganization, agentProject = origOrg, origProject
-		replayDataset, replayFile, replayRunID, replayAgentURL, replayAPIKey = "", "", "", "", ""
+		replayDataset, replayFile, replayRunID = "", "", ""
 		replayScenarios = nil
 		replayRepeat, replayConcurrency, replayJSON = 1, 8, false
 		for _, name := range []string{
 			"dataset", "scenarios", "file", "run-id", "repeat", "concurrency",
-			"timeout", "agent-url", "agent-api-key", "json",
+			"timeout", "json",
 		} {
 			agentReplayCmd.Flags().Lookup(name).Changed = false
 		}
