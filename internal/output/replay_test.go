@@ -393,3 +393,97 @@ func TestPrintReplayPointer(t *testing.T) {
 		})
 	}
 }
+
+func TestReplayProgressFrame(t *testing.T) {
+	tests := []struct {
+		name     string
+		batches  []deployment.ReplayBatch
+		finished int
+		want     string
+	}{
+		{
+			name: "one scenario still running",
+			batches: []deployment.ReplayBatch{
+				{Scenario: "account-lock", Status: deployment.ReplayStatusRunning, Repeat: 2},
+			},
+			want: "RUNNING   account-lock   0/2\n" +
+				"0/1 scenarios finished\n",
+		},
+		{
+			name: "mixed statuses align in one column block",
+			batches: []deployment.ReplayBatch{
+				{
+					Scenario: "account-lock", Status: deployment.ReplayStatusPassed,
+					Repeat: 2, Passed: 2,
+				},
+				{
+					Scenario: "bonus-misrouted-to-support",
+					Status:   deployment.ReplayStatusRunning, Repeat: 2,
+				},
+				{Scenario: "bet-id", Status: deployment.ReplayStatusFailed, Repeat: 2, Passed: 1},
+			},
+			finished: 2,
+			want: "PASSED    account-lock                 2/2\n" +
+				"RUNNING   bonus-misrouted-to-support   0/2\n" +
+				"FAILED    bet-id                       1/2\n" +
+				"2/3 scenarios finished\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run := &deployment.ReplayRun{Batches: tt.batches}
+			if got := replayProgressFrame(run, tt.finished); got != tt.want {
+				t.Errorf("mismatch\ngot:\n%s\nwant:\n%s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCountFinishedBatches(t *testing.T) {
+	tests := []struct {
+		name     string
+		statuses []string
+		want     int
+	}{
+		{name: "no batches", want: 0},
+		{name: "all running", statuses: []string{"running", "running"}},
+		{name: "mixed", statuses: []string{"passed", "running", "failed", "error"}, want: 3},
+		{name: "all done", statuses: []string{"passed", "failed"}, want: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run := &deployment.ReplayRun{}
+			for _, s := range tt.statuses {
+				run.Batches = append(run.Batches, deployment.ReplayBatch{Status: s})
+			}
+			if got := countFinishedBatches(run); got != tt.want {
+				t.Errorf("countFinishedBatches() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+// Without a terminal the progress appends only what moved, so a log or a CI
+// transcript keeps one line per change instead of a frame per poll.
+func TestReplayProgressWithoutATerminal(t *testing.T) {
+	var buf bytes.Buffer
+	p := NewReplayProgress(&buf)
+	running := &deployment.ReplayRun{Batches: []deployment.ReplayBatch{
+		{Scenario: "a", Status: deployment.ReplayStatusRunning, Repeat: 1},
+		{Scenario: "b", Status: deployment.ReplayStatusRunning, Repeat: 1},
+	}}
+	oneDone := &deployment.ReplayRun{Batches: []deployment.ReplayBatch{
+		{Scenario: "a", Status: deployment.ReplayStatusPassed, Repeat: 1, Passed: 1},
+		{Scenario: "b", Status: deployment.ReplayStatusRunning, Repeat: 1},
+	}}
+
+	p.Update(&deployment.ReplayRun{})
+	p.Update(running)
+	p.Update(running)
+	p.Update(oneDone)
+
+	want := "0/2 scenarios finished\n1/2 scenarios finished\n"
+	if got := buf.String(); got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

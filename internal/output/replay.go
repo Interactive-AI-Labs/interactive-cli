@@ -54,8 +54,59 @@ func filterSkipped(
 	return kept
 }
 
-func PrintReplayProgress(w io.Writer, finished, total int) {
-	fmt.Fprintf(w, "%d/%d scenarios finished\n", finished, total)
+// ReplayProgress reports a run's progress while it is in flight: redrawn in
+// place on a terminal, as `agents list --watch` does, and one line per change
+// otherwise so a log keeps only what moved.
+type ReplayProgress struct {
+	frames   *FrameWriter
+	plain    io.Writer
+	tty      bool
+	finished int
+}
+
+func NewReplayProgress(w io.Writer) *ReplayProgress {
+	return &ReplayProgress{frames: NewFrameWriter(w), plain: w, tty: IsTerminal(w), finished: -1}
+}
+
+func (p *ReplayProgress) Update(run *deployment.ReplayRun) {
+	if len(run.Batches) == 0 {
+		return
+	}
+	finished := countFinishedBatches(run)
+	if p.tty {
+		p.frames.Write(replayProgressFrame(run, finished))
+		return
+	}
+	if finished != p.finished {
+		p.finished = finished
+		fmt.Fprintf(p.plain, "%d/%d scenarios finished\n", finished, len(run.Batches))
+	}
+}
+
+// replayProgressFrame is one frame: a row per scenario, then the count.
+func replayProgressFrame(run *deployment.ReplayRun, finished int) string {
+	rows := make([][]string, 0, len(run.Batches))
+	for _, b := range run.Batches {
+		rows = append(rows, []string{
+			verdictWord(b.Status), b.Scenario, fmt.Sprintf("%d/%d", b.Passed, b.Repeat),
+		})
+	}
+	var frame strings.Builder
+	if err := PrintTable(&frame, nil, rows); err != nil {
+		return ""
+	}
+	fmt.Fprintf(&frame, "%d/%d scenarios finished\n", finished, len(run.Batches))
+	return frame.String()
+}
+
+func countFinishedBatches(run *deployment.ReplayRun) int {
+	n := 0
+	for _, b := range run.Batches {
+		if b.Status != deployment.ReplayStatusRunning {
+			n++
+		}
+	}
+	return n
 }
 
 // PrintReplayRun renders a finished run. A scenario is expanded iteration by

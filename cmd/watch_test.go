@@ -7,6 +7,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -42,13 +43,13 @@ func TestRunWatchStopsOnCancelAndSkipsClearForNonTTY(t *testing.T) {
 }
 
 func TestRedrawOverwritesInPlaceWithoutFullClear(t *testing.T) {
-	got := redraw("NAME\nfoo\n")
+	got := output.Redraw("NAME\nfoo\n")
 	if bytes.Contains([]byte(got), []byte("\033[2J")) {
-		t.Fatalf("redraw must not full-clear (that causes the blink): %q", got)
+		t.Fatalf("Redraw must not full-clear (that causes the blink): %q", got)
 	}
 	want := "NAME\033[K\nfoo\033[K\n\033[J"
 	if got != want {
-		t.Fatalf("redraw = %q, want %q", got, want)
+		t.Fatalf("Redraw = %q, want %q", got, want)
 	}
 }
 

@@ -87,15 +87,10 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 
 	waitCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
-	lastFinished := -1
+	progress := output.NewReplayProgress(deps.Stderr)
 	run, err := deps.Deploy.FollowReplay(
 		waitCtx, opts.OrgID, opts.ProjectID, opts.AgentName, runID,
-		func(r *deployment.ReplayRun) {
-			if finished := countFinished(r); finished != lastFinished && len(r.Batches) > 0 {
-				lastFinished = finished
-				output.PrintReplayProgress(deps.Stderr, finished, len(r.Batches))
-			}
-		},
+		progress.Update,
 	)
 	if err != nil {
 		reattach := fmt.Sprintf("iai agents replay %s --run-id %s", opts.AgentName, runID)
@@ -137,16 +132,6 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 		return fmt.Errorf("replay %s could not be completed: %s", runID, errorSummary(run))
 	}
 	return nil
-}
-
-func countFinished(r *deployment.ReplayRun) int {
-	n := 0
-	for _, b := range r.Batches {
-		if b.Status != deployment.ReplayStatusRunning {
-			n++
-		}
-	}
-	return n
 }
 
 // startError rewords the two refusals whose fix is on the caller's side and appends

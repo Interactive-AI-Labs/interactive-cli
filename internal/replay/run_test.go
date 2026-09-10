@@ -113,27 +113,3 @@ func TestErrorSummary(t *testing.T) {
 		})
 	}
 }
-
-func TestCountFinished(t *testing.T) {
-	tests := []struct {
-		name     string
-		statuses []string
-		want     int
-	}{
-		{name: "no batches", statuses: nil, want: 0},
-		{name: "all running", statuses: []string{"running", "running"}, want: 0},
-		{name: "mixed", statuses: []string{"passed", "running", "failed", "error"}, want: 3},
-		{name: "all done", statuses: []string{"passed", "failed"}, want: 2},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			run := &deployment.ReplayRun{}
-			for _, s := range tt.statuses {
-				run.Batches = append(run.Batches, deployment.ReplayBatch{Status: s})
-			}
-			if got := countFinished(run); got != tt.want {
-				t.Errorf("countFinished() = %d, want %d", got, tt.want)
-			}
-		})
-	}
-}

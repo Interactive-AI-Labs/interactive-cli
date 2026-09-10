@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -35,7 +34,7 @@ func runWatch(cmd *cobra.Command, render func(context.Context, io.Writer) error)
 			return err
 		}
 		if tty {
-			io.WriteString(out, "\033[H"+redraw(frame.String()))
+			io.WriteString(out, "\033[H"+output.Redraw(frame.String()))
 		} else {
 			out.Write(frame.Bytes())
 		}
@@ -45,9 +44,4 @@ func runWatch(cmd *cobra.Command, render func(context.Context, io.Writer) error)
 		case <-ticker.C:
 		}
 	}
-}
-
-// redraw overwrites the previous frame in place so there is no blank flash between refreshes.
-func redraw(frame string) string {
-	return strings.ReplaceAll(frame, "\n", "\033[K\n") + "\033[J"
 }
