@@ -61,22 +61,3 @@ func LoadScenarioFile(path string) (map[string]any, error) {
 	}
 	return body, nil
 }
-
-// RuntimeAPIKeyRef returns the env var name referenced by
-// agentConfig.runtime.api_key (e.g. "AGENT_API_KEY" for "${AGENT_API_KEY}"),
-// or "" when the config has no such reference.
-func RuntimeAPIKeyRef(agentConfig any) string {
-	cfg, ok := agentConfig.(map[string]any)
-	if !ok {
-		return ""
-	}
-	runtime, ok := cfg["runtime"].(map[string]any)
-	if !ok {
-		return ""
-	}
-	ref, ok := runtime["api_key"].(string)
-	if !ok || !strings.HasPrefix(ref, "${") || !strings.HasSuffix(ref, "}") {
-		return ""
-	}
-	return strings.TrimSuffix(strings.TrimPrefix(ref, "${"), "}")
-}

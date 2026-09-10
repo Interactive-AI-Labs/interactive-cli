@@ -37,9 +37,11 @@ what the run must satisfy. Replaying re-runs those inputs with live reasoning,
 answers tool calls from the recorded fixtures, then checks the expectations
 and writes PASS/FAIL scores to the platform.
 
-The command talks to the agent itself over its public hostname, not to the
-platform. Any agent running agent-server 0.15.0 or later serves the replay
-routes; there is nothing to enable. Three modes:
+The platform runs the replay against the agent and streams its progress back
+over one connection, so an agent without an endpoint replays like any other
+and the agent's own key is never needed here. Any agent running agent-server
+0.15.0 or later serves the replay routes; there is nothing to enable. Three
+modes:
 
   --dataset D            replay every scenario in the dataset, or only the
                          names given with --scenarios
@@ -55,10 +57,10 @@ run or when it failed or errored; passed scenarios in a multi-scenario run
 are one row each. Progress and the pointer to the platform scores go to
 stderr, so stdout carries only the verdict (or the --json payload).
 
-The agent's API key is taken from --agent-api-key, then INTERACTIVE_AGENT_API_KEY,
-then resolved from the agent's own configuration by reading the project
-secret it mounts. That last step needs secret-read permission, so CI should
-set INTERACTIVE_AGENT_API_KEY instead.
+Replaying needs permission to run agents in the project; your login is what
+authorizes it. The agent's own API key is only needed with --agent-url, which
+talks straight to the given address: pass --agent-api-key or set
+INTERACTIVE_AGENT_API_KEY for that.
 
 Exit code is 0 when the run finished with a verdict, passed or failed, and 1
 when the replay could not run. The verdict itself is in the output; gate on
@@ -94,8 +96,8 @@ it in CI with --json and jq -e '.status == "passed"'.`,
 
 		deps := replay.Deps{
 			Deploy: deployClient,
-			NewAgent: func(baseURL, bearer string) replay.AgentAPI {
-				return agent.NewClient(baseURL, bearer, defaultHTTPTimeout)
+			NewAgent: func(baseURL string, auth agent.Auth, follow bool) replay.AgentAPI {
+				return agent.NewClient(baseURL, auth, follow, defaultHTTPTimeout)
 			},
 			Stdout: cmd.OutOrStdout(),
 			Stderr: cmd.ErrOrStderr(),
@@ -140,14 +142,23 @@ func init() {
 		8,
 		"In-flight iterations across the whole run (1-32)",
 	)
-	f.DurationVar(&replayTimeout, "timeout", 30*time.Minute, "Give up polling after this long")
-	f.StringVar(&replayAgentURL, "agent-url", "",
-		"Agent base URL, overriding the public hostname (e.g. http://127.0.0.1:8080)")
+	f.DurationVar(
+		&replayTimeout,
+		"timeout",
+		30*time.Minute,
+		"Give up waiting for the verdict after this long",
+	)
+	f.StringVar(
+		&replayAgentURL,
+		"agent-url",
+		"",
+		"Talk straight to an agent at this base URL instead of through the platform (e.g. http://127.0.0.1:8080)",
+	)
 	f.StringVar(
 		&replayAPIKey,
 		"agent-api-key",
 		"",
-		"Bearer for the agent (else INTERACTIVE_AGENT_API_KEY, else resolved from the agent's secrets)",
+		"Bearer for the agent; only used with --agent-url (else INTERACTIVE_AGENT_API_KEY)",
 	)
 	f.BoolVar(
 		&replayJSON,

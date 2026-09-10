@@ -55,8 +55,8 @@ func PrintReplayProgress(w io.Writer, finished, total int) {
 	fmt.Fprintf(w, "%d/%d scenarios finished\n", finished, total)
 }
 
-// PrintReplayRetry reports a transient poll failure once per streak, so a
-// 404 from a replica that never saw the POST does not look like a hang.
+// PrintReplayRetry reports a transient failure once per streak, so a run that
+// briefly looks lost does not look like a hang.
 func PrintReplayRetry(w io.Writer, err error, limit string) {
 	fmt.Fprintf(w, "%v; retrying for up to %s\n", err, limit)
 }

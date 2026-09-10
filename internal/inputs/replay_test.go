@@ -131,32 +131,3 @@ func TestLoadScenarioFile(t *testing.T) {
 		}
 	})
 }
-
-func TestRuntimeAPIKeyRef(t *testing.T) {
-	tests := []struct {
-		name string
-		cfg  any
-		want string
-	}{
-		{
-			name: "env ref",
-			cfg:  map[string]any{"runtime": map[string]any{"api_key": "${AGENT_API_KEY}"}},
-			want: "AGENT_API_KEY",
-		},
-		{
-			name: "literal value is not a ref",
-			cfg:  map[string]any{"runtime": map[string]any{"api_key": "sk-literal"}},
-			want: "",
-		},
-		{name: "no runtime", cfg: map[string]any{"context": map[string]any{}}, want: ""},
-		{name: "not a map", cfg: "text", want: ""},
-		{name: "nil", cfg: nil, want: ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := RuntimeAPIKeyRef(tt.cfg); got != tt.want {
-				t.Errorf("RuntimeAPIKeyRef() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}

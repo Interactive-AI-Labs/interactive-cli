@@ -1,8 +1,8 @@
-// Package agent is the HTTP client for the replay API served by an agent
-// itself, as opposed to the platform or deployment APIs.
+// Package agent is the client for the replay routes, served by the platform or, with --agent-url, by the agent itself.
 package agent
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -14,19 +14,28 @@ import (
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/buildinfo"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
+// Auth applies the credentials for whichever replay endpoint the client was built for.
+type Auth func(*http.Request) error
+
 type Client struct {
-	baseURL string
-	bearer  string
-	http    *http.Client
+	baseURL     string
+	auth        Auth
+	follow      bool
+	callTimeout time.Duration
+	http        *http.Client
 }
 
-func NewClient(baseURL, bearer string, timeout time.Duration) *Client {
+func NewClient(baseURL string, auth Auth, follow bool, timeout time.Duration) *Client {
 	return &Client{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		bearer:  bearer,
-		http:    &http.Client{Timeout: timeout},
+		baseURL:     strings.TrimRight(baseURL, "/"),
+		auth:        auth,
+		follow:      follow,
+		callTimeout: timeout,
+		// No client-wide timeout: a followed run is one long response; do() bounds the short calls.
+		http: &http.Client{},
 	}
 }
 
@@ -70,6 +79,11 @@ func (c *Client) GetReplay(ctx context.Context, runID string) (*Run, error) {
 	if err != nil {
 		return nil, err
 	}
+	return decodeRun(raw)
+}
+
+// decodeRun normalises the batch form into a suite holding one batch.
+func decodeRun(raw []byte) (*Run, error) {
 	var run Run
 	if err := json.Unmarshal(raw, &run); err != nil {
 		return nil, fmt.Errorf("failed to decode replay run: %w", err)
@@ -102,13 +116,89 @@ type WaitOptions struct {
 	OnRetry func(error)
 }
 
-// Wait polls GET /replays/{run_id} until the run is no longer running.
-// Returns context.DeadlineExceeded when Timeout elapses and context.Canceled
-// when the parent context is cancelled; the run keeps going on the agent.
+// Wait blocks until the run is no longer running, following the platform's stream or polling a direct agent.
 func (c *Client) Wait(ctx context.Context, runID string, opts WaitOptions) (*Run, error) {
 	ctx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
+	if c.follow {
+		return c.followRun(ctx, runID, opts)
+	}
+	return c.pollRun(ctx, runID, opts)
+}
 
+// replayEvent is one line of the platform's status stream.
+type replayEvent struct {
+	Run     json.RawMessage `json:"run"`
+	Error   string          `json:"error"`
+	Timeout bool            `json:"timeout"`
+}
+
+// ErrStreamEnded is a followed stream that closed before a verdict; following again picks the run back up.
+var ErrStreamEnded = errors.New("status stream ended before the run finished")
+
+// followRun reads one status stream to its verdict; no automatic reconnection, as with logs.
+func (c *Client) followRun(ctx context.Context, runID string, opts WaitOptions) (*Run, error) {
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodGet, c.baseURL+"/replays/"+runID+"?follow=true", nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("User-Agent", buildinfo.UserAgent)
+	if err := c.auth(req); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, fmt.Errorf("replay request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		raw, _ := io.ReadAll(resp.Body)
+		return nil, decodeError(resp.StatusCode, raw)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 256*1024), 8<<20)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		var ev replayEvent
+		if err := json.Unmarshal(line, &ev); err != nil {
+			return nil, fmt.Errorf("failed to decode replay status: %w", err)
+		}
+		switch {
+		case ev.Error != "":
+			return nil, errors.New(ev.Error)
+		case ev.Timeout:
+			return nil, ErrStreamEnded
+		case len(ev.Run) > 0:
+			run, err := decodeRun(ev.Run)
+			if err != nil {
+				return nil, err
+			}
+			if opts.OnProgress != nil {
+				opts.OnProgress(run)
+			}
+			if run.Status != StatusRunning {
+				return run, nil
+			}
+		}
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return nil, ErrStreamEnded
+}
+
+// pollRun re-reads the run on an interval, for an agent reached directly.
+func (c *Client) pollRun(ctx context.Context, runID string, opts WaitOptions) (*Run, error) {
 	var firstFailure time.Time
 	for {
 		run, err := c.GetReplay(ctx, runID)
@@ -158,25 +248,29 @@ func isTransient(err error) bool {
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body io.Reader) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
+	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("User-Agent", buildinfo.UserAgent)
-	req.Header.Set("Authorization", "Bearer "+c.bearer)
+	if err := c.auth(req); err != nil {
+		return nil, err
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("agent request failed: %w", err)
+		return nil, fmt.Errorf("replay request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read agent response: %w", err)
+		return nil, fmt.Errorf("failed to read the replay response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, decodeError(resp.StatusCode, raw)
@@ -184,8 +278,7 @@ func (c *Client) do(ctx context.Context, method, path string, body io.Reader) ([
 	return raw, nil
 }
 
-// decodeError reads FastAPI error bodies: {"detail": "text"} or, for 422,
-// {"detail": [{"loc": [...], "msg": "..."}]}; anything else is kept verbatim.
+// decodeError reads the agent's error bodies ({"detail": text | 422 list}) or the platform's ({"message": text}).
 func decodeError(status int, body []byte) *Error {
 	e := &Error{Status: status}
 	var env struct {
@@ -215,6 +308,10 @@ func decodeError(status int, body []byte) *Error {
 			e.Detail = strings.Join(msgs, "; ")
 			return e
 		}
+	}
+	if msg := clients.ExtractServerMessage(body); msg != "" {
+		e.Detail = msg
+		return e
 	}
 	e.Detail = strings.TrimSpace(string(body))
 	return e

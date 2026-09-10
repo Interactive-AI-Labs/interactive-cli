@@ -16,7 +16,17 @@ func newTestClient(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	return NewClient(server.URL, "test-bearer", 5*time.Second)
+	return newTestClientMode(t, false, handler)
+}
+
+func newTestClientMode(t *testing.T, follow bool, handler http.HandlerFunc) *Client {
+	t.Helper()
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+	return NewClient(server.URL, func(req *http.Request) error {
+		req.Header.Set("Authorization", "Bearer test-bearer")
+		return nil
+	}, follow, 5*time.Second)
 }
 
 func waitOpts(onProgress func(*Run)) WaitOptions {
@@ -261,4 +271,104 @@ func TestWait(t *testing.T) {
 			t.Errorf("error = %v, want Canceled", err)
 		}
 	})
+}
+
+// ndjson writes each line as one stream event and flushes, as the platform does.
+func ndjson(w http.ResponseWriter, lines ...string) {
+	w.Header().Set("Content-Type", "application/x-ndjson")
+	f, _ := w.(http.Flusher)
+	for _, l := range lines {
+		fmt.Fprintln(w, l)
+		if f != nil {
+			f.Flush()
+		}
+	}
+}
+
+func TestWaitFollow(t *testing.T) {
+	tests := []struct {
+		name         string
+		handler      func(calls *atomic.Int32, w http.ResponseWriter, r *http.Request)
+		wantStatus   string
+		wantErr      string
+		wantProgress int
+		wantRequests int32
+	}{
+		{
+			name: "one stream carries the run to its verdict",
+			handler: func(_ *atomic.Int32, w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("follow") != "true" {
+					t.Errorf("follow query missing: %s", r.URL.RawQuery)
+				}
+				ndjson(
+					w,
+					`{"run":{"run_id":"r1","status":"running","batches":[{"status":"running"}]}}`,
+					`{"run":{"run_id":"r1","status":"running","batches":[{"status":"passed"}]}}`,
+					`{"run":{"run_id":"r1","status":"passed","batches":[{"status":"passed"}]}}`,
+				)
+			},
+			wantStatus: StatusPassed, wantProgress: 3, wantRequests: 1,
+		},
+		{
+			name: "the platform's timeout line ends the follow, no reconnection",
+			handler: func(_ *atomic.Int32, w http.ResponseWriter, r *http.Request) {
+				ndjson(w, `{"run":{"run_id":"r1","status":"running"}}`, `{"timeout":true}`)
+			},
+			wantErr: ErrStreamEnded.Error(), wantProgress: 1, wantRequests: 1,
+		},
+		{
+			name: "the platform's error line ends the follow with its own wording",
+			handler: func(_ *atomic.Int32, w http.ResponseWriter, r *http.Request) {
+				ndjson(w, `{"error":"Agent could not be reached for 5m0s"}`)
+			},
+			wantErr: "Agent could not be reached for 5m0s", wantRequests: 1,
+		},
+		{
+			name: "a stream that drops before the verdict is not retried",
+			handler: func(_ *atomic.Int32, w http.ResponseWriter, r *http.Request) {
+				ndjson(w, `{"run":{"run_id":"r1","status":"running"}}`)
+			},
+			wantErr: ErrStreamEnded.Error(), wantProgress: 1, wantRequests: 1,
+		},
+		{
+			name: "a refusal before the stream surfaces the platform's message",
+			handler: func(_ *atomic.Int32, w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(w, `{"code":403,"message":"Not allowed to replay this agent"}`)
+			},
+			wantErr: "Not allowed to replay this agent", wantRequests: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var calls atomic.Int32
+			var requests atomic.Int32
+			client := newTestClientMode(t, true, func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				tt.handler(&calls, w, r)
+			})
+			var progress int
+			opts := waitOpts(func(*Run) { progress++ })
+			opts.OnRetry = func(error) { t.Error("a followed run must not report retries") }
+
+			run, err := client.Wait(context.Background(), "r1", opts)
+
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %v, want %q", err, tt.wantErr)
+				}
+			} else if err != nil {
+				t.Fatalf("Wait() error = %v", err)
+			} else if run.Status != tt.wantStatus {
+				t.Errorf("status = %s, want %s", run.Status, tt.wantStatus)
+			}
+			if progress != tt.wantProgress {
+				t.Errorf("progress calls = %d, want %d", progress, tt.wantProgress)
+			}
+			if tt.wantRequests != 0 && requests.Load() != tt.wantRequests {
+				t.Errorf("requests = %d, want %d", requests.Load(), tt.wantRequests)
+			}
+		})
+	}
 }

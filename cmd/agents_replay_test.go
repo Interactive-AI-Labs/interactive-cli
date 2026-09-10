@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -78,59 +77,47 @@ func TestAgentReplayFlagGroups(t *testing.T) {
 }
 
 func TestAgentReplayEndToEnd(t *testing.T) {
-	var polls atomic.Int32
-	agentServer := httptest.NewServer(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Header.Get("Authorization") != "Bearer the-agent-key" {
-				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprint(w, "Unauthorized")
-				return
-			}
-			switch {
-			case r.Method == http.MethodPost && r.URL.Path == "/replays":
-				w.WriteHeader(http.StatusAccepted)
-				fmt.Fprint(w, `{"run_id":"run-42","skipped":[],"status":"accepted"}`)
-			case r.Method == http.MethodGet && r.URL.Path == "/replays/run-42":
-				polls.Add(1)
-				fmt.Fprint(
-					w,
-					`{"run_id":"run-42","dataset":"replay-chat","status":"failed","repeat":1,"concurrency":8,`+
-						`"batches":[{"scenario":"account-lock","status":"failed","repeat":1,"passed":0,`+
-						`"iterations":[{"status":"failed","turns":2,"eval_trace_id":"ev1",`+
-						`"observed":{"steps":["a"]},"failures":["steps.reached: 'b' not observed"]}]}]}`,
-				)
-			default:
-				t.Errorf("unexpected agent request: %s %s", r.Method, r.URL.Path)
-				w.WriteHeader(http.StatusNotFound)
-			}
-		}),
-	)
-	t.Cleanup(agentServer.Close)
-
-	encodedKey := base64.StdEncoding.EncodeToString([]byte("the-agent-key"))
+	var streams atomic.Int32
+	// One server: the platform serves the replay routes under the agent's path.
+	const relay = "/v1/organizations/org-1/projects/proj-1/agents/agent-chat-dev"
 	platform := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/api/v1/session/organizations" &&
+				r.Header.Get("Authorization") != "Bearer test-token" {
+				t.Errorf("request to %s without the caller's platform token", r.URL.Path)
+			}
 			switch {
 			case r.Method == http.MethodGet && r.URL.Path == "/api/v1/session/organizations":
 				fmt.Fprint(w, `{"organizations":[{"id":"org-1","name":"acme"}]}`)
 			case r.Method == http.MethodGet &&
 				r.URL.Path == "/api/v1/session/organizations/org-1/projects":
 				fmt.Fprint(w, `{"projects":[{"id":"proj-1","name":"support"}]}`)
-			case r.Method == http.MethodGet &&
-				r.URL.Path == "/v1/organizations/org-1/projects/proj-1/agents/agent-chat-dev":
-				fmt.Fprint(w, `{"name":"agent-chat-dev","revision":592,"version":"0.15.1",`+
-					`"endpoint":"agent-chat-dev.example.com",`+
-					`"agentConfig":{"runtime":{"api_key":"${AGENT_API_KEY}"}},`+
-					`"secretRefs":[{"secretName":"platform-dev"}]}`)
-			case r.Method == http.MethodGet &&
-				r.URL.Path == "/v1/organizations/org-1/projects/proj-1/secrets/platform-dev":
-				fmt.Fprintf(
+			case r.Method == http.MethodGet && r.URL.Path == relay:
+				// No endpoint: an agent without one replays just the same.
+				fmt.Fprint(w, `{"name":"agent-chat-dev","revision":592,"version":"0.15.1"}`)
+			case r.Method == http.MethodPost && r.URL.Path == relay+"/replays":
+				w.WriteHeader(http.StatusAccepted)
+				fmt.Fprint(w, `{"run_id":"run-42","skipped":[],"status":"accepted"}`)
+			case r.Method == http.MethodGet && r.URL.Path == relay+"/replays/run-42":
+				if r.URL.Query().Get("follow") != "true" {
+					t.Errorf("status was polled, want one followed stream")
+				}
+				streams.Add(1)
+				w.Header().Set("Content-Type", "application/x-ndjson")
+				fmt.Fprintln(
 					w,
-					`{"secret":{"name":"platform-dev","data":{"AGENT_API_KEY":%q}}}`,
-					encodedKey,
+					`{"run":{"run_id":"run-42","dataset":"replay-chat","status":"running","repeat":1,"concurrency":8,`+
+						`"batches":[{"scenario":"account-lock","status":"running","repeat":1}]}}`,
+				)
+				fmt.Fprintln(
+					w,
+					`{"run":{"run_id":"run-42","dataset":"replay-chat","status":"failed","repeat":1,"concurrency":8,`+
+						`"batches":[{"scenario":"account-lock","status":"failed","repeat":1,"passed":0,`+
+						`"iterations":[{"status":"failed","turns":2,"eval_trace_id":"ev1",`+
+						`"observed":{"steps":["a"]},"failures":["steps.reached: 'b' not observed"]}]}]}}`,
 				)
 			default:
-				t.Errorf("unexpected platform request: %s %s", r.Method, r.URL.Path)
+				t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
 				w.WriteHeader(http.StatusNotFound)
 			}
 		}),
@@ -142,7 +129,7 @@ func TestAgentReplayEndToEnd(t *testing.T) {
 	resetReplayFlags(t)
 	hostname, deploymentHostname, token, apiKey = platform.URL, platform.URL, "test-token", ""
 	agentOrganization, agentProject = "acme", "support"
-	replayDataset, replayAgentURL = "replay-chat", agentServer.URL
+	replayDataset = "replay-chat"
 	replayRepeat, replayConcurrency = 1, 8
 
 	var stdout, stderr bytes.Buffer
@@ -154,8 +141,8 @@ func TestAgentReplayEndToEnd(t *testing.T) {
 	if err := agentReplayCmd.RunE(agentReplayCmd, []string{"agent-chat-dev"}); err != nil {
 		t.Fatalf("agents replay: %v", err)
 	}
-	if polls.Load() != 1 {
-		t.Errorf("polls = %d, want 1", polls.Load())
+	if streams.Load() != 1 {
+		t.Errorf("streams = %d, want 1", streams.Load())
 	}
 
 	wantStdout := "dataset replay-chat   1 scenario   repeat 1   concurrency 8\n" +
@@ -171,15 +158,12 @@ func TestAgentReplayEndToEnd(t *testing.T) {
 	if got := stdout.String(); got != wantStdout {
 		t.Errorf("stdout mismatch\ngot:\n%s\nwant:\n%s", got, wantStdout)
 	}
-	wantStderr := "agent-chat-dev  0.15.1  rev 592    " + agentServer.URL + "\n" +
-		"using AGENT_API_KEY from secret platform-dev\n" +
+	wantStderr := "agent-chat-dev  0.15.1  rev 592    via platform\n" +
+		"0/1 scenarios finished\n" +
 		"1/1 scenarios finished\n" +
 		"scores: iai scores list --name replay.verdict --columns name,trace_id,comment" +
 		" · eval trace (account-lock): iai traces get ev1\n"
 	if got := stderr.String(); got != wantStderr {
 		t.Errorf("stderr mismatch\ngot:\n%s\nwant:\n%s", got, wantStderr)
-	}
-	if strings.Contains(stdout.String()+stderr.String(), "the-agent-key") {
-		t.Error("bearer leaked into output")
 	}
 }

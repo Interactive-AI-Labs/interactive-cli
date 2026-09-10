@@ -3,8 +3,9 @@ package replay
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,10 +18,22 @@ import (
 )
 
 type fakeDeploy struct {
-	fakeSecrets
 	agent         *deployment.DescribeAgentResponse
 	err           error
 	describeCalls int
+	replayCalls   int
+}
+
+func (f *fakeDeploy) ReplayEndpoint(
+	orgID, projectID, agentName string,
+) (string, func(*http.Request) error) {
+	f.replayCalls++
+	return "https://api.test/v1/organizations/" + orgID +
+			"/projects/" + projectID + "/agents/" + agentName,
+		func(req *http.Request) error {
+			req.Header.Set("Authorization", "Bearer platform-token")
+			return nil
+		}
 }
 
 func (f *fakeDeploy) DescribeAgent(
@@ -31,15 +44,16 @@ func (f *fakeDeploy) DescribeAgent(
 }
 
 type fakeAgent struct {
-	baseURL, bearer string
-	startReq        *agent.StartRequest
-	startResp       *agent.StartResponse
-	startErr        error
-	waitRunID       string
-	waitRun         *agent.Run
-	waitErr         error
-	progress        []*agent.Run
-	retryErr        error
+	baseURL, authHeader string
+	follow              bool
+	startReq            *agent.StartRequest
+	startResp           *agent.StartResponse
+	startErr            error
+	waitRunID           string
+	waitRun             *agent.Run
+	waitErr             error
+	progress            []*agent.Run
+	retryErr            error
 }
 
 func (f *fakeAgent) StartReplay(
@@ -90,19 +104,12 @@ func newHarness() *harness {
 				Version:  "0.15.1",
 				Revision: 592,
 				Endpoint: "agent-chat-dev.example.com",
-				AgentConfig: map[string]any{
-					"runtime": map[string]any{"api_key": "${AGENT_API_KEY}"},
-				},
-				SecretRefs: []deployment.SecretRef{{SecretName: "platform-dev"}},
 			},
 		},
 		agent: &fakeAgent{
 			startResp: &agent.StartResponse{RunID: "run-1"},
 			waitRun:   finishedRun(agent.StatusPassed),
 		},
-	}
-	h.deploy.secrets = map[string]map[string]string{
-		"platform-dev": {"AGENT_API_KEY": base64.StdEncoding.EncodeToString([]byte("secret-key"))},
 	}
 	return h
 }
@@ -118,8 +125,13 @@ func (h *harness) run(mutate func(*Options)) error {
 	}
 	deps := Deps{
 		Deploy: h.deploy,
-		NewAgent: func(baseURL, bearer string) AgentAPI {
-			h.agent.baseURL, h.agent.bearer = baseURL, bearer
+		NewAgent: func(baseURL string, auth agent.Auth, follow bool) AgentAPI {
+			h.agent.baseURL, h.agent.follow = baseURL, follow
+			probe := httptest.NewRequest(http.MethodGet, "/", nil)
+			if err := auth(probe); err != nil {
+				panic(err)
+			}
+			h.agent.authHeader = probe.Header.Get("Authorization")
 			return h.agent
 		},
 		Stdout: &h.stdout,
@@ -133,23 +145,20 @@ func TestRunDatasetPassed(t *testing.T) {
 	if err := h.run(nil); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
-	if h.agent.baseURL != "https://agent-chat-dev.example.com" || h.agent.bearer != "secret-key" {
-		t.Errorf("agent built with %q / %q", h.agent.baseURL, h.agent.bearer)
-	}
 	if h.agent.startReq.Dataset != "replay-chat" || h.agent.waitRunID != "run-1" {
 		t.Errorf("start %+v wait %q", h.agent.startReq, h.agent.waitRunID)
 	}
 	if !strings.HasPrefix(
 		h.stderr.String(),
-		"agent-chat-dev  0.15.1  rev 592    https://agent-chat-dev.example.com\n",
+		"agent-chat-dev  0.15.1  rev 592    via platform\n",
 	) {
 		t.Errorf("stderr = %q", h.stderr.String())
 	}
 	if !strings.Contains(h.stdout.String(), "PASS   1/1 passed     run run-1") {
 		t.Errorf("stdout = %q", h.stdout.String())
 	}
-	if strings.Contains(h.stdout.String()+h.stderr.String(), "secret-key") {
-		t.Error("bearer leaked into output")
+	if strings.Contains(h.stdout.String()+h.stderr.String(), "platform-token") {
+		t.Error("credential leaked into output")
 	}
 }
 
@@ -208,9 +217,9 @@ func TestRunFileErrorBeforeAnyNetworkCall(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "must be a YAML or JSON object") {
 		t.Fatalf("error = %v", err)
 	}
-	if h.deploy.describeCalls != 0 || len(h.deploy.fetched) != 0 {
-		t.Errorf("network calls before file validation: describe=%d secrets=%v",
-			h.deploy.describeCalls, h.deploy.fetched)
+	if h.deploy.describeCalls != 0 || h.deploy.replayCalls != 0 {
+		t.Errorf("network calls before file validation: describe=%d replay=%d",
+			h.deploy.describeCalls, h.deploy.replayCalls)
 	}
 	if h.stderr.Len() != 0 {
 		t.Errorf("stderr should be empty, got %q", h.stderr.String())
@@ -262,37 +271,96 @@ func TestRunReattachSkipsStart(t *testing.T) {
 	}
 }
 
-func TestRunAgentURLOverridesEndpoint(t *testing.T) {
-	h := newHarness()
-	h.deploy.agent.Endpoint = ""
-	if err := h.run(func(o *Options) { o.AgentURL = "http://127.0.0.1:8080" }); err != nil {
-		t.Fatalf("Run() error = %v", err)
-	}
-	if h.agent.baseURL != "http://127.0.0.1:8080" {
-		t.Errorf("baseURL = %q", h.agent.baseURL)
-	}
-}
+func TestRunTarget(t *testing.T) {
+	const platformURL = "https://api.test/v1/organizations/o/projects/p/agents/agent-chat-dev"
 
-func TestRunNoEndpoint(t *testing.T) {
-	h := newHarness()
-	h.deploy.agent.Endpoint = ""
-	err := h.run(nil)
-	if err == nil || !strings.Contains(err.Error(), "has no public endpoint") ||
-		!strings.Contains(err.Error(), "--agent-url http://127.0.0.1:8080") {
-		t.Errorf("error = %v", err)
+	tests := []struct {
+		name       string
+		endpoint   string
+		agentURL   string
+		apiKey     string
+		wantURL    string
+		wantAuth   string
+		wantStderr string
+		wantErr    string
+	}{
+		{
+			name:       "default goes through the platform as the caller",
+			endpoint:   "agent-chat-dev.example.com",
+			wantURL:    platformURL,
+			wantAuth:   "Bearer platform-token",
+			wantStderr: "via platform",
+		},
+		{
+			// An agent with no endpoint used to be unreplayable.
+			name:       "an agent without an endpoint replays too",
+			wantURL:    platformURL,
+			wantAuth:   "Bearer platform-token",
+			wantStderr: "via platform",
+		},
+		{
+			name:       "agent-url talks straight to the agent with its own key",
+			endpoint:   "agent-chat-dev.example.com",
+			agentURL:   "http://127.0.0.1:8080",
+			apiKey:     "local-key",
+			wantURL:    "http://127.0.0.1:8080",
+			wantAuth:   "Bearer local-key",
+			wantStderr: "http://127.0.0.1:8080",
+		},
+		{
+			name:     "agent-url without a key is refused before any call",
+			agentURL: "http://127.0.0.1:8080",
+			wantErr:  "--agent-api-key",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHarness()
+			h.deploy.agent.Endpoint = tt.endpoint
+			err := h.run(func(o *Options) {
+				o.AgentURL, o.APIKey = tt.agentURL, tt.apiKey
+			})
+
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %v, want it to mention %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Run() error = %v", err)
+			}
+			if h.agent.baseURL != tt.wantURL {
+				t.Errorf("baseURL = %q, want %q", h.agent.baseURL, tt.wantURL)
+			}
+			if h.agent.authHeader != tt.wantAuth {
+				t.Errorf("authHeader = %q, want %q", h.agent.authHeader, tt.wantAuth)
+			}
+			if !strings.Contains(h.stderr.String(), tt.wantStderr) {
+				t.Errorf("stderr = %q, want it to name %q", h.stderr.String(), tt.wantStderr)
+			}
+		})
 	}
 }
 
 func TestRunStartErrors(t *testing.T) {
 	tests := []struct {
-		name string
-		err  error
-		want []string
+		name     string
+		err      error
+		agentURL string
+		want     []string
 	}{
 		{
-			name: "401",
+			name: "401 through the platform blames the login",
 			err:  &agent.Error{Status: 401, Detail: "Unauthorized"},
-			want: []string{"the agent rejected the api key", "--agent-api-key"},
+			want: []string{"not authorized to replay", "logged in"},
+		},
+		{
+			name:     "401 on a direct call blames the flag",
+			err:      &agent.Error{Status: 401, Detail: "Unauthorized"},
+			agentURL: "http://127.0.0.1:8080",
+			want:     []string{"the agent rejected --agent-api-key"},
 		},
 		{
 			name: "404",
@@ -333,7 +401,11 @@ func TestRunStartErrors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHarness()
 			h.agent.startErr = tt.err
-			err := h.run(nil)
+			err := h.run(func(o *Options) {
+				if tt.agentURL != "" {
+					o.AgentURL, o.APIKey = tt.agentURL, "local-key"
+				}
+			})
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -364,24 +436,39 @@ func TestRunSkippedPrintedOnStart(t *testing.T) {
 
 func TestRunWaitErrors(t *testing.T) {
 	tests := []struct {
-		name string
-		err  error
-		want []string
+		name       string
+		err        error
+		want       []string
+		wantStderr []string
+		wantNil    bool
 	}{
 		{
-			name: "interrupted",
-			err:  context.Canceled,
-			want: []string{"interrupted", "iai agents replay agent-chat-dev --run-id run-1"},
+			name: "the stream closed with the run still going",
+			err:  agent.ErrStreamEnded,
+			want: []string{
+				"run run-1 may still be running",
+				"iai agents replay agent-chat-dev --run-id run-1",
+			},
 		},
 		{
 			name: "timeout",
 			err:  context.DeadlineExceeded,
-			want: []string{"gave up polling after 1m0s", "--run-id run-1"},
+			want: []string{"gave up waiting after 1m0s", "--run-id run-1"},
 		},
 		{
 			name: "lost run passes through",
 			err:  errors.New("run run-1 not found for 5m0s"),
 			want: []string{"not found for 5m0s"},
+		},
+		{
+			// Ctrl-C stops watching without failing the command, as logs --follow does.
+			name:    "interrupted is quiet",
+			err:     context.Canceled,
+			wantNil: true,
+			wantStderr: []string{
+				"stopped watching run run-1",
+				"iai agents replay agent-chat-dev --run-id run-1",
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -389,12 +476,20 @@ func TestRunWaitErrors(t *testing.T) {
 			h := newHarness()
 			h.agent.waitErr = tt.err
 			err := h.run(nil)
-			if err == nil {
+			if tt.wantNil && err != nil {
+				t.Fatalf("Run() error = %v, want nil", err)
+			}
+			if !tt.wantNil && err == nil {
 				t.Fatal("expected error")
 			}
 			for _, w := range tt.want {
 				if !strings.Contains(err.Error(), w) {
 					t.Errorf("error %q missing %q", err.Error(), w)
+				}
+			}
+			for _, w := range tt.wantStderr {
+				if !strings.Contains(h.stderr.String(), w) {
+					t.Errorf("stderr %q missing %q", h.stderr.String(), w)
 				}
 			}
 			if h.stdout.Len() != 0 {

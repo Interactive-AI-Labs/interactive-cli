@@ -12,9 +12,11 @@ what the run must satisfy. Replaying re-runs those inputs with live reasoning,
 answers tool calls from the recorded fixtures, then checks the expectations
 and writes PASS/FAIL scores to the platform.
 
-The command talks to the agent itself over its public hostname, not to the
-platform. Any agent running agent-server 0.15.0 or later serves the replay
-routes; there is nothing to enable. Three modes:
+The platform runs the replay against the agent and streams its progress back
+over one connection, so an agent without an endpoint replays like any other
+and the agent's own key is never needed here. Any agent running agent-server
+0.15.0 or later serves the replay routes; there is nothing to enable. Three
+modes:
 
   --dataset D            replay every scenario in the dataset, or only the
                          names given with --scenarios
@@ -30,10 +32,10 @@ run or when it failed or errored; passed scenarios in a multi-scenario run
 are one row each. Progress and the pointer to the platform scores go to
 stderr, so stdout carries only the verdict (or the --json payload).
 
-The agent's API key is taken from --agent-api-key, then INTERACTIVE_AGENT_API_KEY,
-then resolved from the agent's own configuration by reading the project
-secret it mounts. That last step needs secret-read permission, so CI should
-set INTERACTIVE_AGENT_API_KEY instead.
+Replaying needs permission to run agents in the project; your login is what
+authorizes it. The agent's own API key is only needed with --agent-url, which
+talks straight to the given address: pass --agent-api-key or set
+INTERACTIVE_AGENT_API_KEY for that.
 
 Exit code is 0 when the run finished with a verdict, passed or failed, and 1
 when the replay could not run. The verdict itself is in the output; gate on
@@ -58,8 +60,8 @@ iai agents replay <agent_name> [flags]
 ### Options
 
 ```
-      --agent-api-key string    Bearer for the agent (else INTERACTIVE_AGENT_API_KEY, else resolved from the agent's secrets)
-      --agent-url string        Agent base URL, overriding the public hostname (e.g. http://127.0.0.1:8080)
+      --agent-api-key string    Bearer for the agent; only used with --agent-url (else INTERACTIVE_AGENT_API_KEY)
+      --agent-url string        Talk straight to an agent at this base URL instead of through the platform (e.g. http://127.0.0.1:8080)
       --concurrency int         In-flight iterations across the whole run (1-32) (default 8)
       --dataset string          Dataset holding the scenarios (required unless --file or --run-id)
       --file string             Local scenario file (YAML or JSON), posted inline
@@ -70,7 +72,7 @@ iai agents replay <agent_name> [flags]
       --repeat int              Iterations per scenario (1-20) (default 1)
       --run-id string           Re-attach to a run already started on the agent; no new run is started
       --scenarios stringArray   Only this scenario name from --dataset; repeat the flag once per scenario, run in this order
-      --timeout duration        Give up polling after this long (default 30m0s)
+      --timeout duration        Give up waiting for the verdict after this long (default 30m0s)
 ```
 
 ### Options inherited from parent commands
