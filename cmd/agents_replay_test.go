@@ -5,24 +5,17 @@ import (
 	"testing"
 )
 
+// resetReplayFlags restores what the cases below change: the flag values they
+// set and the Changed state cobra reads when it validates the flag groups.
 func resetReplayFlags(t *testing.T) {
 	t.Helper()
-	origHostname, origDeployHostname, origToken, origApiKey := hostname, deploymentHostname, token, apiKey
-	origOrg, origProject := agentOrganization, agentProject
 	t.Cleanup(func() {
-		hostname, deploymentHostname, token, apiKey = origHostname, origDeployHostname, origToken, origApiKey
-		agentOrganization, agentProject = origOrg, origProject
 		replayDataset, replayFile, replayRunID = "", "", ""
 		replayScenarios = nil
-		replayRepeat, replayConcurrency, replayJSON = 1, 8, false
-		for _, name := range []string{
-			"dataset", "scenarios", "file", "run-id", "repeat", "concurrency",
-			"timeout", "json",
-		} {
+		replayRepeat = 1
+		for _, name := range []string{"dataset", "file", "run-id", "scenarios", "repeat"} {
 			agentReplayCmd.Flags().Lookup(name).Changed = false
 		}
-		agentReplayCmd.SetOut(nil)
-		agentReplayCmd.SetErr(nil)
 	})
 }
 
