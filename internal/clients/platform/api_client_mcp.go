@@ -81,13 +81,21 @@ type McpAuth struct {
 	HeaderPrefix *string `json:"header_prefix,omitempty"`
 }
 
+type McpEnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type McpWorkload struct {
-	Image   string `json:"image"`
-	Port    int    `json:"port"`
-	Path    string `json:"path"`
-	Memory  string `json:"memory"`
-	CPU     string `json:"cpu"`
-	StackId string `json:"stack_id,omitempty"`
+	Image   string      `json:"image"`
+	Port    int         `json:"port"`
+	Path    string      `json:"path"`
+	Memory  string      `json:"memory"`
+	CPU     string      `json:"cpu"`
+	StackId string      `json:"stack_id,omitempty"`
+	Env     []McpEnvVar `json:"env,omitempty"`
+	// Secret names, never values.
+	SecretRefs []string `json:"secret_refs,omitempty"`
 }
 
 type McpCreateRequest struct {

@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 // ResolveCredential reads stdin when requested to keep the value out of shell history.
@@ -40,4 +42,58 @@ func ResolveToolArgs(inline, file string) (map[string]any, error) {
 		return nil, fmt.Errorf("invalid tool arguments: must be a JSON object, got null")
 	}
 	return args, nil
+}
+
+// ResolveMcpEnvVars turns repeated --env NAME=VALUE flags into an mcp workload's
+// env list. Nil leaves the deployed list alone; an empty list clears it.
+func ResolveMcpEnvVars(envVars []string, changed, clear bool) ([]platform.McpEnvVar, error) {
+	if clear && changed {
+		return nil, fmt.Errorf("--clear-env cannot be combined with --env")
+	}
+	if clear {
+		return []platform.McpEnvVar{}, nil
+	}
+	if !changed {
+		return nil, nil
+	}
+	if len(envVars) == 0 {
+		return nil, fmt.Errorf(
+			"--env requires at least one NAME=VALUE argument; use --clear-env to remove all variables",
+		)
+	}
+	if err := ValidateServiceEnvVars(envVars); err != nil {
+		return nil, err
+	}
+	env := make([]platform.McpEnvVar, 0, len(envVars))
+	for _, e := range envVars {
+		name, value, _ := strings.Cut(e, "=")
+		env = append(env, platform.McpEnvVar{Name: strings.TrimSpace(name), Value: value})
+	}
+	return env, nil
+}
+
+// ResolveMcpSecretRefs is ResolveMcpEnvVars for --secret/--clear-secret, over secret names.
+func ResolveMcpSecretRefs(refs []string, changed, clear bool) ([]string, error) {
+	if clear && changed {
+		return nil, fmt.Errorf("--clear-secret cannot be combined with --secret")
+	}
+	if clear {
+		return []string{}, nil
+	}
+	if !changed {
+		return nil, nil
+	}
+	if len(refs) == 0 {
+		return nil, fmt.Errorf(
+			"--secret requires at least one secret name; use --clear-secret to remove all secret references",
+		)
+	}
+	if err := ValidateServiceSecretRefs(refs); err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(refs))
+	for _, name := range refs {
+		names = append(names, strings.TrimSpace(name))
+	}
+	return names, nil
 }

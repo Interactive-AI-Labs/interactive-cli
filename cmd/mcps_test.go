@@ -62,6 +62,32 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			wantErr: "--image-name only applies to an internal mcp",
 		},
 		{name: "external auth header", backend: platform.McpBackendExternal, flag: "auth-header"},
+		{name: "internal env", backend: platform.McpBackendInternal, flag: "env"},
+		{
+			name:    "external env",
+			backend: platform.McpBackendExternal,
+			flag:    "env",
+			wantErr: "--env only applies to an internal mcp",
+		},
+		{name: "internal secret", backend: platform.McpBackendInternal, flag: "secret"},
+		{
+			name:    "external secret",
+			backend: platform.McpBackendExternal,
+			flag:    "secret",
+			wantErr: "--secret only applies to an internal mcp",
+		},
+		{
+			name:    "external clear-env",
+			backend: platform.McpBackendExternal,
+			flag:    "clear-env=true",
+			wantErr: "--clear-env only applies to an internal mcp",
+		},
+		{
+			name:    "external clear-secret",
+			backend: platform.McpBackendExternal,
+			flag:    "clear-secret=true",
+			wantErr: "--clear-secret only applies to an internal mcp",
+		},
 		{
 			name:    "internal auth header",
 			backend: platform.McpBackendInternal,
@@ -79,8 +105,16 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			} {
 				cmd.Flags().StringVar(&value, name, "", "")
 			}
-			if err := cmd.Flags().Set(tt.flag, "x"); err != nil {
-				t.Fatalf("set %s: %v", tt.flag, err)
+			cmd.Flags().StringArray("env", nil, "")
+			cmd.Flags().StringArray("secret", nil, "")
+			cmd.Flags().Bool("clear-env", false, "")
+			cmd.Flags().Bool("clear-secret", false, "")
+			name, value, found := strings.Cut(tt.flag, "=")
+			if !found {
+				value = "x"
+			}
+			if err := cmd.Flags().Set(name, value); err != nil {
+				t.Fatalf("set %s: %v", name, err)
 			}
 			err := validateMcpBackendFlags(cmd, tt.backend)
 			if tt.wantErr == "" && err != nil {
@@ -129,6 +163,10 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 			flags:   []string{"stack-id="},
 			wantErr: "--stack-id must not be empty",
 		},
+		{name: "env alone", flags: []string{"env"}},
+		{name: "secret alone", flags: []string{"secret"}},
+		{name: "clear-env alone", flags: []string{"clear-env=true"}},
+		{name: "clear-secret alone", flags: []string{"clear-secret=true"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -141,6 +179,10 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 				cmd.Flags().StringVar(&value, name, "", "")
 			}
 			cmd.Flags().Bool("credential-stdin", false, "")
+			cmd.Flags().StringArray("env", nil, "")
+			cmd.Flags().StringArray("secret", nil, "")
+			cmd.Flags().Bool("clear-env", false, "")
+			cmd.Flags().Bool("clear-secret", false, "")
 			for _, flag := range tt.flags {
 				name, value, found := strings.Cut(flag, "=")
 				if !found {
@@ -162,20 +204,46 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 }
 
 func TestMcpUpdateRequest(t *testing.T) {
+	// Ordered pairs, not a map: --env and --secret are repeatable.
 	tests := []struct {
 		name      string
-		flags     map[string]string
+		flags     [][2]string
 		wantPatch map[string]any
 	}{
 		{
 			name:      "explicit zero port reaches the API",
-			flags:     map[string]string{"port": "0"},
+			flags:     [][2]string{{"port", "0"}},
 			wantPatch: map[string]any{"workload": map[string]any{"port": float64(0)}},
 		},
 		{
 			name:      "memory update stays partial",
-			flags:     map[string]string{"memory": "1G"},
+			flags:     [][2]string{{"memory", "1G"}},
 			wantPatch: map[string]any{"workload": map[string]any{"memory": "1G"}},
+		},
+		{
+			name:  "repeated env replaces the whole list",
+			flags: [][2]string{{"env", "ENV=dev"}, {"env", "SILENT_MODE=true"}},
+			wantPatch: map[string]any{"workload": map[string]any{"env": []any{
+				map[string]any{"name": "ENV", "value": "dev"},
+				map[string]any{"name": "SILENT_MODE", "value": "true"},
+			}}},
+		},
+		{
+			name:  "secrets travel as names",
+			flags: [][2]string{{"secret", "platform-dev"}, {"secret", "services-dev"}},
+			wantPatch: map[string]any{"workload": map[string]any{
+				"secret_refs": []any{"platform-dev", "services-dev"},
+			}},
+		},
+		{
+			name:      "clear-env sends an empty list",
+			flags:     [][2]string{{"clear-env", "true"}},
+			wantPatch: map[string]any{"workload": map[string]any{"env": []any{}}},
+		},
+		{
+			name:      "clear-secret sends an empty list",
+			flags:     [][2]string{{"clear-secret", "true"}},
+			wantPatch: map[string]any{"workload": map[string]any{"secret_refs": []any{}}},
 		},
 	}
 	for _, tt := range tests {
@@ -214,7 +282,12 @@ func TestMcpUpdateRequest(t *testing.T) {
 
 			resetFlags := func() {
 				mcpUpdateCmd.Flags().VisitAll(func(flag *pflag.Flag) {
-					if err := flag.Value.Set(flag.DefValue); err != nil {
+					// A repeatable flag's DefValue is "[]", which Set appends verbatim.
+					if slice, ok := flag.Value.(pflag.SliceValue); ok {
+						if err := slice.Replace(nil); err != nil {
+							t.Errorf("reset --%s: %v", flag.Name, err)
+						}
+					} else if err := flag.Value.Set(flag.DefValue); err != nil {
 						t.Errorf("reset --%s: %v", flag.Name, err)
 					}
 					flag.Changed = false
@@ -231,9 +304,9 @@ func TestMcpUpdateRequest(t *testing.T) {
 			hostname, token, apiKey = server.URL, "test-token", ""
 			mcpOrganization, mcpProject = "acme", "demo"
 			resetFlags()
-			for name, value := range tt.flags {
-				if err := mcpUpdateCmd.Flags().Set(name, value); err != nil {
-					t.Fatalf("set --%s: %v", name, err)
+			for _, flag := range tt.flags {
+				if err := mcpUpdateCmd.Flags().Set(flag[0], flag[1]); err != nil {
+					t.Fatalf("set --%s: %v", flag[0], err)
 				}
 			}
 			var out bytes.Buffer
