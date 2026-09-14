@@ -8,7 +8,10 @@ Create an mcp — a hosted MCP server ("internal"), a custom external URL,
 or a catalog-backed provider.
 
 Internal: --image-name and --image-tag identify the image. --port, --path,
---memory, and --cpu configure how it runs.
+--memory, and --cpu configure how it runs. --env NAME=VALUE and --secret
+configure the server itself and can each be repeated; --secret takes the name
+of a secret that already exists in the project (see 'iai secrets'), which is
+loaded whole as environment variables. Secret values are never passed here.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
@@ -33,6 +36,7 @@ iai mcps create <mcp_name> [flags]
 ```
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp
+  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
@@ -51,6 +55,7 @@ iai mcps create <mcp_name> [flags]
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
+      --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
       --external-url string         External MCP server URL — not platform-owned, dialed directly (custom external mcp)
   -h, --help                        help for create
       --image-name string           Container image name (internal)
@@ -58,6 +63,7 @@ iai mcps create <mcp_name> [flags]
       --memory string               Memory request/limit, e.g. 512M (internal)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
       --port int                    Port the mcp server listens on (internal)
+      --secret stringArray          Secret to load as env vars, by name; can be repeated (internal)
       --stack-id string             Stack ID to assign the mcp to (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```

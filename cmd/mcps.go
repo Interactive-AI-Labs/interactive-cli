@@ -39,6 +39,10 @@ var (
 	mcpAuthHeader      string
 	mcpAuthHeaderPfx   string
 	mcpStackId         string
+	mcpEnvVars         []string
+	mcpSecretRefs      []string
+	mcpClearEnv        bool
+	mcpClearSecret     bool
 )
 
 var mcpForce bool
@@ -112,7 +116,10 @@ var mcpCreateCmd = &cobra.Command{
 or a catalog-backed provider.
 
 Internal: --image-name and --image-tag identify the image. --port, --path,
---memory, and --cpu configure how it runs.
+--memory, and --cpu configure how it runs. --env NAME=VALUE and --secret
+configure the server itself and can each be repeated; --secret takes the name
+of a secret that already exists in the project (see 'iai secrets'), which is
+loaded whole as environment variables. Secret values are never passed here.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
@@ -129,6 +136,7 @@ An --auth-type oauth mcp is the exception: there is no credential until the
 user signs in, so it is created unverified and reports no tools until then.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp
+  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
@@ -197,13 +205,27 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			if !cmd.Flags().Changed("cpu") {
 				cpu = "100m"
 			}
+			env, envErr := inputs.ResolveMcpEnvVars(
+				mcpEnvVars, cmd.Flags().Changed("env"), false,
+			)
+			if envErr != nil {
+				return envErr
+			}
+			secretRefs, refErr := inputs.ResolveMcpSecretRefs(
+				mcpSecretRefs, cmd.Flags().Changed("secret"), false,
+			)
+			if refErr != nil {
+				return refErr
+			}
 			workload = &platform.McpWorkload{
-				Image:   mcpImageName + ":" + mcpImageTag,
-				Port:    port,
-				Path:    path,
-				Memory:  memory,
-				CPU:     cpu,
-				StackId: mcpStackId,
+				Image:      mcpImageName + ":" + mcpImageTag,
+				Port:       port,
+				Path:       path,
+				Memory:     memory,
+				CPU:        cpu,
+				StackId:    mcpStackId,
+				Env:        env,
+				SecretRefs: secretRefs,
 			}
 		}
 
@@ -271,10 +293,15 @@ else keeps its current value. The type (internal/external) and, for external
 mcps, the endpoint/catalog cannot change — delete and recreate instead.
 
 Internal workload flags can be updated independently, except --image-name and
---image-tag, which must be passed together. Changing authentication restarts an
-internal mcp and every attached agent. Detach agents before changing auth.`,
+--image-tag, which must be passed together. Lists (--env, --secret) replace the
+entire current list when provided — pass every entry you want to keep, or use
+--clear-env / --clear-secret to remove them all. Changing configuration or
+authentication restarts an internal mcp; an auth change also restarts every
+attached agent. Detach agents before changing auth.`,
 	Example: `  iai mcps update my-tool --image-name my-mcp --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
+  iai mcps update my-tool --env ENV=dev --env SILENT_MODE=true --secret platform-dev --secret services-dev
+  iai mcps update my-tool --clear-env
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
   iai mcps update acme --description "notes for the team"`,
 	Args: cobra.ExactArgs(1),
@@ -340,6 +367,24 @@ internal mcp and every attached agent. Detach agents before changing auth.`,
 		}
 		if cmd.Flags().Changed("stack-id") {
 			workload["stack_id"] = mcpStackId
+		}
+		env, err := inputs.ResolveMcpEnvVars(
+			mcpEnvVars, cmd.Flags().Changed("env"), mcpClearEnv,
+		)
+		if err != nil {
+			return err
+		}
+		if env != nil {
+			workload["env"] = env
+		}
+		secretRefs, err := inputs.ResolveMcpSecretRefs(
+			mcpSecretRefs, cmd.Flags().Changed("secret"), mcpClearSecret,
+		)
+		if err != nil {
+			return err
+		}
+		if secretRefs != nil {
+			workload["secret_refs"] = secretRefs
 		}
 		if len(workload) > 0 {
 			patch["workload"] = workload
@@ -611,7 +656,10 @@ func validateMcpBackendFlags(cmd *cobra.Command, backend platform.McpBackend) er
 	flags := []string{"auth-header", "auth-header-prefix"}
 	appliesTo := "external"
 	if backend == platform.McpBackendExternal {
-		flags = []string{"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id"}
+		flags = []string{
+			"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id",
+			"env", "secret", "clear-env", "clear-secret",
+		}
 		appliesTo = "internal"
 	}
 	for _, name := range flags {
@@ -627,7 +675,7 @@ func validateMcpUpdateFlags(cmd *cobra.Command) error {
 	for _, name := range []string{
 		"description", "image-name", "image-tag", "port", "path", "memory", "cpu",
 		"stack-id", "auth-type", "credential", "credential-stdin", "auth-header",
-		"auth-header-prefix",
+		"auth-header-prefix", "env", "secret", "clear-env", "clear-secret",
 	} {
 		changed = changed || cmd.Flags().Changed(name)
 	}
@@ -880,9 +928,18 @@ func init() {
 			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", "Credential value prefix")
 		c.Flags().StringVar(&mcpStackId, "stack-id", "", "Stack ID to assign the mcp to (internal)")
 		c.Flags().
+			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated (internal)")
+		c.Flags().
+			StringArrayVar(&mcpSecretRefs, "secret", nil, "Secret to load as env vars, by name; can be repeated (internal)")
+		c.Flags().
 			StringVar(&mcpDescription, "description", "", "Human-readable description of the mcp")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 	}
+
+	mcpUpdateCmd.Flags().
+		BoolVar(&mcpClearEnv, "clear-env", false, "Remove all environment variables from the mcp")
+	mcpUpdateCmd.Flags().
+		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp")
 
 	mcpCreateCmd.Flags().
 		StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)

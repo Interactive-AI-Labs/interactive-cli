@@ -9,8 +9,11 @@ else keeps its current value. The type (internal/external) and, for external
 mcps, the endpoint/catalog cannot change — delete and recreate instead.
 
 Internal workload flags can be updated independently, except --image-name and
---image-tag, which must be passed together. Changing authentication restarts an
-internal mcp and every attached agent. Detach agents before changing auth.
+--image-tag, which must be passed together. Lists (--env, --secret) replace the
+entire current list when provided — pass every entry you want to keep, or use
+--clear-env / --clear-secret to remove them all. Changing configuration or
+authentication restarts an internal mcp; an auth change also restarts every
+attached agent. Detach agents before changing auth.
 
 ```
 iai mcps update <mcp_name> [flags]
@@ -21,6 +24,8 @@ iai mcps update <mcp_name> [flags]
 ```
   iai mcps update my-tool --image-name my-mcp --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
+  iai mcps update my-tool --env ENV=dev --env SILENT_MODE=true --secret platform-dev --secret services-dev
+  iai mcps update my-tool --clear-env
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
   iai mcps update acme --description "notes for the team"
 ```
@@ -31,16 +36,20 @@ iai mcps update <mcp_name> [flags]
       --auth-header string          Header used to send the credential
       --auth-header-prefix string   Credential value prefix
       --auth-type string            How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)
+      --clear-env                   Remove all environment variables from the mcp
+      --clear-secret                Remove all secret references from the mcp
       --cpu string                  CPU request/limit, e.g. 250m (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
+      --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
   -h, --help                        help for update
       --image-name string           Container image name (internal)
       --image-tag string            Container image tag (internal)
       --memory string               Memory request/limit, e.g. 512M (internal)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
       --port int                    Port the mcp server listens on (internal)
+      --secret stringArray          Secret to load as env vars, by name; can be repeated (internal)
       --stack-id string             Stack ID to assign the mcp to (internal)
 ```
 

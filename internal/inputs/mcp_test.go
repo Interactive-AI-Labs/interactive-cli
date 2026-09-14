@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestResolveCredential(t *testing.T) {
@@ -104,6 +107,140 @@ func TestResolveToolArgsFromFile(t *testing.T) {
 			}
 			if got[tt.wantKey] != "foo" {
 				t.Fatalf("unexpected args: %#v", got)
+			}
+		})
+	}
+}
+
+func TestResolveMcpEnvVars(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVars []string
+		changed bool
+		clear   bool
+		want    []platform.McpEnvVar
+		wantErr string
+	}{
+		{name: "untouched leaves the deployed list alone", want: nil},
+		{name: "--clear-env clears it", clear: true, want: []platform.McpEnvVar{}},
+		{
+			name:    "name and value",
+			envVars: []string{"ENV=dev"},
+			changed: true,
+			want:    []platform.McpEnvVar{{Name: "ENV", Value: "dev"}},
+		},
+		{
+			name:    "a value keeps its own equals signs",
+			envVars: []string{"DSN=postgres://u:p@h/db?x=1"},
+			changed: true,
+			want:    []platform.McpEnvVar{{Name: "DSN", Value: "postgres://u:p@h/db?x=1"}},
+		},
+		{
+			name:    "an empty value is a value",
+			envVars: []string{"SILENT_MODE="},
+			changed: true,
+			want:    []platform.McpEnvVar{{Name: "SILENT_MODE", Value: ""}},
+		},
+		{
+			name:    "order is preserved",
+			envVars: []string{"B=2", "A=1"},
+			changed: true,
+			want:    []platform.McpEnvVar{{Name: "B", Value: "2"}, {Name: "A", Value: "1"}},
+		},
+		{
+			name:    "missing equals",
+			envVars: []string{"ENV"},
+			changed: true,
+			wantErr: `invalid --env value "ENV"; expected NAME=VALUE`,
+		},
+		{
+			name:    "empty name",
+			envVars: []string{"=dev"},
+			changed: true,
+			wantErr: `invalid --env value "=dev"; expected NAME=VALUE`,
+		},
+		{
+			name:    "clear with --env is a contradiction",
+			envVars: []string{"A=1"},
+			changed: true,
+			clear:   true,
+			wantErr: "--clear-env cannot be combined with --env",
+		},
+		{
+			name:    "--env with no values points at --clear-env",
+			changed: true,
+			wantErr: "--env requires at least one NAME=VALUE argument; use --clear-env to remove all variables",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ResolveMcpEnvVars(tt.envVars, tt.changed, tt.clear)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestResolveMcpSecretRefs(t *testing.T) {
+	tests := []struct {
+		name    string
+		refs    []string
+		changed bool
+		clear   bool
+		want    []string
+		wantErr string
+	}{
+		{name: "untouched leaves the deployed list alone", want: nil},
+		{name: "--clear-secret clears it", clear: true, want: []string{}},
+		{
+			name:    "names are trimmed and ordered",
+			refs:    []string{"platform-dev", " services-dev "},
+			changed: true,
+			want:    []string{"platform-dev", "services-dev"},
+		},
+		{
+			name:    "a blank name is rejected",
+			refs:    []string{" "},
+			changed: true,
+			wantErr: `invalid --secret value " "; name must not be empty`,
+		},
+		{
+			name:    "clear with --secret is a contradiction",
+			refs:    []string{"platform-dev"},
+			changed: true,
+			clear:   true,
+			wantErr: "--clear-secret cannot be combined with --secret",
+		},
+		{
+			name:    "--secret with no values points at --clear-secret",
+			changed: true,
+			wantErr: "--secret requires at least one secret name; use --clear-secret to remove all secret references",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ResolveMcpSecretRefs(tt.refs, tt.changed, tt.clear)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
