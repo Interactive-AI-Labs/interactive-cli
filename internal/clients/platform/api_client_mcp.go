@@ -79,6 +79,10 @@ type McpAuth struct {
 	Credential   *string `json:"credential,omitempty"`
 	HeaderName   *string `json:"header_name,omitempty"`
 	HeaderPrefix *string `json:"header_prefix,omitempty"`
+	// client_credentials only: the app the customer registered at the provider.
+	// Write-only — no response model carries either back.
+	ClientID     *string `json:"client_id,omitempty"`
+	ClientSecret *string `json:"client_secret,omitempty"`
 }
 
 type McpEnvVar struct {
