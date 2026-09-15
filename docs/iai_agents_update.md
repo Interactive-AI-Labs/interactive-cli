@@ -29,9 +29,16 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
---detach-mcp removes an mcp reference (bare or resolved) by name; combine
-with --mcp in the same command to swap one for another. Detach an mcp before
-deleting it — 'iai mcps delete' blocks by default while an agent still
+--mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
+tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
+a "tools-prod" in one project can share a prefix, and a routine. Attach further
+mcps in their own commands. Attaching an mcp that is already attached leaves any
+prefix it has alone; pass the mcp's own name as --mcp-id to go back to the
+default.
+
+--detach-mcp removes an mcp reference by name, whichever prefix it was given;
+combine with --mcp in the same command to swap one for another. Detach an mcp
+before deleting it — 'iai mcps delete' blocks by default while an agent still
 references it.
 
 Before applying, the CLI prints deploy-awareness output to stderr: the live
@@ -64,7 +71,8 @@ iai agents update <agent_name> [flags]
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
   iai agents update chat-agent --clear-stack-id
-  iai agents update chat-agent --mcp github --mcp stripe
+  iai agents update chat-agent --mcp github
+  iai agents update chat-agent --mcp tools-dev --mcp-id tools
   iai agents update chat-agent --detach-mcp stripe
 ```
 
@@ -83,7 +91,8 @@ iai agents update <agent_name> [flags]
       --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
   -h, --help                       help for update
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
-      --mcp stringArray            Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps
+      --mcp stringArray            Attach one MCP by name (see 'iai mcps list'). Without --file, appends to the agent's current mcps
+      --mcp-id string              Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp
   -o, --organization string        Organization name
   -p, --project string             Project name
       --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'

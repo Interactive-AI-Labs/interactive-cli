@@ -18,6 +18,11 @@ Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
 on their create/update commands).
 
+--mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
+tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
+a "tools-prod" in one project can share a prefix, and a routine. Attach further
+mcps in their own commands.
+
 ```
 iai agents create <agent_name> [flags]
 ```
@@ -28,6 +33,7 @@ iai agents create <agent_name> [flags]
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --mcp tools-dev --mcp-id tools
 ```
 
 ### Options
@@ -38,7 +44,8 @@ iai agents create <agent_name> [flags]
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
   -h, --help                       help for create
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
-      --mcp stringArray            Attach an MCP by name (see 'iai mcps list'); can be repeated
+      --mcp stringArray            Attach one MCP by name (see 'iai mcps list')
+      --mcp-id string              Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp
   -o, --organization string        Organization name
   -p, --project string             Project name
       --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
