@@ -12,6 +12,8 @@ Internal: --image-name and --image-tag identify the image. --port, --path,
 configure the server itself and can each be repeated; --secret takes the name
 of a secret that already exists in the project (see 'iai secrets'), which is
 loaded whole as environment variables. Secret values are never passed here.
+Use --endpoint to expose the hosted MCP publicly; disabled by default.
+The project-local connection URL remains unchanged.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
@@ -55,6 +57,7 @@ iai mcps create <mcp_name> [flags]
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
+      --endpoint                    Expose a public endpoint (internal); --endpoint=false disables it on update
       --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
       --external-url string         External MCP server URL — not platform-owned, dialed directly (custom external mcp)
   -h, --help                        help for create

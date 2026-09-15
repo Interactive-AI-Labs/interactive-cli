@@ -8,6 +8,9 @@ Partial update — only the fields whose flags you pass are changed; everything
 else keeps its current value. The type (internal/external) and, for external
 mcps, the endpoint/catalog cannot change — delete and recreate instead.
 
+Use --endpoint to enable public access, or --endpoint=false to disable it.
+Omitting --endpoint preserves the deployed setting.
+
 Internal workload flags can be updated independently, except --image-name and
 --image-tag, which must be passed together. Lists (--env, --secret) replace the
 entire current list when provided — pass every entry you want to keep, or use
@@ -24,6 +27,8 @@ iai mcps update <mcp_name> [flags]
 ```
   iai mcps update my-tool --image-name my-mcp --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
+  iai mcps update my-tool --endpoint
+  iai mcps update my-tool --endpoint=false
   iai mcps update my-tool --env ENV=dev --env SILENT_MODE=true --secret platform-dev --secret services-dev
   iai mcps update my-tool --clear-env
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
@@ -42,6 +47,7 @@ iai mcps update <mcp_name> [flags]
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
+      --endpoint                    Expose a public endpoint (internal); --endpoint=false disables it on update
       --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
   -h, --help                        help for update
       --image-name string           Container image name (internal)

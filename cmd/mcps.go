@@ -32,6 +32,7 @@ var (
 	mcpMemory          string
 	mcpCPU             string
 	mcpEndpointURL     string
+	mcpEndpoint        bool
 	mcpCatalogID       string
 	mcpAuthType        string
 	mcpCredential      string
@@ -120,6 +121,8 @@ Internal: --image-name and --image-tag identify the image. --port, --path,
 configure the server itself and can each be repeated; --secret takes the name
 of a secret that already exists in the project (see 'iai secrets'), which is
 loaded whole as environment variables. Secret values are never passed here.
+Use --endpoint to expose the hosted MCP publicly; disabled by default.
+The project-local connection URL remains unchanged.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
@@ -220,6 +223,7 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			workload = &platform.McpWorkload{
 				Image:      mcpImageName + ":" + mcpImageTag,
 				Port:       port,
+				Endpoint:   mcpEndpoint,
 				Path:       path,
 				Memory:     memory,
 				CPU:        cpu,
@@ -267,6 +271,9 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		} else {
 			fmt.Fprintf(out, "Created %s — %s\n", mcpName, res.Backend)
 		}
+		if res.Endpoint != nil && *res.Endpoint != "" {
+			fmt.Fprintf(out, "Public endpoint: %s\n", *res.Endpoint)
+		}
 		return nil
 	},
 }
@@ -292,6 +299,9 @@ var mcpUpdateCmd = &cobra.Command{
 else keeps its current value. The type (internal/external) and, for external
 mcps, the endpoint/catalog cannot change — delete and recreate instead.
 
+Use --endpoint to enable public access, or --endpoint=false to disable it.
+Omitting --endpoint preserves the deployed setting.
+
 Internal workload flags can be updated independently, except --image-name and
 --image-tag, which must be passed together. Lists (--env, --secret) replace the
 entire current list when provided — pass every entry you want to keep, or use
@@ -300,6 +310,8 @@ authentication restarts an internal mcp; an auth change also restarts every
 attached agent. Detach agents before changing auth.`,
 	Example: `  iai mcps update my-tool --image-name my-mcp --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
+  iai mcps update my-tool --endpoint
+  iai mcps update my-tool --endpoint=false
   iai mcps update my-tool --env ENV=dev --env SILENT_MODE=true --secret platform-dev --secret services-dev
   iai mcps update my-tool --clear-env
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
@@ -356,6 +368,9 @@ attached agent. Detach agents before changing auth.`,
 		if cmd.Flags().Changed("port") {
 			workload["port"] = mcpPort
 		}
+		if cmd.Flags().Changed("endpoint") {
+			workload["endpoint"] = mcpEndpoint
+		}
 		if cmd.Flags().Changed("path") {
 			workload["path"] = mcpPath
 		}
@@ -404,6 +419,9 @@ attached agent. Detach agents before changing auth.`,
 			return err
 		}
 		fmt.Fprintf(out, "Updated %s — %s\n", mcpName, res.Backend)
+		if res.Endpoint != nil && *res.Endpoint != "" {
+			fmt.Fprintf(out, "Public endpoint: %s\n", *res.Endpoint)
+		}
 		return nil
 	},
 }
@@ -442,7 +460,7 @@ var mcpDescribeCmd = &cobra.Command{
 	Use:     "describe <mcp_name>",
 	Aliases: []string{"desc"},
 	Short:   "Show mcp details, verify state, and cached tools",
-	Long: `Show the mcp's record (type, external URL, catalog origin) and its latest
+	Long: `Show the mcp's record (type, connection URL, optional public hostname, catalog origin) and its latest
 verify result — a tool count, not the tool list itself (see 'iai mcps tools').`,
 	Example: `  iai mcps describe my-tool
   iai mcps describe my-tool --json`,
@@ -657,7 +675,7 @@ func validateMcpBackendFlags(cmd *cobra.Command, backend platform.McpBackend) er
 	appliesTo := "external"
 	if backend == platform.McpBackendExternal {
 		flags = []string{
-			"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id",
+			"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id", "endpoint",
 			"env", "secret", "clear-env", "clear-secret",
 		}
 		appliesTo = "internal"
@@ -673,7 +691,7 @@ func validateMcpBackendFlags(cmd *cobra.Command, backend platform.McpBackend) er
 func validateMcpUpdateFlags(cmd *cobra.Command) error {
 	changed := false
 	for _, name := range []string{
-		"description", "image-name", "image-tag", "port", "path", "memory", "cpu",
+		"description", "image-name", "image-tag", "port", "path", "memory", "cpu", "endpoint",
 		"stack-id", "auth-type", "credential", "credential-stdin", "auth-header",
 		"auth-header-prefix", "env", "secret", "clear-env", "clear-secret",
 	} {
@@ -910,6 +928,8 @@ func init() {
 
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal)")
+		c.Flags().
+			BoolVar(&mcpEndpoint, "endpoint", false, "Expose a public endpoint (internal); --endpoint=false disables it on update")
 		c.Flags().
 			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (internal, default "/mcp")`)
 		c.Flags().StringVar(&mcpImageName, "image-name", "", "Container image name (internal)")
