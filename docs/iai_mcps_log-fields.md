@@ -1,29 +1,29 @@
-## iai mcps describe
+## iai mcps log-fields
 
-Show mcp details, verify state, and cached tools
+List available fields in structured logs
 
 ### Synopsis
 
-Show the mcp's record (type, connection URL, optional public hostname, catalog origin) and its latest
-verify result — a tool count, not the tool list itself (see 'iai mcps tools').
+Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
+
+Use the reported field names with 'iai mcps logs --fields' to include them in output.
 
 ```
-iai mcps describe <mcp_name> [flags]
+iai mcps log-fields <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai mcps describe my-tool
-  iai mcps describe my-tool --json
+  iai mcps log-fields my-tool
+  iai mcps log-fields my-tool --since 1h
 ```
 
 ### Options
 
 ```
-  -h, --help   help for describe
-      --json   Output raw API response as JSON
-      --yaml   Output raw API response as YAML
+  -h, --help           help for log-fields
+      --since string   Relative duration to scan (e.g. 5m, 1h) (default "1h")
 ```
 
 ### Options inherited from parent commands

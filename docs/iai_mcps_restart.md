@@ -1,29 +1,26 @@
-## iai mcps describe
+## iai mcps restart
 
-Show mcp details, verify state, and cached tools
+Restart an mcp in a project
 
 ### Synopsis
 
-Show the mcp's record (type, connection URL, optional public hostname, catalog origin) and its latest
-verify result — a tool count, not the tool list itself (see 'iai mcps tools').
+Restart an mcp in a specific project using the deployment service.
 
 ```
-iai mcps describe <mcp_name> [flags]
+iai mcps restart <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai mcps describe my-tool
-  iai mcps describe my-tool --json
+  iai mcps restart my-tool
+  iai mcps restart my-tool --project my-project
 ```
 
 ### Options
 
 ```
-  -h, --help   help for describe
-      --json   Output raw API response as JSON
-      --yaml   Output raw API response as YAML
+  -h, --help   help for restart
 ```
 
 ### Options inherited from parent commands

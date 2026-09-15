@@ -1,29 +1,27 @@
-## iai mcps describe
+## iai mcps deactivate
 
-Show mcp details, verify state, and cached tools
+Deactivate an mcp in a project
 
 ### Synopsis
 
-Show the mcp's record (type, connection URL, optional public hostname, catalog origin) and its latest
-verify result — a tool count, not the tool list itself (see 'iai mcps tools').
+Deactivate an mcp, stopping all running instances. The current configuration
+is preserved and will be restored when the mcp is activated again.
 
 ```
-iai mcps describe <mcp_name> [flags]
+iai mcps deactivate <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai mcps describe my-tool
-  iai mcps describe my-tool --json
+  iai mcps deactivate my-tool
+  iai mcps deactivate my-tool --project my-project
 ```
 
 ### Options
 
 ```
-  -h, --help   help for describe
-      --json   Output raw API response as JSON
-      --yaml   Output raw API response as YAML
+  -h, --help   help for deactivate
 ```
 
 ### Options inherited from parent commands

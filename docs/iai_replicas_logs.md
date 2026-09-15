@@ -23,6 +23,7 @@ iai replicas logs <replica_name> [flags]
 
 ```
   iai replicas logs my-service-abc123
+  iai replicas logs my-tool-abc123 --type mcp --message error
   iai replicas logs my-service-abc123 --follow
   iai replicas logs my-service-abc123 --since 30m --fields logger,pid
   iai replicas logs my-service-abc123 --timestamps
@@ -39,8 +40,9 @@ iai replicas logs <replica_name> [flags]
   -f, --follow                Stream new log entries as they arrive; mutually exclusive with --end-time
   -h, --help                  help for logs
       --limit int             Maximum number of log entries to return (1-5000); defaults to 1000
+      --message string        Case-insensitive RE2 regular expression matched against the log line
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the service
+  -p, --project string        Project name that owns the workload
       --raw                   Output exact server JSON lines without formatting
       --since string          Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time
       --start-time string     Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window
@@ -54,9 +56,10 @@ iai replicas logs <replica_name> [flags]
       --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
+      --type string                  Replica workload type: service or mcp (default "service")
 ```
 
 ### SEE ALSO
 
-* [iai replicas](iai_replicas.md)	 - Inspect service replicas
+* [iai replicas](iai_replicas.md)	 - Inspect service or MCP replicas
 

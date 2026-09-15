@@ -1,15 +1,16 @@
 ## iai replicas
 
-Inspect service replicas
+Inspect service or MCP replicas
 
 ### Synopsis
 
-Manage pods backing services in a specific project.
+Manage pods backing services or MCPs in a project. Use --type mcp for MCP replicas.
 
 ### Options
 
 ```
-  -h, --help   help for replicas
+  -h, --help          help for replicas
+      --type string   Replica workload type: service or mcp (default "service")
 ```
 
 ### Options inherited from parent commands
@@ -25,7 +26,7 @@ Manage pods backing services in a specific project.
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai replicas describe](iai_replicas_describe.md)	 - Describe a replica in detail
-* [iai replicas list](iai_replicas_list.md)	 - List replicas for a service
+* [iai replicas list](iai_replicas_list.md)	 - List replicas for a service or MCP
 * [iai replicas log-fields](iai_replicas_log-fields.md)	 - List available fields in structured logs
 * [iai replicas logs](iai_replicas_logs.md)	 - Show logs for a specific replica
 

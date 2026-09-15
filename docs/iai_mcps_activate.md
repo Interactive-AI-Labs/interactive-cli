@@ -1,29 +1,26 @@
-## iai mcps describe
+## iai mcps activate
 
-Show mcp details, verify state, and cached tools
+Activate a deactivated mcp in a project
 
 ### Synopsis
 
-Show the mcp's record (type, connection URL, optional public hostname, catalog origin) and its latest
-verify result — a tool count, not the tool list itself (see 'iai mcps tools').
+Activate a deactivated mcp, restoring it to its previous configuration.
 
 ```
-iai mcps describe <mcp_name> [flags]
+iai mcps activate <mcp_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai mcps describe my-tool
-  iai mcps describe my-tool --json
+  iai mcps activate my-tool
+  iai mcps activate my-tool --project my-project
 ```
 
 ### Options
 
 ```
-  -h, --help   help for describe
-      --json   Output raw API response as JSON
-      --yaml   Output raw API response as YAML
+  -h, --help   help for activate
 ```
 
 ### Options inherited from parent commands
