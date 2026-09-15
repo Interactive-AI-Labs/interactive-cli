@@ -24,19 +24,81 @@ type AgentInput struct {
 
 	StackId string
 
-	McpNames       []string // appended as bare {mcp_id: <name>} references, resolved from the mcp's own release at deploy time
-	DetachMcpNames []string // removed before McpNames are (re-)injected
+	McpRefs        []McpRef // the one attachment --mcp asks for, resolved from the mcp's release at deploy time
+	DetachMcpNames []string // removed before McpRefs are (re-)injected
 }
 
-// InjectMcpRefs appends a bare-string reference for each name to the agent config's mcps list, preserving existing entries.
-func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
-	names := make([]string, 0, len(mcpNames))
-	for _, n := range mcpNames {
-		if n = strings.TrimSpace(n); n != "" {
-			names = append(names, n)
+// McpRef is one attachment: the mcp, and the prefix this agent calls its tools by.
+type McpRef struct {
+	Name string
+	Id   string // empty means the mcp's name
+	// SetId tells --mcp-id naming the mcp itself, which clears a prefix, from no
+	// --mcp-id at all, which leaves whatever is attached alone.
+	SetId bool
+}
+
+// McpRefsFor builds the attachment --mcp asks for, with the prefix --mcp-id gives it.
+// One attachment per command: a prefix describes exactly one, and so does a detach.
+func McpRefsFor(names []string, id string, idGiven bool) ([]McpRef, error) {
+	if len(names) > 1 {
+		return nil, fmt.Errorf(
+			"--mcp attaches one mcp (got %d); attach further mcps in their own commands",
+			len(names),
+		)
+	}
+	id = strings.TrimSpace(id)
+	if idGiven {
+		if id == "" {
+			return nil, fmt.Errorf(
+				"--mcp-id must name the prefix the agent calls the mcp's tools by",
+			)
+		}
+		if len(names) == 0 {
+			return nil, fmt.Errorf(
+				"--mcp-id sets the prefix for the mcp --mcp attaches; pass --mcp <name> too",
+			)
 		}
 	}
-	if len(names) == 0 {
+	refs := make([]McpRef, 0, len(names))
+	for _, name := range names {
+		if name = strings.TrimSpace(name); name == "" {
+			return nil, fmt.Errorf("--mcp must name an mcp")
+		}
+		prefix := id
+		if prefix == name {
+			prefix = "" // the default, so the config keeps its short form
+		}
+		refs = append(refs, McpRef{Name: name, Id: prefix, SetId: idGiven})
+	}
+	return refs, nil
+}
+
+// mcpEntryName is the mcp an existing entry attaches: "id" is only the tool prefix once "ref" is set.
+func mcpEntryName(entry any) string {
+	switch e := entry.(type) {
+	case string:
+		return e
+	case map[string]any:
+		if ref, ok := e["ref"].(string); ok && ref != "" {
+			return ref
+		}
+		id, _ := e["id"].(string)
+		return id
+	}
+	return ""
+}
+
+func mcpEntry(ref McpRef) any {
+	if ref.Id == "" {
+		return ref.Name
+	}
+	return map[string]any{"ref": ref.Name, "id": ref.Id}
+}
+
+// InjectMcpRefs attaches each ref to the agent config's mcps list, preserving existing entries.
+// One already attached keeps its prefix unless this call gives one, so no unrelated update resets it.
+func InjectMcpRefs(agentConfig any, refs []McpRef) (any, error) {
+	if len(refs) == 0 {
 		return agentConfig, nil
 	}
 
@@ -46,26 +108,31 @@ func InjectMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 	}
 	mcps, _ := cfg["mcps"].([]any)
 
-	// an mcp already present (bare ref or resolved entry with a matching id) is skipped rather than duplicated
-	seen := make(map[string]bool, len(mcps)+len(names))
-	for _, entry := range mcps {
-		switch e := entry.(type) {
-		case string:
-			if e != "" {
-				seen[e] = true
-			}
-		case map[string]any:
-			if id, ok := e["id"].(string); ok && id != "" {
-				seen[id] = true
-			}
+	at := make(map[string]int, len(mcps))
+	for i, entry := range mcps {
+		if name := mcpEntryName(entry); name != "" {
+			at[name] = i
 		}
 	}
-	for _, name := range names {
-		if seen[name] {
+	for _, ref := range refs {
+		i, attached := at[ref.Name]
+		if !attached {
+			at[ref.Name] = len(mcps)
+			mcps = append(mcps, mcpEntry(ref))
 			continue
 		}
-		mcps = append(mcps, name)
-		seen[name] = true
+		if !ref.SetId {
+			continue
+		}
+		if existing, isMap := mcps[i].(map[string]any); isMap {
+			if attaches, _ := existing["ref"].(string); attaches == "" {
+				return nil, fmt.Errorf(
+					"mcp %q is configured in full in this agent's config; set its prefix there, not with --mcp",
+					ref.Name,
+				)
+			}
+		}
+		mcps[i] = mcpEntry(ref)
 	}
 	cfg["mcps"] = mcps
 	return cfg, nil
@@ -93,15 +160,8 @@ func DetachMcpRefs(agentConfig any, mcpNames []string) (any, error) {
 
 	kept := make([]any, 0, len(mcps))
 	for _, entry := range mcps {
-		switch e := entry.(type) {
-		case string:
-			if names[e] {
-				continue
-			}
-		case map[string]any:
-			if id, _ := e["id"].(string); names[id] {
-				continue
-			}
+		if names[mcpEntryName(entry)] {
+			continue
 		}
 		kept = append(kept, entry)
 	}
@@ -149,7 +209,7 @@ func BuildAgentRequestBody(in AgentInput) (deployment.CreateAgentBody, error) {
 			err,
 		)
 	}
-	agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
+	agentConfig, err = InjectMcpRefs(agentConfig, in.McpRefs)
 	if err != nil {
 		return deployment.CreateAgentBody{}, err
 	}
@@ -238,7 +298,7 @@ func BuildAgentUpdatePatch(
 		if err != nil {
 			return nil, err
 		}
-		agentConfig, err = InjectMcpRefs(agentConfig, in.McpNames)
+		agentConfig, err = InjectMcpRefs(agentConfig, in.McpRefs)
 		if err != nil {
 			return nil, err
 		}
