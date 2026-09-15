@@ -73,9 +73,15 @@ var mcpsCmd = &cobra.Command{
 	Aliases: []string{"mcp"},
 	Short:   "Deploy and manage MCP servers",
 	GroupID: groupInfra,
-	Long: `Manage MCP servers for a project — hosted servers ("internal"), custom
-external URLs, or catalog-backed providers (external, external URL + auth derived
-from the curated catalog).
+	Long: `Manage MCP servers for a project.
+
+Internal MCPs run in the platform, which manages their image, resources,
+environment, secrets, and runtime. "Internal" describes hosting, not whether
+the endpoint is public.
+
+External MCPs run outside the platform. Connect using --external-url or
+--catalog-id; catalog entries supply the external server URL and auth settings,
+not a platform-hosted workload.
 
 Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.`,
 }
@@ -114,8 +120,8 @@ var mcpCatalogCmd = &cobra.Command{
 var mcpCreateCmd = &cobra.Command{
 	Use:   "create <mcp_name>",
 	Short: "Create an mcp in a project",
-	Long: `Create an mcp — a hosted MCP server ("internal"), a custom external URL,
-or a catalog-backed provider.
+	Long: `Create an mcp — a server hosted in the platform ("internal"), or a connection
+to a server hosted elsewhere ("external") using a custom URL or catalog entry.
 
 Internal: --image-name and --image-tag identify the image. --port, --path,
 --memory, and --cpu configure how it runs. --env NAME=VALUE and --secret
@@ -302,9 +308,10 @@ every value you want to keep.
 Use --clear-env, --clear-secret, or --clear-stack-id to remove those
 configurations entirely.
 
-The type (internal/external) and, for external mcps, the endpoint/catalog cannot
-change — delete and recreate instead. Internal workload flags can be updated
-independently, except --image-name and --image-tag, which must be passed together.
+The hosting type (internal: platform-hosted; external: hosted elsewhere) cannot
+change. For external mcps, the URL/catalog also cannot change — delete and
+recreate instead. Internal workload flags can be updated independently, except
+--image-name and --image-tag, which must be passed together.
 Internal auth fields can be updated independently; external credential changes
 require --auth-type.`,
 	Example: `  iai mcps update my-tool --image-name my-mcp --image-tag v2
@@ -863,15 +870,20 @@ func init() {
 		StringVarP(&mcpOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
-		c.Flags().IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal)")
 		c.Flags().
-			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp at <mcp-name>-<project-hash>.interactive.ai")
+			IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal only; platform-hosted)")
 		c.Flags().
-			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (internal, default "/mcp")`)
-		c.Flags().StringVar(&mcpImageName, "image-name", "", "Container image name (internal)")
-		c.Flags().StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal)")
-		c.Flags().StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal)")
-		c.Flags().StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal)")
+			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal only; platform-hosted)")
+		c.Flags().
+			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes, default "/mcp" (internal only; platform-hosted)`)
+		c.Flags().
+			StringVar(&mcpImageName, "image-name", "", "Container image name (internal only; platform-hosted)")
+		c.Flags().
+			StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal only; platform-hosted)")
+		c.Flags().
+			StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal only; platform-hosted)")
+		c.Flags().
+			StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal only; platform-hosted)")
 		c.Flags().
 			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create`)
 		c.Flags().
@@ -882,29 +894,30 @@ func init() {
 			StringVar(&mcpAuthHeader, "auth-header", "", "Header used to send the credential")
 		c.Flags().
 			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", "Credential value prefix")
-		c.Flags().StringVar(&mcpStackId, "stack-id", "", "Stack ID to assign the mcp to (internal)")
 		c.Flags().
-			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated (internal)")
+			StringVar(&mcpStackId, "stack-id", "", "Stack ID to assign the mcp to (internal only; platform-hosted)")
 		c.Flags().
-			StringArrayVar(&mcpSecretRefs, "secret", nil, "Secret to load as env vars, by name; can be repeated (internal)")
+			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated (internal only; platform-hosted)")
+		c.Flags().
+			StringArrayVar(&mcpSecretRefs, "secret", nil, "Secret to load as env vars, by name; can be repeated (internal only; platform-hosted)")
 		c.Flags().
 			StringVar(&mcpDescription, "description", "", "Human-readable description of the mcp")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 	}
 
 	mcpUpdateCmd.Flags().
-		BoolVar(&mcpClearEnv, "clear-env", false, "Remove all environment variables from the mcp")
+		BoolVar(&mcpClearEnv, "clear-env", false, "Remove all environment variables from the mcp (internal only; platform-hosted)")
 	mcpUpdateCmd.Flags().
-		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp")
+		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp (internal only; platform-hosted)")
 	mcpUpdateCmd.Flags().
-		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the mcp from its stack")
+		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the mcp from its stack (internal only; platform-hosted)")
 
 	mcpCreateCmd.Flags().
-		StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)
+		StringVar(&mcpType, "type", "", `Mcp hosting type: "internal" (platform-hosted) or "external" (hosted elsewhere); inferred from other flags if omitted`)
 	mcpCreateCmd.Flags().
-		StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
+		StringVar(&mcpEndpointURL, "external-url", "", "URL of an MCP server hosted outside the platform (custom external mcp)")
 	mcpCreateCmd.Flags().
-		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
+		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); supplies the external server URL and auth settings")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("external-url", "image-name")

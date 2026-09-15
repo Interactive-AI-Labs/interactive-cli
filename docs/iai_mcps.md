@@ -4,9 +4,15 @@ Deploy and manage MCP servers
 
 ### Synopsis
 
-Manage MCP servers for a project — hosted servers ("internal"), custom
-external URLs, or catalog-backed providers (external, external URL + auth derived
-from the curated catalog).
+Manage MCP servers for a project.
+
+Internal MCPs run in the platform, which manages their image, resources,
+environment, secrets, and runtime. "Internal" describes hosting, not whether
+the endpoint is public.
+
+External MCPs run outside the platform. Connect using --external-url or
+--catalog-id; catalog entries supply the external server URL and auth settings,
+not a platform-hosted workload.
 
 Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 

@@ -15,9 +15,10 @@ every value you want to keep.
 Use --clear-env, --clear-secret, or --clear-stack-id to remove those
 configurations entirely.
 
-The type (internal/external) and, for external mcps, the endpoint/catalog cannot
-change — delete and recreate instead. Internal workload flags can be updated
-independently, except --image-name and --image-tag, which must be passed together.
+The hosting type (internal: platform-hosted; external: hosted elsewhere) cannot
+change. For external mcps, the URL/catalog also cannot change — delete and
+recreate instead. Internal workload flags can be updated independently, except
+--image-name and --image-tag, which must be passed together.
 Internal auth fields can be updated independently; external credential changes
 require --auth-type.
 
@@ -46,23 +47,23 @@ iai mcps update <mcp_name> [flags]
       --auth-header string          Header used to send the credential
       --auth-header-prefix string   Credential value prefix
       --auth-type string            How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create
-      --clear-env                   Remove all environment variables from the mcp
-      --clear-secret                Remove all secret references from the mcp
-      --clear-stack-id              Remove the mcp from its stack
-      --cpu string                  CPU request/limit, e.g. 250m (internal)
+      --clear-env                   Remove all environment variables from the mcp (internal only; platform-hosted)
+      --clear-secret                Remove all secret references from the mcp (internal only; platform-hosted)
+      --clear-stack-id              Remove the mcp from its stack (internal only; platform-hosted)
+      --cpu string                  CPU request/limit, e.g. 250m (internal only; platform-hosted)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
-      --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai
-      --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
+      --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal only; platform-hosted)
+      --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal only; platform-hosted)
   -h, --help                        help for update
-      --image-name string           Container image name (internal)
-      --image-tag string            Container image tag (internal)
-      --memory string               Memory request/limit, e.g. 512M (internal)
-      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
-      --port int                    Port the mcp server listens on (internal)
-      --secret stringArray          Secret to load as env vars, by name; can be repeated (internal)
-      --stack-id string             Stack ID to assign the mcp to (internal)
+      --image-name string           Container image name (internal only; platform-hosted)
+      --image-tag string            Container image tag (internal only; platform-hosted)
+      --memory string               Memory request/limit, e.g. 512M (internal only; platform-hosted)
+      --path string                 Endpoint path the mcp's own server exposes, default "/mcp" (internal only; platform-hosted)
+      --port int                    Port the mcp server listens on (internal only; platform-hosted)
+      --secret stringArray          Secret to load as env vars, by name; can be repeated (internal only; platform-hosted)
+      --stack-id string             Stack ID to assign the mcp to (internal only; platform-hosted)
 ```
 
 ### Options inherited from parent commands
