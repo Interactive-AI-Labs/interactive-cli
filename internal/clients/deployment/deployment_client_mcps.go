@@ -144,6 +144,18 @@ func mcpsPath(orgId, projectId, mcpName string) string {
 	return base + "/" + url.PathEscape(mcpName)
 }
 
+// McpAction submits a restart, activate, or deactivate request to the operator.
+func (c *DeploymentClient) McpAction(
+	ctx context.Context, orgId, projectId, mcpName, action string,
+) (string, error) {
+	body, err := c.sendJSONRequest(ctx, http.MethodPost,
+		mcpsPath(orgId, projectId, mcpName)+"/"+url.PathEscape(action), nil)
+	if err != nil {
+		return "", err
+	}
+	return clients.ExtractServerMessage(body), nil
+}
+
 func (c *DeploymentClient) GetMcpLogs(
 	ctx context.Context, orgId, projectId, mcpName string, opts LogsOptions,
 ) (*LogsResponse, error) {

@@ -137,7 +137,46 @@ var mcpLogFieldsCmd = &cobra.Command{
 	},
 }
 
+var mcpRestartCmd = &cobra.Command{
+	Use: "restart <mcp_name>", Short: "Restart an internal MCP",
+	Example: "  iai mcps restart my-tool", Args: cobra.ExactArgs(1), RunE: runMcpAction,
+}
+
+var mcpActivateCmd = &cobra.Command{
+	Use: "activate <mcp_name>", Short: "Restore an MCP to its configured replica count",
+	Example: "  iai mcps activate my-tool", Args: cobra.ExactArgs(1), RunE: runMcpAction,
+}
+
+var mcpDeactivateCmd = &cobra.Command{
+	Use:     "deactivate <mcp_name>",
+	Short:   "Stop an MCP's replicas while preserving its configuration",
+	Example: "  iai mcps deactivate my-tool",
+	Args:    cobra.ExactArgs(1),
+	RunE:    runMcpAction,
+}
+
+func runMcpAction(cmd *cobra.Command, args []string) error {
+	name := strings.TrimSpace(args[0])
+	if name == "" {
+		return fmt.Errorf("mcp name is required")
+	}
+	pCtx, _, client, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Submitting MCP %s request...\n", cmd.Name())
+	message, err := client.McpAction(cmd.Context(), pCtx.orgId, pCtx.projectId, name, cmd.Name())
+	if err != nil {
+		return err
+	}
+	if message != "" {
+		fmt.Fprintln(cmd.OutOrStdout(), message)
+	}
+	return nil
+}
+
 func init() {
+	mcpsCmd.AddCommand(mcpRestartCmd, mcpActivateCmd, mcpDeactivateCmd)
 	f := mcpLogsCmd.Flags()
 	f.BoolVarP(&mcpLogsOptions.Follow, "follow", "f", false, "Stream new log entries")
 	f.StringVar(
