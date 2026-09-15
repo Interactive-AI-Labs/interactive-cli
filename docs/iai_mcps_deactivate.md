@@ -1,6 +1,11 @@
 ## iai mcps deactivate
 
-Stop an MCP's replicas while preserving its configuration
+Deactivate an mcp in a project
+
+### Synopsis
+
+Deactivate an mcp, stopping all running instances. The current configuration
+is preserved and will be restored when the mcp is activated again.
 
 ```
 iai mcps deactivate <mcp_name> [flags]
@@ -10,6 +15,7 @@ iai mcps deactivate <mcp_name> [flags]
 
 ```
   iai mcps deactivate my-tool
+  iai mcps deactivate my-tool --project my-project
 ```
 
 ### Options

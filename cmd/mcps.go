@@ -122,8 +122,6 @@ Internal: --image-name and --image-tag identify the image. --port, --path,
 configure the server itself and can each be repeated; --secret takes the name
 of a secret that already exists in the project (see 'iai secrets'), which is
 loaded whole as environment variables. Secret values are never passed here.
-Use --endpoint to expose the hosted MCP publicly; disabled by default.
-The project-local connection URL remains unchanged.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
@@ -139,7 +137,7 @@ auth to list them — some serve tool discovery anonymously.
 An --auth-type oauth mcp is the exception: there is no credential until the
 user signs in, so it is created unverified and reports no tools until then.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
-  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp
+  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
@@ -272,9 +270,6 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		} else {
 			fmt.Fprintf(out, "Created %s — %s\n", mcpName, res.Backend)
 		}
-		if res.Endpoint != nil && *res.Endpoint != "" {
-			fmt.Fprintf(out, "Public endpoint: %s\n", *res.Endpoint)
-		}
 		return nil
 	},
 }
@@ -295,21 +290,23 @@ func mcpAuthTypeOr(
 
 var mcpUpdateCmd = &cobra.Command{
 	Use:   "update <mcp_name>",
-	Short: "Update an mcp's spec",
-	Long: `Partial update — only the fields whose flags you pass are changed; everything
-else keeps its current value. The type (internal/external) and, for external
-mcps, the endpoint/catalog cannot change — delete and recreate instead.
+	Short: "Update an mcp in a project",
+	Long: `Update an mcp in a specific project.
 
-Use --endpoint to enable public access, or --endpoint=false to disable it.
-Omitting --endpoint preserves the deployed setting.
+Only the flags you pass are applied; everything else is left at its current
+value.
 
-Internal workload flags can be updated independently, except --image-name and
---image-tag, which must be passed together. Lists (--env, --secret) replace the
-entire current list when provided — pass every entry you want to keep, or use
---clear-env / --clear-secret to remove them all. Use --clear-stack-id to remove
-the stack assignment. Internal auth fields can be updated independently;
-external credential changes require --auth-type. Omitted credentials are preserved.
-The deployment operator handles internal validation, restarts, and attached-agent restrictions.`,
+Lists (--env, --secret) replace the entire current list when provided — pass
+every value you want to keep.
+
+Use --clear-env, --clear-secret, or --clear-stack-id to remove those
+configurations entirely.
+
+The type (internal/external) and, for external mcps, the endpoint/catalog cannot
+change — delete and recreate instead. Internal workload flags can be updated
+independently, except --image-name and --image-tag, which must be passed together.
+Internal auth fields can be updated independently; external credential changes
+require --auth-type.`,
 	Example: `  iai mcps update my-tool --image-name my-mcp --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update my-tool --endpoint
@@ -380,9 +377,6 @@ The deployment operator handles internal validation, restarts, and attached-agen
 			return err
 		}
 		fmt.Fprintf(out, "Updated %s — %s\n", mcpName, res.Backend)
-		if res.Endpoint != nil && *res.Endpoint != "" {
-			fmt.Fprintf(out, "Public endpoint: %s\n", *res.Endpoint)
-		}
 		return nil
 	},
 }
@@ -871,7 +865,7 @@ func init() {
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal)")
 		c.Flags().
-			BoolVar(&mcpEndpoint, "endpoint", false, "Expose a public endpoint (internal); --endpoint=false disables it on update")
+			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp at <mcp-name>-<project-hash>.interactive.ai")
 		c.Flags().
 			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (internal, default "/mcp")`)
 		c.Flags().StringVar(&mcpImageName, "image-name", "", "Container image name (internal)")
@@ -903,8 +897,7 @@ func init() {
 	mcpUpdateCmd.Flags().
 		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp")
 	mcpUpdateCmd.Flags().
-		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the MCP from its stack")
-	mcpUpdateCmd.MarkFlagsMutuallyExclusive("clear-stack-id", "stack-id")
+		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the mcp from its stack")
 
 	mcpCreateCmd.Flags().
 		StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)

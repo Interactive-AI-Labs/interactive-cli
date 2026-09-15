@@ -30,23 +30,23 @@ Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 ### SEE ALSO
 
 * [iai](iai.md)	 - InteractiveAI's CLI
-* [iai mcps activate](iai_mcps_activate.md)	 - Restore an MCP to its configured replica count
+* [iai mcps activate](iai_mcps_activate.md)	 - Activate a deactivated mcp in a project
 * [iai mcps catalog](iai_mcps_catalog.md)	 - Browse the curated MCP catalog
 * [iai mcps connect](iai_mcps_connect.md)	 - Sign in to an mcp that authenticates with your account
 * [iai mcps create](iai_mcps_create.md)	 - Create an mcp in a project
-* [iai mcps deactivate](iai_mcps_deactivate.md)	 - Stop an MCP's replicas while preserving its configuration
+* [iai mcps deactivate](iai_mcps_deactivate.md)	 - Deactivate an mcp in a project
 * [iai mcps delete](iai_mcps_delete.md)	 - Delete an mcp
 * [iai mcps describe](iai_mcps_describe.md)	 - Show mcp details, verify state, and cached tools
 * [iai mcps diff](iai_mcps_diff.md)	 - Compare two revisions of an mcp
 * [iai mcps disconnect](iai_mcps_disconnect.md)	 - Forget an mcp's stored provider credential
 * [iai mcps list](iai_mcps_list.md)	 - List mcps in a project
-* [iai mcps log-fields](iai_mcps_log-fields.md)	 - List available fields in structured MCP logs
-* [iai mcps logs](iai_mcps_logs.md)	 - Show logs for an MCP
-* [iai mcps port-forward](iai_mcps_port-forward.md)	 - Forward a local port to an internal MCP
-* [iai mcps restart](iai_mcps_restart.md)	 - Restart an internal MCP
+* [iai mcps log-fields](iai_mcps_log-fields.md)	 - List available fields in structured logs
+* [iai mcps logs](iai_mcps_logs.md)	 - Show logs for an mcp
+* [iai mcps port-forward](iai_mcps_port-forward.md)	 - Forward a local port to an mcp
+* [iai mcps restart](iai_mcps_restart.md)	 - Restart an mcp in a project
 * [iai mcps revisions](iai_mcps_revisions.md)	 - List revisions of an mcp
 * [iai mcps run-tool](iai_mcps_run-tool.md)	 - Run a tool on an mcp
 * [iai mcps tools](iai_mcps_tools.md)	 - List an mcp's cached tools with descriptions
-* [iai mcps update](iai_mcps_update.md)	 - Update an mcp's spec
+* [iai mcps update](iai_mcps_update.md)	 - Update an mcp in a project
 * [iai mcps verify](iai_mcps_verify.md)	 - Re-verify an external mcp and refresh its cached tools
 

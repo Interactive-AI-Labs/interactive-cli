@@ -1,10 +1,12 @@
 ## iai mcps log-fields
 
-List available fields in structured MCP logs
+List available fields in structured logs
 
 ### Synopsis
 
-Scan recent logs for extra top-level JSON fields to use with 'iai mcps logs --fields'.
+Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
+
+Use the reported field names with 'iai mcps logs --fields' to include them in output.
 
 ```
 iai mcps log-fields <mcp_name> [flags]
@@ -13,6 +15,7 @@ iai mcps log-fields <mcp_name> [flags]
 ### Examples
 
 ```
+  iai mcps log-fields my-tool
   iai mcps log-fields my-tool --since 1h
 ```
 

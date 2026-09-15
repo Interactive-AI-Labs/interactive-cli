@@ -1,6 +1,10 @@
 ## iai mcps activate
 
-Restore an MCP to its configured replica count
+Activate a deactivated mcp in a project
+
+### Synopsis
+
+Activate a deactivated mcp, restoring it to its previous configuration.
 
 ```
 iai mcps activate <mcp_name> [flags]
@@ -10,6 +14,7 @@ iai mcps activate <mcp_name> [flags]
 
 ```
   iai mcps activate my-tool
+  iai mcps activate my-tool --project my-project
 ```
 
 ### Options

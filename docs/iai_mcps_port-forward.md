@@ -1,12 +1,15 @@
 ## iai mcps port-forward
 
-Forward a local port to an internal MCP
+Forward a local port to an mcp
 
 ### Synopsis
 
-Tunnel local TCP connections through the deployment operator to an MCP.
-The remote port defaults to the MCP's configured port. The local port defaults
-to --port when set, or an available OS-assigned port otherwise.
+Open a local TCP listener and tunnel traffic through the deployment operator
+to an mcp running in the cluster.
+
+The remote port defaults to the mcp's configured port. Use --port to
+override. Use --local-port to choose the local listening port (defaults to
+--port when set, or an available OS-assigned port otherwise).
 
 ```
 iai mcps port-forward <mcp_name> [flags]
@@ -16,7 +19,7 @@ iai mcps port-forward <mcp_name> [flags]
 
 ```
   iai mcps port-forward my-tool
-  iai mcps port-forward my-tool --local-port 9090
+  iai mcps port-forward my-tool --port 8080
   iai mcps port-forward my-tool --port 8080 --local-port 9090
 ```
 
@@ -24,8 +27,8 @@ iai mcps port-forward <mcp_name> [flags]
 
 ```
   -h, --help             help for port-forward
-      --local-port int   Local listening port (defaults to --port, or an available port)
-      --port int         Remote port (defaults to the MCP's configured port)
+      --local-port int   Local port to listen on (defaults to the remote port)
+      --port int         Remote port on the mcp (defaults to the mcp's configured port)
 ```
 
 ### Options inherited from parent commands

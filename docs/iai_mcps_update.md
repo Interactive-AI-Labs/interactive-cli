@@ -1,23 +1,25 @@
 ## iai mcps update
 
-Update an mcp's spec
+Update an mcp in a project
 
 ### Synopsis
 
-Partial update — only the fields whose flags you pass are changed; everything
-else keeps its current value. The type (internal/external) and, for external
-mcps, the endpoint/catalog cannot change — delete and recreate instead.
+Update an mcp in a specific project.
 
-Use --endpoint to enable public access, or --endpoint=false to disable it.
-Omitting --endpoint preserves the deployed setting.
+Only the flags you pass are applied; everything else is left at its current
+value.
 
-Internal workload flags can be updated independently, except --image-name and
---image-tag, which must be passed together. Lists (--env, --secret) replace the
-entire current list when provided — pass every entry you want to keep, or use
---clear-env / --clear-secret to remove them all. Use --clear-stack-id to remove
-the stack assignment. Internal auth fields can be updated independently;
-external credential changes require --auth-type. Omitted credentials are preserved.
-The deployment operator handles internal validation, restarts, and attached-agent restrictions.
+Lists (--env, --secret) replace the entire current list when provided — pass
+every value you want to keep.
+
+Use --clear-env, --clear-secret, or --clear-stack-id to remove those
+configurations entirely.
+
+The type (internal/external) and, for external mcps, the endpoint/catalog cannot
+change — delete and recreate instead. Internal workload flags can be updated
+independently, except --image-name and --image-tag, which must be passed together.
+Internal auth fields can be updated independently; external credential changes
+require --auth-type.
 
 ```
 iai mcps update <mcp_name> [flags]
@@ -46,12 +48,12 @@ iai mcps update <mcp_name> [flags]
       --auth-type string            How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create
       --clear-env                   Remove all environment variables from the mcp
       --clear-secret                Remove all secret references from the mcp
-      --clear-stack-id              Remove the MCP from its stack
+      --clear-stack-id              Remove the mcp from its stack
       --cpu string                  CPU request/limit, e.g. 250m (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
-      --endpoint                    Expose a public endpoint (internal); --endpoint=false disables it on update
+      --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai
       --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
   -h, --help                        help for update
       --image-name string           Container image name (internal)

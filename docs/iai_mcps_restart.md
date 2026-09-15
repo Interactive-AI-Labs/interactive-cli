@@ -1,6 +1,10 @@
 ## iai mcps restart
 
-Restart an internal MCP
+Restart an mcp in a project
+
+### Synopsis
+
+Restart an mcp in a specific project using the deployment service.
 
 ```
 iai mcps restart <mcp_name> [flags]
@@ -10,6 +14,7 @@ iai mcps restart <mcp_name> [flags]
 
 ```
   iai mcps restart my-tool
+  iai mcps restart my-tool --project my-project
 ```
 
 ### Options

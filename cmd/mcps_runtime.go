@@ -22,21 +22,28 @@ var (
 
 var mcpLogsCmd = &cobra.Command{
 	Use:   "logs <mcp_name>",
-	Short: "Show logs for an MCP",
-	Long: `Fetch or follow logs produced by an internal MCP's replicas through the deployment operator.
-External provider logs are not collected. Requests query retained logs by MCP name.
+	Short: "Show logs for an mcp",
+	Long: `Show logs for all replicas of an mcp in a project.
 
-Returns up to 1000 entries by default; --limit accepts up to 5000. Structured
-logs are formatted as "LEVEL message". Use --fields or --all-fields to include
-extra fields, --raw for server JSON lines, or --decode for decoded JSON.
+Returns up to 1000 log entries in chronological order by default; use
+--limit to request up to 5000.
+
+Structured (JSON) logs are automatically formatted: the level and message
+fields are extracted and displayed as "LEVEL message". Use --fields or
+--all-fields to include additional top-level fields after the message. Use
+--raw for exact server JSON, or --decode to decode embedded JSON strings into
+nested JSON values.
 
 Use --summary for JSON severity counts over the entire time window, without
 the log-entry limit. Unlabeled lines contribute to total only.`,
-	Example: `  iai mcps logs my-tool --follow
+	Example: `  iai mcps logs my-tool
+  iai mcps logs my-tool --follow
+  iai mcps logs my-tool --since 3h
+  iai mcps logs my-tool --timestamps
+  iai mcps logs my-tool --fields logger,pid
   iai mcps logs my-tool --since 30m --level error --message 'timeout|failed'
-  iai mcps logs my-tool --fields logger,pid --timestamps
   iai mcps logs my-tool --summary --since 3h
-  iai mcps logs my-tool --from-timestamp 2026-01-01T00:00:00Z --to-timestamp 2026-01-01T01:00:00Z`,
+  iai mcps logs my-tool --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := strings.TrimSpace(args[0])
@@ -98,11 +105,14 @@ the log-entry limit. Unlabeled lines contribute to total only.`,
 }
 
 var mcpLogFieldsCmd = &cobra.Command{
-	Use:     "log-fields <mcp_name>",
-	Short:   "List available fields in structured MCP logs",
-	Long:    "Scan recent logs for extra top-level JSON fields to use with 'iai mcps logs --fields'.",
-	Example: "  iai mcps log-fields my-tool --since 1h",
-	Args:    cobra.ExactArgs(1),
+	Use:   "log-fields <mcp_name>",
+	Short: "List available fields in structured logs",
+	Long: `Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
+
+Use the reported field names with 'iai mcps logs --fields' to include them in output.`,
+	Example: `  iai mcps log-fields my-tool
+  iai mcps log-fields my-tool --since 1h`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		pCtx, _, client, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
 		if err != nil {
@@ -138,24 +148,38 @@ var mcpLogFieldsCmd = &cobra.Command{
 }
 
 var mcpRestartCmd = &cobra.Command{
-	Use: "restart <mcp_name>", Short: "Restart an internal MCP",
-	Example: "  iai mcps restart my-tool", Args: cobra.ExactArgs(1), RunE: runMcpAction,
+	Use:   "restart <mcp_name>",
+	Short: "Restart an mcp in a project",
+	Long:  `Restart an mcp in a specific project using the deployment service.`,
+	Example: `  iai mcps restart my-tool
+  iai mcps restart my-tool --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: runMcpAction,
 }
 
 var mcpActivateCmd = &cobra.Command{
-	Use: "activate <mcp_name>", Short: "Restore an MCP to its configured replica count",
-	Example: "  iai mcps activate my-tool", Args: cobra.ExactArgs(1), RunE: runMcpAction,
+	Use:   "activate <mcp_name>",
+	Short: "Activate a deactivated mcp in a project",
+	Long:  `Activate a deactivated mcp, restoring it to its previous configuration.`,
+	Example: `  iai mcps activate my-tool
+  iai mcps activate my-tool --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: runMcpAction,
 }
 
 var mcpDeactivateCmd = &cobra.Command{
-	Use:     "deactivate <mcp_name>",
-	Short:   "Stop an MCP's replicas while preserving its configuration",
-	Example: "  iai mcps deactivate my-tool",
-	Args:    cobra.ExactArgs(1),
-	RunE:    runMcpAction,
+	Use:   "deactivate <mcp_name>",
+	Short: "Deactivate an mcp in a project",
+	Long: `Deactivate an mcp, stopping all running instances. The current configuration
+is preserved and will be restored when the mcp is activated again.`,
+	Example: `  iai mcps deactivate my-tool
+  iai mcps deactivate my-tool --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: runMcpAction,
 }
 
 func runMcpAction(cmd *cobra.Command, args []string) error {
+	out := cmd.OutOrStdout()
 	name := strings.TrimSpace(args[0])
 	if name == "" {
 		return fmt.Errorf("mcp name is required")
@@ -164,13 +188,14 @@ func runMcpAction(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Submitting MCP %s request...\n", cmd.Name())
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "Submitting mcp %s request...\n", cmd.Name())
 	message, err := client.McpAction(cmd.Context(), pCtx.orgId, pCtx.projectId, name, cmd.Name())
 	if err != nil {
 		return err
 	}
 	if message != "" {
-		fmt.Fprintln(cmd.OutOrStdout(), message)
+		fmt.Fprintln(out, message)
 	}
 	return nil
 }
@@ -179,12 +204,15 @@ var mcpPFPort, mcpPFLocalPort int
 
 var mcpPortForwardCmd = &cobra.Command{
 	Use:   "port-forward <mcp_name>",
-	Short: "Forward a local port to an internal MCP",
-	Long: `Tunnel local TCP connections through the deployment operator to an MCP.
-The remote port defaults to the MCP's configured port. The local port defaults
-to --port when set, or an available OS-assigned port otherwise.`,
+	Short: "Forward a local port to an mcp",
+	Long: `Open a local TCP listener and tunnel traffic through the deployment operator
+to an mcp running in the cluster.
+
+The remote port defaults to the mcp's configured port. Use --port to
+override. Use --local-port to choose the local listening port (defaults to
+--port when set, or an available OS-assigned port otherwise).`,
 	Example: `  iai mcps port-forward my-tool
-  iai mcps port-forward my-tool --local-port 9090
+  iai mcps port-forward my-tool --port 8080
   iai mcps port-forward my-tool --port 8080 --local-port 9090`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -203,30 +231,41 @@ to --port when set, or an available OS-assigned port otherwise.`,
 func init() {
 	mcpsCmd.AddCommand(mcpRestartCmd, mcpActivateCmd, mcpDeactivateCmd, mcpPortForwardCmd)
 	mcpPortForwardCmd.Flags().
-		IntVar(&mcpPFPort, "port", 0, "Remote port (defaults to the MCP's configured port)")
+		IntVar(&mcpPFPort, "port", 0, "Remote port on the mcp (defaults to the mcp's configured port)")
 	mcpPortForwardCmd.Flags().
-		IntVar(&mcpPFLocalPort, "local-port", 0, "Local listening port (defaults to --port, or an available port)")
+		IntVar(&mcpPFLocalPort, "local-port", 0, "Local port to listen on (defaults to the remote port)")
 	f := mcpLogsCmd.Flags()
-	f.BoolVarP(&mcpLogsOptions.Follow, "follow", "f", false, "Stream new log entries")
+	f.BoolVarP(
+		&mcpLogsOptions.Follow,
+		"follow",
+		"f",
+		false,
+		"Stream new log entries as they arrive; mutually exclusive with --end-time",
+	)
 	f.StringVar(
 		&mcpLogsOptions.Since,
 		"since",
 		"",
-		"Relative lookback (e.g. 30m, 1h, 3d); default 1h; maximum 72h",
+		"Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time",
 	)
 	f.StringVar(
 		&mcpLogsOptions.StartTime,
-		"from-timestamp",
+		"start-time",
 		"",
-		"RFC3339 start timestamp; mutually exclusive with --since",
+		"Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window",
 	)
 	f.StringVar(
 		&mcpLogsOptions.EndTime,
-		"to-timestamp",
+		"end-time",
 		"",
-		"RFC3339 end timestamp; requires --from-timestamp; mutually exclusive with --since and --follow",
+		"Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow",
 	)
-	f.IntVar(&mcpLogsOptions.Limit, "limit", 0, "Maximum log entries (1-5000); defaults to 1000")
+	f.IntVar(
+		&mcpLogsOptions.Limit,
+		"limit",
+		0,
+		"Maximum number of log entries to return (1-5000); defaults to 1000",
+	)
 	f.StringVar(
 		&mcpLogsOptions.Message,
 		"message",
@@ -246,26 +285,28 @@ func init() {
 		"Output JSON severity counts instead of log entries",
 	)
 	f.BoolVar(&mcpLogsFormat.Raw, "raw", false, "Output exact server JSON lines without formatting")
-	f.BoolVar(&mcpLogsFormat.Decode, "decode", false, "Decode embedded JSON strings; output JSON")
+	f.BoolVar(
+		&mcpLogsFormat.Decode,
+		"decode",
+		false,
+		"Decode embedded JSON strings into nested JSON values; outputs raw JSON",
+	)
 	f.StringSliceVar(
 		&mcpLogsFormat.Fields,
 		"fields",
 		nil,
-		"Extra structured log fields to display (e.g. logger,pid)",
+		"Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON",
 	)
 	f.BoolVar(
 		&mcpLogsFormat.AllFields,
 		"all-fields",
 		false,
-		"Display all extra structured log fields",
+		"Show all extra top-level fields from structured (JSON) logs after the message",
 	)
 	f.BoolVar(&mcpLogsFormat.Timestamps, "timestamps", false, "Include platform log timestamps")
 	for _, flag := range []string{"follow", "limit", "level", "raw", "decode", "fields", "all-fields", "timestamps"} {
 		mcpLogsCmd.MarkFlagsMutuallyExclusive("summary", flag)
 	}
-	mcpLogsCmd.MarkFlagsMutuallyExclusive("since", "from-timestamp")
-	mcpLogsCmd.MarkFlagsMutuallyExclusive("since", "to-timestamp")
-	mcpLogsCmd.MarkFlagsMutuallyExclusive("follow", "to-timestamp")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
