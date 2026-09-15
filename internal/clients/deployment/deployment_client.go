@@ -1167,6 +1167,27 @@ type LogsOptions struct {
 	StartTime string
 	EndTime   string
 	Limit     int // entries to request; 0 leaves it to the server default
+	Message   string
+	Level     string
+}
+
+func (o LogsOptions) query() url.Values {
+	q := url.Values{}
+	if o.Follow {
+		q.Set("follow", "true")
+	}
+	for key, value := range map[string]string{
+		"since": o.Since, "start-time": o.StartTime, "end-time": o.EndTime,
+		"message": o.Message, "level": o.Level,
+	} {
+		if value != "" {
+			q.Set(key, value)
+		}
+	}
+	if o.Limit != 0 {
+		q.Set("limit", strconv.Itoa(o.Limit))
+	}
+	return q
 }
 
 // LogsResponse wraps the log body stream together with metadata returned by the server.
@@ -1221,23 +1242,7 @@ func (c *DeploymentClient) fetchLogs(
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	q := req.URL.Query()
-	if opts.Follow {
-		q.Set("follow", "true")
-	}
-	if opts.Since != "" {
-		q.Set("since", opts.Since)
-	}
-	if opts.StartTime != "" {
-		q.Set("start-time", opts.StartTime)
-	}
-	if opts.EndTime != "" {
-		q.Set("end-time", opts.EndTime)
-	}
-	if opts.Limit > 0 {
-		q.Set("limit", strconv.Itoa(opts.Limit))
-	}
-	req.URL.RawQuery = q.Encode()
+	req.URL.RawQuery = opts.query().Encode()
 
 	resp, err := c.do(req)
 	if err != nil {
