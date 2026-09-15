@@ -14,9 +14,10 @@ Omitting --endpoint preserves the deployed setting.
 Internal workload flags can be updated independently, except --image-name and
 --image-tag, which must be passed together. Lists (--env, --secret) replace the
 entire current list when provided — pass every entry you want to keep, or use
---clear-env / --clear-secret to remove them all. Changing configuration or
-authentication restarts an internal mcp; an auth change also restarts every
-attached agent. Detach agents before changing auth.
+--clear-env / --clear-secret to remove them all. Use --clear-stack-id to remove
+the stack assignment. Internal auth fields can be updated independently;
+external credential changes require --auth-type. Omitted credentials are preserved.
+The deployment operator handles internal validation, restarts, and attached-agent restrictions.
 
 ```
 iai mcps update <mcp_name> [flags]
@@ -31,6 +32,8 @@ iai mcps update <mcp_name> [flags]
   iai mcps update my-tool --endpoint=false
   iai mcps update my-tool --env ENV=dev --env SILENT_MODE=true --secret platform-dev --secret services-dev
   iai mcps update my-tool --clear-env
+  iai mcps update my-tool --clear-stack-id
+  iai mcps update my-tool --credential-stdin < token.txt
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
   iai mcps update acme --description "notes for the team"
 ```
@@ -40,9 +43,10 @@ iai mcps update <mcp_name> [flags]
 ```
       --auth-header string          Header used to send the credential
       --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create
       --clear-env                   Remove all environment variables from the mcp
       --clear-secret                Remove all secret references from the mcp
+      --clear-stack-id              Remove the MCP from its stack
       --cpu string                  CPU request/limit, e.g. 250m (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential

@@ -44,6 +44,7 @@ var (
 	mcpSecretRefs      []string
 	mcpClearEnv        bool
 	mcpClearSecret     bool
+	mcpClearStackID    bool
 )
 
 var mcpForce bool
@@ -305,15 +306,18 @@ Omitting --endpoint preserves the deployed setting.
 Internal workload flags can be updated independently, except --image-name and
 --image-tag, which must be passed together. Lists (--env, --secret) replace the
 entire current list when provided — pass every entry you want to keep, or use
---clear-env / --clear-secret to remove them all. Changing configuration or
-authentication restarts an internal mcp; an auth change also restarts every
-attached agent. Detach agents before changing auth.`,
+--clear-env / --clear-secret to remove them all. Use --clear-stack-id to remove
+the stack assignment. Internal auth fields can be updated independently;
+external credential changes require --auth-type. Omitted credentials are preserved.
+The deployment operator handles internal validation, restarts, and attached-agent restrictions.`,
 	Example: `  iai mcps update my-tool --image-name my-mcp --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update my-tool --endpoint
   iai mcps update my-tool --endpoint=false
   iai mcps update my-tool --env ENV=dev --env SILENT_MODE=true --secret platform-dev --secret services-dev
   iai mcps update my-tool --clear-env
+  iai mcps update my-tool --clear-stack-id
+  iai mcps update my-tool --credential-stdin < token.txt
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
   iai mcps update acme --description "notes for the team"`,
 	Args: cobra.ExactArgs(1),
@@ -344,68 +348,25 @@ attached agent. Detach agents before changing auth.`,
 			return err
 		}
 
-		patch := platform.McpUpdateRequest{}
-		if cmd.Flags().Changed("description") {
-			patch["description"] = mcpDescription
+		auth := platform.McpAuth{
+			Type:         mcpAuthType,
+			HeaderName:   &mcpAuthHeader,
+			HeaderPrefix: &mcpAuthHeaderPfx,
 		}
-		if cmd.Flags().Changed("auth-type") {
-			auth := platform.McpAuth{Type: mcpAuthType}
-			if cmd.Flags().Changed("credential") || mcpCredentialStdin {
-				auth.Credential = &cred
-			}
-			if cmd.Flags().Changed("auth-header") {
-				auth.HeaderName = &mcpAuthHeader
-			}
-			if cmd.Flags().Changed("auth-header-prefix") {
-				auth.HeaderPrefix = &mcpAuthHeaderPfx
-			}
-			patch["auth"] = auth
+		if cmd.Flags().Changed("credential") || mcpCredentialStdin {
+			auth.Credential = &cred
 		}
-		workload := map[string]any{}
-		if cmd.Flags().Changed("image-name") {
-			workload["image"] = mcpImageName + ":" + mcpImageTag
-		}
-		if cmd.Flags().Changed("port") {
-			workload["port"] = mcpPort
-		}
-		if cmd.Flags().Changed("endpoint") {
-			workload["endpoint"] = mcpEndpoint
-		}
-		if cmd.Flags().Changed("path") {
-			workload["path"] = mcpPath
-		}
-		if cmd.Flags().Changed("memory") {
-			workload["memory"] = mcpMemory
-		}
-		if cmd.Flags().Changed("cpu") {
-			workload["cpu"] = mcpCPU
-		}
-		if cmd.Flags().Changed("stack-id") {
-			workload["stack_id"] = mcpStackId
-		}
-		env, err := inputs.ResolveMcpEnvVars(
-			mcpEnvVars, cmd.Flags().Changed("env"), mcpClearEnv,
-		)
+		patch, err := inputs.BuildMcpUpdatePatch(inputs.McpUpdateInput{
+			Workload: platform.McpWorkload{
+				Image: mcpImageName + ":" + mcpImageTag, Port: mcpPort, Path: mcpPath,
+				Memory: mcpMemory, CPU: mcpCPU, Endpoint: mcpEndpoint, StackId: mcpStackId,
+				SecretRefs: mcpSecretRefs,
+			},
+			Auth: auth, Description: mcpDescription, EnvVars: mcpEnvVars,
+			ClearEnv: mcpClearEnv, ClearSecret: mcpClearSecret, ClearStackID: mcpClearStackID,
+		}, cmd.Flags().Changed)
 		if err != nil {
 			return err
-		}
-		if env != nil {
-			workload["env"] = env
-		}
-		secretRefs, err := inputs.ResolveMcpSecretRefs(
-			mcpSecretRefs, cmd.Flags().Changed("secret"), mcpClearSecret,
-		)
-		if err != nil {
-			return err
-		}
-		if secretRefs != nil {
-			workload["secret_refs"] = secretRefs
-		}
-		if len(workload) > 0 {
-			patch["workload"] = workload
-		}
-		if len(patch) == 0 {
-			return fmt.Errorf("no fields to update; pass at least one flag")
 		}
 
 		res, _, err := apiClient.UpdateMcp(
@@ -671,18 +632,15 @@ func catalogAuthType(entry *platform.McpCatalogEntry, explicit string) (string, 
 }
 
 func validateMcpBackendFlags(cmd *cobra.Command, backend platform.McpBackend) error {
-	flags := []string{"auth-header", "auth-header-prefix"}
-	appliesTo := "external"
-	if backend == platform.McpBackendExternal {
-		flags = []string{
-			"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id", "endpoint",
-			"env", "secret", "clear-env", "clear-secret",
-		}
-		appliesTo = "internal"
+	if backend != platform.McpBackendExternal {
+		return nil
 	}
-	for _, name := range flags {
+	for _, name := range []string{
+		"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id", "endpoint",
+		"env", "secret", "clear-env", "clear-secret", "clear-stack-id",
+	} {
 		if cmd.Flags().Changed(name) {
-			return fmt.Errorf("--%s only applies to an %s mcp", name, appliesTo)
+			return fmt.Errorf("--%s only applies to an internal mcp", name)
 		}
 	}
 	return nil
@@ -693,33 +651,17 @@ func validateMcpUpdateFlags(cmd *cobra.Command) error {
 	for _, name := range []string{
 		"description", "image-name", "image-tag", "port", "path", "memory", "cpu", "endpoint",
 		"stack-id", "auth-type", "credential", "credential-stdin", "auth-header",
-		"auth-header-prefix", "env", "secret", "clear-env", "clear-secret",
+		"auth-header-prefix", "env", "secret", "clear-env", "clear-secret", "clear-stack-id",
 	} {
 		changed = changed || cmd.Flags().Changed(name)
 	}
 	if !changed {
 		return fmt.Errorf("no fields to update; pass at least one flag")
 	}
-	for _, name := range []string{"image-name", "image-tag", "path", "memory", "cpu", "stack-id"} {
-		if cmd.Flags().Changed(name) {
-			value, err := cmd.Flags().GetString(name)
-			if err != nil {
-				return err
-			}
-			if strings.TrimSpace(value) == "" {
-				return fmt.Errorf("--%s must not be empty", name)
-			}
-		}
-	}
 	nameChanged := cmd.Flags().Changed("image-name")
 	tagChanged := cmd.Flags().Changed("image-tag")
 	if nameChanged != tagChanged {
 		return fmt.Errorf("--image-name and --image-tag must be passed together")
-	}
-	for _, name := range []string{"credential", "credential-stdin", "auth-header", "auth-header-prefix"} {
-		if cmd.Flags().Changed(name) && !cmd.Flags().Changed("auth-type") {
-			return fmt.Errorf("--%s requires --auth-type", name)
-		}
 	}
 	return nil
 }
@@ -937,7 +879,7 @@ func init() {
 		c.Flags().StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal)")
 		c.Flags().StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal)")
 		c.Flags().
-			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)`)
+			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create`)
 		c.Flags().
 			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires (bearer token, API key)")
 		c.Flags().
@@ -960,6 +902,9 @@ func init() {
 		BoolVar(&mcpClearEnv, "clear-env", false, "Remove all environment variables from the mcp")
 	mcpUpdateCmd.Flags().
 		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp")
+	mcpUpdateCmd.Flags().
+		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the MCP from its stack")
+	mcpUpdateCmd.MarkFlagsMutuallyExclusive("clear-stack-id", "stack-id")
 
 	mcpCreateCmd.Flags().
 		StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)

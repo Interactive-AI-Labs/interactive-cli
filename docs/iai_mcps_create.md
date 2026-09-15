@@ -51,7 +51,7 @@ iai mcps create <mcp_name> [flags]
 ```
       --auth-header string          Header used to send the credential
       --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
       --cpu string                  CPU request/limit, e.g. 250m (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
