@@ -871,7 +871,7 @@ func init() {
 
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().
-			IntVar(&mcpPort, "port", 0, "Port the mcp server listens on (internal only; platform-hosted)")
+			IntVar(&mcpPort, "port", 0, "MCP port to expose (internal only; platform-hosted)")
 		c.Flags().
 			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal only; platform-hosted)")
 		c.Flags().
@@ -881,9 +881,9 @@ func init() {
 		c.Flags().
 			StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal only; platform-hosted)")
 		c.Flags().
-			StringVar(&mcpMemory, "memory", "", "Memory request/limit, e.g. 512M (internal only; platform-hosted)")
+			StringVar(&mcpMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal only; platform-hosted)")
 		c.Flags().
-			StringVar(&mcpCPU, "cpu", "", "CPU request/limit, e.g. 250m (internal only; platform-hosted)")
+			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal only; platform-hosted)")
 		c.Flags().
 			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create`)
 		c.Flags().
@@ -899,7 +899,7 @@ func init() {
 		c.Flags().
 			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated (internal only; platform-hosted)")
 		c.Flags().
-			StringArrayVar(&mcpSecretRefs, "secret", nil, "Secret to load as env vars, by name; can be repeated (internal only; platform-hosted)")
+			StringArrayVar(&mcpSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated (internal only; platform-hosted)")
 		c.Flags().
 			StringVar(&mcpDescription, "description", "", "Human-readable description of the mcp")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")

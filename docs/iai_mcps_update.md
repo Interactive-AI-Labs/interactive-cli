@@ -50,7 +50,7 @@ iai mcps update <mcp_name> [flags]
       --clear-env                   Remove all environment variables from the mcp (internal only; platform-hosted)
       --clear-secret                Remove all secret references from the mcp (internal only; platform-hosted)
       --clear-stack-id              Remove the mcp from its stack (internal only; platform-hosted)
-      --cpu string                  CPU request/limit, e.g. 250m (internal only; platform-hosted)
+      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal only; platform-hosted)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
@@ -59,10 +59,10 @@ iai mcps update <mcp_name> [flags]
   -h, --help                        help for update
       --image-name string           Container image name (internal only; platform-hosted)
       --image-tag string            Container image tag (internal only; platform-hosted)
-      --memory string               Memory request/limit, e.g. 512M (internal only; platform-hosted)
+      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal only; platform-hosted)
       --path string                 Endpoint path the mcp's own server exposes, default "/mcp" (internal only; platform-hosted)
-      --port int                    Port the mcp server listens on (internal only; platform-hosted)
-      --secret stringArray          Secret to load as env vars, by name; can be repeated (internal only; platform-hosted)
+      --port int                    MCP port to expose (internal only; platform-hosted)
+      --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal only; platform-hosted)
       --stack-id string             Stack ID to assign the mcp to (internal only; platform-hosted)
 ```
 
