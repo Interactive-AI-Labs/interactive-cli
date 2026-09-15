@@ -16,6 +16,7 @@ iai replicas describe <replica_name> [flags]
   iai replicas describe my-service-abc123
   iai replicas describe my-service-abc123 -p my-project -o my-org
   iai replicas describe my-service-abc123 --yaml
+  iai replicas describe my-tool-abc123 --type mcp
 ```
 
 ### Options
@@ -24,7 +25,7 @@ iai replicas describe <replica_name> [flags]
   -h, --help                  help for describe
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the service
+  -p, --project string        Project name that owns the workload
       --yaml                  Output raw API response as YAML
 ```
 
@@ -35,9 +36,10 @@ iai replicas describe <replica_name> [flags]
       --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
       --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
       --hostname string              Hostname for the API (default "https://app.interactive.ai")
+      --type string                  Replica workload type: service or mcp (default "service")
 ```
 
 ### SEE ALSO
 
-* [iai replicas](iai_replicas.md)	 - Inspect service replicas
+* [iai replicas](iai_replicas.md)	 - Inspect service or MCP replicas
 

@@ -1075,18 +1075,23 @@ func (c *DeploymentClient) DeleteImage(
 	return clients.ExtractServerMessage(body), nil
 }
 
+func replicaWorkloadPath(orgId, projectId, resourceType string) (string, error) {
+	if resourceType != "service" && resourceType != "mcp" {
+		return "", fmt.Errorf("invalid replica type %q: expected service or mcp", resourceType)
+	}
+	return fmt.Sprintf("/v1/organizations/%s/projects/%s/%ss",
+		url.PathEscape(orgId), url.PathEscape(projectId), resourceType), nil
+}
+
 func (c *DeploymentClient) ListReplicas(
 	ctx context.Context,
-	orgId,
-	projectId,
-	serviceName string,
+	orgId, projectId, resourceType, resourceName string,
 ) ([]ReplicaInfo, error) {
-	path := fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/services/%s/replicas",
-		url.PathEscape(orgId),
-		url.PathEscape(projectId),
-		url.PathEscape(serviceName),
-	)
+	base, err := replicaWorkloadPath(orgId, projectId, resourceType)
+	if err != nil {
+		return nil, err
+	}
+	path := base + "/" + url.PathEscape(resourceName) + "/replicas"
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -1120,16 +1125,13 @@ func (c *DeploymentClient) ListReplicas(
 
 func (c *DeploymentClient) DescribeReplica(
 	ctx context.Context,
-	orgId,
-	projectId,
-	replicaName string,
+	orgId, projectId, resourceType, replicaName string,
 ) (*ReplicaStatus, error) {
-	path := fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/services/replicas/%s",
-		url.PathEscape(orgId),
-		url.PathEscape(projectId),
-		url.PathEscape(replicaName),
-	)
+	base, err := replicaWorkloadPath(orgId, projectId, resourceType)
+	if err != nil {
+		return nil, err
+	}
+	path := base + "/replicas/" + url.PathEscape(replicaName)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -1202,17 +1204,14 @@ type LogsResponse struct {
 
 func (c *DeploymentClient) GetReplicaLogs(
 	ctx context.Context,
-	orgId,
-	projectId,
-	replicaName string,
+	orgId, projectId, resourceType, replicaName string,
 	opts LogsOptions,
 ) (*LogsResponse, error) {
-	path := fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/services/replicas/%s/logs",
-		url.PathEscape(orgId),
-		url.PathEscape(projectId),
-		url.PathEscape(replicaName),
-	)
+	base, err := replicaWorkloadPath(orgId, projectId, resourceType)
+	if err != nil {
+		return nil, err
+	}
+	path := base + "/replicas/" + url.PathEscape(replicaName) + "/logs"
 	return c.fetchLogs(ctx, path, opts)
 }
 
