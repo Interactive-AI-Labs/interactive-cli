@@ -20,7 +20,7 @@ import (
 )
 
 type portForwardOpts struct {
-	resourceType string // "services", "agents", "databases"
+	resourceType string // "services", "agents", "databases", "mcps"
 	resourceName string
 	remotePort   int
 	localPort    int

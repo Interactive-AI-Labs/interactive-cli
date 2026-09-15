@@ -70,6 +70,16 @@ func TestBuildPortForwardURL(t *testing.T) {
 			want:         "wss://deployment.example.com/v1/organizations/org%2F1/projects/proj%202/services/svc%2Fname/port-forward",
 		},
 		{
+			name:         "mcp port-forward",
+			host:         "https://deployment.example.com",
+			orgId:        "org-1",
+			projectId:    "proj-2",
+			resourceType: "mcps",
+			resourceName: "my-tool",
+			port:         8080,
+			want:         "wss://deployment.example.com/v1/organizations/org-1/projects/proj-2/mcps/my-tool/port-forward?port=8080",
+		},
+		{
 			name:         "unknown scheme defaults to wss",
 			host:         "ftp://deployment.example.com",
 			orgId:        "org-1",
