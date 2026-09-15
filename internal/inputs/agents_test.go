@@ -43,6 +43,23 @@ func TestBuildAgentRequestBody(t *testing.T) {
 			},
 		},
 		{
+			name: "--mcp reaches the config the create sends",
+			yaml: "language: en\n",
+			input: AgentInput{
+				Id:      "interactive-agent",
+				Version: "0.0.1",
+				McpRefs: []McpRef{{Name: "tools-dev", Id: "tools", SetId: true}},
+			},
+			want: deployment.CreateAgentBody{
+				Id:      "interactive-agent",
+				Version: "0.0.1",
+				AgentConfig: map[string]any{
+					"language": "en",
+					"mcps":     []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+				},
+			},
+		},
+		{
 			name: "all fields populated",
 			yaml: "context:\n  description: test\n",
 			input: AgentInput{
@@ -198,6 +215,76 @@ func TestBuildAgentRequestBody(t *testing.T) {
 	}
 }
 
+func TestMcpRefsFor(t *testing.T) {
+	tests := []struct {
+		name       string
+		names      []string
+		id         string
+		idGiven    bool
+		want       []McpRef
+		errContain string
+	}{
+		{
+			name:  "a name alone takes the mcp's own name as its prefix",
+			names: []string{"github"},
+			want:  []McpRef{{Name: "github"}},
+		},
+		{
+			name:       "--mcp attaches one, so a second is refused rather than dropped",
+			names:      []string{"github", "stripe"},
+			errContain: "--mcp attaches one mcp (got 2)",
+		},
+		{
+			name:    "--mcp-id is the prefix the agent calls its tools by",
+			names:   []string{"tools-dev"},
+			id:      "tools",
+			idGiven: true,
+			want:    []McpRef{{Name: "tools-dev", Id: "tools", SetId: true}},
+		},
+		{
+			name:    "a prefix equal to the name is the default, so only the clear survives",
+			names:   []string{"github"},
+			id:      "github",
+			idGiven: true,
+			want:    []McpRef{{Name: "github", SetId: true}},
+		},
+		{
+			name:       "--mcp-id with no --mcp at all",
+			id:         "tools",
+			idGiven:    true,
+			errContain: "pass --mcp <name> too",
+		},
+		{
+			name:       "an empty --mcp-id is a typo, not the default",
+			names:      []string{"tools-dev"},
+			idGiven:    true,
+			errContain: "--mcp-id must name the prefix",
+		},
+		{
+			name:       "an empty --mcp",
+			names:      []string{"  "},
+			errContain: "--mcp must name an mcp",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := McpRefsFor(tt.names, tt.id, tt.idGiven)
+			if tt.errContain != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.errContain) {
+					t.Fatalf("error = %v, want to contain %q", err, tt.errContain)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("McpRefsFor() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestInjectMcpRefs(t *testing.T) {
 	mslearn := map[string]any{
 		"id":        "mslearn",
@@ -206,36 +293,87 @@ func TestInjectMcpRefs(t *testing.T) {
 		"transport": "streamable-http",
 	}
 	tests := []struct {
-		name  string
-		cfg   map[string]any
-		names []string
-		want  []any
+		name       string
+		cfg        map[string]any
+		refs       []McpRef
+		want       []any
+		errContain string
 	}{
 		{
-			name: "dedups against existing bare and resolved refs, and repeats in the same call",
+			name: "an mcp already attached is not attached twice",
 			cfg: map[string]any{
 				"mcps": []any{
 					"github",
 					mslearn,
 				},
 			},
-			names: []string{"github", "acme", "acme", "mslearn"},
-			want: []any{
-				"github",
-				mslearn,
-				"acme",
-			},
+			refs: []McpRef{{Name: "github"}},
+			want: []any{"github", mslearn},
 		},
 		{
-			name:  "no existing mcps key",
-			cfg:   map[string]any{},
-			names: []string{"github"},
-			want:  []any{"github"},
+			name: "a new one is appended after what is there",
+			cfg: map[string]any{
+				"mcps": []any{"github", mslearn},
+			},
+			refs: []McpRef{{Name: "acme"}},
+			want: []any{"github", mslearn, "acme"},
+		},
+		{
+			name: "no existing mcps key",
+			cfg:  map[string]any{},
+			refs: []McpRef{{Name: "github"}},
+			want: []any{"github"},
+		},
+		{
+			name: "a prefix attaches as a ref, so the name survives alongside it",
+			cfg:  map[string]any{},
+			refs: []McpRef{{Name: "tools-dev", Id: "tools", SetId: true}},
+			want: []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+		},
+		{
+			name: "a prefix on an mcp already attached replaces its entry",
+			cfg:  map[string]any{"mcps": []any{"tools-dev"}},
+			refs: []McpRef{{Name: "tools-dev", Id: "tools", SetId: true}},
+			want: []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+		},
+		{
+			name: "attaching again with no prefix leaves the one already set alone",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+			},
+			refs: []McpRef{{Name: "tools-dev"}},
+			want: []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+		},
+		{
+			name: "asking for the name as the prefix puts the entry back in its short form",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+			},
+			refs: []McpRef{{Name: "tools-dev", SetId: true}},
+			want: []any{"tools-dev"},
+		},
+		{
+			name: "asking for the name as the prefix leaves a bare entry bare",
+			cfg:  map[string]any{"mcps": []any{"tools-dev"}},
+			refs: []McpRef{{Name: "tools-dev", SetId: true}},
+			want: []any{"tools-dev"},
+		},
+		{
+			name:       "a server configured in full is not turned into a ref",
+			cfg:        map[string]any{"mcps": []any{mslearn}},
+			refs:       []McpRef{{Name: "mslearn", Id: "docs", SetId: true}},
+			errContain: "configured in full in this agent's config",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, err := InjectMcpRefs(tt.cfg, tt.names)
+			out, err := InjectMcpRefs(tt.cfg, tt.refs)
+			if tt.errContain != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.errContain) {
+					t.Fatalf("error = %v, want to contain %q", err, tt.errContain)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -274,6 +412,25 @@ func TestDetachMcpRefs(t *testing.T) {
 				"github",
 				"stripe",
 			},
+		},
+		{
+			name: "detaches by the mcp's name, not by the prefix it was given",
+			cfg: map[string]any{
+				"mcps": []any{
+					map[string]any{"ref": "tools-dev", "id": "tools"},
+					"github",
+				},
+			},
+			names: []string{"tools-dev"},
+			want:  []any{"github"},
+		},
+		{
+			name: "the prefix is not the mcp's name, so it does not detach it",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+			},
+			names: []string{"tools"},
+			want:  []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
 		},
 		{
 			name:  "no names is a no-op",

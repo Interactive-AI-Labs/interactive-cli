@@ -31,6 +31,7 @@ var (
 	agentEnvVars        []string
 	agentSecretRefs     []string
 	agentMcpNames       []string
+	agentMcpId          string
 	agentDetachMcpNames []string
 
 	agentScheduleUptime   string
@@ -85,14 +86,25 @@ The config schema depends on the agent version. Run
 
 Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
-on their create/update commands).`,
+on their create/update commands).
+
+--mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
+tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
+a "tools-prod" in one project can share a prefix, and a routine. Attach further
+mcps in their own commands.`,
 	Example: `  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
-  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info`,
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --mcp tools-dev --mcp-id tools`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
+
+		mcpRefs, err := inputs.McpRefsFor(agentMcpNames, agentMcpId, cmd.Flags().Changed("mcp-id"))
+		if err != nil {
+			return err
+		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
@@ -110,7 +122,7 @@ on their create/update commands).`,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
 			StackId:          agentStackId,
-			McpNames:         agentMcpNames,
+			McpRefs:          mcpRefs,
 		})
 		if err != nil {
 			return err
@@ -166,9 +178,16 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
---detach-mcp removes an mcp reference (bare or resolved) by name; combine
-with --mcp in the same command to swap one for another. Detach an mcp before
-deleting it — 'iai mcps delete' blocks by default while an agent still
+--mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
+tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
+a "tools-prod" in one project can share a prefix, and a routine. Attach further
+mcps in their own commands. Attaching an mcp that is already attached leaves any
+prefix it has alone; pass the mcp's own name as --mcp-id to go back to the
+default.
+
+--detach-mcp removes an mcp reference by name, whichever prefix it was given;
+combine with --mcp in the same command to swap one for another. Detach an mcp
+before deleting it — 'iai mcps delete' blocks by default while an agent still
 references it.
 
 Before applying, the CLI prints deploy-awareness output to stderr: the live
@@ -193,13 +212,19 @@ config diff.`,
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
   iai agents update chat-agent --clear-stack-id
-  iai agents update chat-agent --mcp github --mcp stripe
+  iai agents update chat-agent --mcp github
+  iai agents update chat-agent --mcp tools-dev --mcp-id tools
   iai agents update chat-agent --detach-mcp stripe`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		errW := cmd.ErrOrStderr()
 		agentName := strings.TrimSpace(args[0])
+
+		mcpRefs, err := inputs.McpRefsFor(agentMcpNames, agentMcpId, cmd.Flags().Changed("mcp-id"))
+		if err != nil {
+			return err
+		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
@@ -217,7 +242,7 @@ config diff.`,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
 			StackId:          agentStackId,
-			McpNames:         agentMcpNames,
+			McpRefs:          mcpRefs,
 			DetachMcpNames:   agentDetachMcpNames,
 		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
 		if err != nil {
@@ -253,7 +278,7 @@ config diff.`,
 			if detachErr != nil {
 				return detachErr
 			}
-			augmented, injectErr := inputs.InjectMcpRefs(detached, agentMcpNames)
+			augmented, injectErr := inputs.InjectMcpRefs(detached, mcpRefs)
 			if injectErr != nil {
 				return injectErr
 			}
@@ -1007,8 +1032,11 @@ func init() {
 		StringVar(&agentScheduleTimezone, "schedule-timezone", "", "IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime")
 	agentCreateCmd.Flags().
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
+	// StringArrayVar, not StringVar, so a second --mcp is seen and rejected rather than silently winning.
 	agentCreateCmd.Flags().
-		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated")
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list')")
+	agentCreateCmd.Flags().
+		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp")
 	_ = agentCreateCmd.MarkFlagRequired("id")
 	_ = agentCreateCmd.MarkFlagRequired("version")
 	_ = agentCreateCmd.MarkFlagRequired("file")
@@ -1046,8 +1074,11 @@ func init() {
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
+	// StringArrayVar, not StringVar, so a second --mcp is seen and rejected rather than silently winning.
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach an MCP by name (see 'iai mcps list'); can be repeated. Without --file, appends to the agent's current mcps")
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list'). Without --file, appends to the agent's current mcps")
+	agentUpdateCmd.Flags().
+		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp")
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)")
 	agentUpdateCmd.Flags().
