@@ -42,8 +42,10 @@ type Deps struct {
 type Options struct {
 	OrgID, ProjectID, AgentName string
 	Input                       inputs.ReplayInput
-	Timeout                     time.Duration
-	JSON                        bool
+	// AgentURL is set for a local run, which changes what a refusal means.
+	AgentURL string
+	Timeout  time.Duration
+	JSON     bool
 }
 
 // Run returns nil when the run finished with a verdict, passed or failed, and
@@ -64,10 +66,15 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	if err != nil {
 		return fmt.Errorf("failed to describe agent %q: %w", opts.AgentName, err)
 	}
-	fmt.Fprintf(
-		deps.Stderr, "%s  %s  rev %d\n",
-		opts.AgentName, described.Version, described.Revision,
-	)
+	// A local agent has no release, so no revision to name.
+	if described.Revision > 0 {
+		fmt.Fprintf(
+			deps.Stderr, "%s  %s  rev %d\n",
+			opts.AgentName, described.Version, described.Revision,
+		)
+	} else {
+		fmt.Fprintf(deps.Stderr, "%s  %s\n", opts.AgentName, described.Version)
+	}
 
 	runID := opts.Input.RunID
 	if runID == "" {
@@ -82,7 +89,7 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 			},
 		)
 		if err != nil {
-			return startError(err, opts.AgentName, described.Version)
+			return startError(err, opts.AgentName, described.Version, opts.AgentURL)
 		}
 		output.PrintReplaySkipped(deps.Stderr, resp.Skipped, opts.Input.Scenarios)
 		runID = resp.RunID
@@ -97,6 +104,9 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	)
 	if err != nil {
 		reattach := fmt.Sprintf("iai agents replay %s --run-id %s", opts.AgentName, runID)
+		if opts.AgentURL != "" {
+			reattach += " --agent-url " + opts.AgentURL
+		}
 		switch {
 		case errors.Is(err, context.Canceled):
 			// Stop watching quietly, as logs --follow does; the run keeps going.
@@ -139,13 +149,16 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 
 // startError rewords the two refusals whose fix is on the caller's side and appends
 // skipped items to the rest so the agent's own explanation is never lost.
-func startError(err error, agentName, version string) error {
+func startError(err error, agentName, version, agentURL string) error {
 	var re *deployment.ReplayError
 	if !errors.As(err, &re) {
 		return err
 	}
 	switch re.Status {
 	case http.StatusUnauthorized:
+		if agentURL != "" {
+			return fmt.Errorf("the agent at %s rejected --agent-api-key", agentURL)
+		}
 		return fmt.Errorf("not authorized to replay %s; check you are logged in", agentName)
 	case http.StatusNotFound:
 		return fmt.Errorf(

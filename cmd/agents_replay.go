@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"cmp"
+	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/replay"
 	"github.com/spf13/cobra"
@@ -21,7 +25,11 @@ var (
 	replayConcurrency int
 	replayTimeout     time.Duration
 	replayJSON        bool
+	replayAgentURL    string
+	replayAgentAPIKey string
 )
+
+const replayAgentAPIKeyEnv = "INTERACTIVE_AGENT_API_KEY"
 
 var agentReplayCmd = &cobra.Command{
 	Use:   "replay <agent_name>",
@@ -58,28 +66,51 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 
-		// A followed run is one long response, so no client-wide timeout; as logs --follow.
-		pCtx, _, deployClient, err := resolveProject(
-			ctx, agentOrganization, agentProject, resolveOpts{deployTimeout: 0},
-		)
+		deploy, orgID, projectID, err := replayTarget(ctx)
 		if err != nil {
 			return err
 		}
 
 		deps := replay.Deps{
-			Deploy: deployClient,
+			Deploy: deploy,
 			Stdout: cmd.OutOrStdout(),
 			Stderr: cmd.ErrOrStderr(),
 		}
 		return replay.Run(ctx, deps, replay.Options{
-			OrgID:     pCtx.orgId,
-			ProjectID: pCtx.projectId,
+			OrgID:     orgID,
+			ProjectID: projectID,
 			AgentName: strings.TrimSpace(args[0]),
 			Input:     in,
+			AgentURL:  replayAgentURL,
 			Timeout:   replayTimeout,
 			JSON:      replayJSON,
 		})
 	},
+}
+
+// replayTarget picks the platform, or a local agent when --agent-url names one.
+func replayTarget(
+	ctx context.Context,
+) (replay.DeploymentAPI, string, string, error) {
+	if replayAgentURL == "" {
+		// A followed run is one long response, so no client-wide timeout; as logs --follow.
+		pCtx, _, deployClient, err := resolveProject(
+			ctx, agentOrganization, agentProject, resolveOpts{deployTimeout: 0},
+		)
+		if err != nil {
+			return nil, "", "", err
+		}
+		return deployClient, pCtx.orgId, pCtx.projectId, nil
+	}
+
+	key := cmp.Or(replayAgentAPIKey, os.Getenv(replayAgentAPIKeyEnv))
+	if key == "" {
+		return nil, "", "", fmt.Errorf(
+			"--agent-url needs the agent's own key: pass --agent-api-key or set %s",
+			replayAgentAPIKeyEnv,
+		)
+	}
+	return deployment.NewLocalAgentClient(replayAgentURL, key), "", "", nil
 }
 
 func init() {
@@ -120,6 +151,14 @@ func init() {
 		false,
 		"Print the final run payload exactly as the agent returned it; progress still goes to stderr",
 	)
+
+	// Hidden: only useful to someone holding the agent's source, so noise for everyone else.
+	f.StringVar(&replayAgentURL, "agent-url", "", "Replay an agent running on this machine")
+	// Prefer the env var: a key passed as a flag shows up in ps.
+	f.StringVar(&replayAgentAPIKey, "agent-api-key", "",
+		"Key for the agent named by --agent-url; prefer "+replayAgentAPIKeyEnv)
+	_ = f.MarkHidden("agent-url")
+	_ = f.MarkHidden("agent-api-key")
 
 	agentReplayCmd.MarkFlagsMutuallyExclusive("dataset", "file", "run-id")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("scenarios", "file")
