@@ -156,7 +156,68 @@ Use the reported field names with 'iai mcps logs --fields' to include them in ou
 	},
 }
 
+var mcpRestartCmd = &cobra.Command{
+	Use:   "restart <mcp_name>",
+	Short: "Restart an mcp in a project",
+	Long:  `Restart an mcp in a specific project using the deployment service.`,
+	Example: `  iai mcps restart my-tool
+  iai mcps restart my-tool --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: runMcpAction,
+}
+
+var mcpActivateCmd = &cobra.Command{
+	Use:   "activate <mcp_name>",
+	Short: "Activate a deactivated mcp in a project",
+	Long:  `Activate a deactivated mcp, restoring it to its previous configuration.`,
+	Example: `  iai mcps activate my-tool
+  iai mcps activate my-tool --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: runMcpAction,
+}
+
+var mcpDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <mcp_name>",
+	Short: "Deactivate an mcp in a project",
+	Long: `Deactivate an mcp, stopping all running instances. The current configuration
+is preserved and will be restored when the mcp is activated again.`,
+	Example: `  iai mcps deactivate my-tool
+  iai mcps deactivate my-tool --project my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: runMcpAction,
+}
+
+func runMcpAction(cmd *cobra.Command, args []string) error {
+	out := cmd.OutOrStdout()
+
+	name := strings.TrimSpace(args[0])
+	if name == "" {
+		return fmt.Errorf("mcp name is required")
+	}
+
+	pCtx, _, client, err := resolveProject(cmd.Context(), mcpOrganization, mcpProject)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "Submitting mcp %s request...\n", cmd.Name())
+
+	message, err := client.McpAction(cmd.Context(), pCtx.orgId, pCtx.projectId, name, cmd.Name())
+	if err != nil {
+		return err
+	}
+
+	if message != "" {
+		fmt.Fprintln(out, message)
+	}
+
+	return nil
+}
+
 func init() {
+	mcpsCmd.AddCommand(mcpRestartCmd, mcpActivateCmd, mcpDeactivateCmd)
+
 	f := mcpLogsCmd.Flags()
 	f.BoolVarP(
 		&mcpLogsOptions.Follow,
