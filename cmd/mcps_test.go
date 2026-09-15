@@ -383,6 +383,7 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 		explicit   string
 		cred       string
 		header     string
+		clientID   string
 		wantAuth   string
 		wantSignIn bool
 		wantErr    bool
@@ -433,6 +434,21 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 			cred:    "a-token",
 			wantErr: true,
 		},
+		{
+			// A machine-to-machine entry has one method, so the catalog settles
+			// it and nobody has to type --auth-type.
+			name:     "a client_credentials entry needs no explicit auth type",
+			methods:  []string{"client_credentials"},
+			clientID: "an-app-client-id",
+			wantAuth: "client_credentials",
+		},
+		{
+			// There is no sign-in to start, so create must not print one.
+			name:     "a client id infers client_credentials and no sign-in",
+			methods:  []string{"client_credentials", "oauth"},
+			clientID: "an-app-client-id",
+			wantAuth: "client_credentials",
+		},
 	}
 
 	for _, tt := range tests {
@@ -445,7 +461,9 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-			got := mcpAuthTypeOr(platform.McpBackendExternal, fromCatalog, tt.cred, tt.header, "")
+			got := mcpAuthTypeOr(
+				platform.McpBackendExternal, fromCatalog, tt.cred, tt.header, "", tt.clientID,
+			)
 			if got != tt.wantAuth {
 				t.Errorf("resolved auth type = %q, want %q", got, tt.wantAuth)
 			}

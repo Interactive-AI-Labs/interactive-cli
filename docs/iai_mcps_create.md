@@ -27,6 +27,14 @@ auth to list them — some serve tool discovery anonymously.
 An --auth-type oauth mcp is the exception: there is no credential until the
 user signs in, so it is created unverified and reports no tools until then.
 
+An --auth-type client_credentials mcp has no sign-in at all. You register an
+app at the provider yourself and pass its --client-id and --client-secret; the
+platform mints and refreshes tokens from that pair, so the mcp is usable the
+moment it is created. The token is not tied to a person, so every agent in the
+project shares one provider identity. The secret is write-only — no command
+reads it back — and it cannot be changed in place: delete and recreate to
+rotate.
+
 ```
 iai mcps create <mcp_name> [flags]
 ```
@@ -42,6 +50,7 @@ iai mcps create <mcp_name> [flags]
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
   iai mcps create newrelic --catalog-id newrelic --auth-type oauth
+  iai mcps create xero --catalog-id xero --client-id "$XERO_CLIENT_ID" --client-secret-stdin < secret.txt
 ```
 
 ### Options
@@ -49,8 +58,11 @@ iai mcps create <mcp_name> [flags]
 ```
       --auth-header string          Header used to send the credential
       --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)
+      --auth-type string            How the credential is sent: "bearer", "api_key", "none", "oauth", or "client_credentials" (inferred on create; required when changing authentication)
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
+      --client-id string            Client ID of an app you registered at the provider (client_credentials)
+      --client-secret string        Client secret of that app (client_credentials)
+      --client-secret-stdin         Read the client secret from stdin instead of --client-secret
       --cpu string                  CPU request/limit, e.g. 250m (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
