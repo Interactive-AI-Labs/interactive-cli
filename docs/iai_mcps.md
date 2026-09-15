@@ -42,6 +42,7 @@ Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 * [iai mcps list](iai_mcps_list.md)	 - List mcps in a project
 * [iai mcps log-fields](iai_mcps_log-fields.md)	 - List available fields in structured MCP logs
 * [iai mcps logs](iai_mcps_logs.md)	 - Show logs for an MCP
+* [iai mcps port-forward](iai_mcps_port-forward.md)	 - Forward a local port to an internal MCP
 * [iai mcps restart](iai_mcps_restart.md)	 - Restart an internal MCP
 * [iai mcps revisions](iai_mcps_revisions.md)	 - List revisions of an mcp
 * [iai mcps run-tool](iai_mcps_run-tool.md)	 - Run a tool on an mcp

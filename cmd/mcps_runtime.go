@@ -175,8 +175,37 @@ func runMcpAction(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+var mcpPFPort, mcpPFLocalPort int
+
+var mcpPortForwardCmd = &cobra.Command{
+	Use:   "port-forward <mcp_name>",
+	Short: "Forward a local port to an internal MCP",
+	Long: `Tunnel local TCP connections through the deployment operator to an MCP.
+The remote port defaults to the MCP's configured port. The local port defaults
+to --port when set, or an available OS-assigned port otherwise.`,
+	Example: `  iai mcps port-forward my-tool
+  iai mcps port-forward my-tool --local-port 9090
+  iai mcps port-forward my-tool --port 8080 --local-port 9090`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		localPort := mcpPFLocalPort
+		if localPort == 0 {
+			localPort = mcpPFPort
+		}
+		return runPortForward(cmd.Context(), portForwardOpts{
+			resourceType: "mcps", resourceName: strings.TrimSpace(args[0]),
+			remotePort: mcpPFPort, localPort: localPort,
+			org: mcpOrganization, project: mcpProject,
+		})
+	},
+}
+
 func init() {
-	mcpsCmd.AddCommand(mcpRestartCmd, mcpActivateCmd, mcpDeactivateCmd)
+	mcpsCmd.AddCommand(mcpRestartCmd, mcpActivateCmd, mcpDeactivateCmd, mcpPortForwardCmd)
+	mcpPortForwardCmd.Flags().
+		IntVar(&mcpPFPort, "port", 0, "Remote port (defaults to the MCP's configured port)")
+	mcpPortForwardCmd.Flags().
+		IntVar(&mcpPFLocalPort, "local-port", 0, "Local listening port (defaults to --port, or an available port)")
 	f := mcpLogsCmd.Flags()
 	f.BoolVarP(&mcpLogsOptions.Follow, "follow", "f", false, "Stream new log entries")
 	f.StringVar(
