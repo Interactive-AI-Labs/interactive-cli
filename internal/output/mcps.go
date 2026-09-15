@@ -109,6 +109,9 @@ func PrintMcpDetail(out io.Writer, m *platform.McpSchema) error {
 	if m.EndpointURL != nil {
 		fmt.Fprintf(w, "Endpoint URL:\t%s\n", *m.EndpointURL)
 	}
+	if m.Endpoint != nil && *m.Endpoint != "" {
+		fmt.Fprintf(w, "Endpoint:\t%s\n", *m.Endpoint)
+	}
 	if m.Transport != nil {
 		fmt.Fprintf(w, "Transport:\t%s\n", *m.Transport)
 	}
