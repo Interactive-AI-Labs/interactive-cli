@@ -16,6 +16,7 @@ iai replicas describe <replica_name> [flags]
   iai replicas describe my-service-abc123
   iai replicas describe my-service-abc123 -p my-project -o my-org
   iai replicas describe my-service-abc123 --yaml
+  iai replicas describe my-tool-abc123
 ```
 
 ### Options
@@ -24,7 +25,7 @@ iai replicas describe <replica_name> [flags]
   -h, --help                  help for describe
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the service
+  -p, --project string        Project name that owns the resource
       --yaml                  Output raw API response as YAML
 ```
 
@@ -39,5 +40,5 @@ iai replicas describe <replica_name> [flags]
 
 ### SEE ALSO
 
-* [iai replicas](iai_replicas.md)	 - Inspect service replicas
+* [iai replicas](iai_replicas.md)	 - Inspect service or MCP replicas
 

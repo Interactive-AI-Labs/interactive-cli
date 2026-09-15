@@ -1075,18 +1075,22 @@ func (c *DeploymentClient) DeleteImage(
 	return clients.ExtractServerMessage(body), nil
 }
 
+// replicasPath addresses a project's replicas regardless of whether they back a service or an MCP.
+func replicasPath(orgId, projectId string) string {
+	return fmt.Sprintf("/v1/organizations/%s/projects/%s/replicas",
+		url.PathEscape(orgId), url.PathEscape(projectId))
+}
+
+func replicaListPath(orgId, projectId, resourceName string) string {
+	return replicasPath(orgId, projectId) + "?resource=" + url.QueryEscape(resourceName)
+}
+
 func (c *DeploymentClient) ListReplicas(
 	ctx context.Context,
-	orgId,
-	projectId,
-	serviceName string,
+	orgId, projectId, resourceName string,
 ) ([]ReplicaInfo, error) {
-	path := fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/services/%s/replicas",
-		url.PathEscape(orgId),
-		url.PathEscape(projectId),
-		url.PathEscape(serviceName),
-	)
+	path := replicaListPath(orgId, projectId, resourceName)
+
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -1120,16 +1124,10 @@ func (c *DeploymentClient) ListReplicas(
 
 func (c *DeploymentClient) DescribeReplica(
 	ctx context.Context,
-	orgId,
-	projectId,
-	replicaName string,
+	orgId, projectId, replicaName string,
 ) (*ReplicaStatus, error) {
-	path := fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/services/replicas/%s",
-		url.PathEscape(orgId),
-		url.PathEscape(projectId),
-		url.PathEscape(replicaName),
-	)
+	path := replicasPath(orgId, projectId) + "/" + url.PathEscape(replicaName)
+
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -1205,17 +1203,11 @@ type LogsResponse struct {
 
 func (c *DeploymentClient) GetReplicaLogs(
 	ctx context.Context,
-	orgId,
-	projectId,
-	replicaName string,
+	orgId, projectId, replicaName string,
 	opts LogsOptions,
 ) (*LogsResponse, error) {
-	path := fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/services/replicas/%s/logs",
-		url.PathEscape(orgId),
-		url.PathEscape(projectId),
-		url.PathEscape(replicaName),
-	)
+	path := replicasPath(orgId, projectId) + "/" + url.PathEscape(replicaName) + "/logs"
+
 	return c.fetchLogs(ctx, path, opts)
 }
 

@@ -17,6 +17,7 @@ iai replicas log-fields <replica_name> [flags]
 ```
   iai replicas log-fields my-service-abc123
   iai replicas log-fields my-service-abc123 --since 1h
+  iai replicas log-fields my-tool-abc123
 ```
 
 ### Options
@@ -24,7 +25,7 @@ iai replicas log-fields <replica_name> [flags]
 ```
   -h, --help                  help for log-fields
   -o, --organization string   Organization name that owns the project
-  -p, --project string        Project name that owns the service
+  -p, --project string        Project name that owns the resource
       --since string          Relative duration to scan (e.g. 5m, 1h) (default "1h")
 ```
 
@@ -39,5 +40,5 @@ iai replicas log-fields <replica_name> [flags]
 
 ### SEE ALSO
 
-* [iai replicas](iai_replicas.md)	 - Inspect service replicas
+* [iai replicas](iai_replicas.md)	 - Inspect service or MCP replicas
 
