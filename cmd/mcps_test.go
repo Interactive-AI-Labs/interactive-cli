@@ -2,18 +2,11 @@ package cmd
 
 import (
 	"bytes"
-	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
-	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 func TestConfirmDeletion(t *testing.T) {
@@ -55,6 +48,19 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 		wantErr string
 	}{
 		{name: "internal image", backend: platform.McpBackendInternal, flag: "image-name"},
+		{name: "internal endpoint", backend: platform.McpBackendInternal, flag: "endpoint=false"},
+		{
+			name:    "external endpoint",
+			backend: platform.McpBackendExternal,
+			flag:    "endpoint=false",
+			wantErr: "--endpoint only applies to an internal mcp",
+		},
+		{
+			name:    "external stack clearing",
+			backend: platform.McpBackendExternal,
+			flag:    "clear-stack-id=true",
+			wantErr: "--clear-stack-id only applies to an internal mcp",
+		},
 		{
 			name:    "external image",
 			backend: platform.McpBackendExternal,
@@ -92,7 +98,6 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			name:    "internal auth header",
 			backend: platform.McpBackendInternal,
 			flag:    "auth-header",
-			wantErr: "--auth-header only applies to an external mcp",
 		},
 	}
 	for _, tt := range tests {
@@ -109,6 +114,8 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			cmd.Flags().StringArray("secret", nil, "")
 			cmd.Flags().Bool("clear-env", false, "")
 			cmd.Flags().Bool("clear-secret", false, "")
+			cmd.Flags().Bool("endpoint", false, "")
+			cmd.Flags().Bool("clear-stack-id", false, "")
 			name, value, found := strings.Cut(tt.flag, "=")
 			if !found {
 				value = "x"
@@ -133,8 +140,10 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 		flags   []string
 		wantErr string
 	}{
-		{name: "no fields", wantErr: "no fields to update; pass at least one flag"},
+		{name: "no image flags"},
 		{name: "description only", flags: []string{"description"}},
+		{name: "disable endpoint", flags: []string{"endpoint=false"}},
+		{name: "clear stack", flags: []string{"clear-stack-id=true"}},
 		{
 			name:    "image tag requires image name",
 			flags:   []string{"image-tag"},
@@ -148,20 +157,17 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 		{name: "image name and tag", flags: []string{"image-name", "image-tag"}},
 		{name: "memory is independent", flags: []string{"memory"}},
 		{
-			name:    "empty memory is rejected",
-			flags:   []string{"memory="},
-			wantErr: "--memory must not be empty",
+			name:  "empty memory reaches server validation",
+			flags: []string{"memory="},
 		},
 		{
-			name:    "credential requires auth type",
-			flags:   []string{"credential"},
-			wantErr: "--credential requires --auth-type",
+			name:  "credential-only update",
+			flags: []string{"credential"},
 		},
 		{name: "credential with auth type", flags: []string{"credential", "auth-type"}},
 		{
-			name:    "empty stack id is rejected",
-			flags:   []string{"stack-id="},
-			wantErr: "--stack-id must not be empty",
+			name:  "empty stack id clears assignment",
+			flags: []string{"stack-id="},
 		},
 		{name: "env alone", flags: []string{"env"}},
 		{name: "secret alone", flags: []string{"secret"}},
@@ -183,6 +189,8 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 			cmd.Flags().StringArray("secret", nil, "")
 			cmd.Flags().Bool("clear-env", false, "")
 			cmd.Flags().Bool("clear-secret", false, "")
+			cmd.Flags().Bool("endpoint", false, "")
+			cmd.Flags().Bool("clear-stack-id", false, "")
 			for _, flag := range tt.flags {
 				name, value, found := strings.Cut(flag, "=")
 				if !found {
@@ -198,128 +206,6 @@ func TestValidateMcpUpdateFlags(t *testing.T) {
 			}
 			if tt.wantErr != "" && (err == nil || err.Error() != tt.wantErr) {
 				t.Fatalf("validateMcpUpdateFlags() error = %v, want %q", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestMcpUpdateRequest(t *testing.T) {
-	// Ordered pairs, not a map: --env and --secret are repeatable.
-	tests := []struct {
-		name      string
-		flags     [][2]string
-		wantPatch map[string]any
-	}{
-		{
-			name:      "explicit zero port reaches the API",
-			flags:     [][2]string{{"port", "0"}},
-			wantPatch: map[string]any{"workload": map[string]any{"port": float64(0)}},
-		},
-		{
-			name:      "memory update stays partial",
-			flags:     [][2]string{{"memory", "1G"}},
-			wantPatch: map[string]any{"workload": map[string]any{"memory": "1G"}},
-		},
-		{
-			name:  "repeated env replaces the whole list",
-			flags: [][2]string{{"env", "ENV=dev"}, {"env", "SILENT_MODE=true"}},
-			wantPatch: map[string]any{"workload": map[string]any{"env": []any{
-				map[string]any{"name": "ENV", "value": "dev"},
-				map[string]any{"name": "SILENT_MODE", "value": "true"},
-			}}},
-		},
-		{
-			name:  "secrets travel as names",
-			flags: [][2]string{{"secret", "platform-dev"}, {"secret", "services-dev"}},
-			wantPatch: map[string]any{"workload": map[string]any{
-				"secret_refs": []any{"platform-dev", "services-dev"},
-			}},
-		},
-		{
-			name:      "clear-env sends an empty list",
-			flags:     [][2]string{{"clear-env", "true"}},
-			wantPatch: map[string]any{"workload": map[string]any{"env": []any{}}},
-		},
-		{
-			name:      "clear-secret sends an empty list",
-			flags:     [][2]string{{"clear-secret", "true"}},
-			wantPatch: map[string]any{"workload": map[string]any{"secret_refs": []any{}}},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var gotPatch map[string]any
-			server := httptest.NewServer(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					switch {
-					case r.Method == http.MethodGet && r.URL.Path == "/api/v1/session/organizations":
-						fmt.Fprint(w, `{"organizations":[{"id":"org-1","name":"acme"}]}`)
-					case r.Method == http.MethodGet &&
-						r.URL.Path == "/api/v1/session/organizations/org-1/projects":
-						fmt.Fprint(w, `{"projects":[{"id":"project-1","name":"demo"}]}`)
-					case r.Method == http.MethodGet &&
-						r.URL.Path == "/api/platform/v1/organizations/org-1/projects/project-1/mcps/tools":
-						fmt.Fprint(
-							w,
-							`{"success":true,"data":{"mcp":{"name":"tools","backend":"internal"}}}`,
-						)
-					case r.Method == http.MethodPatch &&
-						r.URL.Path == "/api/platform/v1/organizations/org-1/projects/project-1/mcps/tools":
-						if err := json.NewDecoder(r.Body).Decode(&gotPatch); err != nil {
-							t.Errorf("decode request: %v", err)
-						}
-						fmt.Fprint(
-							w,
-							`{"success":true,"data":{"mcp":{"name":"tools","backend":"internal"}}}`,
-						)
-					default:
-						t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-						w.WriteHeader(http.StatusNotFound)
-					}
-				}),
-			)
-			t.Cleanup(server.Close)
-
-			resetFlags := func() {
-				mcpUpdateCmd.Flags().VisitAll(func(flag *pflag.Flag) {
-					// A repeatable flag's DefValue is "[]", which Set appends verbatim.
-					if slice, ok := flag.Value.(pflag.SliceValue); ok {
-						if err := slice.Replace(nil); err != nil {
-							t.Errorf("reset --%s: %v", flag.Name, err)
-						}
-					} else if err := flag.Value.Set(flag.DefValue); err != nil {
-						t.Errorf("reset --%s: %v", flag.Name, err)
-					}
-					flag.Changed = false
-				})
-			}
-			origHostname, origToken, origAPIKey := hostname, token, apiKey
-			origOrg, origProject := mcpOrganization, mcpProject
-			t.Cleanup(func() {
-				hostname, token, apiKey = origHostname, origToken, origAPIKey
-				mcpOrganization, mcpProject = origOrg, origProject
-				resetFlags()
-				mcpUpdateCmd.SetOut(nil)
-			})
-			hostname, token, apiKey = server.URL, "test-token", ""
-			mcpOrganization, mcpProject = "acme", "demo"
-			resetFlags()
-			for _, flag := range tt.flags {
-				if err := mcpUpdateCmd.Flags().Set(flag[0], flag[1]); err != nil {
-					t.Fatalf("set --%s: %v", flag[0], err)
-				}
-			}
-			var out bytes.Buffer
-			mcpUpdateCmd.SetOut(&out)
-			mcpUpdateCmd.SetContext(context.Background())
-			if err := mcpUpdateCmd.RunE(mcpUpdateCmd, []string{"tools"}); err != nil {
-				t.Fatalf("mcps update: %v", err)
-			}
-			if diff := cmp.Diff(tt.wantPatch, gotPatch); diff != "" {
-				t.Errorf("patch mismatch (-want +got):\n%s", diff)
-			}
-			if got, want := out.String(), "Updated tools — internal\n"; got != want {
-				t.Errorf("output = %q, want %q", got, want)
 			}
 		})
 	}

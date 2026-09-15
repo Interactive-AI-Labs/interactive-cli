@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
@@ -20,6 +21,95 @@ func ResolveCredential(in io.Reader, credential string, fromStdin bool) (string,
 		return "", fmt.Errorf("failed to read credential from stdin: %w", err)
 	}
 	return strings.TrimRight(string(data), "\r\n"), nil
+}
+
+type McpUpdateInput struct {
+	Workload                            platform.McpWorkload
+	Auth                                platform.McpAuth
+	Description                         string
+	EnvVars                             []string
+	ClearEnv, ClearSecret, ClearStackID bool
+}
+
+// BuildMcpUpdatePatch keeps omitted fields distinct from explicit empty values.
+func BuildMcpUpdatePatch(
+	in McpUpdateInput,
+	changed func(string) bool,
+) (platform.McpUpdateRequest, error) {
+	patch := platform.McpUpdateRequest{}
+	if changed("description") {
+		patch["description"] = in.Description
+	}
+
+	auth := map[string]any{}
+	for _, field := range []struct {
+		flag, key string
+		value     any
+	}{
+		{"auth-type", "type", in.Auth.Type},
+		{"credential", "credential", in.Auth.Credential},
+		{"auth-header", "header_name", in.Auth.HeaderName},
+		{"auth-header-prefix", "header_prefix", in.Auth.HeaderPrefix},
+	} {
+		if changed(field.flag) || (field.flag == "credential" && in.Auth.Credential != nil) {
+			auth[field.key] = field.value
+		}
+	}
+	if len(auth) > 0 {
+		patch["auth"] = auth
+	}
+
+	workload := map[string]any{}
+	for _, field := range []struct {
+		flag, key string
+		value     any
+	}{
+		{"image-name", "image", in.Workload.Image},
+		{"port", "port", in.Workload.Port},
+		{"path", "path", in.Workload.Path},
+		{"memory", "memory", in.Workload.Memory},
+		{"cpu", "cpu", in.Workload.CPU},
+		{"endpoint", "endpoint", in.Workload.Endpoint},
+	} {
+		if changed(field.flag) {
+			workload[field.key] = field.value
+		}
+	}
+
+	stack := deployment.UpdatePatch{}
+	if err := setStackIdPatch(
+		stack,
+		in.Workload.StackId,
+		changed("stack-id"),
+		in.ClearStackID,
+	); err != nil {
+		return nil, err
+	}
+	if value, ok := stack["stackId"]; ok {
+		workload["stack_id"] = value
+	}
+
+	env, err := ResolveMcpEnvVars(in.EnvVars, changed("env"), in.ClearEnv)
+	if err != nil {
+		return nil, err
+	}
+	if env != nil {
+		workload["env"] = env
+	}
+
+	refs, err := ResolveMcpSecretRefs(in.Workload.SecretRefs, changed("secret"), in.ClearSecret)
+	if err != nil {
+		return nil, err
+	}
+	if refs != nil {
+		workload["secret_refs"] = refs
+	}
+
+	if len(workload) > 0 {
+		patch["workload"] = workload
+	}
+
+	return patch, nil
 }
 
 func ResolveToolArgs(inline, file string) (map[string]any, error) {
