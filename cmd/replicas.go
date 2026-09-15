@@ -27,19 +27,21 @@ var (
 
 var replicasCmd = &cobra.Command{
 	Use:     "replicas",
-	Short:   "Inspect service replicas",
+	Short:   "Inspect service or MCP replicas",
 	GroupID: groupInfra,
-	Long:    `Manage pods backing services in a specific project.`,
+	Long:    `Manage replicas of services or MCPs in a project.`,
+	Aliases: []string{"replica"},
 }
 
 var replicasListCmd = &cobra.Command{
-	Use:     "list [service_name]",
+	Use:     "list <resource_name>",
 	Aliases: []string{"ls"},
-	Short:   "List replicas for a service",
-	Long:    `List pods backing a service in a specific project.`,
+	Short:   "List replicas for a service or MCP",
+	Long:    `List replicas of a service or MCP in a project.`,
 	Example: `  iai replicas list my-service
   iai replicas list my-service -p my-project -o my-org
-  iai replicas list my-service --json`,
+  iai replicas list my-service --json
+  iai replicas list my-tool`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -47,7 +49,7 @@ var replicasListCmd = &cobra.Command{
 		serviceName := strings.TrimSpace(args[0])
 
 		if serviceName == "" {
-			return fmt.Errorf("service name is required")
+			return fmt.Errorf("resource name is required")
 		}
 
 		pCtx, _, deployClient, err := resolveProject(
@@ -87,7 +89,8 @@ var replicasDescribeCmd = &cobra.Command{
 	Long:    `Show detailed information about a specific replica including status, resources, healthcheck configuration, and events.`,
 	Example: `  iai replicas describe my-service-abc123
   iai replicas describe my-service-abc123 -p my-project -o my-org
-  iai replicas describe my-service-abc123 --yaml`,
+  iai replicas describe my-service-abc123 --yaml
+  iai replicas describe my-tool-abc123`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -139,6 +142,7 @@ var (
 	replicaLogsAllFields  bool
 	replicaLogsTimestamps bool
 	replicaLogsLimit      int
+	replicaLogsMessage    string
 )
 
 var replicasLogsCmd = &cobra.Command{
@@ -155,6 +159,7 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
 nested JSON values.`,
 	Example: `  iai replicas logs my-service-abc123
+  iai replicas logs my-tool-abc123 --message error
   iai replicas logs my-service-abc123 --follow
   iai replicas logs my-service-abc123 --since 30m --fields logger,pid
   iai replicas logs my-service-abc123 --timestamps
@@ -235,9 +240,16 @@ nested JSON values.`,
 			StartTime: replicaLogsStartTime,
 			EndTime:   replicaLogsEndTime,
 			Limit:     replicaLogsLimit,
+			Message:   replicaLogsMessage,
 		}
 
-		logsResp, err := deployClient.GetReplicaLogs(ctx, orgId, projectId, replicaName, opts)
+		logsResp, err := deployClient.GetReplicaLogs(
+			ctx,
+			orgId,
+			projectId,
+			replicaName,
+			opts,
+		)
 		if err != nil {
 			return err
 		}
@@ -274,7 +286,8 @@ var replicaLogFieldsCmd = &cobra.Command{
 
 Use the reported field names with 'iai replicas logs --fields' to include them in output.`,
 	Example: `  iai replicas log-fields my-service-abc123
-  iai replicas log-fields my-service-abc123 --since 1h`,
+  iai replicas log-fields my-service-abc123 --since 1h
+  iai replicas log-fields my-tool-abc123`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -324,9 +337,11 @@ Use the reported field names with 'iai replicas logs --fields' to include them i
 }
 
 func init() {
+	replicasLogsCmd.Flags().
+		StringVar(&replicaLogsMessage, "message", "", "Case-insensitive RE2 regular expression matched against the log line")
 	// Flags for "replicas list"
 	replicasListCmd.Flags().
-		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the resource")
 	replicasListCmd.Flags().
 		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 	replicasListCmd.Flags().
@@ -337,7 +352,7 @@ func init() {
 
 	// Flags for "replicas describe"
 	replicasDescribeCmd.Flags().
-		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the resource")
 	replicasDescribeCmd.Flags().
 		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 	replicasDescribeCmd.Flags().
@@ -348,7 +363,7 @@ func init() {
 
 	// Flags for "replicas logs"
 	replicasLogsCmd.Flags().
-		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the resource")
 	replicasLogsCmd.Flags().
 		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 	replicasLogsCmd.Flags().
@@ -379,7 +394,7 @@ func init() {
 
 	// Flags for "replicas log-fields"
 	replicaLogFieldsCmd.Flags().
-		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the service")
+		StringVarP(&replicasProject, "project", "p", "", "Project name that owns the resource")
 	replicaLogFieldsCmd.Flags().
 		StringVarP(&replicasOrganization, "organization", "o", "", "Organization name that owns the project")
 	replicaLogFieldsCmd.Flags().

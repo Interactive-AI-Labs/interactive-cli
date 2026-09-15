@@ -1,10 +1,10 @@
 ## iai replicas
 
-Inspect service replicas
+Inspect service or MCP replicas
 
 ### Synopsis
 
-Manage pods backing services in a specific project.
+Manage replicas of services or MCPs in a project.
 
 ### Options
 
@@ -25,7 +25,7 @@ Manage pods backing services in a specific project.
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai replicas describe](iai_replicas_describe.md)	 - Describe a replica in detail
-* [iai replicas list](iai_replicas_list.md)	 - List replicas for a service
+* [iai replicas list](iai_replicas_list.md)	 - List replicas for a service or MCP
 * [iai replicas log-fields](iai_replicas_log-fields.md)	 - List available fields in structured logs
 * [iai replicas logs](iai_replicas_logs.md)	 - Show logs for a specific replica
 
