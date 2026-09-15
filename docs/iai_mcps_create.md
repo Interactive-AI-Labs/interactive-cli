@@ -35,7 +35,7 @@ iai mcps create <mcp_name> [flags]
 
 ```
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
-  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp
+  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
@@ -51,19 +51,20 @@ iai mcps create <mcp_name> [flags]
       --auth-header-prefix string   Credential value prefix
       --auth-type string            How the credential is sent: "bearer", "api_key", "none", or "oauth" (inferred on create; required when changing authentication)
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
-      --cpu string                  CPU request/limit, e.g. 250m (internal)
+      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
       --credential string           Credential the mcp server requires (bearer token, API key)
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
+      --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)
       --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
       --external-url string         External MCP server URL — not platform-owned, dialed directly (custom external mcp)
   -h, --help                        help for create
       --image-name string           Container image name (internal)
       --image-tag string            Container image tag (internal)
-      --memory string               Memory request/limit, e.g. 512M (internal)
+      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
-      --port int                    Port the mcp server listens on (internal)
-      --secret stringArray          Secret to load as env vars, by name; can be repeated (internal)
+      --port int                    MCP port to expose (internal)
+      --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal)
       --stack-id string             Stack ID to assign the mcp to (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```

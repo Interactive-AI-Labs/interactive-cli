@@ -20,6 +20,7 @@ type McpSchema struct {
 	Backend        McpBackend `json:"backend"`
 	Description    *string    `json:"description,omitempty"`
 	EndpointURL    *string    `json:"endpoint_url,omitempty"`
+	Endpoint       *string    `json:"endpoint,omitempty"`
 	Transport      *string    `json:"transport,omitempty"`
 	AuthType       *string    `json:"auth_type,omitempty"`
 	HasCredential  bool       `json:"has_credential"`
@@ -87,13 +88,14 @@ type McpEnvVar struct {
 }
 
 type McpWorkload struct {
-	Image   string      `json:"image"`
-	Port    int         `json:"port"`
-	Path    string      `json:"path"`
-	Memory  string      `json:"memory"`
-	CPU     string      `json:"cpu"`
-	StackId string      `json:"stack_id,omitempty"`
-	Env     []McpEnvVar `json:"env,omitempty"`
+	Image    string      `json:"image"`
+	Port     int         `json:"port"`
+	Endpoint bool        `json:"endpoint"`
+	Path     string      `json:"path"`
+	Memory   string      `json:"memory"`
+	CPU      string      `json:"cpu"`
+	StackId  string      `json:"stack_id,omitempty"`
+	Env      []McpEnvVar `json:"env,omitempty"`
 	// Secret names, never values.
 	SecretRefs []string `json:"secret_refs,omitempty"`
 }
