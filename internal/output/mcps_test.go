@@ -416,3 +416,87 @@ func TestPrintMcpDetail(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintMcpDetailRendersEnvAndSecrets(t *testing.T) {
+	tests := []struct {
+		name string
+		mcp  platform.McpSchema
+		want string
+	}{
+		{
+			name: "internal mcp renders its environment and secret names",
+			mcp: platform.McpSchema{
+				Name:    "smoke-mcp",
+				Backend: platform.McpBackendInternal,
+				Env: []platform.McpEnvVar{
+					{Name: "API_BASE", Value: "https://api.example"},
+					{Name: "DEBUG", Value: "1"},
+				},
+				SecretRefs: []string{"smoke-token", "smoke-basic"},
+			},
+			want: "Name:             smoke-mcp\n" +
+				"Backend:          internal\n" +
+				"Credential Set:   false\n" +
+				"Tools:            0 (see 'iai mcps tools smoke-mcp')\n" +
+				"\n" +
+				"Environment:\n" +
+				"  API_BASE=https://api.example\n" +
+				"  DEBUG=1\n" +
+				"\n" +
+				"Secrets:   smoke-token, smoke-basic\n",
+		},
+		{
+			name: "an mcp with neither renders neither block",
+			mcp: platform.McpSchema{
+				Name:    "plain",
+				Backend: platform.McpBackendExternal,
+			},
+			want: "Name:             plain\n" +
+				"Backend:          external\n" +
+				"Credential Set:   false\n" +
+				"Tools:            0 (see 'iai mcps tools plain')\n",
+		},
+		{
+			name: "env without secret refs renders only the environment block",
+			mcp: platform.McpSchema{
+				Name:    "envonly",
+				Backend: platform.McpBackendInternal,
+				Env:     []platform.McpEnvVar{{Name: "A", Value: "b"}},
+			},
+			want: "Name:             envonly\n" +
+				"Backend:          internal\n" +
+				"Credential Set:   false\n" +
+				"Tools:            0 (see 'iai mcps tools envonly')\n" +
+				"\n" +
+				"Environment:\n" +
+				"  A=b\n",
+		},
+		{
+			name: "secret refs without env renders only the secrets line",
+			mcp: platform.McpSchema{
+				Name:       "secretonly",
+				Backend:    platform.McpBackendInternal,
+				SecretRefs: []string{"one", "two"},
+			},
+			want: "Name:             secretonly\n" +
+				"Backend:          internal\n" +
+				"Credential Set:   false\n" +
+				"Tools:            0 (see 'iai mcps tools secretonly')\n" +
+				"\n" +
+				"Secrets:   one, two\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			mcp := tt.mcp
+			if err := PrintMcpDetail(&buf, &mcp); err != nil {
+				t.Fatalf("PrintMcpDetail() error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, buf.String()); diff != "" {
+				t.Errorf("PrintMcpDetail() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}

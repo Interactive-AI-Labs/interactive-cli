@@ -147,6 +147,17 @@ func PrintMcpDetail(out io.Writer, m *platform.McpSchema) error {
 	if len(m.AttachedAgents) > 0 {
 		fmt.Fprintf(w, "Attached Agents:\t%s\n", strings.Join(m.AttachedAgents, ", "))
 	}
+	if len(m.Env) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Environment:")
+		for _, e := range m.Env {
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
+		}
+	}
+	if len(m.SecretRefs) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "Secrets:\t%s\n", strings.Join(m.SecretRefs, ", "))
+	}
 	return w.Flush()
 }
 

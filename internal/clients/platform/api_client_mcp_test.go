@@ -200,3 +200,42 @@ func TestFindMcpCatalogEntry(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeMcpDetailEnvAndSecretRefs(t *testing.T) {
+	tests := []struct {
+		name           string
+		body           string
+		wantEnv        []McpEnvVar
+		wantSecretRefs []string
+	}{
+		{
+			name: "env and secret_refs decode from snake_case",
+			body: `{"success":true,"data":{"mcp":{"name":"smoke","backend":"internal",` +
+				`"env":[{"name":"API_BASE","value":"https://api.example"},{"name":"DEBUG","value":"1"}],` +
+				`"secret_refs":["smoke-token","smoke-basic"]}}}`,
+			wantEnv: []McpEnvVar{
+				{Name: "API_BASE", Value: "https://api.example"},
+				{Name: "DEBUG", Value: "1"},
+			},
+			wantSecretRefs: []string{"smoke-token", "smoke-basic"},
+		},
+		{
+			name: "a server that omits both leaves them nil",
+			body: `{"success":true,"data":{"mcp":{"name":"smoke","backend":"internal"}}}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := decodeSuccess[McpDetailData]([]byte(tt.body), "describe mcp")
+			if err != nil {
+				t.Fatalf("decodeSuccess() error = %v", err)
+			}
+			if diff := cmp.Diff(tt.wantEnv, data.Mcp.Env); diff != "" {
+				t.Errorf("env mismatch (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantSecretRefs, data.Mcp.SecretRefs); diff != "" {
+				t.Errorf("secret_refs mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
