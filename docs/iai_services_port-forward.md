@@ -4,8 +4,8 @@ Forward a local port to a service
 
 ### Synopsis
 
-Open a local TCP listener and tunnel traffic through the deployment operator
-to a service running in the cluster.
+Open a local TCP listener and tunnel traffic to a service running in
+the platform.
 
 The remote port defaults to the service's configured port. Use --port to
 override. Use --local-port to choose the local listening port (defaults to

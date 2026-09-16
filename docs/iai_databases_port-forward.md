@@ -4,8 +4,8 @@ Forward a local port to a database
 
 ### Synopsis
 
-Open a local TCP listener and tunnel traffic through the deployment operator
-to a PostgreSQL database running in the cluster.
+Open a local TCP listener and tunnel traffic to a PostgreSQL database running in
+the platform.
 
 The remote port defaults to 5432. Use --port to override. Use --local-port
 to choose the local listening port (defaults to the remote port).
