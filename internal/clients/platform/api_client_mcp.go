@@ -16,22 +16,25 @@ const (
 )
 
 type McpSchema struct {
-	Name             string     `json:"name"`
-	Backend          McpBackend `json:"backend"`
-	Description      *string    `json:"description,omitempty"`
-	EndpointURL      *string    `json:"endpoint_url,omitempty"`
-	Endpoint         *string    `json:"endpoint,omitempty"`
-	Transport        *string    `json:"transport,omitempty"`
-	AuthType         *string    `json:"auth_type,omitempty"`
-	AuthHeaderName   *string    `json:"auth_header_name,omitempty"`
-	AuthHeaderPrefix *string    `json:"auth_header_prefix,omitempty"`
-	HasCredential    bool       `json:"has_credential"`
-	CatalogID        *string    `json:"catalog_id,omitempty"`
-	Status           *string    `json:"status,omitempty"`
-	VerifyStatus     *string    `json:"verify_status,omitempty"`
-	ToolCount        int        `json:"tool_count"`
-	AttachedAgents   []string   `json:"attached_agents"`
-	StackId          *string    `json:"stack_id,omitempty"`
+	Name             string      `json:"name"`
+	Backend          McpBackend  `json:"backend"`
+	Description      *string     `json:"description,omitempty"`
+	EndpointURL      *string     `json:"endpoint_url,omitempty"`
+	Endpoint         *string     `json:"endpoint,omitempty"`
+	Transport        *string     `json:"transport,omitempty"`
+	AuthType         *string     `json:"auth_type,omitempty"`
+	AuthHeaderName   *string     `json:"auth_header_name,omitempty"`
+	AuthHeaderPrefix *string     `json:"auth_header_prefix,omitempty"`
+	HasCredential    bool        `json:"has_credential"`
+	CatalogID        *string     `json:"catalog_id,omitempty"`
+	Status           *string     `json:"status,omitempty"`
+	VerifyStatus     *string     `json:"verify_status,omitempty"`
+	ToolCount        int         `json:"tool_count"`
+	AttachedAgents   []string    `json:"attached_agents"`
+	StackId          *string     `json:"stack_id,omitempty"`
+	Env              []McpEnvVar `json:"env,omitempty"`
+	// Secret names, never values.
+	SecretRefs []string `json:"secret_refs,omitempty"`
 }
 
 type McpToolSchema struct {
