@@ -38,6 +38,7 @@ iai mcps create <mcp_name> [flags]
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
   iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
+  iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
@@ -47,12 +48,12 @@ iai mcps create <mcp_name> [flags]
 ### Options
 
 ```
-      --auth-header string          Header used to send the credential
+      --auth-header string          Custom header used to send the credential
       --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth"; inferred on create
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
-      --credential string           Credential the mcp server requires (bearer token, API key)
+      --credential string           Credential required by the mcp server
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
       --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)

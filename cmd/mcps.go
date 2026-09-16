@@ -129,9 +129,13 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-An internal mcp is verified automatically once ready. Verify an external mcp
-with 'iai mcps verify <mcp_name>' after creation. An --auth-type oauth mcp has
-no credential until the user signs in; run 'iai mcps connect <mcp_name>' first.`,
+The mcp is verified against the live server before it's kept: an internal mcp
+is verified automatically once ready; an external mcp (custom or catalog) is verified immediately,
+and the create fails if the server is unreachable. Verification lists the
+server's tools, so it only catches a bad credential on providers that require
+auth to list them — some serve tool discovery anonymously.
+An --auth-type oauth mcp is the exception: there is no credential until the
+user signs in, so it is created unverified and reports no tools until then.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
