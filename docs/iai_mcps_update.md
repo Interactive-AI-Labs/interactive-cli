@@ -37,20 +37,21 @@ iai mcps update <mcp_name> [flags]
   iai mcps update my-tool --clear-stack-id
   iai mcps update my-tool --credential-stdin < token.txt
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
+  iai mcps update acme --auth-type custom --credential "$NEW_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
   iai mcps update acme --description "notes for the team"
 ```
 
 ### Options
 
 ```
-      --auth-header string          Header used to send the credential
+      --auth-header string          Custom header used to send the credential
       --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom" (internal), "none", or "oauth" (external); inferred on create
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth"; inferred on create
       --clear-env                   Remove all environment variables from the mcp (internal)
       --clear-secret                Remove all secret references from the mcp (internal)
       --clear-stack-id              Remove the mcp from its stack (internal)
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
-      --credential string           Credential the mcp server requires (bearer token, API key)
+      --credential string           Credential required by the mcp server
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
       --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)
