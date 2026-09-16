@@ -913,8 +913,8 @@ var (
 var agentPortForwardCmd = &cobra.Command{
 	Use:   "port-forward <agent_name>",
 	Short: "Forward a local port to an agent",
-	Long: `Open a local TCP listener and tunnel traffic through the deployment operator
-to an agent running in the cluster.
+	Long: `Open a local TCP listener and tunnel traffic to an agent running in
+the platform.
 
 The remote port defaults to the agent's configured port. Use --port to
 override. Use --local-port to choose the local listening port (defaults to
