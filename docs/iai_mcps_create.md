@@ -19,13 +19,18 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-The mcp is verified against the live server before it's kept: an internal mcp
-is verified automatically once ready; an external mcp (custom or catalog) is verified immediately,
-and the create fails if the server is unreachable. Verification lists the
-server's tools, so it only catches a bad credential on providers that require
-auth to list them — some serve tool discovery anonymously.
-An --auth-type oauth mcp is the exception: there is no credential until the
-user signs in, so it is created unverified and reports no tools until then.
+An internal mcp is verified automatically once ready. An external mcp is stored
+before the platform contacts the provider; after create, run 'iai mcps tools
+<mcp_name>' to verify the endpoint and credential. Tool discovery can be
+anonymous, so it only catches a bad credential when the provider protects it.
+An --auth-type oauth mcp has no credential until the user signs in; connect it
+before running the tools check.
+
+An --auth-type client_credentials mcp has no sign-in. You register an app at the
+provider and pass its --client-id and --client-secret; the platform mints and
+refreshes tokens from that pair. The token is not tied to a person, so every
+agent in the project shares one provider identity. The secret is write-only and
+cannot be changed in place — delete and recreate to rotate.
 
 ```
 iai mcps create <mcp_name> [flags]
@@ -43,6 +48,7 @@ iai mcps create <mcp_name> [flags]
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
   iai mcps create newrelic --catalog-id newrelic --auth-type oauth
+  iai mcps create atlas --catalog-id mongodbatlas --client-id "$CLIENT_ID" --client-secret-stdin < secret.txt
 ```
 
 ### Options
@@ -50,8 +56,11 @@ iai mcps create <mcp_name> [flags]
 ```
       --auth-header string          Custom header used to send the credential
       --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth"; inferred on create
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
+      --client-id string            Client ID of an app you registered at the provider (client_credentials)
+      --client-secret string        Client secret of that app (client_credentials)
+      --client-secret-stdin         Read the client secret from stdin instead of --client-secret
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
       --credential string           Credential required by the mcp server
       --credential-stdin            Read the credential from stdin instead of --credential

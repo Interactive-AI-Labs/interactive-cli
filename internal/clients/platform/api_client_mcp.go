@@ -85,6 +85,8 @@ type McpAuth struct {
 	Credential   *string `json:"credential,omitempty"`
 	HeaderName   *string `json:"header_name,omitempty"`
 	HeaderPrefix *string `json:"header_prefix,omitempty"`
+	ClientID     *string `json:"client_id,omitempty"`
+	ClientSecret *string `json:"client_secret,omitempty"`
 }
 
 type McpEnvVar struct {
