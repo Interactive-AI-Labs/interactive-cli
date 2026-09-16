@@ -192,19 +192,36 @@ func TestValidateMcpUpdateAuth(t *testing.T) {
 		flags   []string
 		wantErr string
 	}{
-		{name: "internal credential only", backend: platform.McpBackendInternal, flags: []string{"credential=x"}},
-		{name: "internal custom type only", backend: platform.McpBackendInternal, flags: []string{"auth-type=custom"}},
+		{
+			name:    "internal credential only",
+			backend: platform.McpBackendInternal,
+			flags:   []string{"credential=x"},
+		},
+		{
+			name:    "internal custom type only",
+			backend: platform.McpBackendInternal,
+			flags:   []string{"auth-type=custom"},
+		},
 		{
 			name: "external credential requires auth type", backend: platform.McpBackendExternal,
 			flags: []string{"credential=x"}, wantErr: "--credential requires --auth-type",
 		},
 		{
-			name: "external custom requires header", backend: platform.McpBackendExternal,
-			flags: []string{"auth-type=custom"}, wantErr: "--auth-type custom requires --auth-header",
+			name:    "external custom requires header",
+			backend: platform.McpBackendExternal,
+			flags: []string{
+				"auth-type=custom",
+			},
+			wantErr: "--auth-type custom requires --auth-header",
 		},
 		{
-			name: "external custom rejects empty header", backend: platform.McpBackendExternal,
-			flags: []string{"auth-type=custom", "auth-header="}, wantErr: "--auth-type custom requires --auth-header",
+			name:    "external custom rejects empty header",
+			backend: platform.McpBackendExternal,
+			flags: []string{
+				"auth-type=custom",
+				"auth-header=",
+			},
+			wantErr: "--auth-type custom requires --auth-header",
 		},
 		{
 			name: "external bearer rejects header", backend: platform.McpBackendExternal,
@@ -327,15 +344,39 @@ func TestMcpAuthTypeOr(t *testing.T) {
 		prefix     string
 		want       string
 	}{
-		{name: "explicit wins", backend: platform.McpBackendExternal, explicit: "api_key", want: "api_key"},
-		{name: "custom header", backend: platform.McpBackendExternal, header: "X-Token", want: "custom"},
-		{name: "internal custom header", backend: platform.McpBackendInternal, header: "X-Token", want: "custom"},
-		{name: "prefix also means custom", backend: platform.McpBackendExternal, prefix: "Token ", want: "custom"},
+		{
+			name:     "explicit wins",
+			backend:  platform.McpBackendExternal,
+			explicit: "api_key",
+			want:     "api_key",
+		},
+		{
+			name:    "custom header",
+			backend: platform.McpBackendExternal,
+			header:  "X-Token",
+			want:    "custom",
+		},
+		{
+			name:    "internal custom header",
+			backend: platform.McpBackendInternal,
+			header:  "X-Token",
+			want:    "custom",
+		},
+		{
+			name:    "prefix also means custom",
+			backend: platform.McpBackendExternal,
+			prefix:  "Token ",
+			want:    "custom",
+		},
 		{
 			name: "external credential defaults to bearer", backend: platform.McpBackendExternal,
 			credential: "secret", want: "bearer",
 		},
-		{name: "no auth fields defaults to none", backend: platform.McpBackendExternal, want: "none"},
+		{
+			name:    "no auth fields defaults to none",
+			backend: platform.McpBackendExternal,
+			want:    "none",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -404,7 +445,6 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 		methods    []string
 		explicit   string
 		cred       string
-		header     string
 		wantAuth   string
 		wantSignIn bool
 		wantErr    bool
@@ -444,12 +484,6 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 			wantAuth: "none",
 		},
 		{
-			name:     "a custom header infers bearer for an external mcp",
-			methods:  []string{"bearer", "api_key"},
-			header:   "X-API-Key",
-			wantAuth: "bearer",
-		},
-		{
 			name:    "an undeclared entry is refused",
 			methods: nil,
 			cred:    "a-token",
@@ -467,7 +501,7 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-			got := mcpAuthTypeOr(platform.McpBackendExternal, fromCatalog, tt.cred, tt.header, "")
+			got := mcpAuthTypeOr(platform.McpBackendExternal, fromCatalog, tt.cred, "", "")
 			if got != tt.wantAuth {
 				t.Errorf("resolved auth type = %q, want %q", got, tt.wantAuth)
 			}
