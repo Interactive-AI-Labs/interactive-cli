@@ -60,6 +60,7 @@ type McpConfig struct {
 	Resources   deployment.Resources   `yaml:"resources,omitempty"   json:"resources,omitempty"`
 	Env         []deployment.EnvVar    `yaml:"env,omitempty"         json:"env,omitempty"`
 	SecretRefs  []deployment.SecretRef `yaml:"secretRefs,omitempty"  json:"secretRefs,omitempty"`
+	Endpoint    bool                   `yaml:"endpoint,omitempty"    json:"endpoint,omitempty"`
 	EndpointURL string                 `yaml:"endpointUrl,omitempty" json:"endpointUrl,omitempty"`
 	CatalogID   string                 `yaml:"catalogId,omitempty"   json:"catalogId,omitempty"`
 	Auth        deployment.McpAuthBody `yaml:"auth,omitempty"        json:"auth"`
@@ -85,6 +86,12 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf(
 			"stack-id is required when services, agents, databases, or mcps are defined in config file",
 		)
+	}
+
+	for name, mcp := range cfg.Mcps {
+		if mcp.Endpoint && mcp.Type == "external" {
+			return nil, fmt.Errorf("mcp %q: endpoint only applies to an internal mcp", name)
+		}
 	}
 
 	if cfg.Services == nil {
@@ -140,6 +147,7 @@ func (m McpConfig) ToCreateRequest(stackId string) deployment.CreateMcpBody {
 		Resources:   m.Resources,
 		Env:         m.Env,
 		SecretRefs:  m.SecretRefs,
+		Endpoint:    m.Endpoint,
 		EndpointURL: m.EndpointURL,
 		CatalogID:   m.CatalogID,
 		Auth:        m.Auth,
@@ -206,6 +214,7 @@ func McpConfigFromDescribe(mcp *deployment.DescribeMcpResponse) McpConfig {
 		Resources:   mcp.Resources,
 		Env:         mcp.Env,
 		SecretRefs:  mcp.SecretRefs,
+		Endpoint:    mcp.Endpoint != "",
 		EndpointURL: endpointURL,
 		CatalogID:   mcp.CatalogID,
 		Auth: deployment.McpAuthBody{

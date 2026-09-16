@@ -22,6 +22,8 @@ type CreateMcpBody struct {
 	Resources  Resources   `json:"resources,omitempty"`
 	Env        []EnvVar    `json:"env,omitempty"`
 	SecretRefs []SecretRef `json:"secretRefs,omitempty"`
+	// Endpoint enables the public route; PutMcp without it disables the route.
+	Endpoint bool `json:"endpoint,omitempty"`
 
 	// external only — endpointUrl and catalogId are mutually exclusive.
 	EndpointURL string `json:"endpointUrl,omitempty"`
@@ -84,6 +86,7 @@ type DescribeMcpResponse struct {
 	Path          string            `json:"path"`
 	Headers       map[string]string `json:"headers,omitempty"`
 	HasCredential bool              `json:"hasCredential"`
+	Endpoint      string            `json:"endpoint,omitempty"`
 	Port          int               `json:"port,omitempty"`
 	Image         ImageSpec         `json:"image,omitempty"`
 	Resources     Resources         `json:"resources,omitempty"`
