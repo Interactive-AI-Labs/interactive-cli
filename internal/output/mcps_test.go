@@ -336,36 +336,11 @@ func TestMcpSignInDoesNotRepeatOauth(t *testing.T) {
 	}
 }
 
-func TestPrintMcpDetailShowsCustomAuthRouting(t *testing.T) {
-	mcp := platform.McpSchema{
-		Name:             "acme",
-		Backend:          "external",
-		AuthType:         utils.ToPtr("custom"),
-		AuthHeaderName:   utils.ToPtr("X-Token"),
-		AuthHeaderPrefix: utils.ToPtr("Token "),
-	}
-	var buf bytes.Buffer
-	if err := PrintMcpDetail(&buf, &mcp); err != nil {
-		t.Fatalf("PrintMcpDetail() error = %v", err)
-	}
-	got := strings.Join(strings.Fields(buf.String()), " ")
-	for _, want := range []string{
-		"Auth Type: custom",
-		"Auth Header: X-Token",
-		`Auth Header Prefix: "Token "`,
-	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("output %q does not contain %q", got, want)
-		}
-	}
-}
-
-func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
+func TestPrintMcpDetail(t *testing.T) {
 	tests := []struct {
-		name    string
-		mcp     platform.McpSchema
-		want    string
-		notWant string
+		name string
+		mcp  platform.McpSchema
+		want string
 	}{
 		{
 			name: "unconnected oauth mcp is told to connect",
@@ -374,8 +349,11 @@ func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 				Backend:  "external",
 				AuthType: utils.ToPtr("oauth"),
 			},
-			want:    "iai mcps connect asana",
-			notWant: "iai mcps tools asana",
+			want: "Name:             asana\n" +
+				"Backend:          external\n" +
+				"Auth Type:        oauth\n" +
+				"Credential Set:   false\n" +
+				"Tools:            0 (needs a sign-in first — run 'iai mcps connect asana')\n",
 		},
 		{
 			name: "connected oauth mcp is told where the tools are",
@@ -386,8 +364,11 @@ func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 				HasCredential: true,
 				ToolCount:     46,
 			},
-			want:    "iai mcps tools asana",
-			notWant: "iai mcps connect asana",
+			want: "Name:             asana\n" +
+				"Backend:          external\n" +
+				"Auth Type:        oauth\n" +
+				"Credential Set:   true\n" +
+				"Tools:            46 (see 'iai mcps tools asana')\n",
 		},
 		{
 			name: "static credential mcp is never told to connect",
@@ -397,8 +378,28 @@ func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 				AuthType:      utils.ToPtr("bearer"),
 				HasCredential: true,
 			},
-			want:    "iai mcps tools acme",
-			notWant: "iai mcps connect acme",
+			want: "Name:             acme\n" +
+				"Backend:          external\n" +
+				"Auth Type:        bearer\n" +
+				"Credential Set:   true\n" +
+				"Tools:            0 (see 'iai mcps tools acme')\n",
+		},
+		{
+			name: "custom auth routing",
+			mcp: platform.McpSchema{
+				Name:             "acme",
+				Backend:          "external",
+				AuthType:         utils.ToPtr("custom"),
+				AuthHeaderName:   utils.ToPtr("X-Token"),
+				AuthHeaderPrefix: utils.ToPtr("Token "),
+			},
+			want: "Name:                 acme\n" +
+				"Backend:              external\n" +
+				"Auth Type:            custom\n" +
+				"Auth Header:          X-Token\n" +
+				"Auth Header Prefix:   \"Token \"\n" +
+				"Credential Set:       false\n" +
+				"Tools:                0 (see 'iai mcps tools acme')\n",
 		},
 	}
 
@@ -409,12 +410,8 @@ func TestPrintMcpDetailPointsAtConnectWhenUnsigned(t *testing.T) {
 			if err := PrintMcpDetail(&buf, &mcp); err != nil {
 				t.Fatalf("PrintMcpDetail() error = %v", err)
 			}
-			got := buf.String()
-			if !strings.Contains(got, tt.want) {
-				t.Errorf("output %q does not contain %q", got, tt.want)
-			}
-			if strings.Contains(got, tt.notWant) {
-				t.Errorf("output %q must not contain %q", got, tt.notWant)
+			if diff := cmp.Diff(tt.want, buf.String()); diff != "" {
+				t.Errorf("PrintMcpDetail() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
