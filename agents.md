@@ -173,7 +173,8 @@ flags with `validateTableOnlyColumns`.
 - Cursor-based: `--cursor`, `--limit`
 
 **Timestamps:**
-- Always `--from-timestamp` and `--to-timestamp` (ISO 8601 / RFC3339)
+- List filters: `--from-timestamp` and `--to-timestamp` (ISO 8601 / RFC3339)
+- Log windows: `--start-time` and `--end-time`, matching `services logs`
 
 ### Behavioral flags over new verbs
 
