@@ -178,6 +178,7 @@ mcps:
     resources:
       cpu: "250m"
       memory: "512M"
+    endpoint: true
     auth:
       type: none
 `,
@@ -199,6 +200,7 @@ mcps:
 							Tag:  "v1",
 						},
 						Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+						Endpoint:  true,
 						Auth:      deployment.McpAuthBody{Type: "none"},
 					},
 				},
@@ -277,6 +279,17 @@ services:
     replicas: 1
 `,
 			errContains: "stack-id is required",
+		},
+		{
+			name: "endpoint on external mcp",
+			config: `stack-id: stack-123
+mcps:
+  acme:
+    type: external
+    endpointUrl: https://example.com/mcp
+    endpoint: true
+`,
+			errContains: `mcp "acme": endpoint only applies to an internal mcp`,
 		},
 	}
 
@@ -510,13 +523,14 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 		want  deployment.CreateMcpBody
 	}{
 		{
-			name: "internal",
+			name: "internal with endpoint",
 			input: McpConfig{
 				Type:      "internal",
 				Port:      8080,
 				Path:      "/mcp",
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
 				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Endpoint:  true,
 				Auth:      deployment.McpAuthBody{Type: "none"},
 			},
 			want: deployment.CreateMcpBody{
@@ -525,8 +539,18 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 				Path:      "/mcp",
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
 				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Endpoint:  true,
 				Auth:      deployment.McpAuthBody{Type: "none"},
 				StackId:   "stack-123",
+			},
+		},
+		{
+			name:  "internal without endpoint",
+			input: McpConfig{Type: "internal", Port: 8080},
+			want: deployment.CreateMcpBody{
+				Type:    "internal",
+				Port:    8080,
+				StackId: "stack-123",
 			},
 		},
 		{
@@ -675,6 +699,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 					EndpointURL: "http://tools.p1.svc.cluster.local:8080/mcp",
 					Auth:        deployment.McpAuthInfo{Type: "none"},
 				},
+				Endpoint:  "tools-abc123.example.com",
 				Port:      8080,
 				Path:      "/mcp",
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
@@ -688,8 +713,17 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
 				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
 				Env:       []deployment.EnvVar{{Name: "K", Value: "V"}},
+				Endpoint:  true,
 				Auth:      deployment.McpAuthBody{Type: "none"},
 			},
+		},
+		{
+			name: "internal without endpoint",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{Type: "internal"},
+				Port:      8080,
+			},
+			want: McpConfig{Type: "internal", Port: 8080},
 		},
 		{
 			name: "external keeps endpoint and auth routing",
