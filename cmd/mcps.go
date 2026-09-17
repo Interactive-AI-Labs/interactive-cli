@@ -703,6 +703,12 @@ func validateMcpCreateAuth(cmd *cobra.Command, authType string) error {
 	if authType != "custom" && (hasHeader || hasPrefix) {
 		return fmt.Errorf("--auth-header and --auth-header-prefix require --auth-type custom")
 	}
+	if authType == "client_credentials" && !cmd.Flags().Changed("client-id") {
+		return fmt.Errorf("--auth-type client_credentials requires --client-id and --client-secret")
+	}
+	if authType != "client_credentials" && cmd.Flags().Changed("client-id") {
+		return fmt.Errorf("--client-id and --client-secret require --auth-type client_credentials")
+	}
 	return nil
 }
 
@@ -927,7 +933,7 @@ func init() {
 	mcpCreateCmd.Flags().
 		StringVar(&mcpClientID, "client-id", "", "Client ID of an app you registered at the provider (client_credentials)")
 	mcpCreateCmd.Flags().
-		StringVar(&mcpClientSecret, "client-secret", "", "Client secret of that app (client_credentials)")
+		StringVar(&mcpClientSecret, "client-secret", "", "Client secret of that app; prefer --client-secret-stdin (client_credentials)")
 	mcpCreateCmd.Flags().
 		BoolVar(&mcpClientSecretStdin, "client-secret-stdin", false, "Read the client secret from stdin instead of --client-secret")
 
@@ -982,6 +988,8 @@ func init() {
 		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("external-url", "image-name")

@@ -59,7 +59,7 @@ iai mcps create <mcp_name> [flags]
       --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
       --client-id string            Client ID of an app you registered at the provider (client_credentials)
-      --client-secret string        Client secret of that app (client_credentials)
+      --client-secret string        Client secret of that app; prefer --client-secret-stdin (client_credentials)
       --client-secret-stdin         Read the client secret from stdin instead of --client-secret
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
       --credential string           Credential required by the mcp server

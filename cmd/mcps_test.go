@@ -150,11 +150,12 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 
 func TestValidateMcpCreateAuth(t *testing.T) {
 	tests := []struct {
-		name    string
-		auth    string
-		header  string
-		prefix  string
-		wantErr string
+		name     string
+		auth     string
+		header   string
+		prefix   string
+		clientID string
+		wantErr  string
 	}{
 		{name: "custom header", auth: "custom", header: "X-Token"},
 		{
@@ -173,14 +174,32 @@ func TestValidateMcpCreateAuth(t *testing.T) {
 			name: "bearer rejects prefix", auth: "bearer", prefix: "Token ",
 			wantErr: "--auth-header and --auth-header-prefix require --auth-type custom",
 		},
+		{name: "client credentials with client id", auth: "client_credentials", clientID: "id"},
+		{
+			name: "client credentials requires client id", auth: "client_credentials",
+			wantErr: "--auth-type client_credentials requires --client-id and --client-secret",
+		},
+		{
+			name: "bearer rejects client id", auth: "bearer", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
+		{
+			name: "custom rejects client id", auth: "custom", header: "X-Token", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
+		{
+			name: "oauth rejects client id", auth: "oauth", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := &cobra.Command{Use: "create"}
 			cmd.Flags().String("auth-header", "", "")
 			cmd.Flags().String("auth-header-prefix", "", "")
+			cmd.Flags().String("client-id", "", "")
 			for name, value := range map[string]string{
-				"auth-header": tt.header, "auth-header-prefix": tt.prefix,
+				"auth-header": tt.header, "auth-header-prefix": tt.prefix, "client-id": tt.clientID,
 			} {
 				if value != "" {
 					if err := cmd.Flags().Set(name, value); err != nil {
