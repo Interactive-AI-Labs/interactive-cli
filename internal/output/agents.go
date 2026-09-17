@@ -54,7 +54,7 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
 		for _, e := range agent.Env {
-			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, formatEnvValue(e))
 		}
 	}
 
@@ -117,7 +117,7 @@ func PrintAgentRevision(out io.Writer, rev *deployment.AgentRevisionResponse) er
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
 		for _, e := range rev.Env {
-			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, formatEnvValue(e))
 		}
 	}
 

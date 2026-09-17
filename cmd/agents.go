@@ -384,6 +384,8 @@ var agentDescribeCmd = &cobra.Command{
 	Short:   "Describe an agent in detail",
 	Long: `Show detailed information about a specific agent including its configuration.
 
+Secret-backed environment variables show <secret: name/key>, not the secret value.
+
 Use --revision to view a specific past revision instead of the current state.
 Past revision output includes server-recorded actor and source attribution when available.`,
 	Example: `  iai agents describe my-agent

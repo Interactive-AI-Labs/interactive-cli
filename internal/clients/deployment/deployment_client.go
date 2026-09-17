@@ -271,8 +271,18 @@ type ImageSpec struct {
 }
 
 type EnvVar struct {
-	Name  string `json:"name"  yaml:"name"`
-	Value string `json:"value" yaml:"value"`
+	Name      string           `json:"name"                yaml:"name"`
+	Value     string           `json:"value"               yaml:"value"`
+	ValueFrom *EnvVarValueFrom `json:"valueFrom,omitempty" yaml:"valueFrom,omitempty"`
+}
+
+type EnvVarValueFrom struct {
+	SecretKeyRef SecretKeyRef `json:"secretKeyRef" yaml:"secretKeyRef"`
+}
+
+type SecretKeyRef struct {
+	Name string `json:"name" yaml:"name"`
+	Key  string `json:"key"  yaml:"key"`
 }
 
 type SecretRef struct {
