@@ -92,7 +92,7 @@ type McpEnvVar struct {
 	Value string `json:"value"`
 }
 
-type McpWorkload struct {
+type McpCreateWorkload struct {
 	Image    string      `json:"image"`
 	Port     int         `json:"port"`
 	Endpoint bool        `json:"endpoint"`
@@ -106,14 +106,14 @@ type McpWorkload struct {
 }
 
 type McpCreateRequest struct {
-	Name        string       `json:"name"`
-	Backend     McpBackend   `json:"backend"`
-	Description *string      `json:"description,omitempty"`
-	CatalogID   *string      `json:"catalog_id,omitempty"`
-	EndpointURL *string      `json:"endpoint_url,omitempty"`
-	Transport   string       `json:"transport"`
-	Auth        McpAuth      `json:"auth"`
-	Workload    *McpWorkload `json:"workload,omitempty"`
+	Name        string             `json:"name"`
+	Backend     McpBackend         `json:"backend"`
+	Description *string            `json:"description,omitempty"`
+	CatalogID   *string            `json:"catalog_id,omitempty"`
+	EndpointURL *string            `json:"endpoint_url,omitempty"`
+	Transport   string             `json:"transport"`
+	Auth        McpAuth            `json:"auth"`
+	Workload    *McpCreateWorkload `json:"workload,omitempty"`
 }
 
 type McpUpdateRequest = map[string]any

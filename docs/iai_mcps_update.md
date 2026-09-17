@@ -17,9 +17,8 @@ configurations entirely.
 
 The type (internal/external) and, for external mcps, the endpoint/catalog cannot
 change — delete and recreate instead. Internal workload flags can be updated
-independently, except --image-name and --image-tag, which must be passed together.
-Internal auth fields can be updated independently; external credential changes
-require --auth-type.
+independently. Internal auth fields can be updated independently; external
+credential changes require --auth-type.
 
 ```
 iai mcps update <mcp_name> [flags]
@@ -28,7 +27,7 @@ iai mcps update <mcp_name> [flags]
 ### Examples
 
 ```
-  iai mcps update my-tool --image-name my-mcp --image-tag v2
+  iai mcps update my-tool --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update my-tool --endpoint
   iai mcps update my-tool --endpoint=false
