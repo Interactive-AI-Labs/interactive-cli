@@ -156,6 +156,80 @@ func TestPrintDroppedEnvSecretWarnings(t *testing.T) {
 	}
 }
 
+func TestAgentEnvWarnings(t *testing.T) {
+	source := &deployment.EnvVarValueFrom{
+		SecretKeyRef: deployment.SecretKeyRef{Name: "tools-dev", Key: "MCP_API_KEY"},
+	}
+	managed := deployment.EnvVar{Name: "MCP_KEY_TOOLS_DEV", ValueFrom: source}
+	tests := []struct {
+		name        string
+		live        []deployment.EnvVar
+		incoming    []string
+		want        string
+		wantDropped bool
+	}{
+		{
+			name:     "adding user env does not warn about a preserved MCP reference",
+			live:     []deployment.EnvVar{managed},
+			incoming: []string{"LOG_LEVEL=debug"},
+		},
+		{
+			name: "updating user env does not require resending the MCP reference",
+			live: []deployment.EnvVar{
+				{Name: "LOG_LEVEL", Value: "info"},
+				managed,
+			},
+			incoming: []string{"LOG_LEVEL=debug"},
+		},
+		{
+			name: "dropping user env still warns alongside managed MCP credentials",
+			live: []deployment.EnvVar{
+				managed,
+				{Name: "DB_HOST", Value: "db"},
+			},
+			incoming: []string{"LOG_LEVEL=debug"},
+			want: "⚠ this update drops live env vars: DB_HOST" +
+				" (--env replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
+		},
+		{
+			name:     "MCP name without source metadata is not assumed managed",
+			live:     []deployment.EnvVar{{Name: "MCP_KEY_TOOLS_DEV", Value: ""}},
+			incoming: []string{"LOG_LEVEL=debug"},
+			want: "⚠ this update drops live env vars: MCP_KEY_TOOLS_DEV" +
+				" (--env replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
+		},
+		{
+			name:     "unmanaged secret references are not hidden",
+			live:     []deployment.EnvVar{{Name: "CUSTOM_TOKEN", ValueFrom: source}},
+			incoming: []string{"LOG_LEVEL=debug"},
+			want: "⚠ this update drops live env vars: CUSTOM_TOKEN" +
+				" (--env replaces the entire list; pass every value you want to keep)\n",
+			wantDropped: true,
+		},
+		{
+			name:     "no live env stays silent",
+			incoming: []string{"LOG_LEVEL=debug"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			dropped := printDroppedEnvSecretWarnings(
+				&buf, true, false, agentUserEnv(tt.live), nil, tt.incoming, nil,
+			)
+			if got := buf.String(); got != tt.want {
+				t.Errorf("warnings = %q, want %q", got, tt.want)
+			}
+			if dropped != tt.wantDropped {
+				t.Errorf("dropped = %v, want %v", dropped, tt.wantDropped)
+			}
+		})
+	}
+}
+
 func TestCheckUpdateGates(t *testing.T) {
 	tests := []struct {
 		name           string
