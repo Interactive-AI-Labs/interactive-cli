@@ -345,6 +345,8 @@ var servDescribeCmd = &cobra.Command{
 	Short:   "Describe a service in detail",
 	Long: `Show detailed information about a specific service including its configuration.
 
+Secret-backed environment variables show <secret: name/key>, not the secret value.
+
 Use --revision to view a specific past revision instead of the current state.
 Past revision output includes server-recorded actor and source attribution when available.`,
 	Example: `  iai services describe my-service

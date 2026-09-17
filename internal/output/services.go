@@ -89,7 +89,7 @@ func PrintServiceDescribe(out io.Writer, svc *deployment.DescribeServiceResponse
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
 		for _, e := range svc.Env {
-			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, formatEnvValue(e))
 		}
 	}
 
@@ -176,7 +176,7 @@ func PrintServiceRevision(out io.Writer, rev *deployment.ServiceRevisionResponse
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
 		for _, e := range rev.Env {
-			fmt.Fprintf(w, "  %s=%s\n", e.Name, e.Value)
+			fmt.Fprintf(w, "  %s=%s\n", e.Name, formatEnvValue(e))
 		}
 	}
 

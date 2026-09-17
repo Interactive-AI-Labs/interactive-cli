@@ -38,13 +38,30 @@ func TestPrintAgentDescribe(t *testing.T) {
 				Revision: 2,
 				Status:   "deployed",
 				Message:  "rollout in progress",
+				Env: []deployment.EnvVar{
+					{Name: "LOG_LEVEL", Value: "debug"},
+					{Name: "EMPTY", Value: ""},
+					{
+						Name: "MCP_KEY_TOOLS_DEV",
+						ValueFrom: &deployment.EnvVarValueFrom{
+							SecretKeyRef: deployment.SecretKeyRef{
+								Name: "tools-dev",
+								Key:  "MCP_API_KEY",
+							},
+						},
+					},
+				},
 			},
 			want: "Name:       msg-agent\n" +
 				"Id:         interactive-agent\n" +
 				"Version:    0.1.0\n" +
 				"Revision:   2\n" +
 				"Status:     deployed\n" +
-				"Message:    rollout in progress\n",
+				"Message:    rollout in progress\n" +
+				"\nEnvironment:\n" +
+				"  LOG_LEVEL=debug\n" +
+				"  EMPTY=\n" +
+				"  MCP_KEY_TOOLS_DEV=<secret: tools-dev/MCP_API_KEY>\n",
 		},
 	}
 
@@ -150,6 +167,15 @@ func TestPrintAgentRevision(t *testing.T) {
 				Endpoint: "my-agent.interactive.ai",
 				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "debug"},
+					{
+						Name: "MCP_KEY_TOOLS_DEV",
+						ValueFrom: &deployment.EnvVarValueFrom{
+							SecretKeyRef: deployment.SecretKeyRef{
+								Name: "tools-dev",
+								Key:  "MCP_API_KEY",
+							},
+						},
+					},
 				},
 			},
 			want: "Revision:   5\n" +
@@ -162,7 +188,8 @@ func TestPrintAgentRevision(t *testing.T) {
 				"Endpoint:   my-agent.interactive.ai\n" +
 				"\n" +
 				"Environment:\n" +
-				"  LOG_LEVEL=debug\n",
+				"  LOG_LEVEL=debug\n" +
+				"  MCP_KEY_TOOLS_DEV=<secret: tools-dev/MCP_API_KEY>\n",
 		},
 	}
 
