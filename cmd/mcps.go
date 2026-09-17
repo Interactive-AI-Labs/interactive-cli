@@ -725,6 +725,12 @@ func validateMcpUpdateAuth(cmd *cobra.Command, backend platform.McpBackend) erro
 	if err != nil {
 		return err
 	}
+	if authType == "client_credentials" {
+		return errors.New(
+			"client_credentials auth cannot be changed in place; delete the mcp and " +
+				"recreate it with --client-id and --client-secret-stdin",
+		)
+	}
 	return validateMcpCreateAuth(cmd, authType)
 }
 

@@ -191,6 +191,10 @@ func TestValidateMcpCreateAuth(t *testing.T) {
 			name: "oauth rejects client id", auth: "oauth", clientID: "id",
 			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
 		},
+		{
+			name: "none rejects client id", auth: "none", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -264,6 +268,12 @@ func TestValidateMcpUpdateAuth(t *testing.T) {
 		{
 			name: "external custom header", backend: platform.McpBackendExternal,
 			flags: []string{"auth-type=custom", "auth-header=X-Token"},
+		},
+		{
+			name: "external machine auth cannot be updated", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=client_credentials"},
+			wantErr: "client_credentials auth cannot be changed in place; delete the mcp " +
+				"and recreate it with --client-id and --client-secret-stdin",
 		},
 	}
 	for _, tt := range tests {
