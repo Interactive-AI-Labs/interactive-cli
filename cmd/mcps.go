@@ -187,7 +187,7 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		if mcpCatalogID != "" {
 			endpointURL = ""
 		}
-		var workload *platform.McpWorkload
+		var workload *platform.McpCreateWorkload
 		if backend == platform.McpBackendInternal {
 			if mcpImageName == "" || mcpImageTag == "" {
 				return fmt.Errorf("internal mcp requires --image-name and --image-tag")
@@ -220,7 +220,7 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			if refErr != nil {
 				return refErr
 			}
-			workload = &platform.McpWorkload{
+			workload = &platform.McpCreateWorkload{
 				Image:      mcpImageName + ":" + mcpImageTag,
 				Port:       port,
 				Endpoint:   mcpEndpoint,
@@ -310,10 +310,9 @@ configurations entirely.
 
 The type (internal/external) and, for external mcps, the endpoint/catalog cannot
 change — delete and recreate instead. Internal workload flags can be updated
-independently, except --image-name and --image-tag, which must be passed together.
-Internal auth fields can be updated independently; external credential changes
-require --auth-type.`,
-	Example: `  iai mcps update my-tool --image-name my-mcp --image-tag v2
+independently. Internal auth fields can be updated independently; external
+credential changes require --auth-type.`,
+	Example: `  iai mcps update my-tool --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update my-tool --endpoint
   iai mcps update my-tool --endpoint=false
@@ -328,10 +327,6 @@ require --auth-type.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		mcpName := strings.TrimSpace(args[0])
-
-		if err := validateMcpUpdateFlags(cmd); err != nil {
-			return err
-		}
 
 		cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
 		if err != nil {
@@ -348,11 +343,9 @@ require --auth-type.`,
 		}
 
 		patch, err := inputs.BuildMcpUpdatePatch(inputs.McpUpdateInput{
-			Workload: platform.McpWorkload{
-				Image: mcpImageName + ":" + mcpImageTag, Port: mcpPort, Path: mcpPath,
-				Memory: mcpMemory, CPU: mcpCPU, Endpoint: mcpEndpoint, StackId: mcpStackId,
-				SecretRefs: mcpSecretRefs,
-			},
+			ImageName: mcpImageName, ImageTag: mcpImageTag,
+			Port: mcpPort, Path: mcpPath, Memory: mcpMemory, CPU: mcpCPU,
+			Endpoint: mcpEndpoint, StackId: mcpStackId, SecretRefs: mcpSecretRefs,
 			Auth: auth, Description: mcpDescription, EnvVars: mcpEnvVars,
 			ClearEnv: mcpClearEnv, ClearSecret: mcpClearSecret, ClearStackID: mcpClearStackID,
 		}, cmd.Flags().Changed)
@@ -668,15 +661,6 @@ func validateMcpCreateAuth(cmd *cobra.Command, authType string) error {
 	}
 	if authType != "custom" && (hasHeader || hasPrefix) {
 		return fmt.Errorf("--auth-header and --auth-header-prefix require --auth-type custom")
-	}
-	return nil
-}
-
-func validateMcpUpdateFlags(cmd *cobra.Command) error {
-	nameChanged := cmd.Flags().Changed("image-name")
-	tagChanged := cmd.Flags().Changed("image-tag")
-	if nameChanged != tagChanged {
-		return fmt.Errorf("--image-name and --image-tag must be passed together")
 	}
 	return nil
 }

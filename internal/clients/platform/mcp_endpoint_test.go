@@ -18,7 +18,7 @@ func TestMcpEndpointWireShape(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := json.Marshal(
-				McpWorkload{
+				McpCreateWorkload{
 					Image:    "tools:1",
 					Port:     8080,
 					Endpoint: tt.enabled,

@@ -119,6 +119,19 @@ func TestMcpCreateRequestJSON(t *testing.T) {
 		want    string
 	}{
 		{
+			name: "internal create keeps flat image",
+			request: McpCreateRequest{
+				Name: "demo", Backend: McpBackendInternal, Transport: "streamable_http",
+				Auth: McpAuth{Type: "none"},
+				Workload: &McpCreateWorkload{
+					Image: "tools:2", Port: 3000, Path: "/mcp", Memory: "128M", CPU: "100m",
+				},
+			},
+			want: `{"name":"demo","backend":"internal","transport":"streamable_http",` +
+				`"auth":{"type":"none"},"workload":{"image":"tools:2","port":3000,` +
+				`"endpoint":false,"path":"/mcp","memory":"128M","cpu":"100m"}}`,
+		},
+		{
 			name: "external create carries endpoint and auth",
 			request: McpCreateRequest{
 				Name: "demo", Backend: McpBackendExternal,

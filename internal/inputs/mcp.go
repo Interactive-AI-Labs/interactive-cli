@@ -24,7 +24,11 @@ func ResolveCredential(in io.Reader, credential string, fromStdin bool) (string,
 }
 
 type McpUpdateInput struct {
-	Workload                            platform.McpWorkload
+	ImageName, ImageTag                 string
+	Port                                int
+	Endpoint                            bool
+	Path, Memory, CPU, StackId          string
+	SecretRefs                          []string
 	Auth                                platform.McpAuth
 	Description                         string
 	EnvVars                             []string
@@ -60,16 +64,25 @@ func BuildMcpUpdatePatch(
 	}
 
 	workload := map[string]any{}
+	if anyChanged(changed, "image-name", "image-tag") {
+		img := map[string]any{}
+		if changed("image-name") {
+			img["name"] = in.ImageName
+		}
+		if changed("image-tag") {
+			img["tag"] = in.ImageTag
+		}
+		workload["image"] = img
+	}
 	for _, field := range []struct {
 		flag, key string
 		value     any
 	}{
-		{"image-name", "image", in.Workload.Image},
-		{"port", "port", in.Workload.Port},
-		{"path", "path", in.Workload.Path},
-		{"memory", "memory", in.Workload.Memory},
-		{"cpu", "cpu", in.Workload.CPU},
-		{"endpoint", "endpoint", in.Workload.Endpoint},
+		{"port", "port", in.Port},
+		{"path", "path", in.Path},
+		{"memory", "memory", in.Memory},
+		{"cpu", "cpu", in.CPU},
+		{"endpoint", "endpoint", in.Endpoint},
 	} {
 		if changed(field.flag) {
 			workload[field.key] = field.value
@@ -79,7 +92,7 @@ func BuildMcpUpdatePatch(
 	stack := deployment.UpdatePatch{}
 	if err := setStackIdPatch(
 		stack,
-		in.Workload.StackId,
+		in.StackId,
 		changed("stack-id"),
 		in.ClearStackID,
 	); err != nil {
@@ -97,7 +110,7 @@ func BuildMcpUpdatePatch(
 		workload["env"] = env
 	}
 
-	refs, err := ResolveMcpSecretRefs(in.Workload.SecretRefs, changed("secret"), in.ClearSecret)
+	refs, err := ResolveMcpSecretRefs(in.SecretRefs, changed("secret"), in.ClearSecret)
 	if err != nil {
 		return nil, err
 	}
