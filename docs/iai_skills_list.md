@@ -10,9 +10,10 @@ Returns all Copilot skills with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
-The listing also includes the global skills Interactive loads into every
-project, marked "global" in the SCOPE column. They are read-only here, and a
-project skill of the same name hides one.
+Every skill has a scope, shown in the SCOPE column. Project skills are yours to
+edit. Global skills are owned by Interactive and loaded into every project; they
+are read-only here. When both scopes have a skill of the same name, the Copilot
+uses the project one, and so does this listing.
 
 Global skills are project-wide, so they appear only on the first page of the
 root listing, never under --folder, and are not counted in totalCount.

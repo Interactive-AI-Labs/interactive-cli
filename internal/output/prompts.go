@@ -73,7 +73,7 @@ func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	if prompt.Version > 0 {
 		fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
 	}
-	// Say so when the record is not the project's: it cannot be updated or deleted here.
+	// Flags a record the project cannot edit.
 	if prompt.Scope != "" {
 		fmt.Fprintf(w, "Scope:\t%s\n", prompt.Scope)
 	}

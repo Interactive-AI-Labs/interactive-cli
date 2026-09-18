@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/prompts"
 	"github.com/spf13/cobra"
 )
 
@@ -246,38 +246,16 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				}
 			}
 
-			result, err := apiClient.ListPrompts(
-				cmd.Context(),
-				pCtx.projectId,
-				ptCfg.RouteSegment,
-				opts,
-			)
+			result, err := prompts.ScopedReader{
+				Client:       apiClient,
+				ProjectID:    pCtx.projectId,
+				RouteSegment: ptCfg.RouteSegment,
+				Plural:       ptCfg.Plural,
+				Global:       ptCfg.GlobalScope,
+				Warn:         cmd.ErrOrStderr(),
+			}.List(cmd.Context(), opts)
 			if err != nil {
 				return err
-			}
-
-			// Global skills are project-wide, so they belong to the root listing's
-			// first page. Pages are 0-indexed, so <= 0 is that page.
-			if ptCfg.GlobalScope && folder == "" && page <= 0 {
-				// Same Limit on purpose: a server without scope=global ignores it and
-				// returns the project's page, which only de-dupes away if it matches.
-				globalResult, globalErr := apiClient.ListPrompts(
-					cmd.Context(),
-					pCtx.projectId,
-					ptCfg.RouteSegment,
-					platform.PromptListOptions{Limit: limit, Scope: platform.ScopeGlobal},
-				)
-				if globalErr != nil {
-					// A failed global read must not hide the project's own skills.
-					fmt.Fprintf(
-						cmd.ErrOrStderr(),
-						"Warning: could not load global %s: %v\n",
-						ptCfg.Plural,
-						globalErr,
-					)
-				} else {
-					result.Prompts = mergeGlobalRows(result.Prompts, globalResult.Prompts)
-				}
 			}
 
 			if asJSON {
@@ -329,43 +307,16 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
-			opts := platform.PromptGetOptions{Version: version, Label: label}
-			result, err := apiClient.GetPrompt(
-				cmd.Context(),
-				pCtx.projectId,
-				ptCfg.RouteSegment,
-				name,
-				opts,
-			)
+			result, err := prompts.ScopedReader{
+				Client:       apiClient,
+				ProjectID:    pCtx.projectId,
+				RouteSegment: ptCfg.RouteSegment,
+				Plural:       ptCfg.Plural,
+				Global:       ptCfg.GlobalScope,
+				Warn:         cmd.ErrOrStderr(),
+			}.Get(cmd.Context(), name, platform.PromptGetOptions{Version: version, Label: label})
 			if err != nil {
-				if !canFallBackToGlobal(ptCfg, opts, err) {
-					return err
-				}
-				fallback, fallbackErr := apiClient.GetPrompt(
-					cmd.Context(),
-					pCtx.projectId,
-					ptCfg.RouteSegment,
-					name,
-					platform.PromptGetOptions{Scope: platform.ScopeGlobal},
-				)
-				if fallbackErr != nil {
-					// Not found here either is the same answer, not a warning.
-					var fallbackNotFound *platform.NotFoundError
-					if !errors.As(fallbackErr, &fallbackNotFound) {
-						fmt.Fprintf(
-							cmd.ErrOrStderr(),
-							"Warning: could not check global %s: %v\n",
-							ptCfg.Plural,
-							fallbackErr,
-						)
-					}
-					return err
-				}
-				if servedFromProjectScope(fallback) {
-					return err
-				}
-				fallback.Scope = platform.ScopeGlobal
-				result = fallback
+				return err
 			}
 
 			if asJSON {
@@ -664,50 +615,4 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
-}
-
-// mergeGlobalRows appends the global skills the project does not define, tagging
-// each with its scope. A project skill hides one of the same name, as it does at
-// runtime; a folder does not, since it already reads as "name/". TotalCount is
-// left alone: it pages the project's skills, which these are not.
-func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInfo {
-	owned := make(map[string]bool, len(project))
-	for _, p := range project {
-		if p.RowType != platform.RowTypeFolder {
-			owned[p.Name] = true
-		}
-	}
-	merged := project
-	for _, row := range global {
-		if owned[row.Name] {
-			continue
-		}
-		row.Scope = platform.ScopeGlobal
-		merged = append(merged, row)
-	}
-	return merged
-}
-
-// servedFromProjectScope reports whether the reply came from the project scope
-// despite asking for global, which is what a server ignoring the parameter
-// returns. Global skills carry no version and no id; if that ever changes, every
-// one of them reads as a project skill and get reports "not found" for a real one.
-func servedFromProjectScope(detail *platform.PromptDetail) bool {
-	return detail.Version > 0 || detail.Id != ""
-}
-
-// canFallBackToGlobal reports whether a failed project lookup should retry against
-// the global scope. Only a 404 qualifies: any other failure is the answer. A global
-// skill has one version labeled "active", so --version and any other label can only
-// be asking for the project's.
-func canFallBackToGlobal(
-	ptCfg PromptTypeConfig,
-	opts platform.PromptGetOptions,
-	err error,
-) bool {
-	if !ptCfg.GlobalScope || opts.Version != 0 || (opts.Label != "" && opts.Label != "active") {
-		return false
-	}
-	var notFound *platform.NotFoundError
-	return errors.As(err, &notFound)
 }
