@@ -76,6 +76,13 @@ The platform is the source of truth. The CLI should not implement “agent brain
 - **Comments only when needed.**
   - Explain *why*, not *what*.
   - Document tricky behavior or external API quirks.
+- **Keep them short.** One or two lines. A comment longer than the code it
+  describes is documentation in the wrong place: cut it to the one fact the
+  code cannot state, or move it to the command's help text.
+- **Do not restate the code.** A comment that paraphrases the line below it is
+  noise, and it goes stale on the next edit.
+- **Write for someone using the code, not reviewing the diff.** Reasoning that
+  justifies a decision belongs in the commit message or the PR.
 - Remove unused functions, types, and imports. No `_ = someName` hacks.
 
 ### Dependencies and init
@@ -106,6 +113,18 @@ The platform is the source of truth. The CLI should not implement “agent brain
 - Code must compile; add or update tests when behavior changes.
 - Assume `go test ./...` should conceptually pass.
 - All code must be `gofmt`-style; imports should follow Go conventions.
+
+**Minimize the test code, not the test cases.** In a table-driven test the case
+list can be as long as the behavior needs; the body of the loop should be a
+call and one comparison.
+
+- Assert one composite value rather than many fields. A whole request-target
+  (`/…/skills/team%2Fdeploy?scope=global`) covers path, escaping and query
+  params in one line, where separate checks on captured variables need one
+  block each.
+- Put `t.Cleanup` in the helper so no test carries its own `defer`.
+- A test that passes whether or not the fix is present is not a test. Check by
+  reverting the fix and watching it fail.
 
 ---
 
@@ -198,6 +217,27 @@ iai observations list --type GENERATION
 iai observations search --type GENERATION
 ```
 
+### Naming
+
+Names are the interface. A consistent one is the difference between a CLI
+someone can use without the docs and one they cannot.
+
+- **One word per concept, everywhere.** The struct field, the JSON tag, the
+  table column, the help text, the comments and the test fixtures all use it.
+  Renaming a field and leaving the old word in the surrounding prose is the
+  usual way this breaks.
+- **Check what the API already calls it.** If the server takes `?scope=global`,
+  the CLI reports `scope: global` — what a caller reads is what it passes back,
+  with no mapping to learn.
+- **Reuse a word only for the same question.** In this repo `type` answers
+  *what kind of thing is this*, `scope` answers *whose namespace is this from*,
+  `source` answers *what produced this record*. Reusing a familiar word for a
+  different question is worse than introducing a new one.
+- **Check what the word already means on the same object.** `PromptDetail`
+  already carries `Type` and `RowType`; a third type-shaped field there would
+  force readers to disambiguate three of them.
+- **Leave the obvious name free** for the thing it obviously describes.
+
 ### Documentation
 
 - Docs in `docs/` are markdown files named `iai_<resource>_<verb>.md`.
@@ -212,7 +252,9 @@ iai observations search --type GENERATION
 - Keep command code minimal; move real work to `internal/`.
 - Follow the compact rules:
   - No commented-out code or unused imports.
-  - Minimal, meaningful comments.
+  - Minimal, meaningful comments — shorter than the code they describe.
+  - One word per concept, reused only for the same question.
+  - Long test tables, short test bodies.
   - Light `init()`, fixed dependencies.
   - Clean error messages, no panics.
 - Keep every change small, readable, and consistent with the existing style.
