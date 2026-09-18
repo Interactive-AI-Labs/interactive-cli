@@ -99,6 +99,19 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			backend: platform.McpBackendInternal,
 			flag:    "auth-header",
 		},
+		{name: "external client id", backend: platform.McpBackendExternal, flag: "client-id"},
+		{
+			name:    "internal client id",
+			backend: platform.McpBackendInternal,
+			flag:    "client-id",
+			wantErr: "--client-id only applies to an external mcp",
+		},
+		{
+			name:    "internal client secret stdin",
+			backend: platform.McpBackendInternal,
+			flag:    "client-secret-stdin=true",
+			wantErr: "--client-secret-stdin only applies to an external mcp",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -106,7 +119,7 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			var value string
 			for _, name := range []string{
 				"image-name", "image-tag", "port", "path", "memory", "cpu",
-				"stack-id", "auth-header", "auth-header-prefix",
+				"stack-id", "auth-header", "auth-header-prefix", "client-id", "client-secret",
 			} {
 				cmd.Flags().StringVar(&value, name, "", "")
 			}
@@ -116,6 +129,7 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			cmd.Flags().Bool("clear-secret", false, "")
 			cmd.Flags().Bool("endpoint", false, "")
 			cmd.Flags().Bool("clear-stack-id", false, "")
+			cmd.Flags().Bool("client-secret-stdin", false, "")
 			name, value, found := strings.Cut(tt.flag, "=")
 			if !found {
 				value = "x"
@@ -136,11 +150,12 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 
 func TestValidateMcpCreateAuth(t *testing.T) {
 	tests := []struct {
-		name    string
-		auth    string
-		header  string
-		prefix  string
-		wantErr string
+		name     string
+		auth     string
+		header   string
+		prefix   string
+		clientID string
+		wantErr  string
 	}{
 		{name: "custom header", auth: "custom", header: "X-Token"},
 		{
@@ -159,14 +174,36 @@ func TestValidateMcpCreateAuth(t *testing.T) {
 			name: "bearer rejects prefix", auth: "bearer", prefix: "Token ",
 			wantErr: "--auth-header and --auth-header-prefix require --auth-type custom",
 		},
+		{name: "client credentials with client id", auth: "client_credentials", clientID: "id"},
+		{
+			name: "client credentials requires client id", auth: "client_credentials",
+			wantErr: "--auth-type client_credentials requires --client-id and --client-secret",
+		},
+		{
+			name: "bearer rejects client id", auth: "bearer", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
+		{
+			name: "custom rejects client id", auth: "custom", header: "X-Token", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
+		{
+			name: "oauth rejects client id", auth: "oauth", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
+		{
+			name: "none rejects client id", auth: "none", clientID: "id",
+			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := &cobra.Command{Use: "create"}
 			cmd.Flags().String("auth-header", "", "")
 			cmd.Flags().String("auth-header-prefix", "", "")
+			cmd.Flags().String("client-id", "", "")
 			for name, value := range map[string]string{
-				"auth-header": tt.header, "auth-header-prefix": tt.prefix,
+				"auth-header": tt.header, "auth-header-prefix": tt.prefix, "client-id": tt.clientID,
 			} {
 				if value != "" {
 					if err := cmd.Flags().Set(name, value); err != nil {
@@ -231,6 +268,12 @@ func TestValidateMcpUpdateAuth(t *testing.T) {
 		{
 			name: "external custom header", backend: platform.McpBackendExternal,
 			flags: []string{"auth-type=custom", "auth-header=X-Token"},
+		},
+		{
+			name: "external machine auth cannot be updated", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=client_credentials"},
+			wantErr: "client_credentials auth cannot be changed in place; delete the mcp " +
+				"and recreate it with --client-id and --client-secret-stdin",
 		},
 	}
 	for _, tt := range tests {
@@ -303,7 +346,7 @@ func TestMcpAuthTypeOr(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := mcpAuthTypeOr(tt.backend, tt.explicit, tt.credential, tt.header, tt.prefix)
+			got := mcpAuthTypeOr(tt.backend, tt.explicit, tt.credential, tt.header, tt.prefix, "")
 			if got != tt.want {
 				t.Errorf("mcpAuthTypeOr() = %q, want %q", got, tt.want)
 			}
@@ -368,6 +411,8 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 		methods    []string
 		explicit   string
 		cred       string
+		header     string
+		clientID   string
 		wantAuth   string
 		wantSignIn bool
 		wantErr    bool
@@ -412,6 +457,18 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 			cred:    "a-token",
 			wantErr: true,
 		},
+		{
+			name:     "a client_credentials entry needs no explicit auth type",
+			methods:  []string{"client_credentials"},
+			clientID: "an-app-client-id",
+			wantAuth: "client_credentials",
+		},
+		{
+			name:     "a client id infers client_credentials and no sign-in",
+			methods:  []string{"client_credentials", "oauth"},
+			clientID: "an-app-client-id",
+			wantAuth: "client_credentials",
+		},
 	}
 
 	for _, tt := range tests {
@@ -424,7 +481,9 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-			got := mcpAuthTypeOr(platform.McpBackendExternal, fromCatalog, tt.cred, "", "")
+			got := mcpAuthTypeOr(
+				platform.McpBackendExternal, fromCatalog, tt.cred, tt.header, "", tt.clientID,
+			)
 			if got != tt.wantAuth {
 				t.Errorf("resolved auth type = %q, want %q", got, tt.wantAuth)
 			}

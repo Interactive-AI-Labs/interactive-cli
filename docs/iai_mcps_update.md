@@ -45,7 +45,7 @@ iai mcps update <mcp_name> [flags]
 ```
       --auth-header string          Custom header used to send the credential
       --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth"; inferred on create
+      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
       --clear-env                   Remove all environment variables from the mcp (internal)
       --clear-secret                Remove all secret references from the mcp (internal)
       --clear-stack-id              Remove the mcp from its stack (internal)

@@ -24,27 +24,30 @@ var (
 )
 
 var (
-	mcpType            string
-	mcpPort            int
-	mcpPath            string
-	mcpImageName       string
-	mcpImageTag        string
-	mcpMemory          string
-	mcpCPU             string
-	mcpEndpointURL     string
-	mcpEndpoint        bool
-	mcpCatalogID       string
-	mcpAuthType        string
-	mcpCredential      string
-	mcpCredentialStdin bool
-	mcpAuthHeader      string
-	mcpAuthHeaderPfx   string
-	mcpStackId         string
-	mcpEnvVars         []string
-	mcpSecretRefs      []string
-	mcpClearEnv        bool
-	mcpClearSecret     bool
-	mcpClearStackID    bool
+	mcpType              string
+	mcpPort              int
+	mcpPath              string
+	mcpImageName         string
+	mcpImageTag          string
+	mcpMemory            string
+	mcpCPU               string
+	mcpEndpointURL       string
+	mcpEndpoint          bool
+	mcpCatalogID         string
+	mcpAuthType          string
+	mcpCredential        string
+	mcpCredentialStdin   bool
+	mcpClientID          string
+	mcpClientSecret      string
+	mcpClientSecretStdin bool
+	mcpAuthHeader        string
+	mcpAuthHeaderPfx     string
+	mcpStackId           string
+	mcpEnvVars           []string
+	mcpSecretRefs        []string
+	mcpClearEnv          bool
+	mcpClearSecret       bool
+	mcpClearStackID      bool
 )
 
 var mcpForce bool
@@ -129,13 +132,18 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-The mcp is verified against the live server before it's kept: an internal mcp
-is verified automatically once ready; an external mcp (custom or catalog) is verified immediately,
-and the create fails if the server is unreachable. Verification lists the
-server's tools, so it only catches a bad credential on providers that require
-auth to list them — some serve tool discovery anonymously.
-An --auth-type oauth mcp is the exception: there is no credential until the
-user signs in, so it is created unverified and reports no tools until then.`,
+An internal mcp is verified automatically once ready. An external mcp is stored
+before the platform contacts the provider; after create, run 'iai mcps tools
+<mcp_name>' to verify the endpoint and credential. Tool discovery can be
+anonymous, so it only catches a bad credential when the provider protects it.
+An --auth-type oauth mcp has no credential until the user signs in; connect it
+before running the tools check.
+
+An --auth-type client_credentials mcp has no sign-in. You register an app at the
+provider and pass its --client-id and --client-secret; the platform mints and
+refreshes tokens from that pair. The token is not tied to a person, so every
+agent in the project shares one provider identity. The secret is write-only and
+cannot be changed in place — delete and recreate to rotate.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
@@ -144,7 +152,8 @@ user signs in, so it is created unverified and reports no tools until then.`,
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
-  iai mcps create newrelic --catalog-id newrelic --auth-type oauth`,
+  iai mcps create newrelic --catalog-id newrelic --auth-type oauth
+  iai mcps create atlas --catalog-id mongodbatlas --client-id "$CLIENT_ID" --client-secret-stdin < secret.txt`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -159,6 +168,11 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		}
 		if err := validateMcpBackendFlags(cmd, backend); err != nil {
 			return err
+		}
+		if (mcpClientID != "") != (cmd.Flags().Changed("client-secret") || mcpClientSecretStdin) {
+			return fmt.Errorf(
+				"--client-id and --client-secret (or --client-secret-stdin) must be passed together",
+			)
 		}
 
 		cred, err := inputs.ResolveCredential(cmd.InOrStdin(), mcpCredential, mcpCredentialStdin)
@@ -233,7 +247,9 @@ user signs in, so it is created unverified and reports no tools until then.`,
 			}
 		}
 
-		authType := mcpAuthTypeOr(backend, mcpAuthType, cred, mcpAuthHeader, mcpAuthHeaderPfx)
+		authType := mcpAuthTypeOr(
+			backend, mcpAuthType, cred, mcpAuthHeader, mcpAuthHeaderPfx, mcpClientID,
+		)
 		if err := validateMcpCreateAuth(cmd, authType); err != nil {
 			return err
 		}
@@ -244,6 +260,18 @@ user signs in, so it is created unverified and reports no tools until then.`,
 		}
 		if cred != "" || cmd.Flags().Changed("credential") || mcpCredentialStdin {
 			auth.Credential = &cred
+		}
+		clientSecret, err := inputs.ResolveCredential(
+			cmd.InOrStdin(), mcpClientSecret, mcpClientSecretStdin,
+		)
+		if err != nil {
+			return err
+		}
+		if mcpClientID != "" {
+			auth.ClientID = &mcpClientID
+		}
+		if clientSecret != "" {
+			auth.ClientSecret = &clientSecret
 		}
 		res, _, err := apiClient.CreateMcp(
 			cmd.Context(),
@@ -271,6 +299,13 @@ user signs in, so it is created unverified and reports no tools until then.`,
 				mcpName,
 				mcpName,
 			)
+		} else if authType == "client_credentials" {
+			fmt.Fprintf(
+				out,
+				"Created %s — no sign-in needed. Verify the provider connection:\n  iai mcps tools %s\n",
+				mcpName,
+				mcpName,
+			)
 		} else {
 			fmt.Fprintf(out, "Created %s — %s\n", mcpName, res.Backend)
 		}
@@ -280,10 +315,13 @@ user signs in, so it is created unverified and reports no tools until then.`,
 
 func mcpAuthTypeOr(
 	backend platform.McpBackend,
-	explicit, credential, headerName, headerPrefix string,
+	explicit, credential, headerName, headerPrefix, clientID string,
 ) string {
 	if explicit != "" {
 		return explicit
+	}
+	if backend == platform.McpBackendExternal && clientID != "" {
+		return "client_credentials"
 	}
 	if headerName != "" || headerPrefix != "" {
 		return "custom"
@@ -635,15 +673,18 @@ func catalogAuthType(entry *platform.McpCatalogEntry, explicit string) (string, 
 }
 
 func validateMcpBackendFlags(cmd *cobra.Command, backend platform.McpBackend) error {
-	if backend != platform.McpBackendExternal {
-		return nil
+	flags := []string{"client-id", "client-secret", "client-secret-stdin"}
+	appliesTo := "external"
+	if backend == platform.McpBackendExternal {
+		flags = []string{
+			"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id", "endpoint",
+			"env", "secret", "clear-env", "clear-secret", "clear-stack-id",
+		}
+		appliesTo = "internal"
 	}
-	for _, name := range []string{
-		"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id", "endpoint",
-		"env", "secret", "clear-env", "clear-secret", "clear-stack-id",
-	} {
+	for _, name := range flags {
 		if cmd.Flags().Changed(name) {
-			return fmt.Errorf("--%s only applies to an internal mcp", name)
+			return fmt.Errorf("--%s only applies to an %s mcp", name, appliesTo)
 		}
 	}
 	return nil
@@ -662,6 +703,12 @@ func validateMcpCreateAuth(cmd *cobra.Command, authType string) error {
 	if authType != "custom" && (hasHeader || hasPrefix) {
 		return fmt.Errorf("--auth-header and --auth-header-prefix require --auth-type custom")
 	}
+	if authType == "client_credentials" && !cmd.Flags().Changed("client-id") {
+		return fmt.Errorf("--auth-type client_credentials requires --client-id and --client-secret")
+	}
+	if authType != "client_credentials" && cmd.Flags().Changed("client-id") {
+		return fmt.Errorf("--client-id and --client-secret require --auth-type client_credentials")
+	}
 	return nil
 }
 
@@ -677,6 +724,12 @@ func validateMcpUpdateAuth(cmd *cobra.Command, backend platform.McpBackend) erro
 	authType, err := cmd.Flags().GetString("auth-type")
 	if err != nil {
 		return err
+	}
+	if authType == "client_credentials" {
+		return errors.New(
+			"client_credentials auth cannot be changed in place; delete the mcp and " +
+				"recreate it with --client-id and --client-secret-stdin",
+		)
 	}
 	return validateMcpCreateAuth(cmd, authType)
 }
@@ -883,6 +936,13 @@ func init() {
 	mcpsCmd.PersistentFlags().
 		StringVarP(&mcpOrganization, "organization", "o", "", "Organization name that owns the project")
 
+	mcpCreateCmd.Flags().
+		StringVar(&mcpClientID, "client-id", "", "Client ID of an app you registered at the provider (client_credentials)")
+	mcpCreateCmd.Flags().
+		StringVar(&mcpClientSecret, "client-secret", "", "Client secret of that app; prefer --client-secret-stdin (client_credentials)")
+	mcpCreateCmd.Flags().
+		BoolVar(&mcpClientSecretStdin, "client-secret-stdin", false, "Read the client secret from stdin instead of --client-secret")
+
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().
 			IntVar(&mcpPort, "port", 0, "MCP port to expose (internal)")
@@ -899,7 +959,7 @@ func init() {
 		c.Flags().
 			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)")
 		c.Flags().
-			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", "none", or "oauth"; inferred on create`)
+			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create`)
 		c.Flags().
 			StringVar(&mcpCredential, "credential", "", "Credential required by the mcp server")
 		c.Flags().
@@ -932,6 +992,10 @@ func init() {
 		StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
 	mcpCreateCmd.Flags().
 		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential")
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("external-url", "image-name")
