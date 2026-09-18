@@ -1023,7 +1023,7 @@ const RowTypeFolder = "folder"
 type PromptInfo struct {
 	Name          string   `json:"name"`
 	RowType       string   `json:"row_type"`
-	Versions      []int    `json:"versions"`
+	Versions      []int    `json:"versions,omitempty"` // absent on global skills
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
 	LastUpdatedAt string   `json:"lastUpdatedAt"`
