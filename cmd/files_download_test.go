@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -79,6 +78,24 @@ func TestSafeDownloadFilename(t *testing.T) {
 		{
 			name:   "an escape in the name falls back",
 			raw:    "a\x1b[2Jb.txt",
+			fileID: "file-1",
+			want:   "file-1",
+		},
+		{
+			name:   "a C1 control-sequence introducer in the name falls back",
+			raw:    "a\u009bb.txt",
+			fileID: "file-1",
+			want:   "file-1",
+		},
+		{
+			name:   "an invalid UTF-8 byte in the name falls back",
+			raw:    "a\x9bb.txt",
+			fileID: "file-1",
+			want:   "file-1",
+		},
+		{
+			name:   "a bidi override in the name falls back",
+			raw:    "invoice\u202egnp.exe",
 			fileID: "file-1",
 			want:   "file-1",
 		},
@@ -380,6 +397,9 @@ func TestFilesDownload_RenameNeverCrossesDirectories(t *testing.T) {
 					t.Fatalf("set --output: %v", err)
 				}
 			}
+			if err := filesDownloadCmd.Flags().Set("force", "true"); err != nil {
+				t.Fatalf("set --force: %v", err)
+			}
 
 			if err := filesDownloadCmd.RunE(filesDownloadCmd, []string{"f-1"}); err != nil {
 				t.Fatalf("files download: %v", err)
@@ -495,24 +515,55 @@ func TestFilesDownload_ExistingOutputTargetIsRefusedBeforeTransfer(t *testing.T)
 	}
 }
 
-func TestRefuseExistingTarget_StatFailureNamesTarget(t *testing.T) {
-	target := filepath.Join(t.TempDir(), "self-referential-link")
-	if err := os.Symlink(filepath.Base(target), target); err != nil {
-		t.Skipf("create self-referential symlink: %v", err)
+func TestRefuseExistingTarget_DanglingSymlinkExists(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "dangling-link")
+	if err := os.Symlink("missing-target", target); err != nil {
+		t.Skipf("create dangling symlink: %v", err)
 	}
-	if _, err := os.Stat(target); err == nil || errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("stat self-referential symlink error = %v, want a non-ENOENT error", err)
+	if _, err := os.Lstat(target); err != nil {
+		t.Fatalf("lstat dangling symlink: %v", err)
 	}
 
 	err := refuseExistingTarget(target, false)
 	if err == nil {
-		t.Fatal("refuseExistingTarget error = nil, want the stat failure")
+		t.Fatal("refuseExistingTarget error = nil, want the existing symlink refused")
 	}
-	if !strings.Contains(err.Error(), target) {
-		t.Errorf("error = %q, want it to name target %q", err, target)
+	if !strings.Contains(err.Error(), "already exists; use --force to overwrite") {
+		t.Errorf("error = %q, want the existing-target refusal", err)
 	}
-	if !strings.Contains(err.Error(), "failed to inspect") {
-		t.Errorf("error = %q, want stat context", err)
+}
+
+func TestPublishDownload_ExistingTargetIsPreservedWithoutForce(t *testing.T) {
+	dir := t.TempDir()
+	staged := filepath.Join(dir, ".staged-download")
+	target := filepath.Join(dir, "report.pdf")
+	if err := os.WriteFile(staged, []byte("downloaded bytes"), 0o600); err != nil {
+		t.Fatalf("write staged download: %v", err)
+	}
+
+	originalLinkDownload := linkDownload
+	t.Cleanup(func() { linkDownload = originalLinkDownload })
+	linkDownload = func(oldpath, newpath string) error {
+		if err := os.WriteFile(newpath, []byte("competing bytes"), 0o600); err != nil {
+			return err
+		}
+		return originalLinkDownload(oldpath, newpath)
+	}
+
+	err := publishDownload(staged, target, false)
+	if err == nil {
+		t.Fatal("publishDownload error = nil, want the existing target refused")
+	}
+	if !strings.Contains(err.Error(), "already exists; use --force to overwrite") {
+		t.Errorf("error = %q, want the existing-target refusal", err)
+	}
+
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read target: %v", err)
+	}
+	if string(got) != "competing bytes" {
+		t.Errorf("target contents = %q, want competing bytes", got)
 	}
 }
 
