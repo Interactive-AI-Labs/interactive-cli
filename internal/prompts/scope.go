@@ -55,17 +55,25 @@ func (r ScopedReader) List(
 		return result, nil
 	}
 
-	for i := range result.Prompts {
-		result.Prompts[i].Scope = platform.ScopeProject
-	}
-	for _, row := range global.Prompts {
-		row.Scope = platform.ScopeGlobal
-		result.Prompts = append(result.Prompts, row)
-	}
+	result.Prompts = mergeScopes(result.Prompts, global.Prompts)
 	// The reply now covers both scopes, so only the rows carry one.
 	result.Scope = ""
 	result.TotalCount = len(result.Prompts)
 	return result, nil
+}
+
+// mergeScopes labels the rows: a reply carries one scope, the merged listing two.
+func mergeScopes(project, global []platform.PromptInfo) []platform.PromptInfo {
+	merged := make([]platform.PromptInfo, 0, len(project)+len(global))
+	for _, row := range project {
+		row.Scope = platform.ScopeProject
+		merged = append(merged, row)
+	}
+	for _, row := range global {
+		row.Scope = platform.ScopeGlobal
+		merged = append(merged, row)
+	}
+	return merged
 }
 
 // listWhole reads one scope in full: the listing covers two of them, and a page
@@ -101,11 +109,25 @@ func (r ScopedReader) Get(
 	}
 
 	result, err := r.Client.GetPrompt(ctx, r.ProjectID, r.RouteSegment, name, opts)
-	if err != nil && suggestsGlobal(r.Global, opts, err) {
-		fmt.Fprintf(r.Warn, "Hint: to look in the global scope, run: iai %s get %s --scope %s\n",
-			r.Plural, name, platform.ScopeGlobal)
+	if err != nil {
+		if suggestsGlobal(r.Global, opts, err) {
+			fmt.Fprintf(
+				r.Warn,
+				"Hint: to look in the global scope, run: iai %s get %s --scope %s\n",
+				r.Plural,
+				name,
+				platform.ScopeGlobal,
+			)
+		}
+		return nil, err
 	}
-	return result, err
+	if opts.Scope == platform.ScopeGlobal && result.Scope != platform.ScopeGlobal {
+		return nil, fmt.Errorf(
+			"failed to read global %s: the server answered from the project scope",
+			r.Plural,
+		)
+	}
+	return result, nil
 }
 
 // suggestsGlobal reports whether a failed read should point at the global scope.

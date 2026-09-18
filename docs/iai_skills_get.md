@@ -8,8 +8,8 @@ Show a Copilot skill in detail, including its config and full content.
 
 Reads the project's own skills. Pass --scope global for a skill Interactive
 serves to every project; those are read-only here. A name that exists in both
-scopes is two different skills, and the Copilot runtime loads the project one
-at conversation time.
+scopes is two different skills: at runtime the Copilot prioritizes the project
+one over the global one.
 
 Without flags, returns the version the server resolves by default. Copilot
 loads the "active" version, so use --label active to fetch the version Copilot

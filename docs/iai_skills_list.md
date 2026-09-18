@@ -9,8 +9,8 @@ List Copilot skills in a project.
 A skill has one of two scopes, shown in the SCOPE column. Project skills are
 yours to edit. Global skills are owned by Interactive and served to every
 project; they are read-only here. Both scopes are listed, so a name that exists
-in both appears twice, once per scope — the Copilot runtime loads the project
-one at conversation time.
+in both appears twice, once per scope — at runtime the Copilot prioritizes the
+project skill over a global one of the same name.
 
 The listing is complete rather than paginated. Folders are shown with a trailing
 "/" (colored when stdout is a terminal) and can be browsed into with --folder,
