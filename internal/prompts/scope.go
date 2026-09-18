@@ -49,7 +49,7 @@ func (r ScopedReader) List(
 		return result, nil
 	}
 
-	result.Prompts = MergeGlobalRows(result.Prompts, global.Prompts)
+	result.Prompts = mergeGlobalRows(result.Prompts, global.Prompts)
 	return result, nil
 }
 
@@ -64,7 +64,7 @@ func (r ScopedReader) Get(
 	if err == nil {
 		return result, nil
 	}
-	if !CanFallBackToGlobal(r.Global, opts, err) {
+	if !canFallBackToGlobal(r.Global, opts, err) {
 		return nil, err
 	}
 
@@ -90,9 +90,9 @@ func wantsGlobalRows(global bool, opts platform.PromptListOptions) bool {
 	return global && opts.Subfolder == "" && opts.Page <= 0
 }
 
-// MergeGlobalRows appends the global records the project does not define. A project
+// mergeGlobalRows appends the global records the project does not define. A project
 // record hides one of the same name; a folder does not, since it reads as "name/".
-func MergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInfo {
+func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInfo {
 	owned := make(map[string]bool, len(project))
 	for _, p := range project {
 		if p.RowType != platform.RowTypeFolder {
@@ -110,9 +110,9 @@ func MergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInf
 	return merged
 }
 
-// CanFallBackToGlobal reports whether a failed project lookup should retry globally.
+// canFallBackToGlobal reports whether a failed project lookup should retry globally.
 // Only a 404 qualifies; any other failure is the answer.
-func CanFallBackToGlobal(global bool, opts platform.PromptGetOptions, err error) bool {
+func canFallBackToGlobal(global bool, opts platform.PromptGetOptions, err error) bool {
 	if !global || opts.Version != 0 || (opts.Label != "" && opts.Label != activeLabel) {
 		return false
 	}
