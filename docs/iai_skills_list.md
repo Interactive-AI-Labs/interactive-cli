@@ -6,17 +6,16 @@ List skills in a project
 
 List Copilot skills in a project.
 
-Returns all Copilot skills with their name, labels, tags, and last update time.
-Folders are shown with a trailing "/" (colored when stdout is a terminal) and
-can be browsed into with --folder.
+A skill has one of two scopes, shown in the SCOPE column. Project skills are
+yours to edit. Global skills are owned by Interactive and served to every
+project; they are read-only here. Both scopes are listed, so a name that exists
+in both appears twice, once per scope — the Copilot runtime loads the project
+one at conversation time.
 
-Every skill has a scope, shown in the SCOPE column. Project skills are yours to
-edit. Global skills are owned by Interactive and loaded into every project; they
-are read-only here. When both scopes have a skill of the same name, the Copilot
-uses the project one, and so does this listing.
-
-Global skills are project-wide, so they appear only on the first page of the
-root listing, never under --folder, and are not counted in totalCount.
+The listing is complete rather than paginated. Folders are shown with a trailing
+"/" (colored when stdout is a terminal) and can be browsed into with --folder,
+which lists the project alone: global skills are project-wide and sit in no
+folder.
 
 ```
 iai skills list [flags]
@@ -27,7 +26,7 @@ iai skills list [flags]
 ```
   iai skills list
   iai skills list --folder my-folder
-  iai skills list --page 2 --limit 10
+  iai skills list --json
 ```
 
 ### Options
@@ -36,9 +35,7 @@ iai skills list [flags]
       --folder string         List items inside the given folder path
   -h, --help                  help for list
       --json                  Output response as JSON
-      --limit int             Number of items per page (default: 50)
   -o, --organization string   Organization name that owns the project
-      --page int              Page number for pagination
   -p, --project string        Project name that owns the prompts
       --yaml                  Output response as YAML
 ```

@@ -42,11 +42,7 @@ func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) 
 		}
 		row := []string{name}
 		if withScope {
-			scope := p.Scope
-			if scope == "" {
-				scope = platform.ScopeProject
-			}
-			row = append(row, scope)
+			row = append(row, p.Scope)
 		}
 		rows[i] = append(row,
 			TruncateList(p.Labels, 3),

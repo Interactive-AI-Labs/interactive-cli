@@ -6,18 +6,15 @@ Describe a skill in detail
 
 Show a Copilot skill in detail, including its config and full content.
 
+Reads the project's own skills. Pass --scope global for a skill Interactive
+serves to every project; those are read-only here. A name that exists in both
+scopes is two different skills, and the Copilot runtime loads the project one
+at conversation time.
+
 Without flags, returns the version the server resolves by default. Copilot
 loads the "active" version, so use --label active to fetch the version Copilot
 uses. Use --version to retrieve a specific version number, or --label to
-resolve any other label.
-
-Every skill has a scope, shown in the Scope line. Project skills are yours to
-edit; global skills are owned by Interactive and read-only. A name the project
-does not own is looked up in the global scope, so anything "list" showed can be
-described, and the project one wins when both exist.
-
-A global skill has only its "active" version, so --version and any other --label
-search the project alone.
+resolve any other label. A global skill has only its "active" version.
 
 ```
 iai skills get <name> [flags]
@@ -27,6 +24,7 @@ iai skills get <name> [flags]
 
 ```
   iai skills get summarize-trace
+  iai skills get routines --scope global
   iai skills get summarize-trace --version 3
   iai skills get summarize-trace --label active
 ```
@@ -39,6 +37,7 @@ iai skills get <name> [flags]
       --label string          Retrieve the version with this label
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
+      --scope string          Scope to read from: project (default) or global
       --version int           Retrieve a specific version number
       --yaml                  Output response as YAML
 ```

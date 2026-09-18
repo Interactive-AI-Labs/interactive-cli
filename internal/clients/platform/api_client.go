@@ -1100,6 +1100,10 @@ type PromptListResponse struct {
 // genericPromptFolder is the folder the generic /prompts endpoint filters on to exclude typed prompts.
 const genericPromptFolder = "prompts"
 
+// PromptScanLimit is the page size for reading a listing whole, far past any
+// real catalogue.
+const PromptScanLimit = 1000
+
 type PromptListOptions struct {
 	Page      int
 	Limit     int
@@ -1581,16 +1585,14 @@ func (c *APIClient) ListPromptVersions(
 	return versionsData.PromptVersions, nil
 }
 
-const promptScanLimit = 1000
-
-// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past promptScanLimit.
+// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past PromptScanLimit.
 func (c *APIClient) listPromptVersionNumbers(
 	ctx context.Context,
 	projectId string,
 	routeSegment string,
 	name string,
 ) ([]PromptVersionMeta, error) {
-	opts := PromptListOptions{Limit: promptScanLimit}
+	opts := PromptListOptions{Limit: PromptScanLimit}
 	result, err := c.ListPrompts(ctx, projectId, routeSegment, opts)
 	if err != nil {
 		return nil, err
@@ -1607,7 +1609,7 @@ func (c *APIClient) listPromptVersionNumbers(
 		return versions, nil
 	}
 
-	if len(result.Prompts) == promptScanLimit {
+	if len(result.Prompts) == PromptScanLimit {
 		return nil, errors.New(
 			"could not search this project's prompts under API-key authentication",
 		)
