@@ -15,8 +15,10 @@ project. A SOURCE column marks each row as "project" or "general"; general
 skills are read-only and cannot be created, updated or deleted here. They are
 project-wide and unpaginated, so they are listed once, on the first page of the
 root listing — not inside --folder, and not on a later --page (pages are
-0-indexed, so --page 0 is the first). A project skill of the same name hides
-the general one, matching what the Copilot loads at runtime.
+0-indexed, so --page 0 is the first), and they are not counted in the
+totalCount that --json reports for paging the project's own skills. A project
+skill of the same name hides the general one, matching what the Copilot loads
+at runtime; a folder of that name does not, since it renders as "name/".
 
 ```
 iai skills list [flags]

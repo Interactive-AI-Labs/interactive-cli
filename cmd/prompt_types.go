@@ -261,11 +261,15 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			// root listing only: not inside a folder, and not past the first page.
 			// Pages are 0-indexed server-side, so anything <= 0 is that first page.
 			if ptCfg.GlobalScope && folder == "" && page <= 0 {
+				// Same Limit as the project call on purpose: a server that does not
+				// know scope=global ignores it and answers with the project's own
+				// page, and only an identical page de-dupes away to nothing. The
+				// global scope itself is unpaginated and ignores Limit.
 				globalResult, globalErr := apiClient.ListPrompts(
 					cmd.Context(),
 					pCtx.projectId,
 					ptCfg.RouteSegment,
-					platform.PromptListOptions{Scope: platform.ScopeGlobal},
+					platform.PromptListOptions{Limit: limit, Scope: platform.ScopeGlobal},
 				)
 				if globalErr != nil {
 					// Hiding the project's own rows because the shared read failed is
@@ -277,11 +281,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 						globalErr,
 					)
 				} else {
-					result.Prompts, result.TotalCount = mergeGlobalRows(
-						result.Prompts,
-						globalResult.Prompts,
-						result.TotalCount,
-					)
+					result.Prompts = mergeGlobalRows(result.Prompts, globalResult.Prompts)
 				}
 			}
 
@@ -369,6 +369,9 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 							fallbackErr,
 						)
 					}
+					return err
+				}
+				if servedFromProjectScope(fallback) {
 					return err
 				}
 				fallback.Source = sourceGeneral
@@ -669,16 +672,23 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 // scope "global"; every user-facing string in this CLI says "general".
 const sourceGeneral = "general"
 
+// rowTypeFolder is the row_type the list endpoint uses for a folder entry.
+const rowTypeFolder = "folder"
+
 // mergeGlobalRows appends the shared rows the project does not already define,
-// marking each one so the listing can say where it came from. A project record
+// marking each one so the listing can say where it came from. A project skill
 // wins on a name collision, matching what the Copilot loads at runtime.
-func mergeGlobalRows(
-	project, global []platform.PromptInfo,
-	totalCount int,
-) ([]platform.PromptInfo, int) {
+//
+// TotalCount is deliberately left alone: it is the server's denominator for
+// paging the project's own skills, and the shared rows are not part of that
+// sequence. Folders cannot shadow anything — a folder and a skill of the same
+// name are different things, and the folder row already reads as "name/".
+func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInfo {
 	owned := make(map[string]bool, len(project))
 	for _, p := range project {
-		owned[p.Name] = true
+		if p.RowType != rowTypeFolder {
+			owned[p.Name] = true
+		}
 	}
 	merged := project
 	for _, row := range global {
@@ -687,9 +697,17 @@ func mergeGlobalRows(
 		}
 		row.Source = sourceGeneral
 		merged = append(merged, row)
-		totalCount++
 	}
-	return merged, totalCount
+	return merged
+}
+
+// servedFromProjectScope reports whether a reply came from the project scope
+// even though the global one was asked for — which is what a server that does
+// not know the parameter does with it. A global record carries neither a version
+// nor an id, so either one means the answer is the project's and must not be
+// relabelled as someone else's.
+func servedFromProjectScope(detail *platform.PromptDetail) bool {
+	return detail.Version > 0 || detail.Id != ""
 }
 
 // canFallBackToGlobal reports whether a failed project lookup should be retried
