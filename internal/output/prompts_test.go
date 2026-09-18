@@ -105,8 +105,7 @@ func TestPrintPromptList(t *testing.T) {
 				"faq-lookup   production, latest          2025-03-01 13:00:00 CET\n",
 		},
 		{
-			// Global skills come from a project the caller is not in, so the listing
-			// has to name the scope of each row once any global row is present.
+			// The column only appears once a row needs it, so both values show.
 			name: "global rows add a scope column",
 			prompts: []platform.PromptInfo{
 				{
@@ -392,9 +391,7 @@ func TestPrintPromptDetail(t *testing.T) {
 				"text: hi\n",
 		},
 		{
-			// Global skills expose no version — the shared project's counter is not
-			// the caller's to see, so the line must be absent, not "Version: 0".
-			// Scope replaces it: this record cannot be updated or deleted here.
+			// A global skill has no version, so the line is absent, not "Version: 0".
 			name: "global skill shows its scope and omits the version line",
 			prompt: &platform.PromptDetail{
 				Name:   "routines",

@@ -11,15 +11,11 @@ Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
 The listing also includes the global skills Interactive loads into every
-project. A SCOPE column marks each row as "project" or "global" — the same
-values the API takes as ?scope=. Global skills are read-only and cannot be
-created, updated or deleted here. They are project-wide and unpaginated, so
-they are listed once, on the first page of the root listing — not inside
---folder, and not on a later --page (pages are 0-indexed, so --page 0 is the
-first), and they are not counted in the totalCount that --json reports for
-paging the project's own skills. A project skill of the same name hides the
-global one, matching what the Copilot loads at runtime; a folder of that name
-does not, since it renders as "name/".
+project, marked "global" in the SCOPE column. They are read-only here, and a
+project skill of the same name hides one.
+
+Global skills are project-wide, so they appear only on the first page of the
+root listing, never under --folder, and are not counted in totalCount.
 
 ```
 iai skills list [flags]
