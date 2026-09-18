@@ -1003,6 +1003,17 @@ func (c *APIClient) GetProjectId(
 	return orgId, projectId, nil
 }
 
+// ScopeGlobal reads the shared records Interactive serves to every project,
+// through the same project-scoped route: access to the project in the path is
+// what authorizes the read.
+const ScopeGlobal = "global"
+
+// NotFoundError is a 404 from the platform, so callers can tell "no such prompt"
+// apart from a transport, permission or server failure.
+type NotFoundError struct{ Message string }
+
+func (e *NotFoundError) Error() string { return e.Message }
+
 type PromptInfo struct {
 	Name          string   `json:"name"`
 	RowType       string   `json:"row_type"`
@@ -1010,13 +1021,20 @@ type PromptInfo struct {
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
 	LastUpdatedAt string   `json:"lastUpdatedAt"`
+	// Set client-side, never by the API: marks rows that came from somewhere
+	// other than the caller's project, so the listing can say so.
+	Source string `json:"source,omitempty"`
 }
 
 type PromptDetail struct {
-	Id             string          `json:"id"`
-	Name           string          `json:"name"`
-	Type           string          `json:"type"`
-	Version        int             `json:"version"`
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	// omitempty: general skills have no version, and 0 would read as one.
+	Version int `json:"version,omitempty"`
+	// Set client-side, never by the API: marks a record read under a non-project
+	// scope, so the caller can see it is not theirs to edit.
+	Source         string          `json:"source,omitempty"`
 	ProjectId      string          `json:"projectId"`
 	Prompt         json.RawMessage `json:"prompt"`
 	Config         json.RawMessage `json:"config"`
@@ -1073,6 +1091,9 @@ type PromptListOptions struct {
 	Page      int
 	Limit     int
 	Subfolder string // optional user-supplied sub-path for folder browsing
+	// Scope selects an alternate read on the same route: "global" returns the
+	// shared skills every project sees instead of the project's own.
+	Scope string
 }
 
 func promptBasePath(projectId, routeSegment string) string {
@@ -1182,6 +1203,9 @@ func (c *APIClient) ListPrompts(
 			q.Set("limit", fmt.Sprintf("%d", opts.Limit))
 		}
 	}
+	if opts.Scope != "" {
+		q.Set("scope", opts.Scope)
+	}
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.do(req)
@@ -1225,6 +1249,7 @@ func (c *APIClient) GetPrompt(
 	name string,
 	version int,
 	label string,
+	scope string,
 ) (*PromptDetail, error) {
 	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
@@ -1233,6 +1258,9 @@ func (c *APIClient) GetPrompt(
 	}
 
 	q := req.URL.Query()
+	if scope != "" {
+		q.Set("scope", scope)
+	}
 	if version > 0 {
 		q.Set("version", fmt.Sprintf("%d", version))
 	}
@@ -1253,10 +1281,14 @@ func (c *APIClient) GetPrompt(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := clients.ExtractServerMessage(respBody); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
+		msg := clients.ExtractServerMessage(respBody)
+		if msg == "" {
+			msg = fmt.Sprintf("failed to get prompt: server returned %s", resp.Status)
 		}
-		return nil, fmt.Errorf("failed to get prompt: server returned %s", resp.Status)
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, &NotFoundError{Message: msg}
+		}
+		return nil, errors.New(msg)
 	}
 
 	var envelope promptAPIResponse

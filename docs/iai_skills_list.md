@@ -10,6 +10,14 @@ Returns all Copilot skills with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
+The listing also includes the general skills Interactive loads into every
+project. A SOURCE column marks each row as "project" or "general"; general
+skills are read-only and cannot be created, updated or deleted here. They are
+project-wide and unpaginated, so they are listed once, on the first page of the
+root listing — not inside --folder, and not on a later --page (pages are
+0-indexed, so --page 0 is the first). A project skill of the same name hides
+the general one, matching what the Copilot loads at runtime.
+
 ```
 iai skills list [flags]
 ```

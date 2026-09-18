@@ -104,6 +104,27 @@ func TestPrintPromptList(t *testing.T) {
 				"team-a/                                  \n" +
 				"faq-lookup   production, latest          2025-03-01 13:00:00 CET\n",
 		},
+		{
+			// General skills come from a project the caller is not in, so the listing
+			// has to say where each row came from once any shared row is present.
+			name: "general rows add a source column",
+			prompts: []platform.PromptInfo{
+				{
+					Name:          "faq-lookup",
+					Labels:        []string{"active"},
+					LastUpdatedAt: "2025-03-01T12:00:00Z",
+				},
+				{
+					Name:          "routines",
+					Labels:        []string{"active"},
+					LastUpdatedAt: "2025-03-02T12:00:00Z",
+					Source:        "general",
+				},
+			},
+			want: "NAME         SOURCE    LABELS   TAGS   UPDATED\n" +
+				"faq-lookup   project   active          2025-03-01 13:00:00 CET\n" +
+				"routines     general   active          2025-03-02 13:00:00 CET\n",
+		},
 	}
 
 	for _, tt := range tests {
@@ -369,6 +390,25 @@ func TestPrintPromptDetail(t *testing.T) {
 				"Content:\n" +
 				"id: x\n" +
 				"text: hi\n",
+		},
+		{
+			// General skills expose no version — the shared project's counter is not
+			// the caller's to see, so the line must be absent, not "Version: 0".
+			// Source replaces it: this record cannot be updated or deleted here.
+			name: "general skill shows its source and omits the version line",
+			prompt: &platform.PromptDetail{
+				Name:   "routines",
+				Type:   "text",
+				Labels: []string{"active"},
+				Source: "general",
+				Prompt: json.RawMessage(`"# Routines"`),
+			},
+			want: "Name:     routines\n" +
+				"Source:   general\n" +
+				"Labels:   active\n" +
+				"\n" +
+				"Content:\n" +
+				"# Routines\n",
 		},
 	}
 

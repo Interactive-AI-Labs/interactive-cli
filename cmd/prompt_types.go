@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -26,16 +27,19 @@ type PromptTypeConfig struct {
 	GroupID      string   // command group shown in iai --help; defaults to groupContext
 	// BindPromptConfigFlags registers type-specific flags and returns a config builder.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
-	CreateLong            string // long description for the create subcommand
-	ListLong              string // long description for the list subcommand
-	GetLong               string // long description for the describe subcommand
-	UpdateLong            string // long description for the update subcommand
-	DeleteLong            string // long description for the delete subcommand
-	CreateExample         string // usage examples for the create subcommand
-	ListExample           string // usage examples for the list subcommand
-	GetExample            string // usage examples for the describe subcommand
-	UpdateExample         string // usage examples for the update subcommand
-	DeleteExample         string // usage examples for the delete subcommand
+	// GlobalScope makes list and get also read scope=global on the same routes:
+	// the shared, read-only records Interactive serves to every project.
+	GlobalScope   bool
+	CreateLong    string // long description for the create subcommand
+	ListLong      string // long description for the list subcommand
+	GetLong       string // long description for the describe subcommand
+	UpdateLong    string // long description for the update subcommand
+	DeleteLong    string // long description for the delete subcommand
+	CreateExample string // usage examples for the create subcommand
+	ListExample   string // usage examples for the list subcommand
+	GetExample    string // usage examples for the describe subcommand
+	UpdateExample string // usage examples for the update subcommand
+	DeleteExample string // usage examples for the delete subcommand
 }
 
 func registerPromptType(ptCfg PromptTypeConfig) {
@@ -253,6 +257,34 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
+			// Global records are project-wide and unpaginated, so they belong to the
+			// root listing only: not inside a folder, and not past the first page.
+			// Pages are 0-indexed server-side, so anything <= 0 is that first page.
+			if ptCfg.GlobalScope && folder == "" && page <= 0 {
+				globalResult, globalErr := apiClient.ListPrompts(
+					cmd.Context(),
+					pCtx.projectId,
+					ptCfg.RouteSegment,
+					platform.PromptListOptions{Scope: platform.ScopeGlobal},
+				)
+				if globalErr != nil {
+					// Hiding the project's own rows because the shared read failed is
+					// worse than a listing that is missing the shared ones.
+					fmt.Fprintf(
+						cmd.ErrOrStderr(),
+						"Warning: could not load general %s: %v\n",
+						ptCfg.Plural,
+						globalErr,
+					)
+				} else {
+					result.Prompts, result.TotalCount = mergeGlobalRows(
+						result.Prompts,
+						globalResult.Prompts,
+						result.TotalCount,
+					)
+				}
+			}
+
 			if asJSON {
 				return output.PrintStructuredJSON(out, result)
 			}
@@ -309,9 +341,38 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				name,
 				version,
 				label,
+				"",
 			)
 			if err != nil {
-				return err
+				if !canFallBackToGlobal(ptCfg, version, label, err) {
+					return err
+				}
+				fallback, fallbackErr := apiClient.GetPrompt(
+					cmd.Context(),
+					pCtx.projectId,
+					ptCfg.RouteSegment,
+					name,
+					0,
+					"",
+					platform.ScopeGlobal,
+				)
+				if fallbackErr != nil {
+					// Not there either is the same answer, so it is not worth a warning —
+					// and on a server that does not serve the shared scope yet, every
+					// miss would print one. Anything else means the check did not happen.
+					var fallbackNotFound *platform.NotFoundError
+					if !errors.As(fallbackErr, &fallbackNotFound) {
+						fmt.Fprintf(
+							cmd.ErrOrStderr(),
+							"Warning: could not check general %s: %v\n",
+							ptCfg.Plural,
+							fallbackErr,
+						)
+					}
+					return err
+				}
+				fallback.Source = sourceGeneral
+				result = fallback
 			}
 
 			if asJSON {
@@ -581,14 +642,14 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			a, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionA, "",
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionA, "", "",
 			)
 			if err != nil {
 				return err
 			}
 
 			b, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionB, "",
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionB, "", "",
 			)
 			if err != nil {
 				return err
@@ -602,4 +663,44 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
+}
+
+// sourceGeneral labels a record served under the global scope. The wire calls that
+// scope "global"; every user-facing string in this CLI says "general".
+const sourceGeneral = "general"
+
+// mergeGlobalRows appends the shared rows the project does not already define,
+// marking each one so the listing can say where it came from. A project record
+// wins on a name collision, matching what the Copilot loads at runtime.
+func mergeGlobalRows(
+	project, global []platform.PromptInfo,
+	totalCount int,
+) ([]platform.PromptInfo, int) {
+	owned := make(map[string]bool, len(project))
+	for _, p := range project {
+		owned[p.Name] = true
+	}
+	merged := project
+	for _, row := range global {
+		if owned[row.Name] {
+			continue
+		}
+		row.Source = sourceGeneral
+		merged = append(merged, row)
+		totalCount++
+	}
+	return merged, totalCount
+}
+
+// canFallBackToGlobal reports whether a failed project lookup should be retried
+// against the shared scope. Only a 404 qualifies: any other failure is the answer.
+// Global records expose one version, so a --version pins the caller to the
+// project; "active" is what the help text recommends and is the only version a
+// global record has, so it still resolves — any other label cannot.
+func canFallBackToGlobal(ptCfg PromptTypeConfig, version int, label string, err error) bool {
+	if !ptCfg.GlobalScope || version != 0 || (label != "" && label != "active") {
+		return false
+	}
+	var notFound *platform.NotFoundError
+	return errors.As(err, &notFound)
 }

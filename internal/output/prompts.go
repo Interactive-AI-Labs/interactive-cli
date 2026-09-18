@@ -22,19 +22,37 @@ func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) 
 	}
 
 	useColor := IsTerminal(out)
+	withSource := false
+	for _, p := range prompts {
+		if p.Source != "" {
+			withSource = true
+			break
+		}
+	}
+
 	headers := []string{"NAME", "LABELS", "TAGS", "UPDATED"}
+	if withSource {
+		headers = []string{"NAME", "SOURCE", "LABELS", "TAGS", "UPDATED"}
+	}
 	rows := make([][]string, len(prompts))
 	for i, p := range prompts {
 		name := p.Name
 		if p.RowType == "folder" {
 			name = colorizeFolder(name+"/", useColor)
 		}
-		rows[i] = []string{
-			name,
+		row := []string{name}
+		if withSource {
+			source := p.Source
+			if source == "" {
+				source = "project"
+			}
+			row = append(row, source)
+		}
+		rows[i] = append(row,
 			TruncateList(p.Labels, 3),
 			TruncateList(p.Tags, 3),
 			LocalTime(p.LastUpdatedAt),
-		}
+		)
 	}
 
 	return PrintTable(out, headers, rows)
@@ -51,7 +69,14 @@ func colorizeFolder(name string, useColor bool) string {
 func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", prompt.Name)
-	fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
+	// General skills carry no version — the shared project's counter is not exposed.
+	if prompt.Version > 0 {
+		fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
+	}
+	// Say so when the record is not the project's: it cannot be updated or deleted here.
+	if prompt.Source != "" {
+		fmt.Fprintf(w, "Source:\t%s\n", prompt.Source)
+	}
 
 	if len(prompt.Labels) > 0 {
 		fmt.Fprintf(w, "Labels:\t%s\n", strings.Join(prompt.Labels, ", "))
