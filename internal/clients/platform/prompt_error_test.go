@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// A 404 is what lets `get` retry in the global scope. Typing a 403 or a 500 the
-// same way would retry on a permission or server failure and report it as missing.
+// Typing a 403 or a 500 as not-found would report a refusal or an outage as a
+// missing record.
 func TestPromptError(t *testing.T) {
 	tests := []struct {
 		name         string
