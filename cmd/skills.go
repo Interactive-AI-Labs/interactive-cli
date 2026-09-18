@@ -20,8 +20,8 @@ Each Copilot skill is a free-form markdown bundle. It carries a short descriptio
 and an "intents" list of natural-language triggers (stored in config.skill) that
 the Copilot uses to route incoming queries to the right skill at runtime.`,
 		RouteSegment: "skills",
-		// The Copilot loads general skills into every project, so a listing that omits
-		// them tells the caller — human or agent — that they do not exist.
+		// The Copilot loads the global skills into every project, so a listing that
+		// omits them tells the caller — human or agent — that they do not exist.
 		GlobalScope:           true,
 		BindPromptConfigFlags: bindSkillConfigFlags,
 		CreateLong: `Create a new Copilot skill for the interactive-copilot service.
@@ -53,15 +53,16 @@ Returns all Copilot skills with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.
 
-The listing also includes the general skills Interactive loads into every
-project. A SOURCE column marks each row as "project" or "general"; general
-skills are read-only and cannot be created, updated or deleted here. They are
-project-wide and unpaginated, so they are listed once, on the first page of the
-root listing — not inside --folder, and not on a later --page (pages are
-0-indexed, so --page 0 is the first), and they are not counted in the
-totalCount that --json reports for paging the project's own skills. A project
-skill of the same name hides the general one, matching what the Copilot loads
-at runtime; a folder of that name does not, since it renders as "name/".`,
+The listing also includes the global skills Interactive loads into every
+project. A SCOPE column marks each row as "project" or "global" — the same
+values the API takes as ?scope=. Global skills are read-only and cannot be
+created, updated or deleted here. They are project-wide and unpaginated, so
+they are listed once, on the first page of the root listing — not inside
+--folder, and not on a later --page (pages are 0-indexed, so --page 0 is the
+first), and they are not counted in the totalCount that --json reports for
+paging the project's own skills. A project skill of the same name hides the
+global one, matching what the Copilot loads at runtime; a folder of that name
+does not, since it renders as "name/".`,
 		ListExample: `  iai skills list
   iai skills list --folder my-folder
   iai skills list --page 2 --limit 10`,
@@ -72,11 +73,11 @@ loads the "active" version, so use --label active to fetch the version Copilot
 uses. Use --version to retrieve a specific version number, or --label to
 resolve any other label.
 
-A name the project does not own is looked up among the general skills, so
-anything "list" showed can be described; the output marks those with a Source
-line. Project skills win on a name collision, matching the Copilot runtime.
-A general skill has one readable version, labeled "active": --label active
-resolves it, while --version and any other --label search the project only.`,
+A name the project does not own is looked up in the global scope, so anything
+"list" showed can be described; the output marks those with a Scope line.
+Project skills win on a name collision, matching the Copilot runtime. A global
+skill has one readable version, labeled "active": --label active resolves it,
+while --version and any other --label search the project only.`,
 		GetExample: `  iai skills get summarize-trace
   iai skills get summarize-trace --version 3
   iai skills get summarize-trace --label active`,

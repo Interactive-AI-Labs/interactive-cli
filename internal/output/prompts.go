@@ -22,17 +22,17 @@ func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) 
 	}
 
 	useColor := IsTerminal(out)
-	withSource := false
+	withScope := false
 	for _, p := range prompts {
-		if p.Source != "" {
-			withSource = true
+		if p.Scope != "" {
+			withScope = true
 			break
 		}
 	}
 
 	headers := []string{"NAME", "LABELS", "TAGS", "UPDATED"}
-	if withSource {
-		headers = []string{"NAME", "SOURCE", "LABELS", "TAGS", "UPDATED"}
+	if withScope {
+		headers = []string{"NAME", "SCOPE", "LABELS", "TAGS", "UPDATED"}
 	}
 	rows := make([][]string, len(prompts))
 	for i, p := range prompts {
@@ -41,12 +41,12 @@ func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) 
 			name = colorizeFolder(name+"/", useColor)
 		}
 		row := []string{name}
-		if withSource {
-			source := p.Source
-			if source == "" {
-				source = "project"
+		if withScope {
+			scope := p.Scope
+			if scope == "" {
+				scope = platform.ScopeProject
 			}
-			row = append(row, source)
+			row = append(row, scope)
 		}
 		rows[i] = append(row,
 			TruncateList(p.Labels, 3),
@@ -69,13 +69,13 @@ func colorizeFolder(name string, useColor bool) string {
 func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", prompt.Name)
-	// General skills carry no version — the shared project's counter is not exposed.
+	// Global skills carry no version — the shared project's counter is not exposed.
 	if prompt.Version > 0 {
 		fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
 	}
 	// Say so when the record is not the project's: it cannot be updated or deleted here.
-	if prompt.Source != "" {
-		fmt.Fprintf(w, "Source:\t%s\n", prompt.Source)
+	if prompt.Scope != "" {
+		fmt.Fprintf(w, "Scope:\t%s\n", prompt.Scope)
 	}
 
 	if len(prompt.Labels) > 0 {

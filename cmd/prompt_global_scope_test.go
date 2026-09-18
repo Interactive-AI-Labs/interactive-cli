@@ -23,7 +23,7 @@ func TestMergeGlobalRows(t *testing.T) {
 			global:  []platform.PromptInfo{{Name: "shared"}},
 			want: []platform.PromptInfo{
 				{Name: "own"},
-				{Name: "shared", Source: "general"},
+				{Name: "shared", Scope: "global"},
 			},
 		},
 		{
@@ -43,7 +43,7 @@ func TestMergeGlobalRows(t *testing.T) {
 			global:  []platform.PromptInfo{{Name: "routines"}},
 			want: []platform.PromptInfo{
 				{Name: "routines", RowType: "folder"},
-				{Name: "routines", Source: "general"},
+				{Name: "routines", Scope: "global"},
 			},
 		},
 		{
@@ -52,14 +52,14 @@ func TestMergeGlobalRows(t *testing.T) {
 			global:  []platform.PromptInfo{{Name: "shared"}},
 			want: []platform.PromptInfo{
 				{Name: "team", RowType: "folder"},
-				{Name: "shared", Source: "general"},
+				{Name: "shared", Scope: "global"},
 			},
 		},
 		{
-			// A server that does not serve the shared scope ignores the parameter and
+			// A server that does not serve the global scope ignores the parameter and
 			// answers with the project's own page. Both reads send the same --limit
 			// so the pages match, and the merge has to erase the echo completely
-			// rather than relabel it "general".
+			// rather than relabel it "global".
 			name:    "a server echoing the project page adds nothing",
 			project: []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
 			global:  []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
@@ -75,7 +75,7 @@ func TestMergeGlobalRows(t *testing.T) {
 			name:    "an empty project still lists the shared rows",
 			project: nil,
 			global:  []platform.PromptInfo{{Name: "shared"}},
-			want:    []platform.PromptInfo{{Name: "shared", Source: "general"}},
+			want:    []platform.PromptInfo{{Name: "shared", Scope: "global"}},
 		},
 	}
 
@@ -161,8 +161,8 @@ func TestServedFromProjectScope(t *testing.T) {
 			},
 		},
 		{
-			// A server that does not serve the shared scope ignores the parameter
-			// and answers with the project's own record. Relabelling that "general"
+			// A server that does not serve the global scope ignores the parameter
+			// and answers with the project's own record. Relabelling that "global"
 			// would tell the caller a shared skill exists when none does.
 			name:   "a version means the project answered",
 			detail: platform.PromptDetail{Name: "routines", Version: 4},
