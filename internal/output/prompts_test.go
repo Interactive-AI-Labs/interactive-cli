@@ -106,12 +106,13 @@ func TestPrintPromptList(t *testing.T) {
 		},
 		{
 			// The column only appears once a row needs it, so both values show.
-			name: "global rows add a scope column",
+			name: "both scopes are listed, same name and all",
 			prompts: []platform.PromptInfo{
 				{
-					Name:          "faq-lookup",
+					Name:          "routines",
 					Labels:        []string{"active"},
 					LastUpdatedAt: "2025-03-01T12:00:00Z",
+					Scope:         "project",
 				},
 				{
 					Name:          "routines",
@@ -120,9 +121,9 @@ func TestPrintPromptList(t *testing.T) {
 					Scope:         "global",
 				},
 			},
-			want: "NAME         SCOPE     LABELS   TAGS   UPDATED\n" +
-				"faq-lookup   project   active          2025-03-01 13:00:00 CET\n" +
-				"routines     global    active          2025-03-02 13:00:00 CET\n",
+			want: "NAME       SCOPE     LABELS   TAGS   UPDATED\n" +
+				"routines   project   active          2025-03-01 13:00:00 CET\n" +
+				"routines   global    active          2025-03-02 13:00:00 CET\n",
 		},
 	}
 

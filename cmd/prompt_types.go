@@ -27,7 +27,8 @@ type PromptTypeConfig struct {
 	GroupID      string   // command group shown in iai --help; defaults to groupContext
 	// BindPromptConfigFlags registers type-specific flags and returns a config builder.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
-	// GlobalScope makes list and get also read scope=global on the same routes.
+	// GlobalScope gives the type a second, platform-owned scope on the same routes:
+	// list covers both and get takes --scope.
 	GlobalScope   bool
 	CreateLong    string // long description for the create subcommand
 	ListLong      string // long description for the list subcommand
@@ -262,8 +263,12 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
-	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
+	// A listing that covers two scopes is read whole: a page of one against a
+	// page of the other describes neither.
+	if !ptCfg.GlobalScope {
+		cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
+		cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
+	}
 	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
@@ -278,6 +283,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		version int
 		label   string
+		scope   string
 		project string
 		org     string
 		asJSON  bool
@@ -295,17 +301,20 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
+			if scope != "" && scope != platform.ScopeProject && scope != platform.ScopeGlobal {
+				return fmt.Errorf(
+					"invalid scope %q: must be %s or %s",
+					scope, platform.ScopeProject, platform.ScopeGlobal,
+				)
+			}
+
 			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
 			}
 
-			result, err := scopedReader(
-				cmd,
-				ptCfg,
-				pCtx,
-				apiClient,
-			).Get(cmd.Context(), name, platform.PromptGetOptions{Version: version, Label: label})
+			opts := platform.PromptGetOptions{Version: version, Label: label, Scope: scope}
+			result, err := scopedReader(cmd, ptCfg, pCtx, apiClient).Get(cmd.Context(), name, opts)
 			if err != nil {
 				return err
 			}
@@ -323,6 +332,12 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 	cmd.Flags().IntVar(&version, "version", 0, "Retrieve a specific version number")
 	cmd.Flags().StringVar(&label, "label", "", "Retrieve the version with this label")
+	if ptCfg.GlobalScope {
+		cmd.Flags().StringVar(&scope, "scope", "", fmt.Sprintf(
+			"Scope to read from: %s (default) or %s",
+			platform.ScopeProject, platform.ScopeGlobal,
+		))
+	}
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
 	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
