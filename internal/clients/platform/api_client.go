@@ -1003,21 +1003,17 @@ func (c *APIClient) GetProjectId(
 	return orgId, projectId, nil
 }
 
-// Scope of a prompt read. Global skills are served to every project through the
-// project's own routes, so access to the project in the path authorizes them.
-// ScopeProject is the default and is never sent; it names the other half.
+// Scope of a prompt read. ScopeProject is the default and is never sent.
 const (
 	ScopeGlobal  = "global"
 	ScopeProject = "project"
 )
 
-// NotFoundError is a 404 from the platform, so callers can tell "no such prompt"
-// apart from a transport, permission or server failure.
+// NotFoundError is a 404, so callers can tell a missing prompt from a failed request.
 type NotFoundError struct{ Message string }
 
 func (e *NotFoundError) Error() string { return e.Message }
 
-// RowTypeFolder is the RowType of a listing entry that is a folder, not a prompt.
 const RowTypeFolder = "folder"
 
 type PromptInfo struct {
@@ -1027,8 +1023,7 @@ type PromptInfo struct {
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
 	LastUpdatedAt string   `json:"lastUpdatedAt"`
-	// Set client-side, never by the API: the scope this row was read under.
-	Scope string `json:"scope,omitempty"`
+	Scope         string   `json:"scope,omitempty"` // set client-side from the reply's scope
 }
 
 type PromptDetail struct {
@@ -1036,9 +1031,8 @@ type PromptDetail struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 	// omitempty: global skills have no version, and 0 would read as one.
-	Version int `json:"version,omitempty"`
-	// Set client-side, never by the API: the scope this record was read under.
-	Scope          string          `json:"scope,omitempty"`
+	Version        int             `json:"version,omitempty"`
+	Scope          string          `json:"scope,omitempty"` // echoed by the server
 	ProjectId      string          `json:"projectId"`
 	Prompt         json.RawMessage `json:"prompt"`
 	Config         json.RawMessage `json:"config"`
@@ -1081,11 +1075,13 @@ type promptAPIResponse struct {
 type promptListData struct {
 	Prompts    []PromptInfo `json:"prompts"`
 	TotalCount int          `json:"totalCount"`
+	Scope      string       `json:"scope"`
 }
 
 type PromptListResponse struct {
 	Prompts    []PromptInfo `json:"prompts"`
 	TotalCount int          `json:"totalCount"`
+	Scope      string       `json:"scope,omitempty"` // echoed by the server; absent means project
 }
 
 // genericPromptFolder is the folder the generic /prompts endpoint filters on to exclude typed prompts.
@@ -1098,8 +1094,7 @@ type PromptListOptions struct {
 	Scope     string // ScopeGlobal reads the skills served to every project
 }
 
-// PromptGetOptions selects which record to read. The zero value is the version
-// the server resolves by default, from the caller's own project.
+// PromptGetOptions selects which record to read; the zero value is the server's default.
 type PromptGetOptions struct {
 	Version int
 	Label   string
@@ -1249,6 +1244,7 @@ func (c *APIClient) ListPrompts(
 	return &PromptListResponse{
 		Prompts:    listData.Prompts,
 		TotalCount: listData.TotalCount,
+		Scope:      listData.Scope,
 	}, nil
 }
 

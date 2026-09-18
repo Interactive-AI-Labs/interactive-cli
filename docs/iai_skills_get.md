@@ -11,10 +11,13 @@ loads the "active" version, so use --label active to fetch the version Copilot
 uses. Use --version to retrieve a specific version number, or --label to
 resolve any other label.
 
-A name the project does not own is looked up in the global scope, so anything
-"list" showed can be described; those are marked with a Scope line. A global
-skill has only its "active" version, so --version and any other --label search
-the project alone.
+Every skill has a scope, shown in the Scope line. Project skills are yours to
+edit; global skills are owned by Interactive and read-only. A name the project
+does not own is looked up in the global scope, so anything "list" showed can be
+described, and the project one wins when both exist.
+
+A global skill has only its "active" version, so --version and any other --label
+search the project alone.
 
 ```
 iai skills get <name> [flags]
