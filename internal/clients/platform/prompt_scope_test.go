@@ -75,9 +75,10 @@ func TestListPromptsSendsScope(t *testing.T) {
 }
 
 func TestGetPromptSendsScope(t *testing.T) {
-	var gotPath, gotScope, gotLabel string
+	var gotPath, gotRawPath, gotScope, gotLabel string
 	client, closeServer := newScopeTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
+		gotRawPath = r.URL.EscapedPath()
 		gotScope = r.URL.Query().Get("scope")
 		gotLabel = r.URL.Query().Get("label")
 		_, _ = io.WriteString(
@@ -88,8 +89,9 @@ func TestGetPromptSendsScope(t *testing.T) {
 	})
 	defer closeServer()
 
-	// A nested name must reach the server intact: the route captures {name:path},
-	// and %2F is decoded back to "/" before routing.
+	// A nested name must reach the server intact. The separator goes out
+	// percent-encoded, and the server decodes it before matching {name:path} —
+	// so assert the encoded form on the wire as well as the decoded one.
 	result, err := client.GetPrompt(
 		context.Background(), "proj-1", "skills", "team/deploy", 0, "", ScopeGlobal,
 	)
@@ -97,7 +99,10 @@ func TestGetPromptSendsScope(t *testing.T) {
 		t.Fatalf("GetPrompt() error = %v", err)
 	}
 	if want := "/api/platform/v1/projects/proj-1/prompts/skills/team/deploy"; gotPath != want {
-		t.Errorf("path = %q, want %q", gotPath, want)
+		t.Errorf("decoded path = %q, want %q", gotPath, want)
+	}
+	if want := "/api/platform/v1/projects/proj-1/prompts/skills/team%2Fdeploy"; gotRawPath != want {
+		t.Errorf("wire path = %q, want %q", gotRawPath, want)
 	}
 	if gotScope != "global" {
 		t.Errorf("scope = %q, want %q", gotScope, "global")

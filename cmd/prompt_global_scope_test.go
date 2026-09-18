@@ -11,71 +11,56 @@ import (
 
 func TestMergeGlobalRows(t *testing.T) {
 	tests := []struct {
-		name           string
-		project        []platform.PromptInfo
-		global         []platform.PromptInfo
-		totalCount     int
-		want           []platform.PromptInfo
-		wantTotalCount int
+		name    string
+		project []platform.PromptInfo
+		global  []platform.PromptInfo
+		want    []platform.PromptInfo
 	}{
 		{
-			name:       "global rows are appended and marked",
-			project:    []platform.PromptInfo{{Name: "own"}},
-			global:     []platform.PromptInfo{{Name: "shared"}},
-			totalCount: 1,
+			name:    "global rows are appended and marked",
+			project: []platform.PromptInfo{{Name: "own"}},
+			global:  []platform.PromptInfo{{Name: "shared"}},
 			want: []platform.PromptInfo{
 				{Name: "own"},
 				{Name: "shared", Source: "general"},
 			},
-			wantTotalCount: 2,
 		},
 		{
 			// The Copilot loads the project's version over the shared one, so a
 			// listing that showed both would misreport what runs.
-			name:           "a project name shadows the shared one",
-			project:        []platform.PromptInfo{{Name: "routines"}},
-			global:         []platform.PromptInfo{{Name: "routines"}},
-			totalCount:     1,
-			want:           []platform.PromptInfo{{Name: "routines"}},
-			wantTotalCount: 1,
+			name:    "a project name shadows the shared one",
+			project: []platform.PromptInfo{{Name: "routines"}},
+			global:  []platform.PromptInfo{{Name: "routines"}},
+			want:    []platform.PromptInfo{{Name: "routines"}},
 		},
 		{
-			name:       "folders never collide with shared names",
-			project:    []platform.PromptInfo{{Name: "team", RowType: "folder"}},
-			global:     []platform.PromptInfo{{Name: "shared"}},
-			totalCount: 1,
+			name:    "folders never collide with shared names",
+			project: []platform.PromptInfo{{Name: "team", RowType: "folder"}},
+			global:  []platform.PromptInfo{{Name: "shared"}},
 			want: []platform.PromptInfo{
 				{Name: "team", RowType: "folder"},
 				{Name: "shared", Source: "general"},
 			},
-			wantTotalCount: 2,
 		},
 		{
-			name:           "no shared rows leaves the listing untouched",
-			project:        []platform.PromptInfo{{Name: "own"}},
-			global:         nil,
-			totalCount:     1,
-			want:           []platform.PromptInfo{{Name: "own"}},
-			wantTotalCount: 1,
+			name:    "no shared rows leaves the listing untouched",
+			project: []platform.PromptInfo{{Name: "own"}},
+			global:  nil,
+			want:    []platform.PromptInfo{{Name: "own"}},
 		},
 		{
-			name:           "an empty project still lists the shared rows",
-			project:        nil,
-			global:         []platform.PromptInfo{{Name: "shared"}},
-			totalCount:     0,
-			want:           []platform.PromptInfo{{Name: "shared", Source: "general"}},
-			wantTotalCount: 1,
+			name:    "an empty project still lists the shared rows",
+			project: nil,
+			global:  []platform.PromptInfo{{Name: "shared"}},
+			want:    []platform.PromptInfo{{Name: "shared", Source: "general"}},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotTotal := mergeGlobalRows(tt.project, tt.global, tt.totalCount)
+			got := mergeGlobalRows(tt.project, tt.global)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("rows mismatch (-want +got):\n%s", diff)
-			}
-			if gotTotal != tt.wantTotalCount {
-				t.Errorf("totalCount = %d, want %d", gotTotal, tt.wantTotalCount)
 			}
 		})
 	}
@@ -132,6 +117,40 @@ func TestCanFallBackToGlobal(t *testing.T) {
 			ptCfg := PromptTypeConfig{GlobalScope: tt.globalScope}
 			if got := canFallBackToGlobal(ptCfg, tt.version, tt.label, tt.err); got != tt.want {
 				t.Errorf("canFallBackToGlobal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestServedFromProjectScope(t *testing.T) {
+	tests := []struct {
+		name   string
+		detail platform.PromptDetail
+		want   bool
+	}{
+		{
+			name:   "a global record has neither a version nor an id",
+			detail: platform.PromptDetail{Name: "routines", Labels: []string{"active"}},
+		},
+		{
+			// A server that does not serve the shared scope ignores the parameter
+			// and answers with the project's own record. Relabelling that "general"
+			// would tell the caller a shared skill exists when none does.
+			name:   "a version means the project answered",
+			detail: platform.PromptDetail{Name: "routines", Version: 4},
+			want:   true,
+		},
+		{
+			name:   "an id means the project answered",
+			detail: platform.PromptDetail{Name: "routines", Id: "cm123"},
+			want:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := servedFromProjectScope(&tt.detail); got != tt.want {
+				t.Errorf("servedFromProjectScope() = %v, want %v", got, tt.want)
 			}
 		})
 	}
