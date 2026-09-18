@@ -246,14 +246,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				}
 			}
 
-			result, err := prompts.ScopedReader{
-				Client:       apiClient,
-				ProjectID:    pCtx.projectId,
-				RouteSegment: ptCfg.RouteSegment,
-				Plural:       ptCfg.Plural,
-				Global:       ptCfg.GlobalScope,
-				Warn:         cmd.ErrOrStderr(),
-			}.List(cmd.Context(), opts)
+			result, err := scopedReader(cmd, ptCfg, pCtx, apiClient).List(cmd.Context(), opts)
 			if err != nil {
 				return err
 			}
@@ -307,14 +300,12 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
-			result, err := prompts.ScopedReader{
-				Client:       apiClient,
-				ProjectID:    pCtx.projectId,
-				RouteSegment: ptCfg.RouteSegment,
-				Plural:       ptCfg.Plural,
-				Global:       ptCfg.GlobalScope,
-				Warn:         cmd.ErrOrStderr(),
-			}.Get(cmd.Context(), name, platform.PromptGetOptions{Version: version, Label: label})
+			result, err := scopedReader(
+				cmd,
+				ptCfg,
+				pCtx,
+				apiClient,
+			).Get(cmd.Context(), name, platform.PromptGetOptions{Version: version, Label: label})
 			if err != nil {
 				return err
 			}
@@ -615,4 +606,20 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
+}
+
+func scopedReader(
+	cmd *cobra.Command,
+	ptCfg PromptTypeConfig,
+	pCtx *projectContext,
+	c *platform.APIClient,
+) prompts.ScopedReader {
+	return prompts.ScopedReader{
+		Client:       c,
+		ProjectID:    pCtx.projectId,
+		RouteSegment: ptCfg.RouteSegment,
+		Plural:       ptCfg.Plural,
+		Global:       ptCfg.GlobalScope,
+		Warn:         cmd.ErrOrStderr(),
+	}
 }

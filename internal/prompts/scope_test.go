@@ -63,7 +63,7 @@ func TestMergeGlobalRows(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if diff := cmp.Diff(tt.want, MergeGlobalRows(tt.project, tt.global)); diff != "" {
+			if diff := cmp.Diff(tt.want, mergeGlobalRows(tt.project, tt.global)); diff != "" {
 				t.Errorf("rows mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -112,8 +112,8 @@ func TestCanFallBackToGlobal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CanFallBackToGlobal(tt.global, tt.opts, tt.err); got != tt.want {
-				t.Errorf("CanFallBackToGlobal() = %v, want %v", got, tt.want)
+			if got := canFallBackToGlobal(tt.global, tt.opts, tt.err); got != tt.want {
+				t.Errorf("canFallBackToGlobal() = %v, want %v", got, tt.want)
 			}
 		})
 	}

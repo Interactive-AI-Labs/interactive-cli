@@ -1009,6 +1009,19 @@ const (
 	ScopeProject = "project"
 )
 
+// promptError types a failed prompt read. Only a 404 becomes NotFoundError: it is
+// what lets a caller retry elsewhere, so a 403 must never look like one.
+func promptError(statusCode int, status string, body []byte) error {
+	msg := clients.ExtractServerMessage(body)
+	if msg == "" {
+		msg = fmt.Sprintf("failed to get prompt: server returned %s", status)
+	}
+	if statusCode == http.StatusNotFound {
+		return &NotFoundError{Message: msg}
+	}
+	return errors.New(msg)
+}
+
 // NotFoundError is a 404, so callers can tell a missing prompt from a failed request.
 type NotFoundError struct{ Message string }
 
@@ -1285,14 +1298,7 @@ func (c *APIClient) GetPrompt(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		msg := clients.ExtractServerMessage(respBody)
-		if msg == "" {
-			msg = fmt.Sprintf("failed to get prompt: server returned %s", resp.Status)
-		}
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, &NotFoundError{Message: msg}
-		}
-		return nil, errors.New(msg)
+		return nil, promptError(resp.StatusCode, resp.Status, respBody)
 	}
 
 	var envelope promptAPIResponse
