@@ -1003,10 +1003,15 @@ func (c *APIClient) GetProjectId(
 	return orgId, projectId, nil
 }
 
-// ScopeGlobal reads the shared records Interactive serves to every project,
-// through the same project-scoped route: access to the project in the path is
-// what authorizes the read.
-const ScopeGlobal = "global"
+// The scope a prompt record was read under. ScopeGlobal reads the shared
+// records Interactive serves to every project, through the same project-scoped
+// route: access to the project in the path is what authorizes the read.
+// ScopeProject is the default and is never sent — it names the other half for
+// output that has to say which one a row came from.
+const (
+	ScopeGlobal  = "global"
+	ScopeProject = "project"
+)
 
 // NotFoundError is a 404 from the platform, so callers can tell "no such prompt"
 // apart from a transport, permission or server failure.
@@ -1021,20 +1026,21 @@ type PromptInfo struct {
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
 	LastUpdatedAt string   `json:"lastUpdatedAt"`
-	// Set client-side, never by the API: marks rows that came from somewhere
-	// other than the caller's project, so the listing can say so.
-	Source string `json:"source,omitempty"`
+	// Set client-side, never by the API: names the scope a row was read under,
+	// so a listing that mixes scopes can say which is which. The value is the
+	// one the API takes back as ?scope=.
+	Scope string `json:"scope,omitempty"`
 }
 
 type PromptDetail struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 	Type string `json:"type"`
-	// omitempty: general skills have no version, and 0 would read as one.
+	// omitempty: global skills have no version, and 0 would read as one.
 	Version int `json:"version,omitempty"`
-	// Set client-side, never by the API: marks a record read under a non-project
-	// scope, so the caller can see it is not theirs to edit.
-	Source         string          `json:"source,omitempty"`
+	// Set client-side, never by the API: names the scope this record was read
+	// under, so the caller can see when it is not theirs to edit.
+	Scope          string          `json:"scope,omitempty"`
 	ProjectId      string          `json:"projectId"`
 	Prompt         json.RawMessage `json:"prompt"`
 	Config         json.RawMessage `json:"config"`

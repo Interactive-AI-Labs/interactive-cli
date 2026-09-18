@@ -105,9 +105,9 @@ func TestPrintPromptList(t *testing.T) {
 				"faq-lookup   production, latest          2025-03-01 13:00:00 CET\n",
 		},
 		{
-			// General skills come from a project the caller is not in, so the listing
-			// has to say where each row came from once any shared row is present.
-			name: "general rows add a source column",
+			// Global skills come from a project the caller is not in, so the listing
+			// has to name the scope of each row once any global row is present.
+			name: "global rows add a scope column",
 			prompts: []platform.PromptInfo{
 				{
 					Name:          "faq-lookup",
@@ -118,12 +118,12 @@ func TestPrintPromptList(t *testing.T) {
 					Name:          "routines",
 					Labels:        []string{"active"},
 					LastUpdatedAt: "2025-03-02T12:00:00Z",
-					Source:        "general",
+					Scope:         "global",
 				},
 			},
-			want: "NAME         SOURCE    LABELS   TAGS   UPDATED\n" +
+			want: "NAME         SCOPE     LABELS   TAGS   UPDATED\n" +
 				"faq-lookup   project   active          2025-03-01 13:00:00 CET\n" +
-				"routines     general   active          2025-03-02 13:00:00 CET\n",
+				"routines     global    active          2025-03-02 13:00:00 CET\n",
 		},
 	}
 
@@ -392,19 +392,19 @@ func TestPrintPromptDetail(t *testing.T) {
 				"text: hi\n",
 		},
 		{
-			// General skills expose no version — the shared project's counter is not
+			// Global skills expose no version — the shared project's counter is not
 			// the caller's to see, so the line must be absent, not "Version: 0".
-			// Source replaces it: this record cannot be updated or deleted here.
-			name: "general skill shows its source and omits the version line",
+			// Scope replaces it: this record cannot be updated or deleted here.
+			name: "global skill shows its scope and omits the version line",
 			prompt: &platform.PromptDetail{
 				Name:   "routines",
 				Type:   "text",
 				Labels: []string{"active"},
-				Source: "general",
+				Scope:  "global",
 				Prompt: json.RawMessage(`"# Routines"`),
 			},
 			want: "Name:     routines\n" +
-				"Source:   general\n" +
+				"Scope:    global\n" +
 				"Labels:   active\n" +
 				"\n" +
 				"Content:\n" +

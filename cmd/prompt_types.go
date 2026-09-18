@@ -276,7 +276,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					// worse than a listing that is missing the shared ones.
 					fmt.Fprintf(
 						cmd.ErrOrStderr(),
-						"Warning: could not load general %s: %v\n",
+						"Warning: could not load global %s: %v\n",
 						ptCfg.Plural,
 						globalErr,
 					)
@@ -364,7 +364,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					if !errors.As(fallbackErr, &fallbackNotFound) {
 						fmt.Fprintf(
 							cmd.ErrOrStderr(),
-							"Warning: could not check general %s: %v\n",
+							"Warning: could not check global %s: %v\n",
 							ptCfg.Plural,
 							fallbackErr,
 						)
@@ -374,7 +374,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				if servedFromProjectScope(fallback) {
 					return err
 				}
-				fallback.Source = sourceGeneral
+				fallback.Scope = platform.ScopeGlobal
 				result = fallback
 			}
 
@@ -668,10 +668,6 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	return cmd
 }
 
-// sourceGeneral labels a record served under the global scope. The wire calls that
-// scope "global"; every user-facing string in this CLI says "general".
-const sourceGeneral = "general"
-
 // rowTypeFolder is the row_type the list endpoint uses for a folder entry.
 const rowTypeFolder = "folder"
 
@@ -695,7 +691,7 @@ func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInf
 		if owned[row.Name] {
 			continue
 		}
-		row.Source = sourceGeneral
+		row.Scope = platform.ScopeGlobal
 		merged = append(merged, row)
 	}
 	return merged
