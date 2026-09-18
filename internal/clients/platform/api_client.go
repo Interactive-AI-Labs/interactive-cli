@@ -1017,6 +1017,9 @@ type NotFoundError struct{ Message string }
 
 func (e *NotFoundError) Error() string { return e.Message }
 
+// RowTypeFolder is the RowType of a listing entry that is a folder, not a prompt.
+const RowTypeFolder = "folder"
+
 type PromptInfo struct {
 	Name          string   `json:"name"`
 	RowType       string   `json:"row_type"`
@@ -1092,7 +1095,15 @@ type PromptListOptions struct {
 	Page      int
 	Limit     int
 	Subfolder string // optional user-supplied sub-path for folder browsing
-	Scope     string // ScopeGlobal reads the skills shared with every project
+	Scope     string // ScopeGlobal reads the skills served to every project
+}
+
+// PromptGetOptions selects which record to read. The zero value is the version
+// the server resolves by default, from the caller's own project.
+type PromptGetOptions struct {
+	Version int
+	Label   string
+	Scope   string // ScopeGlobal reads the skills served to every project
 }
 
 func promptBasePath(projectId, routeSegment string) string {
@@ -1246,9 +1257,7 @@ func (c *APIClient) GetPrompt(
 	projectId string,
 	routeSegment string,
 	name string,
-	version int,
-	label string,
-	scope string,
+	opts PromptGetOptions,
 ) (*PromptDetail, error) {
 	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
@@ -1257,14 +1266,14 @@ func (c *APIClient) GetPrompt(
 	}
 
 	q := req.URL.Query()
-	if scope != "" {
-		q.Set("scope", scope)
+	if opts.Scope != "" {
+		q.Set("scope", opts.Scope)
 	}
-	if version > 0 {
-		q.Set("version", fmt.Sprintf("%d", version))
+	if opts.Version > 0 {
+		q.Set("version", fmt.Sprintf("%d", opts.Version))
 	}
-	if label != "" {
-		q.Set("label", label)
+	if opts.Label != "" {
+		q.Set("label", opts.Label)
 	}
 	req.URL.RawQuery = q.Encode()
 

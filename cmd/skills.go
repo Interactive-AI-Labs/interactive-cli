@@ -19,9 +19,7 @@ have no effect on the Interactive Agent.
 Each Copilot skill is a free-form markdown bundle. It carries a short description
 and an "intents" list of natural-language triggers (stored in config.skill) that
 the Copilot uses to route incoming queries to the right skill at runtime.`,
-		RouteSegment: "skills",
-		// The Copilot loads the global skills into every project, so a listing that
-		// omits them tells the caller they do not exist.
+		RouteSegment:          "skills",
 		GlobalScope:           true,
 		BindPromptConfigFlags: bindSkillConfigFlags,
 		CreateLong: `Create a new Copilot skill for the interactive-copilot service.

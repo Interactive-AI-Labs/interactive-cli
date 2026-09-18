@@ -329,17 +329,16 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
+			opts := platform.PromptGetOptions{Version: version, Label: label}
 			result, err := apiClient.GetPrompt(
 				cmd.Context(),
 				pCtx.projectId,
 				ptCfg.RouteSegment,
 				name,
-				version,
-				label,
-				"",
+				opts,
 			)
 			if err != nil {
-				if !canFallBackToGlobal(ptCfg, version, label, err) {
+				if !canFallBackToGlobal(ptCfg, opts, err) {
 					return err
 				}
 				fallback, fallbackErr := apiClient.GetPrompt(
@@ -347,9 +346,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					pCtx.projectId,
 					ptCfg.RouteSegment,
 					name,
-					0,
-					"",
-					platform.ScopeGlobal,
+					platform.PromptGetOptions{Scope: platform.ScopeGlobal},
 				)
 				if fallbackErr != nil {
 					// Not found here either is the same answer, not a warning.
@@ -638,14 +635,22 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			a, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionA, "", "",
+				cmd.Context(),
+				pCtx.projectId,
+				ptCfg.RouteSegment,
+				name,
+				platform.PromptGetOptions{Version: versionA},
 			)
 			if err != nil {
 				return err
 			}
 
 			b, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionB, "", "",
+				cmd.Context(),
+				pCtx.projectId,
+				ptCfg.RouteSegment,
+				name,
+				platform.PromptGetOptions{Version: versionB},
 			)
 			if err != nil {
 				return err
@@ -661,8 +666,6 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	return cmd
 }
 
-const rowTypeFolder = "folder"
-
 // mergeGlobalRows appends the global skills the project does not define, tagging
 // each with its scope. A project skill hides one of the same name, as it does at
 // runtime; a folder does not, since it already reads as "name/". TotalCount is
@@ -670,7 +673,7 @@ const rowTypeFolder = "folder"
 func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInfo {
 	owned := make(map[string]bool, len(project))
 	for _, p := range project {
-		if p.RowType != rowTypeFolder {
+		if p.RowType != platform.RowTypeFolder {
 			owned[p.Name] = true
 		}
 	}
@@ -697,8 +700,12 @@ func servedFromProjectScope(detail *platform.PromptDetail) bool {
 // the global scope. Only a 404 qualifies: any other failure is the answer. A global
 // skill has one version labeled "active", so --version and any other label can only
 // be asking for the project's.
-func canFallBackToGlobal(ptCfg PromptTypeConfig, version int, label string, err error) bool {
-	if !ptCfg.GlobalScope || version != 0 || (label != "" && label != "active") {
+func canFallBackToGlobal(
+	ptCfg PromptTypeConfig,
+	opts platform.PromptGetOptions,
+	err error,
+) bool {
+	if !ptCfg.GlobalScope || opts.Version != 0 || (opts.Label != "" && opts.Label != "active") {
 		return false
 	}
 	var notFound *platform.NotFoundError

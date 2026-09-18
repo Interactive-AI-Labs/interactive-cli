@@ -82,7 +82,11 @@ func TestGetPromptSendsScope(t *testing.T) {
 	client, gotURI := newScopeTestClient(t, body, http.StatusOK)
 
 	result, err := client.GetPrompt(
-		context.Background(), "proj-1", "skills", "team/deploy", 0, "", ScopeGlobal,
+		context.Background(),
+		"proj-1",
+		"skills",
+		"team/deploy",
+		PromptGetOptions{Scope: ScopeGlobal},
 	)
 	if err != nil {
 		t.Fatalf("GetPrompt() error = %v", err)
@@ -151,7 +155,13 @@ func TestGetPromptNotFoundIsTyped(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client, _ := newScopeTestClient(t, tt.body, tt.status)
-			_, err := client.GetPrompt(context.Background(), "proj-1", "skills", "nope", 0, "", "")
+			_, err := client.GetPrompt(
+				context.Background(),
+				"proj-1",
+				"skills",
+				"nope",
+				PromptGetOptions{},
+			)
 			if err == nil {
 				t.Fatalf("GetPrompt() error = nil, want %q", tt.wantMessage)
 			}

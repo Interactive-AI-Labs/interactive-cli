@@ -78,8 +78,7 @@ func TestCanFallBackToGlobal(t *testing.T) {
 	tests := []struct {
 		name        string
 		globalScope bool
-		version     int
-		label       string
+		opts        platform.PromptGetOptions
 		err         error
 		want        bool
 	}{
@@ -87,15 +86,20 @@ func TestCanFallBackToGlobal(t *testing.T) {
 		{
 			name:        "the active label resolves",
 			globalScope: true,
-			label:       "active",
+			opts:        platform.PromptGetOptions{Label: "active"},
 			err:         notFound,
 			want:        true,
 		},
-		{name: "another label cannot", globalScope: true, label: "staging", err: notFound},
+		{
+			name:        "another label cannot",
+			globalScope: true,
+			opts:        platform.PromptGetOptions{Label: "staging"},
+			err:         notFound,
+		},
 		{
 			name:        "a pinned version belongs to the project",
 			globalScope: true,
-			version:     3,
+			opts:        platform.PromptGetOptions{Version: 3},
 			err:         notFound,
 		},
 		{name: "types without a global scope never fall back", err: notFound},
@@ -112,7 +116,7 @@ func TestCanFallBackToGlobal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ptCfg := PromptTypeConfig{GlobalScope: tt.globalScope}
-			if got := canFallBackToGlobal(ptCfg, tt.version, tt.label, tt.err); got != tt.want {
+			if got := canFallBackToGlobal(ptCfg, tt.opts, tt.err); got != tt.want {
 				t.Errorf("canFallBackToGlobal() = %v, want %v", got, tt.want)
 			}
 		})

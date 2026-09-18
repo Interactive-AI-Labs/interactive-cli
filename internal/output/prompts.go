@@ -37,7 +37,7 @@ func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) 
 	rows := make([][]string, len(prompts))
 	for i, p := range prompts {
 		name := p.Name
-		if p.RowType == "folder" {
+		if p.RowType == platform.RowTypeFolder {
 			name = colorizeFolder(name+"/", useColor)
 		}
 		row := []string{name}
