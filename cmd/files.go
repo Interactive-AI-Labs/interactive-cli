@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
@@ -17,8 +19,11 @@ import (
 
 const defaultFilesTimeout = 15 * time.Minute
 
-// renameDownload is a seam: tests assert the rename never crosses a directory.
-var renameDownload = os.Rename
+// Filesystem seams let tests verify rename placement and no-overwrite publication.
+var (
+	renameDownload = os.Rename
+	linkDownload   = os.Link
+)
 
 var (
 	filesUploadName    string
@@ -416,9 +421,9 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 			os.Remove(tmpPath)
 			return err
 		}
-		if err := renameDownload(tmpPath, target); err != nil {
+		if err := publishDownload(tmpPath, target, filesDownloadForce); err != nil {
 			os.Remove(tmpPath)
-			return fmt.Errorf("failed to write %s: %w", target, err)
+			return err
 		}
 
 		fmt.Fprintf(cmd.OutOrStdout(), "%s\n", target)
@@ -444,6 +449,7 @@ func init() {
 		BoolVar(&filesListVersions, "versions", false, "Show every version of each listed file")
 	filesListCmd.Flags().BoolVar(&filesListJSON, "json", false, "Output raw API response as JSON")
 	filesListCmd.Flags().BoolVar(&filesListYAML, "yaml", false, "Output raw API response as YAML")
+	filesListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	filesListCmd.Flags().
 		StringVarP(&filesListOrg, "organization", "o", "", "Organization name that owns the project")
 	filesListCmd.Flags().StringVarP(&filesListProject, "project", "p", "", "Project name")
@@ -462,6 +468,7 @@ func init() {
 
 	filesGetCmd.Flags().BoolVar(&filesGetJSON, "json", false, "Output raw API response as JSON")
 	filesGetCmd.Flags().BoolVar(&filesGetYAML, "yaml", false, "Output raw API response as YAML")
+	filesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	filesGetCmd.Flags().
 		StringVarP(&filesGetOrg, "organization", "o", "", "Organization name that owns the project")
 	filesGetCmd.Flags().StringVarP(&filesGetProject, "project", "p", "", "Project name")
@@ -572,7 +579,7 @@ func runFilesRename(cmd *cobra.Command, fileRef, newName string) error {
 }
 
 func refuseExistingTarget(target string, force bool) error {
-	info, err := os.Stat(target)
+	info, err := os.Lstat(target)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
@@ -588,9 +595,30 @@ func refuseExistingTarget(target string, force bool) error {
 	return nil
 }
 
+func publishDownload(staged, target string, force bool) error {
+	if force {
+		if err := renameDownload(staged, target); err != nil {
+			return fmt.Errorf("failed to write %s: %w", target, err)
+		}
+		return nil
+	}
+
+	if err := linkDownload(staged, target); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("%s already exists; use --force to overwrite", target)
+		}
+		return fmt.Errorf("failed to write %s: %w", target, err)
+	}
+	if err := os.Remove(staged); err != nil {
+		return fmt.Errorf("failed to finalize %s: %w", target, err)
+	}
+	return nil
+}
+
 // safeBase reduces a name to a local filename, or "" when nothing usable remains.
 func safeBase(name string) string {
-	if strings.ContainsFunc(name, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+	if !utf8.ValidString(name) ||
+		strings.ContainsFunc(name, func(r rune) bool { return !unicode.IsPrint(r) }) {
 		return ""
 	}
 	base := filepath.Base(name)
