@@ -69,7 +69,7 @@ func colorizeFolder(name string, useColor bool) string {
 func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", prompt.Name)
-	// Global skills carry no version — the shared project's counter is not exposed.
+	// A global skill has no version of its own to show.
 	if prompt.Version > 0 {
 		fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
 	}

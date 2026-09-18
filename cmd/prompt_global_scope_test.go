@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -10,6 +9,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+// What the listing shows has to match what the Copilot loads: a project skill
+// hides the global one of the same name, a folder does not.
 func TestMergeGlobalRows(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -18,27 +19,23 @@ func TestMergeGlobalRows(t *testing.T) {
 		want    []platform.PromptInfo
 	}{
 		{
-			name:    "global rows are appended and marked",
-			project: []platform.PromptInfo{{Name: "own"}},
-			global:  []platform.PromptInfo{{Name: "shared"}},
+			name:    "global skills are appended and tagged",
+			project: []platform.PromptInfo{{Name: "summarize"}},
+			global:  []platform.PromptInfo{{Name: "routines"}},
 			want: []platform.PromptInfo{
-				{Name: "own"},
-				{Name: "shared", Scope: "global"},
+				{Name: "summarize"},
+				{Name: "routines", Scope: "global"},
 			},
 		},
 		{
-			// The Copilot loads the project's version over the shared one, so a
-			// listing that showed both would misreport what runs.
-			name:    "a project name shadows the shared one",
+			name:    "a project skill hides the global one",
 			project: []platform.PromptInfo{{Name: "routines"}},
 			global:  []platform.PromptInfo{{Name: "routines"}},
 			want:    []platform.PromptInfo{{Name: "routines"}},
 		},
 		{
-			// The case the folder exclusion exists for: a folder and a skill of the
-			// same name are different things, the folder already renders as
-			// "routines/", and letting it shadow would hide a skill Copilot loads.
-			name:    "a folder does not shadow a shared skill of the same name",
+			// A folder already reads as "routines/", so hiding the skill would lose it.
+			name:    "a folder does not hide the global skill of that name",
 			project: []platform.PromptInfo{{Name: "routines", RowType: "folder"}},
 			global:  []platform.PromptInfo{{Name: "routines"}},
 			want: []platform.PromptInfo{
@@ -47,48 +44,34 @@ func TestMergeGlobalRows(t *testing.T) {
 			},
 		},
 		{
-			name:    "an unrelated folder is left alone",
-			project: []platform.PromptInfo{{Name: "team", RowType: "folder"}},
-			global:  []platform.PromptInfo{{Name: "shared"}},
-			want: []platform.PromptInfo{
-				{Name: "team", RowType: "folder"},
-				{Name: "shared", Scope: "global"},
-			},
-		},
-		{
-			// A server that does not serve the global scope ignores the parameter and
-			// answers with the project's own page. Both reads send the same --limit
-			// so the pages match, and the merge has to erase the echo completely
-			// rather than relabel it "global".
+			// What a server without scope=global returns: the project's page again.
 			name:    "a server echoing the project page adds nothing",
-			project: []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
-			global:  []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
-			want:    []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
+			project: []platform.PromptInfo{{Name: "summarize"}, {Name: "triage"}},
+			global:  []platform.PromptInfo{{Name: "summarize"}, {Name: "triage"}},
+			want:    []platform.PromptInfo{{Name: "summarize"}, {Name: "triage"}},
 		},
 		{
-			name:    "no shared rows leaves the listing untouched",
-			project: []platform.PromptInfo{{Name: "own"}},
-			global:  nil,
-			want:    []platform.PromptInfo{{Name: "own"}},
+			name:    "no global skills leaves the listing untouched",
+			project: []platform.PromptInfo{{Name: "summarize"}},
+			want:    []platform.PromptInfo{{Name: "summarize"}},
 		},
 		{
-			name:    "an empty project still lists the shared rows",
-			project: nil,
-			global:  []platform.PromptInfo{{Name: "shared"}},
-			want:    []platform.PromptInfo{{Name: "shared", Scope: "global"}},
+			name:   "an empty project still lists the global skills",
+			global: []platform.PromptInfo{{Name: "routines"}},
+			want:   []platform.PromptInfo{{Name: "routines", Scope: "global"}},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := mergeGlobalRows(tt.project, tt.global)
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, mergeGlobalRows(tt.project, tt.global)); diff != "" {
 				t.Errorf("rows mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
+// Only a 404 may fall back, and only for a version the global scope can serve.
 func TestCanFallBackToGlobal(t *testing.T) {
 	notFound := &platform.NotFoundError{Message: "no such prompt"}
 
@@ -102,20 +85,13 @@ func TestCanFallBackToGlobal(t *testing.T) {
 	}{
 		{name: "404 on a global-scoped type", globalScope: true, err: notFound, want: true},
 		{
-			// `skills get --label active` is what the help text recommends, and a
-			// global record only ever has that version, so it must still resolve.
-			name:        "the active label still resolves",
+			name:        "the active label resolves",
 			globalScope: true,
 			label:       "active",
 			err:         notFound,
 			want:        true,
 		},
-		{
-			name:        "another label cannot be satisfied",
-			globalScope: true,
-			label:       "staging",
-			err:         notFound,
-		},
+		{name: "another label cannot", globalScope: true, label: "staging", err: notFound},
 		{
 			name:        "a pinned version belongs to the project",
 			globalScope: true,
@@ -123,15 +99,13 @@ func TestCanFallBackToGlobal(t *testing.T) {
 			err:         notFound,
 		},
 		{name: "types without a global scope never fall back", err: notFound},
+		{name: "a transport failure is the answer", globalScope: true, err: errors.New("refused")},
 		{
-			name:        "a transport failure is the answer",
+			// The command layer wraps, so errors.As has to see through it.
+			name:        "a wrapped 404 qualifies",
 			globalScope: true,
-			err:         errors.New("connection refused"),
-		},
-		{
-			// errors.As has to see through the wrapping the command layer adds.
-			name: "a wrapped 404 still qualifies", globalScope: true,
-			err: fmt.Errorf("failed to get skill: %w", notFound), want: true,
+			err:         fmt.Errorf("failed to get skill: %w", notFound),
+			want:        true,
 		},
 	}
 
@@ -145,25 +119,16 @@ func TestCanFallBackToGlobal(t *testing.T) {
 	}
 }
 
+// A server ignoring scope=global answers from the project instead; tagging that
+// reply "global" would claim a skill exists that does not.
 func TestServedFromProjectScope(t *testing.T) {
 	tests := []struct {
 		name   string
 		detail platform.PromptDetail
 		want   bool
 	}{
+		{name: "a global skill has neither", detail: platform.PromptDetail{Name: "routines"}},
 		{
-			name: "a global record has neither a version nor an id",
-			detail: platform.PromptDetail{
-				Name:   "routines",
-				Labels: []string{"active"},
-				Tags:   []string{"copilot"},
-				Prompt: json.RawMessage(`"# Routines"`),
-			},
-		},
-		{
-			// A server that does not serve the global scope ignores the parameter
-			// and answers with the project's own record. Relabelling that "global"
-			// would tell the caller a shared skill exists when none does.
 			name:   "a version means the project answered",
 			detail: platform.PromptDetail{Name: "routines", Version: 4},
 			want:   true,

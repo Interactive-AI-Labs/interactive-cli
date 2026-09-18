@@ -27,8 +27,7 @@ type PromptTypeConfig struct {
 	GroupID      string   // command group shown in iai --help; defaults to groupContext
 	// BindPromptConfigFlags registers type-specific flags and returns a config builder.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
-	// GlobalScope makes list and get also read scope=global on the same routes:
-	// the shared, read-only records Interactive serves to every project.
+	// GlobalScope makes list and get also read scope=global on the same routes.
 	GlobalScope   bool
 	CreateLong    string // long description for the create subcommand
 	ListLong      string // long description for the list subcommand
@@ -257,14 +256,11 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				return err
 			}
 
-			// Global records are project-wide and unpaginated, so they belong to the
-			// root listing only: not inside a folder, and not past the first page.
-			// Pages are 0-indexed server-side, so anything <= 0 is that first page.
+			// Global skills are project-wide, so they belong to the root listing's
+			// first page. Pages are 0-indexed, so <= 0 is that page.
 			if ptCfg.GlobalScope && folder == "" && page <= 0 {
-				// Same Limit as the project call on purpose: a server that does not
-				// know scope=global ignores it and answers with the project's own
-				// page, and only an identical page de-dupes away to nothing. The
-				// global scope itself is unpaginated and ignores Limit.
+				// Same Limit on purpose: a server without scope=global ignores it and
+				// returns the project's page, which only de-dupes away if it matches.
 				globalResult, globalErr := apiClient.ListPrompts(
 					cmd.Context(),
 					pCtx.projectId,
@@ -272,8 +268,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					platform.PromptListOptions{Limit: limit, Scope: platform.ScopeGlobal},
 				)
 				if globalErr != nil {
-					// Hiding the project's own rows because the shared read failed is
-					// worse than a listing that is missing the shared ones.
+					// A failed global read must not hide the project's own skills.
 					fmt.Fprintf(
 						cmd.ErrOrStderr(),
 						"Warning: could not load global %s: %v\n",
@@ -357,9 +352,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					platform.ScopeGlobal,
 				)
 				if fallbackErr != nil {
-					// Not there either is the same answer, so it is not worth a warning —
-					// and on a server that does not serve the shared scope yet, every
-					// miss would print one. Anything else means the check did not happen.
+					// Not found here either is the same answer, not a warning.
 					var fallbackNotFound *platform.NotFoundError
 					if !errors.As(fallbackErr, &fallbackNotFound) {
 						fmt.Fprintf(
@@ -668,17 +661,12 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	return cmd
 }
 
-// rowTypeFolder is the row_type the list endpoint uses for a folder entry.
 const rowTypeFolder = "folder"
 
-// mergeGlobalRows appends the shared rows the project does not already define,
-// marking each one so the listing can say where it came from. A project skill
-// wins on a name collision, matching what the Copilot loads at runtime.
-//
-// TotalCount is deliberately left alone: it is the server's denominator for
-// paging the project's own skills, and the shared rows are not part of that
-// sequence. Folders cannot shadow anything — a folder and a skill of the same
-// name are different things, and the folder row already reads as "name/".
+// mergeGlobalRows appends the global skills the project does not define, tagging
+// each with its scope. A project skill hides one of the same name, as it does at
+// runtime; a folder does not, since it already reads as "name/". TotalCount is
+// left alone: it pages the project's skills, which these are not.
 func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInfo {
 	owned := make(map[string]bool, len(project))
 	for _, p := range project {
@@ -697,27 +685,18 @@ func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInf
 	return merged
 }
 
-// servedFromProjectScope reports whether a reply came from the project scope
-// even though the global one was asked for — which is what a server that does
-// not know the parameter does with it. A global record carries neither a version
-// nor an id, so either one means the answer is the project's and must not be
-// relabelled as someone else's.
-//
-// This couples to the platform: the global scope must keep withholding both
-// fields. If it ever starts sending an id or a version, this reads every real
-// global record as a project one and `get` reports "not found" for a skill that
-// exists — a silent disappearance, not an error. Deleting a field from a payload
-// is the kind of change that looks safe on the server side, so it is worth
-// saying out loud here.
+// servedFromProjectScope reports whether the reply came from the project scope
+// despite asking for global, which is what a server ignoring the parameter
+// returns. Global skills carry no version and no id; if that ever changes, every
+// one of them reads as a project skill and get reports "not found" for a real one.
 func servedFromProjectScope(detail *platform.PromptDetail) bool {
 	return detail.Version > 0 || detail.Id != ""
 }
 
-// canFallBackToGlobal reports whether a failed project lookup should be retried
-// against the shared scope. Only a 404 qualifies: any other failure is the answer.
-// Global records expose one version, so a --version pins the caller to the
-// project; "active" is what the help text recommends and is the only version a
-// global record has, so it still resolves — any other label cannot.
+// canFallBackToGlobal reports whether a failed project lookup should retry against
+// the global scope. Only a 404 qualifies: any other failure is the answer. A global
+// skill has one version labeled "active", so --version and any other label can only
+// be asking for the project's.
 func canFallBackToGlobal(ptCfg PromptTypeConfig, version int, label string, err error) bool {
 	if !ptCfg.GlobalScope || version != 0 || (label != "" && label != "active") {
 		return false
