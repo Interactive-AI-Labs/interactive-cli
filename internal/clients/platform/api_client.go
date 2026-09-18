@@ -1009,8 +1009,8 @@ const (
 	ScopeProject = "project"
 )
 
-// promptError types a failed prompt read. Only a 404 becomes NotFoundError: it is
-// what lets a caller retry elsewhere, so a 403 must never look like one.
+// promptError types a failed prompt read: only a 404 becomes NotFoundError, so a
+// refusal or an outage is never reported as a missing prompt.
 func promptError(statusCode int, status string, body []byte) error {
 	msg := clients.ExtractServerMessage(body)
 	if msg == "" {
@@ -1100,8 +1100,7 @@ type PromptListResponse struct {
 // genericPromptFolder is the folder the generic /prompts endpoint filters on to exclude typed prompts.
 const genericPromptFolder = "prompts"
 
-// PromptScanLimit is the page size for reading a listing whole, far past any
-// real catalogue.
+// PromptScanLimit is the page size for reading a listing in one request.
 const PromptScanLimit = 1000
 
 type PromptListOptions struct {

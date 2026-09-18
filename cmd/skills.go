@@ -50,8 +50,8 @@ a skill the one Copilot uses.`,
 A skill has one of two scopes, shown in the SCOPE column. Project skills are
 yours to edit. Global skills are owned by Interactive and served to every
 project; they are read-only here. Both scopes are listed, so a name that exists
-in both appears twice, once per scope — the Copilot runtime loads the project
-one at conversation time.
+in both appears twice, once per scope — at runtime the Copilot prioritizes the
+project skill over a global one of the same name.
 
 The listing is complete rather than paginated. Folders are shown with a trailing
 "/" (colored when stdout is a terminal) and can be browsed into with --folder,
@@ -64,8 +64,8 @@ folder.`,
 
 Reads the project's own skills. Pass --scope global for a skill Interactive
 serves to every project; those are read-only here. A name that exists in both
-scopes is two different skills, and the Copilot runtime loads the project one
-at conversation time.
+scopes is two different skills: at runtime the Copilot prioritizes the project
+one over the global one.
 
 Without flags, returns the version the server resolves by default. Copilot
 loads the "active" version, so use --label active to fetch the version Copilot

@@ -27,8 +27,7 @@ type PromptTypeConfig struct {
 	GroupID      string   // command group shown in iai --help; defaults to groupContext
 	// BindPromptConfigFlags registers type-specific flags and returns a config builder.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
-	// GlobalScope gives the type a second, platform-owned scope on the same routes:
-	// list covers both and get takes --scope.
+	// GlobalScope adds a platform-owned scope on the same routes.
 	GlobalScope   bool
 	CreateLong    string // long description for the create subcommand
 	ListLong      string // long description for the list subcommand
@@ -263,8 +262,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		},
 	}
 
-	// A listing that covers two scopes is read whole: a page of one against a
-	// page of the other describes neither.
+	// Both scopes are read whole, so there is no page to ask for.
 	if !ptCfg.GlobalScope {
 		cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 		cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
