@@ -9,6 +9,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/prompts"
 	"github.com/spf13/cobra"
 )
 
@@ -26,16 +27,18 @@ type PromptTypeConfig struct {
 	GroupID      string   // command group shown in iai --help; defaults to groupContext
 	// BindPromptConfigFlags registers type-specific flags and returns a config builder.
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
-	CreateLong            string // long description for the create subcommand
-	ListLong              string // long description for the list subcommand
-	GetLong               string // long description for the describe subcommand
-	UpdateLong            string // long description for the update subcommand
-	DeleteLong            string // long description for the delete subcommand
-	CreateExample         string // usage examples for the create subcommand
-	ListExample           string // usage examples for the list subcommand
-	GetExample            string // usage examples for the describe subcommand
-	UpdateExample         string // usage examples for the update subcommand
-	DeleteExample         string // usage examples for the delete subcommand
+	// GlobalScope adds a platform-owned scope on the same routes.
+	GlobalScope   bool
+	CreateLong    string // long description for the create subcommand
+	ListLong      string // long description for the list subcommand
+	GetLong       string // long description for the describe subcommand
+	UpdateLong    string // long description for the update subcommand
+	DeleteLong    string // long description for the delete subcommand
+	CreateExample string // usage examples for the create subcommand
+	ListExample   string // usage examples for the list subcommand
+	GetExample    string // usage examples for the describe subcommand
+	UpdateExample string // usage examples for the update subcommand
+	DeleteExample string // usage examples for the delete subcommand
 }
 
 func registerPromptType(ptCfg PromptTypeConfig) {
@@ -243,12 +246,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				}
 			}
 
-			result, err := apiClient.ListPrompts(
-				cmd.Context(),
-				pCtx.projectId,
-				ptCfg.RouteSegment,
-				opts,
-			)
+			result, err := scopedReader(cmd, ptCfg, pCtx, apiClient).List(cmd.Context(), opts)
 			if err != nil {
 				return err
 			}
@@ -264,8 +262,11 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
-	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
+	// Both scopes are read whole, so there is no page to ask for.
+	if !ptCfg.GlobalScope {
+		cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
+		cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
+	}
 	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
@@ -280,6 +281,7 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		version int
 		label   string
+		scope   string
 		project string
 		org     string
 		asJSON  bool
@@ -297,19 +299,20 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
+			if scope != "" && scope != platform.ScopeProject && scope != platform.ScopeGlobal {
+				return fmt.Errorf(
+					"invalid scope %q: must be %s or %s",
+					scope, platform.ScopeProject, platform.ScopeGlobal,
+				)
+			}
+
 			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
 			if err != nil {
 				return err
 			}
 
-			result, err := apiClient.GetPrompt(
-				cmd.Context(),
-				pCtx.projectId,
-				ptCfg.RouteSegment,
-				name,
-				version,
-				label,
-			)
+			opts := platform.PromptGetOptions{Version: version, Label: label, Scope: scope}
+			result, err := scopedReader(cmd, ptCfg, pCtx, apiClient).Get(cmd.Context(), name, opts)
 			if err != nil {
 				return err
 			}
@@ -327,6 +330,12 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 
 	cmd.Flags().IntVar(&version, "version", 0, "Retrieve a specific version number")
 	cmd.Flags().StringVar(&label, "label", "", "Retrieve the version with this label")
+	if ptCfg.GlobalScope {
+		cmd.Flags().StringVar(&scope, "scope", "", fmt.Sprintf(
+			"Scope to read from: %s (default) or %s",
+			platform.ScopeProject, platform.ScopeGlobal,
+		))
+	}
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
 	cmd.MarkFlagsMutuallyExclusive("json", "yaml")
@@ -581,14 +590,22 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			a, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionA, "",
+				cmd.Context(),
+				pCtx.projectId,
+				ptCfg.RouteSegment,
+				name,
+				platform.PromptGetOptions{Version: versionA},
 			)
 			if err != nil {
 				return err
 			}
 
 			b, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, versionB, "",
+				cmd.Context(),
+				pCtx.projectId,
+				ptCfg.RouteSegment,
+				name,
+				platform.PromptGetOptions{Version: versionB},
 			)
 			if err != nil {
 				return err
@@ -602,4 +619,20 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 
 	return cmd
+}
+
+func scopedReader(
+	cmd *cobra.Command,
+	ptCfg PromptTypeConfig,
+	pCtx *projectContext,
+	c *platform.APIClient,
+) prompts.ScopedReader {
+	return prompts.ScopedReader{
+		Client:       c,
+		ProjectID:    pCtx.projectId,
+		RouteSegment: ptCfg.RouteSegment,
+		Plural:       ptCfg.Plural,
+		Global:       ptCfg.GlobalScope,
+		Warn:         cmd.ErrOrStderr(),
+	}
 }

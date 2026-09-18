@@ -106,6 +106,14 @@ The platform is the source of truth. The CLI should not implement “agent brain
 - Code must compile; add or update tests when behavior changes.
 - Assume `go test ./...` should conceptually pass.
 - All code must be `gofmt`-style; imports should follow Go conventions.
+- **Unit tests are pure input/output tables.** No fake HTTP servers: a test that
+  asserts against a response we invented proves the client agrees with us, not
+  with the platform. Extract the decision (status → error type, payload → rows)
+  and table-test that.
+- **Known gap: this repo has no platform integration coverage.** `docker-compose`
+  here only brings up deployment-operator, so nothing in CI exercises a real
+  platform response. Anything that depends on the platform contract has to be
+  verified by hand against dev, and the PR should say so.
 
 ---
 

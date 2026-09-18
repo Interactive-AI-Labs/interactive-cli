@@ -1003,20 +1003,49 @@ func (c *APIClient) GetProjectId(
 	return orgId, projectId, nil
 }
 
+// Scope of a prompt read. ScopeProject is the default and is never sent.
+const (
+	ScopeGlobal  = "global"
+	ScopeProject = "project"
+)
+
+// promptError types a failed prompt read: only a 404 becomes NotFoundError, so a
+// refusal or an outage is never reported as a missing prompt.
+func promptError(statusCode int, status string, body []byte) error {
+	msg := clients.ExtractServerMessage(body)
+	if msg == "" {
+		msg = fmt.Sprintf("failed to get prompt: server returned %s", status)
+	}
+	if statusCode == http.StatusNotFound {
+		return &NotFoundError{Message: msg}
+	}
+	return errors.New(msg)
+}
+
+// NotFoundError is a 404, so callers can tell a missing prompt from a failed request.
+type NotFoundError struct{ Message string }
+
+func (e *NotFoundError) Error() string { return e.Message }
+
+const RowTypeFolder = "folder"
+
 type PromptInfo struct {
 	Name          string   `json:"name"`
 	RowType       string   `json:"row_type"`
-	Versions      []int    `json:"versions"`
+	Versions      []int    `json:"versions,omitempty"` // absent on global skills
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
 	LastUpdatedAt string   `json:"lastUpdatedAt"`
+	Scope         string   `json:"scope,omitempty"` // set client-side from the reply's scope
 }
 
 type PromptDetail struct {
-	Id             string          `json:"id"`
-	Name           string          `json:"name"`
-	Type           string          `json:"type"`
-	Version        int             `json:"version"`
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	// omitempty: global skills have no version, and 0 would read as one.
+	Version        int             `json:"version,omitempty"`
+	Scope          string          `json:"scope,omitempty"` // echoed by the server
 	ProjectId      string          `json:"projectId"`
 	Prompt         json.RawMessage `json:"prompt"`
 	Config         json.RawMessage `json:"config"`
@@ -1059,20 +1088,33 @@ type promptAPIResponse struct {
 type promptListData struct {
 	Prompts    []PromptInfo `json:"prompts"`
 	TotalCount int          `json:"totalCount"`
+	Scope      string       `json:"scope"`
 }
 
 type PromptListResponse struct {
 	Prompts    []PromptInfo `json:"prompts"`
 	TotalCount int          `json:"totalCount"`
+	Scope      string       `json:"scope,omitempty"` // echoed by the server; absent means project
 }
 
 // genericPromptFolder is the folder the generic /prompts endpoint filters on to exclude typed prompts.
 const genericPromptFolder = "prompts"
 
+// PromptScanLimit is the page size for reading a listing in one request.
+const PromptScanLimit = 1000
+
 type PromptListOptions struct {
 	Page      int
 	Limit     int
 	Subfolder string // optional user-supplied sub-path for folder browsing
+	Scope     string // ScopeGlobal reads the skills served to every project
+}
+
+// PromptGetOptions selects which record to read; the zero value is the server's default.
+type PromptGetOptions struct {
+	Version int
+	Label   string
+	Scope   string // ScopeGlobal reads the skills served to every project
 }
 
 func promptBasePath(projectId, routeSegment string) string {
@@ -1182,6 +1224,9 @@ func (c *APIClient) ListPrompts(
 			q.Set("limit", fmt.Sprintf("%d", opts.Limit))
 		}
 	}
+	if opts.Scope != "" {
+		q.Set("scope", opts.Scope)
+	}
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.do(req)
@@ -1215,6 +1260,7 @@ func (c *APIClient) ListPrompts(
 	return &PromptListResponse{
 		Prompts:    listData.Prompts,
 		TotalCount: listData.TotalCount,
+		Scope:      listData.Scope,
 	}, nil
 }
 
@@ -1223,8 +1269,7 @@ func (c *APIClient) GetPrompt(
 	projectId string,
 	routeSegment string,
 	name string,
-	version int,
-	label string,
+	opts PromptGetOptions,
 ) (*PromptDetail, error) {
 	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
@@ -1233,11 +1278,14 @@ func (c *APIClient) GetPrompt(
 	}
 
 	q := req.URL.Query()
-	if version > 0 {
-		q.Set("version", fmt.Sprintf("%d", version))
+	if opts.Scope != "" {
+		q.Set("scope", opts.Scope)
 	}
-	if label != "" {
-		q.Set("label", label)
+	if opts.Version > 0 {
+		q.Set("version", fmt.Sprintf("%d", opts.Version))
+	}
+	if opts.Label != "" {
+		q.Set("label", opts.Label)
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1253,10 +1301,7 @@ func (c *APIClient) GetPrompt(
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := clients.ExtractServerMessage(respBody); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
-		}
-		return nil, fmt.Errorf("failed to get prompt: server returned %s", resp.Status)
+		return nil, promptError(resp.StatusCode, resp.Status, respBody)
 	}
 
 	var envelope promptAPIResponse
@@ -1539,16 +1584,14 @@ func (c *APIClient) ListPromptVersions(
 	return versionsData.PromptVersions, nil
 }
 
-const promptScanLimit = 1000
-
-// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past promptScanLimit.
+// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past PromptScanLimit.
 func (c *APIClient) listPromptVersionNumbers(
 	ctx context.Context,
 	projectId string,
 	routeSegment string,
 	name string,
 ) ([]PromptVersionMeta, error) {
-	opts := PromptListOptions{Limit: promptScanLimit}
+	opts := PromptListOptions{Limit: PromptScanLimit}
 	result, err := c.ListPrompts(ctx, projectId, routeSegment, opts)
 	if err != nil {
 		return nil, err
@@ -1565,7 +1608,7 @@ func (c *APIClient) listPromptVersionNumbers(
 		return versions, nil
 	}
 
-	if len(result.Prompts) == promptScanLimit {
+	if len(result.Prompts) == PromptScanLimit {
 		return nil, errors.New(
 			"could not search this project's prompts under API-key authentication",
 		)

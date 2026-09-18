@@ -22,19 +22,33 @@ func PrintPromptList(out io.Writer, noun string, prompts []platform.PromptInfo) 
 	}
 
 	useColor := IsTerminal(out)
+	withScope := false
+	for _, p := range prompts {
+		if p.Scope != "" {
+			withScope = true
+			break
+		}
+	}
+
 	headers := []string{"NAME", "LABELS", "TAGS", "UPDATED"}
+	if withScope {
+		headers = []string{"NAME", "SCOPE", "LABELS", "TAGS", "UPDATED"}
+	}
 	rows := make([][]string, len(prompts))
 	for i, p := range prompts {
 		name := p.Name
-		if p.RowType == "folder" {
+		if p.RowType == platform.RowTypeFolder {
 			name = colorizeFolder(name+"/", useColor)
 		}
-		rows[i] = []string{
-			name,
+		row := []string{name}
+		if withScope {
+			row = append(row, p.Scope)
+		}
+		rows[i] = append(row,
 			TruncateList(p.Labels, 3),
 			TruncateList(p.Tags, 3),
 			LocalTime(p.LastUpdatedAt),
-		}
+		)
 	}
 
 	return PrintTable(out, headers, rows)
@@ -51,7 +65,14 @@ func colorizeFolder(name string, useColor bool) string {
 func PrintPromptDetail(out io.Writer, prompt *platform.PromptDetail) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", prompt.Name)
-	fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
+	// A global skill has no version of its own to show.
+	if prompt.Version > 0 {
+		fmt.Fprintf(w, "Version:\t%d\n", prompt.Version)
+	}
+	// Flags a record the project cannot edit.
+	if prompt.Scope != "" {
+		fmt.Fprintf(w, "Scope:\t%s\n", prompt.Scope)
+	}
 
 	if len(prompt.Labels) > 0 {
 		fmt.Fprintf(w, "Labels:\t%s\n", strings.Join(prompt.Labels, ", "))

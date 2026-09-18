@@ -104,6 +104,27 @@ func TestPrintPromptList(t *testing.T) {
 				"team-a/                                  \n" +
 				"faq-lookup   production, latest          2025-03-01 13:00:00 CET\n",
 		},
+		{
+			// The column only appears once a row needs it, so both values show.
+			name: "both scopes are listed, same name and all",
+			prompts: []platform.PromptInfo{
+				{
+					Name:          "routines",
+					Labels:        []string{"active"},
+					LastUpdatedAt: "2025-03-01T12:00:00Z",
+					Scope:         "project",
+				},
+				{
+					Name:          "routines",
+					Labels:        []string{"active"},
+					LastUpdatedAt: "2025-03-02T12:00:00Z",
+					Scope:         "global",
+				},
+			},
+			want: "NAME       SCOPE     LABELS   TAGS   UPDATED\n" +
+				"routines   project   active          2025-03-01 13:00:00 CET\n" +
+				"routines   global    active          2025-03-02 13:00:00 CET\n",
+		},
 	}
 
 	for _, tt := range tests {
@@ -369,6 +390,23 @@ func TestPrintPromptDetail(t *testing.T) {
 				"Content:\n" +
 				"id: x\n" +
 				"text: hi\n",
+		},
+		{
+			// A global skill has no version, so the line is absent, not "Version: 0".
+			name: "global skill shows its scope and omits the version line",
+			prompt: &platform.PromptDetail{
+				Name:   "routines",
+				Type:   "text",
+				Labels: []string{"active"},
+				Scope:  "global",
+				Prompt: json.RawMessage(`"# Routines"`),
+			},
+			want: "Name:     routines\n" +
+				"Scope:    global\n" +
+				"Labels:   active\n" +
+				"\n" +
+				"Content:\n" +
+				"# Routines\n",
 		},
 	}
 

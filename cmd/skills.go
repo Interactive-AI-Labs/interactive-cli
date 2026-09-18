@@ -20,6 +20,7 @@ Each Copilot skill is a free-form markdown bundle. It carries a short descriptio
 and an "intents" list of natural-language triggers (stored in config.skill) that
 the Copilot uses to route incoming queries to the right skill at runtime.`,
 		RouteSegment:          "skills",
+		GlobalScope:           true,
 		BindPromptConfigFlags: bindSkillConfigFlags,
 		CreateLong: `Create a new Copilot skill for the interactive-copilot service.
 
@@ -46,19 +47,32 @@ a skill the one Copilot uses.`,
   iai skills create summarize-trace --file ./skill.md -m "initial trace summary skill"`,
 		ListLong: `List Copilot skills in a project.
 
-Returns all Copilot skills with their name, labels, tags, and last update time.
-Folders are shown with a trailing "/" (colored when stdout is a terminal) and
-can be browsed into with --folder.`,
+A skill has one of two scopes, shown in the SCOPE column. Project skills are
+yours to edit. Global skills are owned by Interactive and served to every
+project; they are read-only here. Both scopes are listed, so a name that exists
+in both appears twice, once per scope — at runtime the Copilot prioritizes the
+project skill over a global one of the same name.
+
+The listing is complete rather than paginated. Folders are shown with a trailing
+"/" (colored when stdout is a terminal) and can be browsed into with --folder,
+which lists the project alone: global skills are project-wide and sit in no
+folder.`,
 		ListExample: `  iai skills list
   iai skills list --folder my-folder
-  iai skills list --page 2 --limit 10`,
+  iai skills list --json`,
 		GetLong: `Show a Copilot skill in detail, including its config and full content.
+
+Reads the project's own skills. Pass --scope global for a skill Interactive
+serves to every project; those are read-only here. A name that exists in both
+scopes is two different skills: at runtime the Copilot prioritizes the project
+one over the global one.
 
 Without flags, returns the version the server resolves by default. Copilot
 loads the "active" version, so use --label active to fetch the version Copilot
 uses. Use --version to retrieve a specific version number, or --label to
-resolve any other label.`,
+resolve any other label. A global skill has only its "active" version.`,
 		GetExample: `  iai skills get summarize-trace
+  iai skills get routines --scope global
   iai skills get summarize-trace --version 3
   iai skills get summarize-trace --label active`,
 		UpdateLong: `Update a Copilot skill by creating a new version with updated content.

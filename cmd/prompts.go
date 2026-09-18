@@ -256,8 +256,7 @@ specific label.`,
 				pCtx.projectId,
 				"", // empty route segment → generic /prompts endpoint
 				name,
-				version,
-				label,
+				platform.PromptGetOptions{Version: version, Label: label},
 			)
 			if err != nil {
 				return err
@@ -573,14 +572,22 @@ func makeGenericDiffCmd() *cobra.Command {
 			}
 
 			a, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, "", name, versionA, "",
+				cmd.Context(),
+				pCtx.projectId,
+				"",
+				name,
+				platform.PromptGetOptions{Version: versionA},
 			)
 			if err != nil {
 				return err
 			}
 
 			b, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, "", name, versionB, "",
+				cmd.Context(),
+				pCtx.projectId,
+				"",
+				name,
+				platform.PromptGetOptions{Version: versionB},
 			)
 			if err != nil {
 				return err
