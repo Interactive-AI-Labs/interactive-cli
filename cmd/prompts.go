@@ -258,6 +258,7 @@ specific label.`,
 				name,
 				version,
 				label,
+				"",
 			)
 			if err != nil {
 				return err
@@ -573,14 +574,14 @@ func makeGenericDiffCmd() *cobra.Command {
 			}
 
 			a, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, "", name, versionA, "",
+				cmd.Context(), pCtx.projectId, "", name, versionA, "", "",
 			)
 			if err != nil {
 				return err
 			}
 
 			b, err := apiClient.GetPrompt(
-				cmd.Context(), pCtx.projectId, "", name, versionB, "",
+				cmd.Context(), pCtx.projectId, "", name, versionB, "", "",
 			)
 			if err != nil {
 				return err
