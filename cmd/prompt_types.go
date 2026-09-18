@@ -706,6 +706,13 @@ func mergeGlobalRows(project, global []platform.PromptInfo) []platform.PromptInf
 // not know the parameter does with it. A global record carries neither a version
 // nor an id, so either one means the answer is the project's and must not be
 // relabelled as someone else's.
+//
+// This couples to the platform: the global scope must keep withholding both
+// fields. If it ever starts sending an id or a version, this reads every real
+// global record as a project one and `get` reports "not found" for a skill that
+// exists — a silent disappearance, not an error. Deleting a field from a payload
+// is the kind of change that looks safe on the server side, so it is worth
+// saying out loud here.
 func servedFromProjectScope(detail *platform.PromptDetail) bool {
 	return detail.Version > 0 || detail.Id != ""
 }

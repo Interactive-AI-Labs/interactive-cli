@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -34,13 +35,35 @@ func TestMergeGlobalRows(t *testing.T) {
 			want:    []platform.PromptInfo{{Name: "routines"}},
 		},
 		{
-			name:    "folders never collide with shared names",
+			// The case the folder exclusion exists for: a folder and a skill of the
+			// same name are different things, the folder already renders as
+			// "routines/", and letting it shadow would hide a skill Copilot loads.
+			name:    "a folder does not shadow a shared skill of the same name",
+			project: []platform.PromptInfo{{Name: "routines", RowType: "folder"}},
+			global:  []platform.PromptInfo{{Name: "routines"}},
+			want: []platform.PromptInfo{
+				{Name: "routines", RowType: "folder"},
+				{Name: "routines", Source: "general"},
+			},
+		},
+		{
+			name:    "an unrelated folder is left alone",
 			project: []platform.PromptInfo{{Name: "team", RowType: "folder"}},
 			global:  []platform.PromptInfo{{Name: "shared"}},
 			want: []platform.PromptInfo{
 				{Name: "team", RowType: "folder"},
 				{Name: "shared", Source: "general"},
 			},
+		},
+		{
+			// A server that does not serve the shared scope ignores the parameter and
+			// answers with the project's own page. Both reads send the same --limit
+			// so the pages match, and the merge has to erase the echo completely
+			// rather than relabel it "general".
+			name:    "a server echoing the project page adds nothing",
+			project: []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
+			global:  []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
+			want:    []platform.PromptInfo{{Name: "own"}, {Name: "other"}},
 		},
 		{
 			name:    "no shared rows leaves the listing untouched",
@@ -129,8 +152,13 @@ func TestServedFromProjectScope(t *testing.T) {
 		want   bool
 	}{
 		{
-			name:   "a global record has neither a version nor an id",
-			detail: platform.PromptDetail{Name: "routines", Labels: []string{"active"}},
+			name: "a global record has neither a version nor an id",
+			detail: platform.PromptDetail{
+				Name:   "routines",
+				Labels: []string{"active"},
+				Tags:   []string{"copilot"},
+				Prompt: json.RawMessage(`"# Routines"`),
+			},
 		},
 		{
 			// A server that does not serve the shared scope ignores the parameter
