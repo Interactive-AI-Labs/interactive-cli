@@ -321,11 +321,11 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, opts,
 			)
 			if err != nil {
+				// Part of the error, not a separate line: cobra prints the error last.
 				if suggestsGlobalScope(ptCfg.GlobalScope, opts, err) {
-					fmt.Fprintf(
-						cmd.ErrOrStderr(),
-						"Try: iai %s get %s --scope %s\n",
-						ptCfg.Plural, name, platform.ScopeGlobal,
+					return fmt.Errorf(
+						"%w\nTry: iai %s get %s --scope %s",
+						err, ptCfg.Plural, name, platform.ScopeGlobal,
 					)
 				}
 				return err
