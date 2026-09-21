@@ -1003,8 +1003,10 @@ func (c *APIClient) GetProjectId(
 	return orgId, projectId, nil
 }
 
-// Scope of a prompt read. ScopeProject is the default and is never sent.
+// Scope of a prompt read. ScopeProject is the default and is never sent;
+// ScopeAll asks the listing for both scopes at once.
 const (
+	ScopeAll     = "all"
 	ScopeGlobal  = "global"
 	ScopeProject = "project"
 )
@@ -1036,7 +1038,7 @@ type PromptInfo struct {
 	Labels        []string `json:"labels"`
 	Tags          []string `json:"tags"`
 	LastUpdatedAt string   `json:"lastUpdatedAt"`
-	Scope         string   `json:"scope,omitempty"` // set client-side from the reply's scope
+	Scope         string   `json:"scope,omitempty"` // echoed per row when both scopes are listed
 }
 
 type PromptDetail struct {
@@ -1100,14 +1102,11 @@ type PromptListResponse struct {
 // genericPromptFolder is the folder the generic /prompts endpoint filters on to exclude typed prompts.
 const genericPromptFolder = "prompts"
 
-// PromptScanLimit is the page size for reading a listing in one request.
-const PromptScanLimit = 1000
-
 type PromptListOptions struct {
 	Page      int
 	Limit     int
 	Subfolder string // optional user-supplied sub-path for folder browsing
-	Scope     string // ScopeGlobal reads the skills served to every project
+	Scope     string // ScopeAll lists both scopes, ScopeGlobal only the shared skills
 }
 
 // PromptGetOptions selects which record to read; the zero value is the server's default.
@@ -1584,14 +1583,16 @@ func (c *APIClient) ListPromptVersions(
 	return versionsData.PromptVersions, nil
 }
 
-// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past PromptScanLimit.
+const promptScanLimit = 1000
+
+// listPromptVersionNumbers is the API-key fallback; it cannot see folder contents and gives up past promptScanLimit.
 func (c *APIClient) listPromptVersionNumbers(
 	ctx context.Context,
 	projectId string,
 	routeSegment string,
 	name string,
 ) ([]PromptVersionMeta, error) {
-	opts := PromptListOptions{Limit: PromptScanLimit}
+	opts := PromptListOptions{Limit: promptScanLimit}
 	result, err := c.ListPrompts(ctx, projectId, routeSegment, opts)
 	if err != nil {
 		return nil, err
@@ -1608,7 +1609,7 @@ func (c *APIClient) listPromptVersionNumbers(
 		return versions, nil
 	}
 
-	if len(result.Prompts) == PromptScanLimit {
+	if len(result.Prompts) == promptScanLimit {
 		return nil, errors.New(
 			"could not search this project's prompts under API-key authentication",
 		)
