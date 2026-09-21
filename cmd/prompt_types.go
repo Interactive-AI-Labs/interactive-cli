@@ -236,6 +236,9 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				Page:  page,
 				Limit: limit,
 			}
+			if ptCfg.GlobalScope {
+				opts.Scope = platform.ScopeAll
+			}
 			if folder != "" {
 				opts.Subfolder = strings.TrimSpace(folder)
 				if strings.Contains(opts.Subfolder, "..") {
@@ -246,7 +249,9 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				}
 			}
 
-			result, err := scopedReader(cmd, ptCfg, pCtx, apiClient).List(cmd.Context(), opts)
+			result, err := apiClient.ListPrompts(
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, opts,
+			)
 			if err != nil {
 				return err
 			}
@@ -262,7 +267,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		},
 	}
 
-	// Both scopes are read whole, so there is no page to ask for.
+	// The server returns both scopes whole, so there is no page to ask for.
 	if !ptCfg.GlobalScope {
 		cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 		cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
