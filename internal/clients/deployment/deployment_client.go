@@ -3,6 +3,7 @@ package deployment
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
@@ -998,7 +1000,20 @@ func (c *DeploymentClient) GetSecret(
 		sort.Strings(secret.Keys)
 	}
 
+	decodeSecretData(secret.Data)
+
 	return &secret, nil
+}
+
+// decodeSecretData undoes the base64 the API applies to every value. A value that
+// is not valid encoded UTF-8 is left as sent rather than replaced with mojibake.
+func decodeSecretData(data map[string]string) {
+	for key, value := range data {
+		decoded, err := base64.StdEncoding.DecodeString(value)
+		if err == nil && utf8.Valid(decoded) {
+			data[key] = string(decoded)
+		}
+	}
 }
 
 func (c *DeploymentClient) ListSecrets(

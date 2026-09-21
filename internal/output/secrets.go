@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"sort"
@@ -45,11 +44,7 @@ func PrintSecretData(out io.Writer, data map[string]string) error {
 
 	rows := make([][]string, 0, len(data))
 	for _, k := range keys {
-		val := data[k]
-		if decoded, err := base64.StdEncoding.DecodeString(val); err == nil {
-			val = string(decoded)
-		}
-		rows = append(rows, []string{k, val})
+		rows = append(rows, []string{k, data[k]})
 	}
 
 	return PrintTable(out, headers, rows)
