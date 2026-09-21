@@ -2,7 +2,6 @@ package output
 
 import (
 	"bytes"
-	"encoding/base64"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
@@ -109,20 +108,15 @@ func TestPrintSecretData(t *testing.T) {
 			want: "No data found in secret.\n",
 		},
 		{
-			name: "base64 encoded values are decoded",
+			// The client decodes; a value that happens to look encoded is a value.
+			name: "values print exactly as given",
 			data: map[string]string{
-				"API_KEY": base64.StdEncoding.EncodeToString([]byte("my-secret-key")),
+				"API_KEY":       "my-secret-key",
+				"LOOKS_ENCODED": "dGVzdA==",
 			},
-			want: "KEYS      VALUES\n" +
-				"API_KEY   my-secret-key\n",
-		},
-		{
-			name: "non-base64 values are shown as-is",
-			data: map[string]string{
-				"PLAIN": "not-base64!!!",
-			},
-			want: "KEYS    VALUES\n" +
-				"PLAIN   not-base64!!!\n",
+			want: "KEYS            VALUES\n" +
+				"API_KEY         my-secret-key\n" +
+				"LOOKS_ENCODED   dGVzdA==\n",
 		},
 		{
 			name: "keys are sorted alphabetically",

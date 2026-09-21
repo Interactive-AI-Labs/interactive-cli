@@ -325,3 +325,57 @@ func TestNamedHost(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeSecretData(t *testing.T) {
+	tests := []struct {
+		name string
+		give map[string]string
+		want map[string]string
+	}{
+		{
+			name: "encoded plaintext is decoded",
+			give: map[string]string{"WEBHOOK_SECRET": "cGxhaW50ZXh0LWFiYzEyMw=="},
+			want: map[string]string{"WEBHOOK_SECRET": "plaintext-abc123"},
+		},
+		{
+			// The API encodes what it stores, so a stored "dGVzdA==" arrives double-encoded.
+			name: "a stored value that is itself base64 survives one decode",
+			give: map[string]string{"LOOKS_ENCODED": "ZEdWemRBPT0="},
+			want: map[string]string{"LOOKS_ENCODED": "dGVzdA=="},
+		},
+		{
+			name: "malformed base64 is left as sent",
+			give: map[string]string{"BROKEN": "not-base64!!!"},
+			want: map[string]string{"BROKEN": "not-base64!!!"},
+		},
+		{
+			name: "base64 of non-UTF-8 bytes is left as sent",
+			give: map[string]string{"BINARY": "//4A"},
+			want: map[string]string{"BINARY": "//4A"},
+		},
+		{
+			name: "empty value decodes to empty",
+			give: map[string]string{"EMPTY": ""},
+			want: map[string]string{"EMPTY": ""},
+		},
+		{
+			name: "every key is decoded independently",
+			give: map[string]string{"A": "b25l", "B": "dHdv", "C": "!!!"},
+			want: map[string]string{"A": "one", "B": "two", "C": "!!!"},
+		},
+		{
+			name: "no data is a noop",
+			give: map[string]string{},
+			want: map[string]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			decodeSecretData(tt.give)
+			if diff := cmp.Diff(tt.want, tt.give); diff != "" {
+				t.Errorf("decoded data mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
