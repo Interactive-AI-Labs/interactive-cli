@@ -6,9 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/buildinfo"
 )
+
+const FileRefAmbiguousCode = "FILE_REF_AMBIGUOUS"
+
+type FileRefCandidate struct {
+	FileID    string    `json:"fileId"`
+	Name      string    `json:"name"`
+	Size      int64     `json:"size"`
+	CreatedAt time.Time `json:"createdAt"`
+}
 
 type deploymentError struct {
 	Message string `json:"message"`
@@ -22,9 +32,11 @@ type schemaError struct {
 type platformError struct {
 	Detail struct {
 		Error struct {
+			Code    string `json:"code"`
 			Message string `json:"message"`
 			Details struct {
-				SchemaErrors []schemaError `json:"schema_errors"`
+				SchemaErrors []schemaError      `json:"schema_errors"`
+				Candidates   []FileRefCandidate `json:"candidates"`
 			} `json:"details"`
 		} `json:"error"`
 	} `json:"detail"`
@@ -135,6 +147,18 @@ func ExtractServerMessage(body []byte) string {
 	}
 
 	return ""
+}
+
+// ExtractFileRefCandidates returns nil unless body is a file-reference ambiguity refusal.
+func ExtractFileRefCandidates(body []byte) []FileRefCandidate {
+	var pp platformError
+	if err := json.Unmarshal(body, &pp); err != nil {
+		return nil
+	}
+	if pp.Detail.Error.Code != FileRefAmbiguousCode {
+		return nil
+	}
+	return pp.Detail.Error.Details.Candidates
 }
 
 // ApplyRequestHeaders adds authentication to an HTTP request.

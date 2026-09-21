@@ -20,6 +20,7 @@ type projectContext struct {
 
 type resolveOpts struct {
 	deployTimeout time.Duration
+	apiTimeout    time.Duration
 }
 
 func resolveProject(
@@ -37,14 +38,18 @@ func resolveProject(
 		return nil, nil, nil, fmt.Errorf("failed to load session: %w", err)
 	}
 
-	apiClient, err := platform.NewAPIClient(hostname, defaultHTTPTimeout, token, apiKey, cookies)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	deployTimeout := defaultHTTPTimeout
+	apiTimeout := defaultHTTPTimeout
 	if len(opts) > 0 {
 		deployTimeout = opts[0].deployTimeout
+		if opts[0].apiTimeout != 0 {
+			apiTimeout = opts[0].apiTimeout
+		}
+	}
+
+	apiClient, err := platform.NewAPIClient(hostname, apiTimeout, token, apiKey, cookies)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	deployClient, err := deployment.NewDeploymentClient(

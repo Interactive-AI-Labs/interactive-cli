@@ -3,6 +3,8 @@ package cmd
 import (
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestStructuredOutputFlagsAreMutuallyExclusive(t *testing.T) {
@@ -42,6 +44,26 @@ func TestStructuredOutputFlagsAreMutuallyExclusive(t *testing.T) {
 				return executeCommand(cmd)
 			},
 		},
+		{
+			name: "files list",
+			cmd: func() []string {
+				return validateFilesStructuredOutputFlagGroup(
+					filesListCmd,
+					&filesListJSON,
+					&filesListYAML,
+				)
+			},
+		},
+		{
+			name: "files get",
+			cmd: func() []string {
+				return validateFilesStructuredOutputFlagGroup(
+					filesGetCmd,
+					&filesGetJSON,
+					&filesGetYAML,
+				)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -55,6 +77,33 @@ func TestStructuredOutputFlagsAreMutuallyExclusive(t *testing.T) {
 			}
 		})
 	}
+}
+
+func validateFilesStructuredOutputFlagGroup(
+	cmd *cobra.Command,
+	asJSON, asYAML *bool,
+) []string {
+	jsonFlag := cmd.Flags().Lookup("json")
+	yamlFlag := cmd.Flags().Lookup("yaml")
+	originalJSON, originalYAML := *asJSON, *asYAML
+	originalJSONChanged, originalYAMLChanged := jsonFlag.Changed, yamlFlag.Changed
+	defer func() {
+		*asJSON, *asYAML = originalJSON, originalYAML
+		jsonFlag.Changed, yamlFlag.Changed = originalJSONChanged, originalYAMLChanged
+	}()
+
+	*asJSON, *asYAML = false, false
+	jsonFlag.Changed, yamlFlag.Changed = false, false
+	if err := cmd.Flags().Set("json", "true"); err != nil {
+		return []string{err.Error()}
+	}
+	if err := cmd.Flags().Set("yaml", "true"); err != nil {
+		return []string{err.Error()}
+	}
+	if err := cmd.ValidateFlagGroups(); err != nil {
+		return []string{err.Error()}
+	}
+	return nil
 }
 
 func executeCommand(cmd interface{ Execute() error }) []string {

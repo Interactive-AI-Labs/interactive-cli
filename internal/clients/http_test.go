@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
 	"testing"
@@ -102,6 +103,32 @@ func TestExtractServerMessage(t *testing.T) {
 	}
 }
 
+func TestExtractFileRefCandidates(t *testing.T) {
+	ambiguous := []byte(`{"detail":{"success":false,"error":{"code":"FILE_REF_AMBIGUOUS",` +
+		`"message":"ambiguous","details":{"candidates":[` +
+		`{"fileId":"f-1","name":"report.pdf","size":10,"createdAt":"2026-01-01T00:00:00Z"},` +
+		`{"fileId":"f-2","name":"report.pdf","size":20,"createdAt":"2026-01-02T00:00:00Z"}` +
+		`]}}}}`)
+	candidates := ExtractFileRefCandidates(ambiguous)
+	if len(candidates) != 2 {
+		t.Fatalf("len(candidates) = %d, want 2", len(candidates))
+	}
+	if candidates[0].FileID != "f-1" || candidates[1].FileID != "f-2" {
+		t.Errorf("candidates = %+v, want f-1 then f-2", candidates)
+	}
+
+	otherCode := []byte(`{"detail":{"success":false,"error":{"code":"FILE_VERSION_CONFLICT",` +
+		`"message":"lost the race","details":{}}}}`)
+	if got := ExtractFileRefCandidates(otherCode); got != nil {
+		t.Errorf("candidates for a different error code = %+v, want nil", got)
+	}
+
+	plainMessage := []byte(`{"detail":{"error":{"message":"not found"}}}`)
+	if got := ExtractFileRefCandidates(plainMessage); got != nil {
+		t.Errorf("candidates for a body with no code = %+v, want nil", got)
+	}
+}
+
 func TestApplyRequestHeaders(t *testing.T) {
 	t.Run("applies Bearer token auth", func(t *testing.T) {
 		req, err := newTestRequest()
@@ -131,12 +158,10 @@ func TestApplyRequestHeaders(t *testing.T) {
 			t.Fatalf("ApplyRequestHeaders() error = %v", err)
 		}
 
+		wantEncoded := base64.StdEncoding.EncodeToString([]byte("test-api-key"))
 		authHeader := req.Header.Get("Authorization")
-		if authHeader == "" {
-			t.Fatal("Authorization header not set")
-		}
-		if !strings.HasPrefix(authHeader, "Basic ") {
-			t.Errorf("Authorization header should start with 'Basic ', got %q", authHeader)
+		if authHeader != "Basic "+wantEncoded {
+			t.Errorf("Authorization header = %q, want %q", authHeader, "Basic "+wantEncoded)
 		}
 	})
 
@@ -159,6 +184,20 @@ func TestApplyRequestHeaders(t *testing.T) {
 		reqCookies := req.Cookies()
 		if len(reqCookies) != 2 {
 			t.Fatalf("expected 2 cookies, got %d", len(reqCookies))
+		}
+		if reqCookies[0].Name != "session" || reqCookies[0].Value != "abc123" {
+			t.Errorf(
+				"cookies[0] = %s=%s, want session=abc123",
+				reqCookies[0].Name,
+				reqCookies[0].Value,
+			)
+		}
+		if reqCookies[1].Name != "token" || reqCookies[1].Value != "xyz789" {
+			t.Errorf(
+				"cookies[1] = %s=%s, want token=xyz789",
+				reqCookies[1].Name,
+				reqCookies[1].Value,
+			)
 		}
 	})
 
