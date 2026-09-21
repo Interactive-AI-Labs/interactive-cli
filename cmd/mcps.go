@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -885,16 +883,6 @@ reported and the command exits non-zero.`,
 		}
 		return output.PrintRawJSON(out, res.Result)
 	},
-}
-
-// confirmDeletion tolerates io.EOF so input without a trailing newline (echo -n y) still counts.
-func confirmDeletion(in io.Reader, out io.Writer, target string) (bool, error) {
-	fmt.Fprintf(out, "This will delete %s. Continue? [y/N] ", target)
-	answer, err := bufio.NewReader(in).ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return false, fmt.Errorf("failed to read confirmation: %w", err)
-	}
-	return strings.ToLower(strings.TrimSpace(answer)) == "y", nil
 }
 
 var mcpDeleteCmd = &cobra.Command{
