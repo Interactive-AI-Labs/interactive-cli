@@ -26,6 +26,15 @@ anonymous, so it only catches a bad credential when the provider protects it.
 An --auth-type oauth mcp has no credential until the user signs in; connect it
 before running the tools check.
 
+Some providers publish no dynamic client registration — GitHub, Slack, Google
+Workspace — so there is no app for the sign-in to run under until you register
+one yourself. Pass its --client-id and --client-secret alongside --auth-type
+oauth and the sign-in runs under your app; the token still belongs to whoever
+signs in. 'iai mcps create' names the redirect URI to register when a provider
+needs this, and refuses rather than dead-ending at the provider's error page.
+Rotating the pair is 'iai mcps update --auth-type oauth --client-id ...', which
+drops the stored token, so sign in again afterwards.
+
 An --auth-type client_credentials mcp has no sign-in. You register an app at the
 provider and pass its --client-id and --client-secret; the platform mints and
 refreshes tokens from that pair. The token is not tied to a person, so every
@@ -66,6 +75,7 @@ iai mcps create <mcp_name> [flags]
   iai mcps create notion --catalog-id notion
   iai mcps create newrelic --catalog-id newrelic --auth-type oauth
   iai mcps create atlas --catalog-id mongodbatlas --client-id "$CLIENT_ID" --client-secret-stdin < secret.txt
+  iai mcps create gh --catalog-id github --auth-type oauth --client-id "$CLIENT_ID" --client-secret-stdin < secret.txt
 ```
 
 ### Options
@@ -75,8 +85,8 @@ iai mcps create <mcp_name> [flags]
       --auth-header-prefix string   Credential value prefix
       --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
-      --client-id string            Client ID of a confidential app you registered at the provider; requires --catalog-id (client_credentials)
-      --client-secret string        Client secret of that app; write-only, and rotating it means delete and recreate. Prefer --client-secret-stdin
+      --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
+      --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
       --credential string           Credential required by the mcp server

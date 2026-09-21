@@ -139,6 +139,15 @@ anonymous, so it only catches a bad credential when the provider protects it.
 An --auth-type oauth mcp has no credential until the user signs in; connect it
 before running the tools check.
 
+Some providers publish no dynamic client registration — GitHub, Slack, Google
+Workspace — so there is no app for the sign-in to run under until you register
+one yourself. Pass its --client-id and --client-secret alongside --auth-type
+oauth and the sign-in runs under your app; the token still belongs to whoever
+signs in. 'iai mcps create' names the redirect URI to register when a provider
+needs this, and refuses rather than dead-ending at the provider's error page.
+Rotating the pair is 'iai mcps update --auth-type oauth --client-id ...', which
+drops the stored token, so sign in again afterwards.
+
 An --auth-type client_credentials mcp has no sign-in. You register an app at the
 provider and pass its --client-id and --client-secret; the platform mints and
 refreshes tokens from that pair. The token is not tied to a person, so every
@@ -170,7 +179,8 @@ What it does not support:
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
   iai mcps create newrelic --catalog-id newrelic --auth-type oauth
-  iai mcps create atlas --catalog-id mongodbatlas --client-id "$CLIENT_ID" --client-secret-stdin < secret.txt`,
+  iai mcps create atlas --catalog-id mongodbatlas --client-id "$CLIENT_ID" --client-secret-stdin < secret.txt
+  iai mcps create gh --catalog-id github --auth-type oauth --client-id "$CLIENT_ID" --client-secret-stdin < secret.txt`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -377,6 +387,7 @@ credential changes require --auth-type.`,
   iai mcps update my-tool --credential-stdin < token.txt
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
   iai mcps update acme --auth-type custom --credential "$NEW_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
+  iai mcps update gh --auth-type oauth --client-id "$NEW_CLIENT_ID" --client-secret-stdin < secret.txt
   iai mcps update acme --description "notes for the team"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -395,6 +406,18 @@ credential changes require --auth-type.`,
 		}
 		if cmd.Flags().Changed("credential") || mcpCredentialStdin {
 			auth.Credential = &cred
+		}
+		clientSecret, err := inputs.ResolveCredential(
+			cmd.InOrStdin(), mcpClientSecret, mcpClientSecretStdin,
+		)
+		if err != nil {
+			return err
+		}
+		if cmd.Flags().Changed("client-id") {
+			auth.ClientID = &mcpClientID
+		}
+		if cmd.Flags().Changed("client-secret") || mcpClientSecretStdin {
+			auth.ClientSecret = &clientSecret
 		}
 
 		patch, err := inputs.BuildMcpUpdatePatch(inputs.McpUpdateInput{
@@ -723,8 +746,12 @@ func validateMcpCreateAuth(cmd *cobra.Command, authType platform.McpAuthType) er
 	if authType == platform.McpAuthClientCredentials && !cmd.Flags().Changed("client-id") {
 		return fmt.Errorf("--auth-type client_credentials requires --client-id and --client-secret")
 	}
-	if authType != platform.McpAuthClientCredentials && cmd.Flags().Changed("client-id") {
-		return fmt.Errorf("--client-id and --client-secret require --auth-type client_credentials")
+	// client_credentials requires the pair; oauth merely allows it.
+	if authType != platform.McpAuthClientCredentials && authType != platform.McpAuthOAuth &&
+		cmd.Flags().Changed("client-id") {
+		return fmt.Errorf(
+			"--client-id and --client-secret require --auth-type oauth or client_credentials",
+		)
 	}
 	return nil
 }
@@ -733,7 +760,10 @@ func validateMcpUpdateAuth(cmd *cobra.Command, backend platform.McpBackend) erro
 	if backend == platform.McpBackendInternal {
 		return nil
 	}
-	for _, name := range []string{"credential", "credential-stdin", "auth-header", "auth-header-prefix"} {
+	for _, name := range []string{
+		"credential", "credential-stdin", "auth-header", "auth-header-prefix",
+		"client-id", "client-secret", "client-secret-stdin",
+	} {
 		if cmd.Flags().Changed(name) && !cmd.Flags().Changed("auth-type") {
 			return fmt.Errorf("--%s requires --auth-type", name)
 		}
@@ -748,6 +778,18 @@ func validateMcpUpdateAuth(cmd *cobra.Command, backend platform.McpBackend) erro
 			"client_credentials auth cannot be changed in place; delete the mcp and " +
 				"recreate it with --client-id and --client-secret-stdin",
 		)
+	}
+	// Rotation drops the old app's token, so half a pair signs the mcp out for nothing.
+	if authType == platform.McpAuthOAuth {
+		hasID := cmd.Flags().Changed("client-id")
+		hasSecret := cmd.Flags().Changed("client-secret") ||
+			cmd.Flags().Changed("client-secret-stdin")
+		if hasID != hasSecret {
+			return errors.New(
+				"rotating an oauth client needs --client-id and --client-secret " +
+					"(or --client-secret-stdin) together",
+			)
+		}
 	}
 	return validateMcpCreateAuth(cmd, authType)
 }
@@ -954,12 +996,14 @@ func init() {
 	mcpsCmd.PersistentFlags().
 		StringVarP(&mcpOrganization, "organization", "o", "", "Organization name that owns the project")
 
-	mcpCreateCmd.Flags().
-		StringVar(&mcpClientID, "client-id", "", "Client ID of a confidential app you registered at the provider; requires --catalog-id (client_credentials)")
-	mcpCreateCmd.Flags().
-		StringVar(&mcpClientSecret, "client-secret", "", "Client secret of that app; write-only, and rotating it means delete and recreate. Prefer --client-secret-stdin")
-	mcpCreateCmd.Flags().
-		BoolVar(&mcpClientSecretStdin, "client-secret-stdin", false, "Read the client secret from stdin, keeping it out of shell history and the process list")
+	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
+		c.Flags().
+			StringVar(&mcpClientID, "client-id", "", "Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)")
+		c.Flags().
+			StringVar(&mcpClientSecret, "client-secret", "", "Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin")
+		c.Flags().
+			BoolVar(&mcpClientSecretStdin, "client-secret-stdin", false, "Read the client secret from stdin, keeping it out of shell history and the process list")
+	}
 
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().
@@ -1011,7 +1055,9 @@ func init() {
 	mcpCreateCmd.Flags().
 		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
+	mcpUpdateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
+	mcpUpdateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential-stdin")
 	// client_credentials reads its issuer, token endpoint and scopes off a curated
