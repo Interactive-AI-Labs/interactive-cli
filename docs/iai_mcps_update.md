@@ -37,6 +37,7 @@ iai mcps update <mcp_name> [flags]
   iai mcps update my-tool --credential-stdin < token.txt
   iai mcps update acme --auth-type bearer --credential "$NEW_TOKEN"
   iai mcps update acme --auth-type custom --credential "$NEW_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
+  iai mcps update gh --auth-type oauth --client-id "$NEW_CLIENT_ID" --client-secret-stdin < secret.txt
   iai mcps update acme --description "notes for the team"
 ```
 
@@ -49,6 +50,9 @@ iai mcps update <mcp_name> [flags]
       --clear-env                   Remove all environment variables from the mcp (internal)
       --clear-secret                Remove all secret references from the mcp (internal)
       --clear-stack-id              Remove the mcp from its stack (internal)
+      --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
+      --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
+      --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
       --credential string           Credential required by the mcp server
       --credential-stdin            Read the credential from stdin instead of --credential

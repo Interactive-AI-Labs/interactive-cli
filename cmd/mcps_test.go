@@ -148,20 +148,25 @@ func TestValidateMcpCreateAuth(t *testing.T) {
 			wantErr: "--auth-type client_credentials requires --client-id and --client-secret",
 		},
 		{
-			name: "bearer rejects client id", auth: "bearer", clientID: "id",
-			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+			name:     "bearer rejects client id",
+			auth:     "bearer",
+			clientID: "id",
+			wantErr:  "--client-id and --client-secret require --auth-type oauth or client_credentials",
 		},
 		{
-			name: "custom rejects client id", auth: "custom", header: "X-Token", clientID: "id",
-			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+			name:     "custom rejects client id",
+			auth:     "custom",
+			header:   "X-Token",
+			clientID: "id",
+			wantErr:  "--client-id and --client-secret require --auth-type oauth or client_credentials",
 		},
+		{name: "oauth accepts a customer client id", auth: "oauth", clientID: "id"},
+		{name: "oauth still works without one", auth: "oauth"},
 		{
-			name: "oauth rejects client id", auth: "oauth", clientID: "id",
-			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
-		},
-		{
-			name: "none rejects client id", auth: "none", clientID: "id",
-			wantErr: "--client-id and --client-secret require --auth-type client_credentials",
+			name:     "none rejects client id",
+			auth:     "none",
+			clientID: "id",
+			wantErr:  "--client-id and --client-secret require --auth-type oauth or client_credentials",
 		},
 	}
 	for _, tt := range tests {
@@ -243,14 +248,45 @@ func TestValidateMcpUpdateAuth(t *testing.T) {
 			wantErr: "client_credentials auth cannot be changed in place; delete the mcp " +
 				"and recreate it with --client-id and --client-secret-stdin",
 		},
+		{
+			name: "external oauth rotates its client", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=oauth", "client-id=new-id", "client-secret=new-secret"},
+		},
+		{
+			name: "external oauth rotation needs a secret", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=oauth", "client-id=new-id"},
+			wantErr: "rotating an oauth client needs --client-id and --client-secret " +
+				"(or --client-secret-stdin) together",
+		},
+		{
+			name: "external oauth rotation needs a client id", backend: platform.McpBackendExternal,
+			flags: []string{"auth-type=oauth", "client-secret=new-secret"},
+			wantErr: "rotating an oauth client needs --client-id and --client-secret " +
+				"(or --client-secret-stdin) together",
+		},
+		{
+			name:    "external oauth rotation takes the secret on stdin",
+			backend: platform.McpBackendExternal,
+			flags:   []string{"auth-type=oauth", "client-id=new-id", "client-secret-stdin=true"},
+		},
+		{
+			name:    "external client id still needs an auth type",
+			backend: platform.McpBackendExternal,
+			flags:   []string{"client-id=new-id"},
+			wantErr: "--client-id requires --auth-type",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := &cobra.Command{Use: "update"}
-			for _, name := range []string{"auth-type", "credential", "auth-header", "auth-header-prefix"} {
+			for _, name := range []string{
+				"auth-type", "credential", "auth-header", "auth-header-prefix",
+				"client-id", "client-secret",
+			} {
 				cmd.Flags().String(name, "", "")
 			}
 			cmd.Flags().Bool("credential-stdin", false, "")
+			cmd.Flags().Bool("client-secret-stdin", false, "")
 			for _, flag := range tt.flags {
 				name, value, _ := strings.Cut(flag, "=")
 				if err := cmd.Flags().Set(name, value); err != nil {

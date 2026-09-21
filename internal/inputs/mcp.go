@@ -49,13 +49,19 @@ func BuildMcpUpdatePatch(
 	for _, field := range []struct {
 		flag, key string
 		value     any
+		readStdin bool
 	}{
-		{"auth-type", "type", in.Auth.Type},
-		{"credential", "credential", in.Auth.Credential},
-		{"auth-header", "header_name", in.Auth.HeaderName},
-		{"auth-header-prefix", "header_prefix", in.Auth.HeaderPrefix},
+		{"auth-type", "type", in.Auth.Type, false},
+		{"credential", "credential", in.Auth.Credential, in.Auth.Credential != nil},
+		{"auth-header", "header_name", in.Auth.HeaderName, false},
+		{"auth-header-prefix", "header_prefix", in.Auth.HeaderPrefix, false},
+		{"client-id", "client_id", in.Auth.ClientID, false},
+		{
+			"client-secret", "client_secret", in.Auth.ClientSecret,
+			in.Auth.ClientSecret != nil,
+		},
 	} {
-		if changed(field.flag) || (field.flag == "credential" && in.Auth.Credential != nil) {
+		if changed(field.flag) || field.readStdin {
 			auth[field.key] = field.value
 		}
 	}
