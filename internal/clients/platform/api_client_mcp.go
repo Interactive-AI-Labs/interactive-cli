@@ -15,6 +15,20 @@ const (
 	McpBackendExternal McpBackend = "external"
 )
 
+// McpAuthType is how an mcp sends its credential. The platform owns the set; a
+// value it does not know is refused there, so these exist to keep the CLI's own
+// comparisons honest rather than to validate.
+type McpAuthType string
+
+const (
+	McpAuthNone              McpAuthType = "none"
+	McpAuthBearer            McpAuthType = "bearer"
+	McpAuthAPIKey            McpAuthType = "api_key"
+	McpAuthCustom            McpAuthType = "custom"
+	McpAuthOAuth             McpAuthType = "oauth"
+	McpAuthClientCredentials McpAuthType = "client_credentials"
+)
+
 type McpSchema struct {
 	Name             string      `json:"name"`
 	Backend          McpBackend  `json:"backend"`
@@ -81,10 +95,12 @@ type McpDeleteData struct {
 }
 
 type McpAuth struct {
-	Type         string  `json:"type"`
-	Credential   *string `json:"credential,omitempty"`
-	HeaderName   *string `json:"header_name,omitempty"`
-	HeaderPrefix *string `json:"header_prefix,omitempty"`
+	Type         McpAuthType `json:"type"`
+	Credential   *string     `json:"credential,omitempty"`
+	HeaderName   *string     `json:"header_name,omitempty"`
+	HeaderPrefix *string     `json:"header_prefix,omitempty"`
+	ClientID     *string     `json:"client_id,omitempty"`
+	ClientSecret *string     `json:"client_secret,omitempty"`
 }
 
 type McpEnvVar struct {
