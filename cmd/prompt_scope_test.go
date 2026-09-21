@@ -1,4 +1,4 @@
-package prompts
+package cmd
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
-func TestSuggestsGlobal(t *testing.T) {
+func TestSuggestsGlobalScope(t *testing.T) {
 	notFound := &platform.NotFoundError{Message: "no such prompt"}
 
 	tests := []struct {
@@ -63,8 +63,8 @@ func TestSuggestsGlobal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := suggestsGlobal(tt.global, tt.opts, tt.err); got != tt.want {
-				t.Errorf("suggestsGlobal() = %v, want %v", got, tt.want)
+			if got := suggestsGlobalScope(tt.global, tt.opts, tt.err); got != tt.want {
+				t.Errorf("suggestsGlobalScope() = %v, want %v", got, tt.want)
 			}
 		})
 	}

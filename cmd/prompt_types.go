@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/prompts"
 	"github.com/spf13/cobra"
 )
 
@@ -317,8 +317,17 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 
 			opts := platform.PromptGetOptions{Version: version, Label: label, Scope: scope}
-			result, err := scopedReader(cmd, ptCfg, pCtx, apiClient).Get(cmd.Context(), name, opts)
+			result, err := apiClient.GetPrompt(
+				cmd.Context(), pCtx.projectId, ptCfg.RouteSegment, name, opts,
+			)
 			if err != nil {
+				if suggestsGlobalScope(ptCfg.GlobalScope, opts, err) {
+					fmt.Fprintf(
+						cmd.ErrOrStderr(),
+						"Try: iai %s get %s --scope %s\n",
+						ptCfg.Plural, name, platform.ScopeGlobal,
+					)
+				}
 				return err
 			}
 
@@ -626,18 +635,18 @@ func makeDiffCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	return cmd
 }
 
-func scopedReader(
-	cmd *cobra.Command,
-	ptCfg PromptTypeConfig,
-	pCtx *projectContext,
-	c *platform.APIClient,
-) prompts.ScopedReader {
-	return prompts.ScopedReader{
-		Client:       c,
-		ProjectID:    pCtx.projectId,
-		RouteSegment: ptCfg.RouteSegment,
-		Plural:       ptCfg.Plural,
-		Global:       ptCfg.GlobalScope,
-		Warn:         cmd.ErrOrStderr(),
+// The global scope exposes one version of each record, labeled "active".
+const activeLabel = "active"
+
+// suggestsGlobalScope reports whether a failed read should point at the global
+// scope. Only a 404 does, and only for a read the global scope could have answered.
+func suggestsGlobalScope(global bool, opts platform.PromptGetOptions, err error) bool {
+	if !global || opts.Scope == platform.ScopeGlobal {
+		return false
 	}
+	if opts.Version != 0 || (opts.Label != "" && opts.Label != activeLabel) {
+		return false
+	}
+	var notFound *platform.NotFoundError
+	return errors.As(err, &notFound)
 }

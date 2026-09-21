@@ -1277,7 +1277,8 @@ func (c *APIClient) GetPrompt(
 	}
 
 	q := req.URL.Query()
-	if opts.Scope != "" {
+	// The project scope is the server's default and predates the parameter.
+	if opts.Scope != "" && opts.Scope != ScopeProject {
 		q.Set("scope", opts.Scope)
 	}
 	if opts.Version > 0 {
@@ -1311,6 +1312,15 @@ func (c *APIClient) GetPrompt(
 	var result PromptDetail
 	if err := json.Unmarshal(envelope.Data, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode prompt data: %w", err)
+	}
+
+	// A server that does not know the parameter ignores it and answers from the
+	// project. Returning that as the global record is worse than failing.
+	if opts.Scope == ScopeGlobal && result.Scope != ScopeGlobal {
+		return nil, fmt.Errorf(
+			"failed to read global %s: the server answered from the project scope",
+			routeSegment,
+		)
 	}
 
 	return &result, nil
