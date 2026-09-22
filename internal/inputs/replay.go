@@ -19,6 +19,7 @@ type ReplayInput struct {
 
 	ExperimentName      string
 	ExperimentNameReuse bool
+	KeepSessions        bool
 }
 
 // LoadScenarioFile reads a YAML or JSON scenario document into a generic map.

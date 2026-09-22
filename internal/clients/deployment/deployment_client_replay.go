@@ -25,6 +25,8 @@ type ReplayStartRequest struct {
 	ExperimentName string `json:"experiment_name,omitempty"`
 	// ExperimentNameReuse appends to an experiment of that name instead of refusing it.
 	ExperimentNameReuse bool `json:"experiment_name_reuse,omitempty"`
+	// KeepSessions keeps the sessions a replay would otherwise discard once it has a verdict.
+	KeepSessions bool `json:"keep_sessions,omitempty"`
 }
 
 // ReplaySkipped is a dataset item the agent did not replay, with the reason.

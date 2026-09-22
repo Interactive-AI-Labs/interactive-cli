@@ -44,6 +44,7 @@ iai agents replay <agent_name> [flags]
       --file string              Local scenario file (YAML or JSON), posted inline
   -h, --help                     help for replay
       --json                     Print the final run payload exactly as the agent returned it; progress still goes to stderr
+      --keep-sessions            Keep the sessions the replay creates; they are discarded once an iteration passes or fails
   -o, --organization string      Organization name
   -p, --project string           Project name
       --repeat int               Iterations per scenario (1-20) (default 1)

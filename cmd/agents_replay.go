@@ -30,6 +30,7 @@ var (
 
 	replayExperimentName      string
 	replayExperimentNameReuse bool
+	replayKeepSessions        bool
 )
 
 const replayAgentAPIKeyEnv = "INTERACTIVE_AGENT_API_KEY"
@@ -69,6 +70,7 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
 
 			ExperimentName:      replayExperimentName,
 			ExperimentNameReuse: replayExperimentNameReuse,
+			KeepSessions:        replayKeepSessions,
 		}
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
@@ -164,6 +166,13 @@ func init() {
 	f.BoolVar(&replayExperimentNameReuse, "experiment-name-reuse", false,
 		"Append to an experiment of that name instead of refusing a name already taken")
 
+	f.BoolVar(
+		&replayKeepSessions,
+		"keep-sessions",
+		false,
+		"Keep the sessions the replay creates; they are discarded once an iteration passes or fails",
+	)
+
 	// Hidden: only useful to someone holding the agent's source, so noise for everyone else.
 	f.StringVar(&replayAgentURL, "agent-url", "", "Replay an agent running on this machine")
 	// Prefer the env var: a key passed as a flag shows up in ps.
@@ -179,6 +188,7 @@ func init() {
 	agentReplayCmd.MarkFlagsMutuallyExclusive("concurrency", "run-id")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("experiment-name", "run-id")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("experiment-name-reuse", "run-id")
+	agentReplayCmd.MarkFlagsMutuallyExclusive("keep-sessions", "run-id")
 
 	agentsCmd.AddCommand(agentReplayCmd)
 }

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestStartError(t *testing.T) {
@@ -181,6 +183,73 @@ func TestReattachCommandKeepsTheTarget(t *testing.T) {
 			}
 			if !strings.HasSuffix(stderr.String(), tt.want) {
 				t.Errorf("stderr ended %q, want it to end %q", stderr.String(), tt.want)
+			}
+		})
+	}
+}
+
+// startedClient records the request the run was started with.
+type startedClient struct{ got deployment.ReplayStartRequest }
+
+func (c *startedClient) DescribeAgent(
+	context.Context, string, string, string,
+) (*deployment.DescribeAgentResponse, error) {
+	return &deployment.DescribeAgentResponse{Version: "0.16.0", Revision: 1}, nil
+}
+
+func (c *startedClient) StartReplay(
+	_ context.Context, _, _, _ string, req deployment.ReplayStartRequest,
+) (*deployment.ReplayStartResponse, error) {
+	c.got = req
+	return &deployment.ReplayStartResponse{RunID: "run-1"}, nil
+}
+
+func (c *startedClient) FollowReplay(
+	context.Context, string, string, string, string, func(*deployment.ReplayRun),
+) (*deployment.ReplayRun, error) {
+	return &deployment.ReplayRun{RunID: "run-1", Status: deployment.ReplayStatusPassed}, nil
+}
+
+// Every input the caller can set has to reach the request, or the flag does nothing.
+func TestRunCarriesTheInputToTheRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		in   inputs.ReplayInput
+		want deployment.ReplayStartRequest
+	}{
+		{
+			name: "defaults carry nothing extra",
+			in:   inputs.ReplayInput{Dataset: "replay-chat", Repeat: 1, Concurrency: 8},
+			want: deployment.ReplayStartRequest{
+				Dataset: "replay-chat", Repeat: 1, Concurrency: 8,
+			},
+		},
+		{
+			name: "the experiment and session options all arrive",
+			in: inputs.ReplayInput{
+				Dataset: "replay-chat", Repeat: 1, Concurrency: 8,
+				ExperimentName: "prompt-v4 sweep", ExperimentNameReuse: true, KeepSessions: true,
+			},
+			want: deployment.ReplayStartRequest{
+				Dataset: "replay-chat", Repeat: 1, Concurrency: 8,
+				ExperimentName: "prompt-v4 sweep", ExperimentNameReuse: true, KeepSessions: true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &startedClient{}
+			err := Run(
+				context.Background(),
+				Deps{Deploy: client, Stdout: io.Discard, Stderr: io.Discard},
+				Options{AgentName: "my-agent", Input: tt.in, Timeout: time.Minute},
+			)
+			if err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+			if diff := cmp.Diff(tt.want, client.got); diff != "" {
+				t.Errorf("request mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

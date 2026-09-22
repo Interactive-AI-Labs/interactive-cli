@@ -89,6 +89,7 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 
 				ExperimentName:      opts.Input.ExperimentName,
 				ExperimentNameReuse: opts.Input.ExperimentNameReuse,
+				KeepSessions:        opts.Input.KeepSessions,
 			},
 		)
 		if err != nil {

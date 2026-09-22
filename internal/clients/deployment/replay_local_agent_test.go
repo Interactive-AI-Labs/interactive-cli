@@ -205,6 +205,13 @@ func TestReplayStartRequestBody(t *testing.T) {
 			want: `{"repeat":1,"concurrency":8,"experiment_name":"prompt-v4 sweep"}`,
 		},
 		{
+			name: "sessions are kept on request",
+			req: ReplayStartRequest{
+				Repeat: 1, Concurrency: 8, KeepSessions: true,
+			},
+			want: `{"repeat":1,"concurrency":8,"keep_sessions":true}`,
+		},
+		{
 			name: "reuse rides along",
 			req: ReplayStartRequest{
 				Repeat: 1, Concurrency: 8,
