@@ -86,6 +86,9 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 				ScenarioBody: scenarioBody,
 				Repeat:       opts.Input.Repeat,
 				Concurrency:  opts.Input.Concurrency,
+
+				ExperimentName:      opts.Input.ExperimentName,
+				ExperimentNameReuse: opts.Input.ExperimentNameReuse,
 			},
 		)
 		if err != nil {

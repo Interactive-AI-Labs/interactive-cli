@@ -21,6 +21,10 @@ type ReplayStartRequest struct {
 	ScenarioBody map[string]any `json:"scenario_body,omitempty"`
 	Repeat       int            `json:"repeat"`
 	Concurrency  int            `json:"concurrency"`
+	// ExperimentName replaces the timestamped name the platform would give the run.
+	ExperimentName string `json:"experiment_name,omitempty"`
+	// ExperimentNameReuse appends to an experiment of that name instead of refusing it.
+	ExperimentNameReuse bool `json:"experiment_name_reuse,omitempty"`
 }
 
 // ReplaySkipped is a dataset item the agent did not replay, with the reason.

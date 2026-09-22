@@ -16,6 +16,9 @@ type ReplayInput struct {
 	RunID       string
 	Repeat      int
 	Concurrency int
+
+	ExperimentName      string
+	ExperimentNameReuse bool
 }
 
 // LoadScenarioFile reads a YAML or JSON scenario document into a generic map.

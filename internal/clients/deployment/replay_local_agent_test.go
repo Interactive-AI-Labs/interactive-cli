@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -179,6 +180,48 @@ func TestLocalAgentClientDescribeAgent(t *testing.T) {
 			}
 			if got.Revision != 0 {
 				t.Errorf("revision = %d, want 0", got.Revision)
+			}
+		})
+	}
+}
+
+// The experiment flags are only useful if they reach the agent, so assert the body.
+func TestReplayStartRequestBody(t *testing.T) {
+	tests := []struct {
+		name string
+		req  ReplayStartRequest
+		want string
+	}{
+		{
+			name: "omitted when unset",
+			req:  ReplayStartRequest{Repeat: 1, Concurrency: 8},
+			want: `{"repeat":1,"concurrency":8}`,
+		},
+		{
+			name: "carried when named",
+			req: ReplayStartRequest{
+				Repeat: 1, Concurrency: 8, ExperimentName: "prompt-v4 sweep",
+			},
+			want: `{"repeat":1,"concurrency":8,"experiment_name":"prompt-v4 sweep"}`,
+		},
+		{
+			name: "reuse rides along",
+			req: ReplayStartRequest{
+				Repeat: 1, Concurrency: 8,
+				ExperimentName: "prompt-v4 sweep", ExperimentNameReuse: true,
+			},
+			want: `{"repeat":1,"concurrency":8,"experiment_name":"prompt-v4 sweep","experiment_name_reuse":true}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := json.Marshal(tt.req)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			if string(got) != tt.want {
+				t.Errorf("body  = %s\nwant  = %s", got, tt.want)
 			}
 		})
 	}

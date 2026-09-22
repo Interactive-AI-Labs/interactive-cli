@@ -27,6 +27,9 @@ var (
 	replayJSON        bool
 	replayAgentURL    string
 	replayAgentAPIKey string
+
+	replayExperimentName      string
+	replayExperimentNameReuse bool
 )
 
 const replayAgentAPIKeyEnv = "INTERACTIVE_AGENT_API_KEY"
@@ -51,6 +54,7 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
   iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock --scenarios bonus-misrouted --repeat 3
   iai agents replay agent-chat-dev --dataset replay-chat --repeat 3 --concurrency 16
   iai agents replay agent-chat-dev --file ./account-lock.yaml
+  iai agents replay agent-chat-dev --dataset replay-chat --experiment-name "prompt-v4 sweep"
   iai agents replay agent-chat-dev --dataset replay-chat --json > run.json
   iai agents replay agent-chat-dev --run-id 9d0c44e1aa52`,
 	Args: cobra.ExactArgs(1),
@@ -62,6 +66,9 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
 			RunID:       replayRunID,
 			Repeat:      replayRepeat,
 			Concurrency: replayConcurrency,
+
+			ExperimentName:      replayExperimentName,
+			ExperimentNameReuse: replayExperimentNameReuse,
 		}
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
@@ -152,6 +159,11 @@ func init() {
 		"Print the final run payload exactly as the agent returned it; progress still goes to stderr",
 	)
 
+	f.StringVar(&replayExperimentName, "experiment-name", "",
+		"Name the experiment the scores are written under, in place of a timestamped one")
+	f.BoolVar(&replayExperimentNameReuse, "experiment-name-reuse", false,
+		"Append to an experiment of that name instead of refusing a name already taken")
+
 	// Hidden: only useful to someone holding the agent's source, so noise for everyone else.
 	f.StringVar(&replayAgentURL, "agent-url", "", "Replay an agent running on this machine")
 	// Prefer the env var: a key passed as a flag shows up in ps.
@@ -165,6 +177,8 @@ func init() {
 	agentReplayCmd.MarkFlagsMutuallyExclusive("scenarios", "run-id")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("repeat", "run-id")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("concurrency", "run-id")
+	agentReplayCmd.MarkFlagsMutuallyExclusive("experiment-name", "run-id")
+	agentReplayCmd.MarkFlagsMutuallyExclusive("experiment-name-reuse", "run-id")
 
 	agentsCmd.AddCommand(agentReplayCmd)
 }
