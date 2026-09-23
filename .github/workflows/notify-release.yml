@@ -54,7 +54,7 @@ jobs:
             echo "previous=${PREVIOUS}"
             echo "count=$(git rev-list --count "$PREVIOUS..$TAG")"
             echo "subjects<<EOF"
-            git log --format='- %s' "$PREVIOUS..$TAG"
+            git log --no-merges --format='- %s' "$PREVIOUS..$TAG"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -72,7 +72,7 @@ jobs:
 
             ${{ steps.changes.outputs.subjects }}
           claude_args: |
-            --json-schema '{"type":"object","properties":{"summary":{"type":"string","maxLength":150}},"required":["summary"]}'
+            --json-schema '{"type":"object","properties":{"summary":{"type":"string","minLength":1,"maxLength":150}},"required":["summary"]}'
 
       - name: Fetch Slack bot token from Secret Manager
         id: slack_token
