@@ -293,9 +293,6 @@ func (c *APIClient) CreateDataset(
 	orgID, projectID string,
 	body DatasetCreateBody,
 ) (*DatasetInfo, json.RawMessage, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return nil, nil, err
-	}
 	path := evalBasePath(orgID, projectID) + "/datasets"
 	data, raw, err := doCreate[datasetWrapper](c, ctx, path, body, "create dataset")
 	if err != nil {
@@ -378,9 +375,6 @@ func (c *APIClient) CreateDatasetItem(
 	orgID, projectID string,
 	body DatasetItemCreateBody,
 ) (*DatasetItemInfo, json.RawMessage, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return nil, nil, err
-	}
 	path := evalBasePath(orgID, projectID) + "/dataset-items"
 	data, raw, err := doCreate[datasetItemWrapper](c, ctx, path, body, "create dataset item")
 	if err != nil {
@@ -393,9 +387,6 @@ func (c *APIClient) DeleteDatasetItem(
 	ctx context.Context,
 	orgID, projectID, itemID string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return "", err
-	}
 	path := evalBasePath(orgID, projectID) + "/dataset-items/" + url.PathEscape(itemID)
 	return c.doDelete(ctx, path, "delete dataset item")
 }
@@ -458,9 +449,6 @@ func (c *APIClient) DeleteDatasetRun(
 	ctx context.Context,
 	orgID, projectID, datasetName, runName string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return "", err
-	}
 	path := evalBasePath(orgID, projectID) + "/datasets/" +
 		url.PathEscape(datasetName) + "/runs/" + url.PathEscape(runName)
 	return c.doDelete(ctx, path, "delete dataset run")
@@ -784,9 +772,6 @@ func (c *APIClient) UpdateQueueItem(
 	orgID, projectID, queueID, itemID string,
 	body QueueItemUpdateBody,
 ) (*QueueItemInfo, json.RawMessage, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return nil, nil, err
-	}
 	path := queueItemsPath(orgID, projectID, queueID) + "/" + url.PathEscape(itemID)
 	data, raw, err := doUpdate[queueItemWrapper](c, ctx, path, body, "update queue item")
 	if err != nil {

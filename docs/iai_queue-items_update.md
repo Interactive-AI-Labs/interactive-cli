@@ -6,7 +6,7 @@ Update a queue item
 
 Update the status of a queue item.
 
-This command requires API key authentication.
+With a session login, only COMPLETED is allowed; other statuses require API key authentication.
 
 ```
 iai queue-items update <item-id> [flags]
