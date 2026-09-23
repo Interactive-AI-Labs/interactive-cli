@@ -29,6 +29,7 @@ iai agents replay <agent_name> [flags]
   iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock --scenarios bonus-misrouted --repeat 3
   iai agents replay agent-chat-dev --dataset replay-chat --repeat 3 --concurrency 16
   iai agents replay agent-chat-dev --file ./account-lock.yaml
+  iai agents replay agent-chat-dev --dataset replay-chat --experiment-name "prompt-v4 sweep"
   iai agents replay agent-chat-dev --dataset replay-chat --json > run.json
   iai agents replay agent-chat-dev --run-id 9d0c44e1aa52
 ```
@@ -36,17 +37,20 @@ iai agents replay <agent_name> [flags]
 ### Options
 
 ```
-      --concurrency int         In-flight iterations across the whole run (1-32) (default 8)
-      --dataset string          Dataset holding the scenarios (required unless --file or --run-id)
-      --file string             Local scenario file (YAML or JSON), posted inline
-  -h, --help                    help for replay
-      --json                    Print the final run payload exactly as the agent returned it; progress still goes to stderr
-  -o, --organization string     Organization name
-  -p, --project string          Project name
-      --repeat int              Iterations per scenario (1-20) (default 1)
-      --run-id string           Re-attach to a run already started on the agent; no new run is started
-      --scenarios stringArray   Only this scenario name from --dataset; repeat the flag once per scenario, run in this order
-      --timeout duration        Give up waiting for the verdict after this long (default 30m0s)
+      --concurrency int          In-flight iterations across the whole run (1-32) (default 8)
+      --dataset string           Dataset holding the scenarios (required unless --file or --run-id)
+      --experiment-name string   Name the experiment the scores are written under, in place of a timestamped one
+      --experiment-name-reuse    Append to an experiment of that name instead of refusing a name already taken
+      --file string              Local scenario file (YAML or JSON), posted inline
+  -h, --help                     help for replay
+      --json                     Print the final run payload exactly as the agent returned it; progress still goes to stderr
+      --keep-sessions            Keep the sessions the replay creates; they are discarded once an iteration passes or fails
+  -o, --organization string      Organization name
+  -p, --project string           Project name
+      --repeat int               Iterations per scenario (1-20) (default 1)
+      --run-id string            Re-attach to a run already started on the agent; no new run is started
+      --scenarios stringArray    Only this scenario name from --dataset; repeat the flag once per scenario, run in this order
+      --timeout duration         Give up waiting for the verdict after this long (default 30m0s)
 ```
 
 ### Options inherited from parent commands

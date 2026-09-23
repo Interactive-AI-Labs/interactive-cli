@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"gopkg.in/yaml.v3"
 )
 
@@ -16,6 +17,28 @@ type ReplayInput struct {
 	RunID       string
 	Repeat      int
 	Concurrency int
+
+	ExperimentName      string
+	ExperimentNameReuse bool
+	KeepSessions        bool
+}
+
+// BuildReplayStartRequest is what the caller's input asks the agent to run.
+func BuildReplayStartRequest(
+	in ReplayInput,
+	scenarioBody map[string]any,
+) deployment.ReplayStartRequest {
+	return deployment.ReplayStartRequest{
+		Dataset:      in.Dataset,
+		Scenarios:    in.Scenarios,
+		ScenarioBody: scenarioBody,
+		Repeat:       in.Repeat,
+		Concurrency:  in.Concurrency,
+
+		ExperimentName:      in.ExperimentName,
+		ExperimentNameReuse: in.ExperimentNameReuse,
+		KeepSessions:        in.KeepSessions,
+	}
 }
 
 // LoadScenarioFile reads a YAML or JSON scenario document into a generic map.
