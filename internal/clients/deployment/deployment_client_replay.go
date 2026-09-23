@@ -21,6 +21,12 @@ type ReplayStartRequest struct {
 	ScenarioBody map[string]any `json:"scenario_body,omitempty"`
 	Repeat       int            `json:"repeat"`
 	Concurrency  int            `json:"concurrency"`
+	// ExperimentName replaces the timestamped name the platform would give the run.
+	ExperimentName string `json:"experiment_name,omitempty"`
+	// ExperimentNameReuse appends to an experiment of that name instead of refusing it.
+	ExperimentNameReuse bool `json:"experiment_name_reuse,omitempty"`
+	// KeepSessions keeps the sessions a replay would otherwise discard once it has a verdict.
+	KeepSessions bool `json:"keep_sessions,omitempty"`
 }
 
 // ReplaySkipped is a dataset item the agent did not replay, with the reason.
@@ -151,9 +157,14 @@ func (c *DeploymentClient) StartReplay(
 		return nil, fmt.Errorf("failed to read the replay response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, decodeReplayError(resp.StatusCode, raw)
+		return nil, DecodeReplayError(resp.StatusCode, raw)
 	}
 
+	return DecodeReplayStart(raw)
+}
+
+// DecodeReplayStart reads the accepted-run body: a run id, or why there is none.
+func DecodeReplayStart(raw []byte) (*ReplayStartResponse, error) {
 	var out ReplayStartResponse
 	if err := json.Unmarshal(raw, &out); err != nil {
 		return nil, fmt.Errorf("failed to decode replay response: %w", err)
@@ -193,7 +204,7 @@ func (c *DeploymentClient) FollowReplay(
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		raw, _ := io.ReadAll(resp.Body)
-		return nil, decodeReplayError(resp.StatusCode, raw)
+		return nil, DecodeReplayError(resp.StatusCode, raw)
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
@@ -213,7 +224,7 @@ func (c *DeploymentClient) FollowReplay(
 		case ev.Timeout:
 			return nil, ErrReplayStreamEnded
 		case len(ev.Run) > 0:
-			run, err := decodeReplayRun(ev.Run)
+			run, err := DecodeReplayRun(ev.Run)
 			if err != nil {
 				return nil, err
 			}
@@ -231,8 +242,8 @@ func (c *DeploymentClient) FollowReplay(
 	return nil, ErrReplayStreamEnded
 }
 
-// decodeReplayRun normalises the inline form into a suite holding one batch.
-func decodeReplayRun(raw []byte) (*ReplayRun, error) {
+// DecodeReplayRun normalises the inline form into a suite holding one batch.
+func DecodeReplayRun(raw []byte) (*ReplayRun, error) {
 	var run ReplayRun
 	if err := json.Unmarshal(raw, &run); err != nil {
 		return nil, fmt.Errorf("failed to decode replay run: %w", err)
@@ -253,8 +264,8 @@ func decodeReplayRun(raw []byte) (*ReplayRun, error) {
 	return &run, nil
 }
 
-// decodeReplayError reads the agent's error bodies ({"detail": text | 422 list}) or the platform's ({"message": text}).
-func decodeReplayError(status int, body []byte) *ReplayError {
+// DecodeReplayError reads the agent's error bodies ({"detail": text | 422 list}) or the platform's ({"message": text}).
+func DecodeReplayError(status int, body []byte) *ReplayError {
 	e := &ReplayError{Status: status}
 	var env struct {
 		Detail  json.RawMessage `json:"detail"`
