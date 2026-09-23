@@ -1,0 +1,66 @@
+name: Notify Release (core)
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      tag_name:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Component name shown in the message
+        required: true
+        type: string
+      version:
+        description: Version shown in the message
+        required: true
+        type: string
+      tag_name:
+        description: Git tag the message links to
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: [gke-default]
+    timeout-minutes: 5
+    env:
+      SECRETS_PROJECT: common-secrets-c3bd0161
+    steps:
+      - name: Fetch Slack bot token from Secret Manager
+        id: slack_token
+        run: |
+          set -euo pipefail
+          TOKEN=$(gcloud secrets versions access latest \
+            --secret=slack-platform-notifier \
+            --project="${SECRETS_PROJECT}")
+          echo "::add-mask::${TOKEN}"
+          echo "token=${TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Post release notification
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          method: chat.postMessage
+          token: ${{ steps.slack_token.outputs.token }}
+          payload: |
+            channel: ${{ vars.SLACK_RELEASES_CHANNEL }}
+            text: "${{ inputs.component }} ${{ inputs.version }} released"
+            blocks:
+              - type: section
+                text:
+                  type: mrkdwn
+                  text: ":rocket: *${{ inputs.component }}* `${{ inputs.version }}` released"
+              - type: context
+                elements:
+                  - type: mrkdwn
+                    text: "<${{ github.server_url }}/${{ github.repository }}/tree/${{ inputs.tag_name }}|${{ inputs.tag_name }}> · <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
