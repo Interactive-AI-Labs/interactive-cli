@@ -42,8 +42,10 @@ type Deps struct {
 type Options struct {
 	OrgID, ProjectID, AgentName string
 	Input                       inputs.ReplayInput
-	Timeout                     time.Duration
-	JSON                        bool
+	// AgentURL is set for a local run, which changes what a refusal means.
+	AgentURL string
+	Timeout  time.Duration
+	JSON     bool
 }
 
 // Run returns nil when the run finished with a verdict, passed or failed, and
@@ -64,10 +66,15 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	if err != nil {
 		return fmt.Errorf("failed to describe agent %q: %w", opts.AgentName, err)
 	}
-	fmt.Fprintf(
-		deps.Stderr, "%s  %s  rev %d\n",
-		opts.AgentName, described.Version, described.Revision,
-	)
+	// A local agent has no release, so no revision to name.
+	if opts.AgentURL == "" {
+		fmt.Fprintf(
+			deps.Stderr, "%s  %s  rev %d\n",
+			opts.AgentName, described.Version, described.Revision,
+		)
+	} else {
+		fmt.Fprintf(deps.Stderr, "%s  %s\n", opts.AgentName, described.Version)
+	}
 
 	runID := opts.Input.RunID
 	if runID == "" {
@@ -79,10 +86,14 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 				ScenarioBody: scenarioBody,
 				Repeat:       opts.Input.Repeat,
 				Concurrency:  opts.Input.Concurrency,
+
+				ExperimentName:      opts.Input.ExperimentName,
+				ExperimentNameReuse: opts.Input.ExperimentNameReuse,
+				KeepSessions:        opts.Input.KeepSessions,
 			},
 		)
 		if err != nil {
-			return startError(err, opts.AgentName, described.Version)
+			return refusalError(err, opts.AgentName, described.Version, opts.AgentURL)
 		}
 		output.PrintReplaySkipped(deps.Stderr, resp.Skipped, opts.Input.Scenarios)
 		runID = resp.RunID
@@ -97,6 +108,9 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	)
 	if err != nil {
 		reattach := fmt.Sprintf("iai agents replay %s --run-id %s", opts.AgentName, runID)
+		if opts.AgentURL != "" {
+			reattach += " --agent-url " + opts.AgentURL
+		}
 		switch {
 		case errors.Is(err, context.Canceled):
 			// Stop watching quietly, as logs --follow does; the run keeps going.
@@ -113,13 +127,18 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 				opts.Timeout,
 				reattach,
 			)
-		case errors.Is(err, deployment.ErrReplayStreamEnded):
-			return fmt.Errorf(
-				"run %s may still be running on the agent; follow it again with: %s",
-				runID, reattach,
-			)
 		}
-		return err
+		// Only a refusal under 500 is the agent saying no; a 5xx is a hiccup in front of it.
+		// Just the 401 arm: a 404 here is an unknown run, not a missing route.
+		var refused *deployment.ReplayError
+		if errors.As(err, &refused) && refused.Status < http.StatusInternalServerError {
+			if refused.Status == http.StatusUnauthorized {
+				return refusalError(err, opts.AgentName, described.Version, opts.AgentURL)
+			}
+			return err
+		}
+		// Anything else leaves the run going on the agent, so say how to pick it up.
+		return fmt.Errorf("%w; the run may still be going, follow it again with: %s", err, reattach)
 	}
 
 	if opts.JSON {
@@ -137,15 +156,18 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	return nil
 }
 
-// startError rewords the two refusals whose fix is on the caller's side and appends
+// refusalError rewords the refusals whose fix is on the caller's side and appends
 // skipped items to the rest so the agent's own explanation is never lost.
-func startError(err error, agentName, version string) error {
+func refusalError(err error, agentName, version, agentURL string) error {
 	var re *deployment.ReplayError
 	if !errors.As(err, &re) {
 		return err
 	}
 	switch re.Status {
 	case http.StatusUnauthorized:
+		if agentURL != "" {
+			return fmt.Errorf("the agent at %s rejected --agent-api-key", agentURL)
+		}
 		return fmt.Errorf("not authorized to replay %s; check you are logged in", agentName)
 	case http.StatusNotFound:
 		return fmt.Errorf(

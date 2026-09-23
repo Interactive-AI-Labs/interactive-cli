@@ -13,7 +13,12 @@ func resetReplayFlags(t *testing.T) {
 		replayDataset, replayFile, replayRunID = "", "", ""
 		replayScenarios = nil
 		replayRepeat = 1
-		for _, name := range []string{"dataset", "file", "run-id", "scenarios", "repeat"} {
+		replayExperimentName = ""
+		replayExperimentNameReuse, replayKeepSessions = false, false
+		for _, name := range []string{
+			"dataset", "file", "run-id", "scenarios", "repeat",
+			"experiment-name", "experiment-name-reuse", "keep-sessions",
+		} {
 			agentReplayCmd.Flags().Lookup(name).Changed = false
 		}
 	})
@@ -42,6 +47,16 @@ func TestAgentReplayFlagGroups(t *testing.T) {
 			args:    []string{"--run-id", "r", "--repeat", "2"},
 			wantErr: "[repeat run-id] were all set",
 		},
+		{
+			name:    "experiment-name and run-id",
+			args:    []string{"--run-id", "r", "--experiment-name", "sweep"},
+			wantErr: "[experiment-name run-id] were all set",
+		},
+		{
+			name:    "keep-sessions and run-id",
+			args:    []string{"--run-id", "r", "--keep-sessions"},
+			wantErr: "[keep-sessions run-id] were all set",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -58,6 +73,58 @@ func TestAgentReplayFlagGroups(t *testing.T) {
 			}
 			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("error = %v, want containing %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNormalizeAgentURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		raw     string
+		want    string
+		wantErr bool
+	}{
+		{name: "unset means the platform", raw: ""},
+		{name: "blank means the platform", raw: "   "},
+		{
+			name: "a full url passes through",
+			raw:  "http://127.0.0.1:8080",
+			want: "http://127.0.0.1:8080",
+		},
+		{
+			name: "surrounding space is trimmed",
+			raw:  " http://127.0.0.1:8080\n",
+			want: "http://127.0.0.1:8080",
+		},
+		{
+			name: "https is fine",
+			raw:  "https://agent.example.com",
+			want: "https://agent.example.com",
+		},
+		{name: "a host and port without a scheme is refused", raw: "localhost:8080", wantErr: true},
+		{name: "an address without a scheme is refused", raw: "127.0.0.1:8080", wantErr: true},
+		{name: "a scheme without a host is refused", raw: "http://", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := normalizeAgentURL(tt.raw)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("normalizeAgentURL(%q) = %q, want an error", tt.raw, got)
+				}
+				if !strings.Contains(err.Error(), "scheme and host") {
+					t.Errorf("error = %v, want it to name what is missing", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("normalizeAgentURL(%q): %v", tt.raw, err)
+			}
+			if got != tt.want {
+				t.Errorf("normalizeAgentURL(%q) = %q, want %q", tt.raw, got, tt.want)
 			}
 		})
 	}
