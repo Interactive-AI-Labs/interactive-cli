@@ -33,10 +33,47 @@ permissions:
 jobs:
   notify:
     runs-on: [gke-default]
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       SECRETS_PROJECT: common-secrets-c3bd0161
     steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: List changes since the previous release
+        id: changes
+        env:
+          TAG: ${{ inputs.tag_name }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          PREVIOUS=$(git describe --tags --abbrev=0 --match "${TAG%"$VERSION"}[0-9]*" "$TAG^")
+          {
+            echo "previous=${PREVIOUS}"
+            echo "count=$(git rev-list --count "$PREVIOUS..$TAG")"
+            echo "subjects<<EOF"
+            git log --format='- %s' "$PREVIOUS..$TAG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Inference only writes the summary line; the post falls back to the commit count if it fails.
+      - name: Summarize changes
+        id: summary
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Summarize what changed in ${{ inputs.component }} between ${{ steps.changes.outputs.previous }} and ${{ inputs.tag_name }} in one plain sentence for a release announcement, based only on these commit subjects:
+
+            ${{ steps.changes.outputs.subjects }}
+          claude_args: |
+            --json-schema '{"type":"object","properties":{"summary":{"type":"string","maxLength":150}},"required":["summary"]}'
+
       - name: Fetch Slack bot token from Secret Manager
         id: slack_token
         run: |
@@ -60,6 +97,10 @@ jobs:
                 text:
                   type: mrkdwn
                   text: ":rocket: *${{ inputs.component }}* `${{ inputs.version }}` released"
+              - type: section
+                text:
+                  type: plain_text
+                  text: ${{ toJSON(steps.summary.outcome == 'success' && fromJSON(steps.summary.outputs.structured_output).summary || format('{0} commits since {1}', steps.changes.outputs.count, steps.changes.outputs.previous)) }}
               - type: context
                 elements:
                   - type: mrkdwn

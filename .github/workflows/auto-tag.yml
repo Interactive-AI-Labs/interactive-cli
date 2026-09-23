@@ -69,6 +69,7 @@ jobs:
     needs: auto-tag
     if: needs.auto-tag.outputs.created == 'true'
     uses: ./.github/workflows/notify-release.yml
+    secrets: inherit
     with:
       component: interactive-cli
       version: ${{ needs.auto-tag.outputs.version }}
