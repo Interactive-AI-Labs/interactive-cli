@@ -68,14 +68,15 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Write the release note for ${{ inputs.component }}: one plain sentence describing what changed, based only on the commit subjects below.
+            Write the release note for ${{ inputs.component }}: one plain sentence of at most 150 characters describing what changed, based only on the commit subjects below.
 
-            It is posted under a heading that already names the component and version, so start directly with the change. Don't mention versions, tags, or this task.
+            The note is posted under a heading that already names the component and version, so start directly with the change. Don't repeat the released version or tag, and don't describe this task.
 
-            Commit subjects:
+            <commit_subjects>
             ${{ steps.changes.outputs.subjects }}
+            </commit_subjects>
           claude_args: |
-            --json-schema '{"type":"object","properties":{"summary":{"type":"string","minLength":1,"maxLength":150,"description":"The release note sentence itself, starting with the change"}},"required":["summary"]}'
+            --json-schema '{"type":"object","properties":{"summary":{"type":"string","minLength":1,"maxLength":150,"description":"The release note sentence itself, starting with the change, at most 150 characters"}},"required":["summary"]}'
 
       - name: Fetch Slack bot token from Secret Manager
         id: slack_token
