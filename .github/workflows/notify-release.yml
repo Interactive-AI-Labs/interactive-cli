@@ -1,4 +1,4 @@
-name: Notify Release (core)
+name: Notify Release
 
 on:
   workflow_call:
