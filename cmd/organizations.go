@@ -33,7 +33,7 @@ var organizationsListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		if apiKey != "" {
+		if apiKey != "" && token == "" {
 			fmt.Fprintln(
 				cmd.ErrOrStderr(),
 				"Warning: API key authentication is ignored for organizations commands; using session cookies instead.",
@@ -88,7 +88,7 @@ var organizationsSelectCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 		orgName := args[0]
 
-		if apiKey != "" {
+		if apiKey != "" && token == "" {
 			fmt.Fprintln(
 				out,
 				"Warning: API key authentication is ignored for organizations commands; using session cookies instead.",

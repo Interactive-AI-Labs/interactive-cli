@@ -242,7 +242,7 @@ var queueItemsUpdateCmd = &cobra.Command{
 	Short: "Update a queue item",
 	Long: `Update the status of a queue item.
 
-This command requires API key authentication.`,
+With a session login, only COMPLETED is allowed; other statuses require API key authentication.`,
 	Example: `  iai queue-items update item-456 --queue-id queue-123 --status COMPLETED
   iai queue-items update item-456 --queue-id queue-123 --status PENDING --json
   iai queue-items update item-456 --queue-id queue-123 --status COMPLETED --yaml`,

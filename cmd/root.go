@@ -48,6 +48,12 @@ Use the subcommands below to manage your organizations, projects, agents, servic
 				!strings.HasPrefix(deploymentHostname, "https://") {
 				deploymentHostname = "https://" + deploymentHostname
 			}
+			if apiKey != "" && token != "" {
+				fmt.Fprintln(
+					cmd.ErrOrStderr(),
+					"Warning: the API key (--api-key or INTERACTIVE_API_KEY) is ignored because INTERACTIVE_TOKEN is set; unset INTERACTIVE_TOKEN to use it.",
+				)
+			}
 
 			// RefreshCache is intentionally gated too: no point keeping the
 			// cache warm when the notice can't be shown anyway.
