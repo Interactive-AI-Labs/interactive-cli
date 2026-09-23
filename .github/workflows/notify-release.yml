@@ -54,7 +54,7 @@ jobs:
             echo "previous=${PREVIOUS}"
             echo "count=$(git rev-list --count "$PREVIOUS..$TAG")"
             echo "subjects<<EOF"
-            git log --format='- %s' "$PREVIOUS..$TAG"
+            git log --no-merges --format='- %s' "$PREVIOUS..$TAG"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -68,11 +68,14 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
           prompt: |
-            Summarize what changed in ${{ inputs.component }} between ${{ steps.changes.outputs.previous }} and ${{ inputs.tag_name }} in one plain sentence for a release announcement, based only on these commit subjects:
+            Write the release note for ${{ inputs.component }}: one plain sentence describing what changed, based only on the commit subjects below.
 
+            It is posted under a heading that already names the component and version, so start directly with the change. Don't mention versions, tags, or this task.
+
+            Commit subjects:
             ${{ steps.changes.outputs.subjects }}
           claude_args: |
-            --json-schema '{"type":"object","properties":{"summary":{"type":"string","maxLength":150}},"required":["summary"]}'
+            --json-schema '{"type":"object","properties":{"summary":{"type":"string","minLength":1,"maxLength":150,"description":"The release note sentence itself, starting with the change"}},"required":["summary"]}'
 
       - name: Fetch Slack bot token from Secret Manager
         id: slack_token
