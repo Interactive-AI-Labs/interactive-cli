@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -98,6 +99,61 @@ messages:
 			}
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("LoadScenarioFile() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// Every option the caller can set has to reach the request, or the flag does nothing.
+func TestBuildReplayStartRequest(t *testing.T) {
+	body := map[string]any{"customer_id": "replay-1"}
+
+	for _, tt := range []struct {
+		name string
+		in   ReplayInput
+		body map[string]any
+		want deployment.ReplayStartRequest
+	}{
+		{
+			name: "a dataset run carries nothing extra",
+			in:   ReplayInput{Dataset: "replay-chat", Repeat: 1, Concurrency: 8},
+			want: deployment.ReplayStartRequest{
+				Dataset: "replay-chat", Repeat: 1, Concurrency: 8,
+			},
+		},
+		{
+			name: "an inline scenario travels in the body",
+			in:   ReplayInput{Repeat: 1, Concurrency: 8},
+			body: body,
+			want: deployment.ReplayStartRequest{
+				ScenarioBody: body, Repeat: 1, Concurrency: 8,
+			},
+		},
+		{
+			name: "a narrowed dataset keeps its scenario names",
+			in: ReplayInput{
+				Dataset: "replay-chat", Scenarios: []string{"a", "b"}, Repeat: 3, Concurrency: 16,
+			},
+			want: deployment.ReplayStartRequest{
+				Dataset: "replay-chat", Scenarios: []string{"a", "b"}, Repeat: 3, Concurrency: 16,
+			},
+		},
+		{
+			name: "the experiment and session options all arrive",
+			in: ReplayInput{
+				Dataset: "replay-chat", Repeat: 1, Concurrency: 8,
+				ExperimentName: "prompt-v4 sweep", ExperimentNameReuse: true, KeepSessions: true,
+			},
+			want: deployment.ReplayStartRequest{
+				Dataset: "replay-chat", Repeat: 1, Concurrency: 8,
+				ExperimentName: "prompt-v4 sweep", ExperimentNameReuse: true, KeepSessions: true,
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := BuildReplayStartRequest(tt.in, tt.body)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("request mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
