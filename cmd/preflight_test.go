@@ -193,12 +193,9 @@ func TestAgentEnvWarnings(t *testing.T) {
 			wantDropped: true,
 		},
 		{
-			name:     "MCP name without source metadata is not assumed managed",
+			name:     "a leftover MCP_KEY_ literal is reserved, not a user var to warn about",
 			live:     []deployment.EnvVar{{Name: "MCP_KEY_TOOLS_DEV", Value: ""}},
 			incoming: []string{"LOG_LEVEL=debug"},
-			want: "⚠ this update drops live env vars: MCP_KEY_TOOLS_DEV" +
-				" (--env replaces the entire list; pass every value you want to keep)\n",
-			wantDropped: true,
 		},
 		{
 			name:     "unmanaged secret references are not hidden",
@@ -218,7 +215,7 @@ func TestAgentEnvWarnings(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			dropped := printDroppedEnvSecretWarnings(
-				&buf, true, false, agentUserEnv(tt.live), nil, tt.incoming, nil,
+				&buf, true, false, deployment.UserEnv(tt.live), nil, tt.incoming, nil,
 			)
 			if got := buf.String(); got != tt.want {
 				t.Errorf("warnings = %q, want %q", got, tt.want)

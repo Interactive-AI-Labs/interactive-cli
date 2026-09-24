@@ -8,8 +8,9 @@ Fetch the live services, agents, databases, and mcps for a stack and write
 them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making
-changes. MCP credentials are never exported; include auth.credential before
-syncing credentialed MCPs.
+changes. MCP credentials are never exported, nor the platform-managed MCP_KEY_*
+entries agents show in describe; include auth.credential before syncing
+credentialed MCPs.
 
 The organization and project are read from flags or resolved via 'iai
 organizations select' / 'iai projects select'.
