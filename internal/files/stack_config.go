@@ -114,7 +114,7 @@ func (a AgentConfig) ToCreateRequest(stackId string) deployment.CreateAgentBody 
 		SecretRefs:  a.SecretRefs,
 		Endpoint:    a.Endpoint,
 		Schedule:    a.Schedule,
-		Env:         a.Env,
+		Env:         deployment.UserEnv(a.Env),
 		StackId:     stackId,
 	}
 }
@@ -171,7 +171,7 @@ func AgentConfigFromDescribe(agent *deployment.DescribeAgentResponse) AgentConfi
 		SecretRefs:  agent.SecretRefs,
 		Endpoint:    agent.Endpoint != "",
 		Schedule:    agent.Schedule,
-		Env:         agent.Env,
+		Env:         deployment.UserEnv(agent.Env),
 	}
 }
 

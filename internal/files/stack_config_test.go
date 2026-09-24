@@ -442,6 +442,52 @@ func TestServiceConfigToCreateRequest(t *testing.T) {
 	}
 }
 
+func TestAgentConfigToCreateRequest(t *testing.T) {
+	managed := deployment.EnvVar{
+		Name: "MCP_KEY_TOOLS_DEV",
+		ValueFrom: &deployment.EnvVarValueFrom{
+			SecretKeyRef: deployment.SecretKeyRef{Name: "tools-dev", Key: "MCP_API_KEY"},
+		},
+	}
+	tests := []struct {
+		name  string
+		input AgentConfig
+		want  deployment.CreateAgentBody
+	}{
+		{
+			name: "a file exported by an older CLI syncs without the managed MCP reference",
+			input: AgentConfig{
+				Id:      "interactive-agent",
+				Version: "0.16.0",
+				Env:     []deployment.EnvVar{{Name: "LOG_LEVEL", Value: "debug"}, managed},
+			},
+			want: deployment.CreateAgentBody{
+				Id:      "interactive-agent",
+				Version: "0.16.0",
+				Env:     []deployment.EnvVar{{Name: "LOG_LEVEL", Value: "debug"}},
+				StackId: "my-stack",
+			},
+		},
+		{
+			name:  "no env stays empty",
+			input: AgentConfig{Id: "interactive-agent", Version: "0.16.0"},
+			want: deployment.CreateAgentBody{
+				Id:      "interactive-agent",
+				Version: "0.16.0",
+				StackId: "my-stack",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.ToCreateRequest("my-stack")
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("ToCreateRequest() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestDatabaseConfigToCreateRequest(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -603,6 +649,58 @@ func TestServiceConfigFromDescribe(t *testing.T) {
 			got := ServiceConfigFromDescribe(tt.desc)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("ServiceConfigFromDescribe() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAgentConfigFromDescribe(t *testing.T) {
+	tests := []struct {
+		name string
+		desc *deployment.DescribeAgentResponse
+		want AgentConfig
+	}{
+		{
+			name: "drops managed MCP credential references so sync can send the env back",
+			desc: &deployment.DescribeAgentResponse{
+				Id:          "interactive-agent",
+				Version:     "0.15.3",
+				AgentConfig: map[string]any{"mcps": []any{"tools-dev"}},
+				SecretRefs:  []deployment.SecretRef{{SecretName: "agent-secrets"}},
+				Endpoint:    "agent.example.com",
+				Env: []deployment.EnvVar{
+					{Name: "LOG_LEVEL", Value: "debug"},
+					{
+						Name: "MCP_KEY_TOOLS_DEV",
+						ValueFrom: &deployment.EnvVarValueFrom{
+							SecretKeyRef: deployment.SecretKeyRef{
+								Name: "tools-dev",
+								Key:  "MCP_API_KEY",
+							},
+						},
+					},
+				},
+			},
+			want: AgentConfig{
+				Id:          "interactive-agent",
+				Version:     "0.15.3",
+				AgentConfig: map[string]any{"mcps": []any{"tools-dev"}},
+				SecretRefs:  []deployment.SecretRef{{SecretName: "agent-secrets"}},
+				Endpoint:    true,
+				Env:         []deployment.EnvVar{{Name: "LOG_LEVEL", Value: "debug"}},
+			},
+		},
+		{
+			name: "without endpoint or env",
+			desc: &deployment.DescribeAgentResponse{Id: "interactive-agent", Version: "0.15.3"},
+			want: AgentConfig{Id: "interactive-agent", Version: "0.15.3"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AgentConfigFromDescribe(tt.desc)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("AgentConfigFromDescribe() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -306,7 +306,7 @@ config diff.`,
 			droppedEntries = printDroppedEnvSecretWarnings(
 				errW,
 				cmd.Flags().Changed("env"), cmd.Flags().Changed("secret"),
-				agentUserEnv(live.Env), live.SecretRefs,
+				deployment.UserEnv(live.Env), live.SecretRefs,
 				agentEnvVars, agentSecretRefs,
 			)
 		}

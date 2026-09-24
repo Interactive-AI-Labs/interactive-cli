@@ -41,18 +41,6 @@ func runUpdatePreflight(
 	return nil
 }
 
-// agentUserEnv excludes MCP credential references that the operator preserves on env updates.
-func agentUserEnv(env []deployment.EnvVar) []deployment.EnvVar {
-	var userEnv []deployment.EnvVar
-	for _, e := range env {
-		if strings.HasPrefix(e.Name, "MCP_KEY_") && e.ValueFrom != nil {
-			continue
-		}
-		userEnv = append(userEnv, e)
-	}
-	return userEnv
-}
-
 func printDroppedEnvSecretWarnings(
 	errW io.Writer,
 	envChanged, secretChanged bool,
