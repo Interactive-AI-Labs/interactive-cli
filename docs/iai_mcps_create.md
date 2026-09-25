@@ -19,6 +19,10 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
+For internal and custom external mcps, --credential alone is sent as a bearer
+token (Authorization: Bearer); pass --auth-type api_key, or --auth-type custom
+with --auth-header, to send it another way.
+
 An internal mcp is verified automatically once ready. An external mcp is stored
 before the platform contacts the provider; after create, run 'iai mcps tools
 <mcp_name>' to verify the endpoint and credential. Tool discovery can be
