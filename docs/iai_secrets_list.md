@@ -4,7 +4,7 @@ List secrets in a project
 
 ### Synopsis
 
-List secrets in a specific project.
+List secrets in a specific project. MCP credentials aren't listed; see 'iai mcps'.
 
 ```
 iai secrets list [flags]
