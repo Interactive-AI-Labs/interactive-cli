@@ -9,6 +9,8 @@ Create an MCP server:
   Remote: hosted elsewhere; requires --external-url, including the endpoint path.
   Catalog: a predefined remote provider; --catalog-id supplies its endpoint and auth settings.
 
+Names starting with iai-mcp- are reserved.
+
 On create, a credential defaults to bearer authentication unless --auth-type,
 the custom header flags, or a catalog entry with a single auth method select
 otherwise. For a catalog entry with several methods, pass --auth-type to use

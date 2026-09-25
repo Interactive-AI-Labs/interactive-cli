@@ -20,8 +20,8 @@ routines and policies first using --schema-version on their create/update
 commands, then update the agent with the new config and version.
 
 Lists (--env, --secret) replace their user-managed values when provided — pass
-every value you want to keep. Managed MCP credential references are preserved
-during env updates and clears; detach the MCP to remove its credential.
+every value you want to keep. Env names starting with IAI_MCP_ or MCP_KEY_
+are reserved.
 
 For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone

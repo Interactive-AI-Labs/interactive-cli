@@ -6,6 +6,8 @@ Encrypted key-value pairs for services and agents
 
 Manage secrets in InteractiveAI projects.
 
+Names starting with iai-mcp- and keys starting with IAI_MCP_ are reserved.
+
 ### Options
 
 ```

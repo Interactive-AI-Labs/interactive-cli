@@ -31,7 +31,9 @@ var secretsCmd = &cobra.Command{
 	Aliases: []string{"secret"},
 	Short:   "Encrypted key-value pairs for services and agents",
 	GroupID: groupInfra,
-	Long:    `Manage secrets in InteractiveAI projects.`,
+	Long: `Manage secrets in InteractiveAI projects.
+
+Names starting with iai-mcp- and keys starting with IAI_MCP_ are reserved.`,
 }
 
 var secretsListCmd = &cobra.Command{
@@ -80,7 +82,9 @@ Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
-When both are provided, --data values take precedence.`,
+When both are provided, --data values take precedence.
+
+Names starting with iai-mcp- and keys starting with IAI_MCP_ are reserved.`,
 	Example: `  iai secrets create my-secret -d API_KEY=abc123
   iai secrets create my-secret -d API_KEY=abc123 -d DB_PASS=secret
   iai secrets create my-secret --from-env-file .env
@@ -156,7 +160,9 @@ Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
-When both are provided, --data values take precedence.`,
+When both are provided, --data values take precedence.
+
+Keys starting with IAI_MCP_ are reserved.`,
 	Example: `  # Update a single key (other keys preserved)
   iai secrets update my-secret -d API_KEY=new-value
 
