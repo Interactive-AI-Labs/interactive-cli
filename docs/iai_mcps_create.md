@@ -92,7 +92,7 @@ iai mcps create <mcp_name> [flags]
       --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
-      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
+      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal, default 100m)
       --credential string           Credential required by the mcp server
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
@@ -102,9 +102,9 @@ iai mcps create <mcp_name> [flags]
   -h, --help                        help for create
       --image-name string           Container image name (internal)
       --image-tag string            Container image tag (internal)
-      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal)
+      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
-      --port int                    MCP port to expose (internal)
+      --port int                    Port the mcp's own server listens on (internal, default 3000)
       --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal)
       --stack-id string             Stack ID to assign the mcp to (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
