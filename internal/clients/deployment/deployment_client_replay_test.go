@@ -1,6 +1,8 @@
 package deployment
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -145,6 +147,102 @@ func TestDecodeReplayRun(t *testing.T) {
 			tt.want.Raw = []byte(tt.body)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("decodeReplayRun() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestDecodeReplayStart(t *testing.T) {
+	tests := []struct {
+		name      string
+		body      string
+		wantRunID string
+		wantErr   string
+	}{
+		{
+			name:      "a run id is returned",
+			body:      `{"run_id":"run-1"}`,
+			wantRunID: "run-1",
+		},
+		{
+			name:    "an accepted run without an id is refused",
+			body:    `{}`,
+			wantErr: "no run_id",
+		},
+		{
+			name:    "an empty id is refused too",
+			body:    `{"run_id":""}`,
+			wantErr: "no run_id",
+		},
+		{
+			name:    "an unreadable body is refused",
+			body:    `not json`,
+			wantErr: "failed to decode replay response",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := decodeReplayStart([]byte(tt.body))
+
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %v, want it to mention %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("decodeReplayStart: %v", err)
+			}
+			if got.RunID != tt.wantRunID {
+				t.Errorf("run id = %q, want %q", got.RunID, tt.wantRunID)
+			}
+		})
+	}
+}
+
+// The experiment and session options are only useful if they reach the agent.
+func TestReplayStartRequestBody(t *testing.T) {
+	tests := []struct {
+		name string
+		req  ReplayStartRequest
+		want string
+	}{
+		{
+			name: "omitted when unset",
+			req:  ReplayStartRequest{Repeat: 1, Concurrency: 8},
+			want: `{"repeat":1,"concurrency":8}`,
+		},
+		{
+			name: "carried when named",
+			req: ReplayStartRequest{
+				Repeat: 1, Concurrency: 8, ExperimentName: "prompt-v4 sweep",
+			},
+			want: `{"repeat":1,"concurrency":8,"experiment_name":"prompt-v4 sweep"}`,
+		},
+		{
+			name: "sessions are kept on request",
+			req:  ReplayStartRequest{Repeat: 1, Concurrency: 8, KeepSessions: true},
+			want: `{"repeat":1,"concurrency":8,"keep_sessions":true}`,
+		},
+		{
+			name: "reuse rides along",
+			req: ReplayStartRequest{
+				Repeat: 1, Concurrency: 8,
+				ExperimentName: "prompt-v4 sweep", ExperimentNameReuse: true,
+			},
+			want: `{"repeat":1,"concurrency":8,"experiment_name":"prompt-v4 sweep","experiment_name_reuse":true}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := json.Marshal(tt.req)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			if string(got) != tt.want {
+				t.Errorf("body  = %s\nwant  = %s", got, tt.want)
 			}
 		})
 	}

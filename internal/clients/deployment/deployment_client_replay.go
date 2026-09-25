@@ -21,6 +21,12 @@ type ReplayStartRequest struct {
 	ScenarioBody map[string]any `json:"scenario_body,omitempty"`
 	Repeat       int            `json:"repeat"`
 	Concurrency  int            `json:"concurrency"`
+	// ExperimentName replaces the timestamped name the platform would give the run.
+	ExperimentName string `json:"experiment_name,omitempty"`
+	// ExperimentNameReuse appends to an experiment of that name instead of refusing it.
+	ExperimentNameReuse bool `json:"experiment_name_reuse,omitempty"`
+	// KeepSessions keeps the sessions a replay would otherwise discard once it has a verdict.
+	KeepSessions bool `json:"keep_sessions,omitempty"`
 }
 
 // ReplaySkipped is a dataset item the agent did not replay, with the reason.
@@ -154,6 +160,11 @@ func (c *DeploymentClient) StartReplay(
 		return nil, decodeReplayError(resp.StatusCode, raw)
 	}
 
+	return decodeReplayStart(raw)
+}
+
+// decodeReplayStart reads the accepted-run body: a run id, or why there is none.
+func decodeReplayStart(raw []byte) (*ReplayStartResponse, error) {
 	var out ReplayStartResponse
 	if err := json.Unmarshal(raw, &out); err != nil {
 		return nil, fmt.Errorf("failed to decode replay response: %w", err)
