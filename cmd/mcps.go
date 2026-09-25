@@ -74,9 +74,10 @@ var mcpsCmd = &cobra.Command{
 	Aliases: []string{"mcp"},
 	Short:   "Deploy and manage MCP servers",
 	GroupID: groupInfra,
-	Long: `Manage MCP servers for a project — hosted servers ("internal"), custom
-external URLs, or catalog-backed providers (external, external URL + auth derived
-from the curated catalog).
+	Long: `Manage MCP servers for a project — self-hosted servers deployed in the
+platform (type "internal"), or remote servers hosted outside the platform
+(type "external"): a custom URL or a catalog-backed provider whose URL and auth
+come from the curated catalog.
 
 Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.`,
 }
@@ -115,24 +116,25 @@ var mcpCatalogCmd = &cobra.Command{
 var mcpCreateCmd = &cobra.Command{
 	Use:   "create <mcp_name>",
 	Short: "Create an mcp in a project",
-	Long: `Create an mcp — a hosted MCP server ("internal"), a custom external URL,
-or a catalog-backed provider.
+	Long: `Create an mcp — a self-hosted MCP server deployed in the platform
+(type "internal"), or a remote one hosted outside the platform (type "external"):
+a custom URL or a catalog-backed provider.
 
-Internal: --image-name and --image-tag identify the image. --port, --path,
+Self-hosted: --image-name and --image-tag identify the image. --port, --path,
 --memory, and --cpu configure how it runs. --env NAME=VALUE and --secret
 configure the server itself and can each be repeated; --secret takes the name
 of a secret that already exists in the project (see 'iai secrets'), which is
 loaded whole as environment variables. Secret values are never passed here.
-External custom: --external-url — a server not owned by the platform, dialed
+Remote custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
-External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
+Remote catalog: --catalog-id (see 'iai mcps catalog'); the URL and auth are
 derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-An internal mcp is verified automatically once ready. An external mcp is stored
+A self-hosted mcp is verified automatically once ready. A remote mcp is stored
 before the platform contacts the provider; after create, run 'iai mcps tools
-<mcp_name>' to verify the endpoint and credential. Tool discovery can be
+<mcp_name>' to verify the URL and credential. Tool discovery can be
 anonymous, so it only catches a bad credential when the provider protects it.
 An --auth-type oauth mcp has no credential until the user signs in; connect it
 before running the tools check.
@@ -371,9 +373,9 @@ every value you want to keep.
 Use --clear-env, --clear-secret, or --clear-stack-id to remove those
 configurations entirely.
 
-The type (internal/external) and, for external mcps, the endpoint/catalog cannot
-change — delete and recreate instead. Internal workload flags can be updated
-independently. Internal auth fields can be updated independently; external
+The type (self-hosted/remote) and, for remote mcps, the URL/catalog cannot
+change — delete and recreate instead. Self-hosted workload flags can be updated
+independently. Self-hosted auth fields can be updated independently; remote
 credential changes require --auth-type.`,
 	Example: `  iai mcps update my-tool --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
@@ -500,7 +502,7 @@ var mcpDescribeCmd = &cobra.Command{
 	Use:     "describe <mcp_name>",
 	Aliases: []string{"desc"},
 	Short:   "Show mcp details, verify state, and cached tools",
-	Long: `Show the mcp's record (type, connection URL, optional public hostname, catalog origin) and its latest
+	Long: `Show the mcp's record (type, connection URL, optional public endpoint for self-hosted mcps, catalog origin) and its latest
 verify result — a tool count, not the tool list itself (see 'iai mcps tools').`,
 	Example: `  iai mcps describe my-tool
   iai mcps describe my-tool --json`,
@@ -845,9 +847,9 @@ func waitForSignIn(
 
 var mcpVerifyCmd = &cobra.Command{
 	Use:   "verify <mcp_name>",
-	Short: "Re-verify an external mcp and refresh its cached tools",
+	Short: "Re-verify a remote mcp and refresh its cached tools",
 	Long: `Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
-External mcps only — internal mcps verify automatically once ready and reject a
+Remote mcps only — self-hosted mcps verify automatically once ready and reject a
 manual verify.`,
 	Example: `  iai mcps verify my-tool
   iai mcps verify my-tool --json`,
@@ -995,19 +997,19 @@ func init() {
 
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().
-			IntVar(&mcpPort, "port", 0, "MCP port to expose (internal)")
+			IntVar(&mcpPort, "port", 0, "MCP port to expose (self-hosted)")
 		c.Flags().
-			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)")
+			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp publicly (externally accessible) at <mcp-name>-<project-hash>.interactive.ai (self-hosted)")
 		c.Flags().
-			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (internal, default "/mcp")`)
+			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")`)
 		c.Flags().
-			StringVar(&mcpImageName, "image-name", "", "Container image name (internal)")
+			StringVar(&mcpImageName, "image-name", "", "Container image name (self-hosted)")
 		c.Flags().
-			StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal)")
+			StringVar(&mcpImageTag, "image-tag", "", "Container image tag (self-hosted)")
 		c.Flags().
-			StringVar(&mcpMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal)")
+			StringVar(&mcpMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted)")
 		c.Flags().
-			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)")
+			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (self-hosted)")
 		c.Flags().
 			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create`)
 		c.Flags().
@@ -1019,29 +1021,29 @@ func init() {
 		c.Flags().
 			StringVar(&mcpAuthHeaderPfx, "auth-header-prefix", "", "Credential value prefix")
 		c.Flags().
-			StringVar(&mcpStackId, "stack-id", "", "Stack ID to assign the mcp to (internal)")
+			StringVar(&mcpStackId, "stack-id", "", "Stack ID to assign the mcp to (self-hosted)")
 		c.Flags().
-			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated (internal)")
+			StringArrayVar(&mcpEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated (self-hosted)")
 		c.Flags().
-			StringArrayVar(&mcpSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated (internal)")
+			StringArrayVar(&mcpSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated (self-hosted)")
 		c.Flags().
 			StringVar(&mcpDescription, "description", "", "Human-readable description of the mcp")
 		c.MarkFlagsMutuallyExclusive("credential", "credential-stdin")
 	}
 
 	mcpUpdateCmd.Flags().
-		BoolVar(&mcpClearEnv, "clear-env", false, "Remove all environment variables from the mcp (internal)")
+		BoolVar(&mcpClearEnv, "clear-env", false, "Remove all environment variables from the mcp (self-hosted)")
 	mcpUpdateCmd.Flags().
-		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp (internal)")
+		BoolVar(&mcpClearSecret, "clear-secret", false, "Remove all secret references from the mcp (self-hosted)")
 	mcpUpdateCmd.Flags().
-		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the mcp from its stack (internal)")
+		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the mcp from its stack (self-hosted)")
 
 	mcpCreateCmd.Flags().
-		StringVar(&mcpType, "type", "", `Mcp type: "internal" or "external" (inferred from other flags if omitted)`)
+		StringVar(&mcpType, "type", "", `Mcp type: "internal" (self-hosted) or "external" (remote) (inferred from other flags if omitted)`)
 	mcpCreateCmd.Flags().
-		StringVar(&mcpEndpointURL, "external-url", "", "External MCP server URL — not platform-owned, dialed directly (custom external mcp)")
+		StringVar(&mcpEndpointURL, "external-url", "", "Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)")
 	mcpCreateCmd.Flags().
-		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)")
+		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog remote mcp)")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
 	mcpUpdateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")

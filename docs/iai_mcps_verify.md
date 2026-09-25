@@ -1,11 +1,11 @@
 ## iai mcps verify
 
-Re-verify an external mcp and refresh its cached tools
+Re-verify a remote mcp and refresh its cached tools
 
 ### Synopsis
 
 Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
-External mcps only — internal mcps verify automatically once ready and reject a
+Remote mcps only — self-hosted mcps verify automatically once ready and reject a
 manual verify.
 
 ```

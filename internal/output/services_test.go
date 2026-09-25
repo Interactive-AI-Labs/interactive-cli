@@ -178,7 +178,10 @@ func TestPrintServiceDescribe(t *testing.T) {
 					Revision:  10,
 					Status:    "deployed",
 				},
-				Endpoint:    "full-svc-abc.dev.interactive.ai",
+				Endpoint: deployment.Endpoint{
+					Internal: "full-svc:443",
+					Public:   "full-svc-abc.dev.interactive.ai",
+				},
 				ServicePort: 443,
 				Image: deployment.ImageSpec{
 					Type:       "platform",
@@ -225,11 +228,12 @@ func TestPrintServiceDescribe(t *testing.T) {
 				"  Memory:   1G\n" +
 				"\n" +
 				"Autoscaling:\n" +
-				"  Min Replicas:   2\n" +
-				"  Max Replicas:   8\n" +
-				"  CPU%:           65\n" +
-				"  Memory%:        80\n" +
-				"Endpoint:         full-svc-abc.dev.interactive.ai\n" +
+				"  Min Replicas:      2\n" +
+				"  Max Replicas:      8\n" +
+				"  CPU%:              65\n" +
+				"  Memory%:           80\n" +
+				"Internal Endpoint:   full-svc:443\n" +
+				"Public Endpoint:     full-svc-abc.dev.interactive.ai\n" +
 				"\n" +
 				"Healthcheck:\n" +
 				"  Path:            /healthz\n" +
@@ -379,7 +383,7 @@ func TestPrintServiceRevision(t *testing.T) {
 					Repository: "apps",
 				},
 				Resources: deployment.Resources{Memory: "512M", CPU: "500m"},
-				Endpoint:  "api.interactive.ai",
+				Endpoint:  deployment.Endpoint{Internal: "api:443", Public: "api.interactive.ai"},
 				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "info"},
 				},
@@ -396,10 +400,11 @@ func TestPrintServiceRevision(t *testing.T) {
 				"  Tag:          2.0\n" +
 				"  Repository:   apps\n" +
 				"Resources:\n" +
-				"  CPU:      500m\n" +
-				"  Memory:   512M\n" +
-				"Replicas:   0\n" +
-				"Endpoint:   api.interactive.ai\n" +
+				"  CPU:               500m\n" +
+				"  Memory:            512M\n" +
+				"Replicas:            0\n" +
+				"Internal Endpoint:   api:443\n" +
+				"Public Endpoint:     api.interactive.ai\n" +
 				"\n" +
 				"Environment:\n" +
 				"  LOG_LEVEL=info\n",

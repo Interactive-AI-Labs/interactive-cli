@@ -155,7 +155,7 @@ func ServiceConfigFromDescribe(svc *deployment.DescribeServiceResponse) ServiceC
 		Resources:   svc.Resources,
 		Env:         svc.Env,
 		SecretRefs:  svc.SecretRefs,
-		Endpoint:    svc.Endpoint != "",
+		Endpoint:    svc.Endpoint.Public != "",
 		Replicas:    svc.Replicas,
 		Autoscaling: svc.Autoscaling,
 		Healthcheck: svc.Healthcheck,
@@ -169,7 +169,7 @@ func AgentConfigFromDescribe(agent *deployment.DescribeAgentResponse) AgentConfi
 		Version:     agent.Version,
 		AgentConfig: agent.AgentConfig,
 		SecretRefs:  agent.SecretRefs,
-		Endpoint:    agent.Endpoint != "",
+		Endpoint:    agent.Endpoint.Public != "",
 		Schedule:    agent.Schedule,
 		Env:         agent.Env,
 	}

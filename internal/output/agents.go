@@ -47,8 +47,11 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 	if agent.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(agent.Updated))
 	}
-	if agent.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", agent.Endpoint)
+	if agent.Endpoint.Internal != "" {
+		fmt.Fprintf(w, "Internal Endpoint:\t%s\n", agent.Endpoint.Internal)
+	}
+	if agent.Endpoint.Public != "" {
+		fmt.Fprintf(w, "Public Endpoint:\t%s\n", agent.Endpoint.Public)
 	}
 	if len(agent.Env) > 0 {
 		fmt.Fprintln(w)
@@ -110,8 +113,11 @@ func PrintAgentRevision(out io.Writer, rev *deployment.AgentRevisionResponse) er
 	fmt.Fprintf(w, "Id:\t%s\n", rev.Id)
 	fmt.Fprintf(w, "Version:\t%s\n", rev.Version)
 
-	if rev.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
+	if rev.Endpoint.Internal != "" {
+		fmt.Fprintf(w, "Internal Endpoint:\t%s\n", rev.Endpoint.Internal)
+	}
+	if rev.Endpoint.Public != "" {
+		fmt.Fprintf(w, "Public Endpoint:\t%s\n", rev.Endpoint.Public)
 	}
 	if len(rev.Env) > 0 {
 		fmt.Fprintln(w)

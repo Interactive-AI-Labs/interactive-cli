@@ -162,9 +162,12 @@ func TestPrintAgentRevision(t *testing.T) {
 					},
 					Source: &deployment.RevisionSource{Type: "cli", Version: "0.39.0"},
 				},
-				Id:       "interactive-agent",
-				Version:  "2.0.0",
-				Endpoint: "my-agent.interactive.ai",
+				Id:      "interactive-agent",
+				Version: "2.0.0",
+				Endpoint: deployment.Endpoint{
+					Internal: "my-agent:8080",
+					Public:   "my-agent.interactive.ai",
+				},
 				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "debug"},
 					{
@@ -178,14 +181,15 @@ func TestPrintAgentRevision(t *testing.T) {
 					},
 				},
 			},
-			want: "Revision:   5\n" +
-				"Status:     deployed\n" +
-				"Updated:    2024-06-01\n" +
-				"By:         silverspin-release (API key)\n" +
-				"Source:     iai 0.39.0\n" +
-				"Id:         interactive-agent\n" +
-				"Version:    2.0.0\n" +
-				"Endpoint:   my-agent.interactive.ai\n" +
+			want: "Revision:            5\n" +
+				"Status:              deployed\n" +
+				"Updated:             2024-06-01\n" +
+				"By:                  silverspin-release (API key)\n" +
+				"Source:              iai 0.39.0\n" +
+				"Id:                  interactive-agent\n" +
+				"Version:             2.0.0\n" +
+				"Internal Endpoint:   my-agent:8080\n" +
+				"Public Endpoint:     my-agent.interactive.ai\n" +
 				"\n" +
 				"Environment:\n" +
 				"  LOG_LEVEL=debug\n" +

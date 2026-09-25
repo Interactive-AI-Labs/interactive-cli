@@ -379,3 +379,44 @@ func TestDecodeSecretData(t *testing.T) {
 		})
 	}
 }
+
+func TestDescribeServiceResponseEndpoint(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want Endpoint
+	}{
+		{
+			name: "internal and public",
+			body: `{"endpoint":{"internal":"svc:8080","public":"svc-abc.interactive.ai"}}`,
+			want: Endpoint{Internal: "svc:8080", Public: "svc-abc.interactive.ai"},
+		},
+		{
+			name: "internal only",
+			body: `{"endpoint":{"internal":"svc:8080"}}`,
+			want: Endpoint{Internal: "svc:8080"},
+		},
+		{
+			name: "older public hostname string",
+			body: `{"endpoint":"svc-abc.interactive.ai"}`,
+			want: Endpoint{Public: "svc-abc.interactive.ai"},
+		},
+		{
+			name: "no endpoint",
+			body: `{}`,
+			want: Endpoint{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got DescribeServiceResponse
+			if err := json.Unmarshal([]byte(tt.body), &got); err != nil {
+				t.Fatalf("unmarshal error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, got.Endpoint); diff != "" {
+				t.Errorf("endpoint mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}

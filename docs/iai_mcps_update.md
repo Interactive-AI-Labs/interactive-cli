@@ -15,9 +15,9 @@ every value you want to keep.
 Use --clear-env, --clear-secret, or --clear-stack-id to remove those
 configurations entirely.
 
-The type (internal/external) and, for external mcps, the endpoint/catalog cannot
-change — delete and recreate instead. Internal workload flags can be updated
-independently. Internal auth fields can be updated independently; external
+The type (self-hosted/remote) and, for remote mcps, the URL/catalog cannot
+change — delete and recreate instead. Self-hosted workload flags can be updated
+independently. Self-hosted auth fields can be updated independently; remote
 credential changes require --auth-type.
 
 ```
@@ -47,26 +47,26 @@ iai mcps update <mcp_name> [flags]
       --auth-header string          Custom header used to send the credential
       --auth-header-prefix string   Credential value prefix
       --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
-      --clear-env                   Remove all environment variables from the mcp (internal)
-      --clear-secret                Remove all secret references from the mcp (internal)
-      --clear-stack-id              Remove the mcp from its stack (internal)
+      --clear-env                   Remove all environment variables from the mcp (self-hosted)
+      --clear-secret                Remove all secret references from the mcp (self-hosted)
+      --clear-stack-id              Remove the mcp from its stack (self-hosted)
       --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
-      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
+      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (self-hosted)
       --credential string           Credential required by the mcp server
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
-      --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)
-      --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
+      --endpoint                    Expose the mcp publicly (externally accessible) at <mcp-name>-<project-hash>.interactive.ai (self-hosted)
+      --env stringArray             Environment variable (NAME=VALUE); can be repeated (self-hosted)
   -h, --help                        help for update
-      --image-name string           Container image name (internal)
-      --image-tag string            Container image tag (internal)
-      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal)
-      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
-      --port int                    MCP port to expose (internal)
-      --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal)
-      --stack-id string             Stack ID to assign the mcp to (internal)
+      --image-name string           Container image name (self-hosted)
+      --image-tag string            Container image tag (self-hosted)
+      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted)
+      --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
+      --port int                    MCP port to expose (self-hosted)
+      --secret stringArray          Secrets to be loaded as env vars; can be repeated (self-hosted)
+      --stack-id string             Stack ID to assign the mcp to (self-hosted)
 ```
 
 ### Options inherited from parent commands

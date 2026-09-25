@@ -4,9 +4,10 @@ Deploy and manage MCP servers
 
 ### Synopsis
 
-Manage MCP servers for a project — hosted servers ("internal"), custom
-external URLs, or catalog-backed providers (external, external URL + auth derived
-from the curated catalog).
+Manage MCP servers for a project — self-hosted servers deployed in the
+platform (type "internal"), or remote servers hosted outside the platform
+(type "external"): a custom URL or a catalog-backed provider whose URL and auth
+come from the curated catalog.
 
 Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 
@@ -48,5 +49,5 @@ Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.
 * [iai mcps run-tool](iai_mcps_run-tool.md)	 - Run a tool on an mcp
 * [iai mcps tools](iai_mcps_tools.md)	 - List an mcp's cached tools with descriptions
 * [iai mcps update](iai_mcps_update.md)	 - Update an mcp in a project
-* [iai mcps verify](iai_mcps_verify.md)	 - Re-verify an external mcp and refresh its cached tools
+* [iai mcps verify](iai_mcps_verify.md)	 - Re-verify a remote mcp and refresh its cached tools
 

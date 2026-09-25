@@ -6,6 +6,9 @@ Describe a service in detail
 
 Show detailed information about a specific service including its configuration.
 
+Internal Endpoint (name:port) is reachable only within the project. Public
+Endpoint is the externally accessible hostname, shown when --endpoint is enabled.
+
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
 Use --revision to view a specific past revision instead of the current state.

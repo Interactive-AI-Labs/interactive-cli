@@ -27,7 +27,7 @@ iai services create <service_name> [flags]
       --autoscaling-memory-percentage int   Memory percentage threshold for autoscaling
       --autoscaling-min-replicas int        Minimum number of replicas for autoscaling
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
-      --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
+      --endpoint                            Expose the service publicly (externally accessible) at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
       --healthcheck-initial-delay int       Initial delay in seconds before starting healthchecks
       --healthcheck-path string             HTTP path for healthcheck endpoint (e.g. /health)
