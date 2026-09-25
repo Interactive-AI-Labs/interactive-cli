@@ -6,6 +6,10 @@ Describe an agent in detail
 
 Show detailed information about a specific agent including its configuration.
 
+Endpoint shows Private (name:port), reachable only within the project, and
+Public, the externally accessible hostname, shown when the agent was created or
+updated with --endpoint.
+
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
 Use --revision to view a specific past revision instead of the current state.

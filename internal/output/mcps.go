@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
@@ -15,7 +16,7 @@ func PrintMcpList(out io.Writer, mcps []platform.McpSchema) error {
 		fmt.Fprintln(out, "No mcps found.")
 		return nil
 	}
-	headers := []string{"NAME", "BACKEND", "STATUS", "VERIFY", "TOOLS", "CREDENTIAL", "STACK"}
+	headers := []string{"NAME", "TYPE", "STATUS", "VERIFY", "TOOLS", "CREDENTIAL", "STACK"}
 	rows := make([][]string, len(mcps))
 	for i, m := range mcps {
 		status := "-"
@@ -39,7 +40,7 @@ func PrintMcpList(out io.Writer, mcps []platform.McpSchema) error {
 		}
 		rows[i] = []string{
 			m.Name,
-			string(m.Backend),
+			deployment.McpTypeName(string(m.Backend)),
 			status,
 			verify,
 			strconv.Itoa(m.ToolCount),
@@ -99,7 +100,7 @@ func mcpPermissions(e platform.McpCatalogEntry) string {
 func PrintMcpDetail(out io.Writer, m *platform.McpSchema) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Name:\t%s\n", m.Name)
-	fmt.Fprintf(w, "Backend:\t%s\n", m.Backend)
+	fmt.Fprintf(w, "Type:\t%s\n", deployment.McpTypeName(string(m.Backend)))
 	if m.StackId != nil && *m.StackId != "" {
 		fmt.Fprintf(w, "Stack:\t%s\n", *m.StackId)
 	}

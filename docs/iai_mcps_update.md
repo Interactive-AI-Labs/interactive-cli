@@ -15,12 +15,12 @@ every value you want to keep.
 Use --clear-env, --clear-secret, or --clear-stack-id to remove those
 configurations entirely.
 
-The type (internal/external) and, for external mcps, the endpoint/catalog cannot
-change — delete and recreate instead. Internal workload flags can be updated
-independently. Internal auth fields can be updated independently; external
-credential changes require --auth-type, and so does adding a credential to an
-internal mcp created without one (e.g. --auth-type bearer). Changing the
-credential restarts the mcp and every agent attached to it, so an internal
+The type (self-hosted/remote) and, for remote mcps, the URL/catalog cannot
+change — delete and recreate instead. Self-hosted workload flags can be updated
+independently. Self-hosted auth fields can be updated independently; remote
+credential changes require --auth-type, and so does adding a credential to a
+self-hosted mcp created without one (e.g. --auth-type bearer). Changing the
+credential restarts the mcp and every agent attached to it, so a self-hosted
 mcp's server reads the new value from MCP_API_KEY.
 
 ```
@@ -50,26 +50,26 @@ iai mcps update <mcp_name> [flags]
       --auth-header string          Header used for custom authentication
       --auth-header-prefix string   Optional credential prefix for custom authentication (e.g. "Token ")
       --auth-type string            Authentication type: "bearer" (Authorization: Bearer), "api_key" (X-API-Key), "custom", "none", "oauth", or "client_credentials"; inferred on create
-      --clear-env                   Remove all environment variables from the mcp (internal)
-      --clear-secret                Remove all secret references from the mcp (internal)
-      --clear-stack-id              Remove the mcp from its stack (internal)
+      --clear-env                   Remove all environment variables from the mcp (self-hosted)
+      --clear-secret                Remove all secret references from the mcp (self-hosted)
+      --clear-stack-id              Remove the mcp from its stack (self-hosted)
       --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
-      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal, default 100m)
-      --credential string           Credential the mcp server requires; an internal mcp's server reads it from MCP_API_KEY
+      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (self-hosted, default 100m)
+      --credential string           Credential the mcp server requires; a self-hosted mcp's server reads it from MCP_API_KEY
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
-      --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)
-      --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
+      --endpoint                    Expose the mcp publicly at <mcp-name>-<project-hash>.interactive.ai (self-hosted)
+      --env stringArray             Environment variable (NAME=VALUE); can be repeated (self-hosted)
   -h, --help                        help for update
-      --image-name string           Container image name (internal)
-      --image-tag string            Container image tag (internal)
-      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal, default 128M)
-      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
-      --port int                    Port the mcp's own server listens on (internal, default 3000)
-      --secret stringArray          Existing project secret whose keys become environment variables; repeatable (internal)
-      --stack-id string             Stack ID to assign the mcp to (internal)
+      --image-name string           Container image name (self-hosted)
+      --image-tag string            Container image tag (self-hosted)
+      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)
+      --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
+      --port int                    Port the mcp's own server listens on (self-hosted, default 3000)
+      --secret stringArray          Existing project secret whose keys become environment variables; repeatable (self-hosted)
+      --stack-id string             Stack ID to assign the mcp to (self-hosted)
 ```
 
 ### Options inherited from parent commands
