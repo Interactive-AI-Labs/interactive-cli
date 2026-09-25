@@ -345,6 +345,9 @@ var servDescribeCmd = &cobra.Command{
 	Short:   "Describe a service in detail",
 	Long: `Show detailed information about a specific service including its configuration.
 
+Internal Endpoint (name:port) is reachable only within the project. Public
+Endpoint is the externally accessible hostname, shown when --endpoint is enabled.
+
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
 Use --revision to view a specific past revision instead of the current state.
@@ -1031,7 +1034,7 @@ func init() {
 	servCCmd.Flags().
 		StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servCCmd.Flags().
-		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
+		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service publicly (externally accessible) at <service-name>-<project-hash>.interactive.ai")
 
 	servCCmd.Flags().
 		StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")
@@ -1081,7 +1084,7 @@ func init() {
 	servUCmd.Flags().
 		StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
 	servUCmd.Flags().
-		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service at <service-name>-<project-hash>.interactive.ai")
+		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service publicly (externally accessible) at <service-name>-<project-hash>.interactive.ai")
 
 	servUCmd.Flags().
 		StringVar(&serviceHealthcheckPath, "healthcheck-path", "", "HTTP path for healthcheck endpoint (e.g. /health)")

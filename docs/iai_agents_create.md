@@ -39,7 +39,7 @@ iai agents create <agent_name> [flags]
 ### Options
 
 ```
-      --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
+      --endpoint                   Expose the agent publicly (externally accessible) at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
   -h, --help                       help for create

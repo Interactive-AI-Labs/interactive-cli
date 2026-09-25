@@ -62,7 +62,7 @@ iai services update <service_name> [flags]
       --clear-secret                        Remove all secret references from the service
       --clear-stack-id                      Remove the service from its stack
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
-      --endpoint                            Expose the service at <service-name>-<project-hash>.interactive.ai
+      --endpoint                            Expose the service publicly (externally accessible) at <service-name>-<project-hash>.interactive.ai
       --env stringArray                     Environment variable (NAME=VALUE); can be repeated
       --expect-revision int                 Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated service (opt-in staleness guard)
       --force                               Apply even when the update would drop live env vars or secret refs

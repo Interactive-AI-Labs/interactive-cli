@@ -85,7 +85,7 @@ iai agents update <agent_name> [flags]
       --clear-secret               Remove all secret references from the agent
       --clear-stack-id             Remove the agent from its stack
       --detach-mcp stringArray     Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)
-      --endpoint                   Expose the agent at <agent-name>-<project-hash>.interactive.ai
+      --endpoint                   Expose the agent publicly (externally accessible) at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
       --expect-revision int        Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)

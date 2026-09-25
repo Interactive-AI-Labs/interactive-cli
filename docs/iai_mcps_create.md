@@ -4,24 +4,25 @@ Create an mcp in a project
 
 ### Synopsis
 
-Create an mcp — a hosted MCP server ("internal"), a custom external URL,
-or a catalog-backed provider.
+Create an mcp — a self-hosted MCP server deployed in the platform
+(type "internal"), or a remote one hosted outside the platform (type "external"):
+a custom URL or a catalog-backed provider.
 
-Internal: --image-name and --image-tag identify the image. --port, --path,
+Self-hosted: --image-name and --image-tag identify the image. --port, --path,
 --memory, and --cpu configure how it runs. --env NAME=VALUE and --secret
 configure the server itself and can each be repeated; --secret takes the name
 of a secret that already exists in the project (see 'iai secrets'), which is
 loaded whole as environment variables. Secret values are never passed here.
-External custom: --external-url — a server not owned by the platform, dialed
+Remote custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
-External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
+Remote catalog: --catalog-id (see 'iai mcps catalog'); the URL and auth are
 derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-An internal mcp is verified automatically once ready. An external mcp is stored
+A self-hosted mcp is verified automatically once ready. A remote mcp is stored
 before the platform contacts the provider; after create, run 'iai mcps tools
-<mcp_name>' to verify the endpoint and credential. Tool discovery can be
+<mcp_name>' to verify the URL and credential. Tool discovery can be
 anonymous, so it only catches a bad credential when the provider protects it.
 An --auth-type oauth mcp has no credential until the user signs in; connect it
 before running the tools check.
@@ -84,26 +85,26 @@ iai mcps create <mcp_name> [flags]
       --auth-header string          Custom header used to send the credential
       --auth-header-prefix string   Credential value prefix
       --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
-      --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
+      --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog remote mcp)
       --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
-      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
+      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (self-hosted)
       --credential string           Credential required by the mcp server
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
-      --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)
-      --env stringArray             Environment variable (NAME=VALUE); can be repeated (internal)
-      --external-url string         External MCP server URL — not platform-owned, dialed directly (custom external mcp)
+      --endpoint                    Expose the mcp publicly (externally accessible) at <mcp-name>-<project-hash>.interactive.ai (self-hosted)
+      --env stringArray             Environment variable (NAME=VALUE); can be repeated (self-hosted)
+      --external-url string         Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)
   -h, --help                        help for create
-      --image-name string           Container image name (internal)
-      --image-tag string            Container image tag (internal)
-      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal)
-      --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
-      --port int                    MCP port to expose (internal)
-      --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal)
-      --stack-id string             Stack ID to assign the mcp to (internal)
-      --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
+      --image-name string           Container image name (self-hosted)
+      --image-tag string            Container image tag (self-hosted)
+      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted)
+      --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
+      --port int                    MCP port to expose (self-hosted)
+      --secret stringArray          Secrets to be loaded as env vars; can be repeated (self-hosted)
+      --stack-id string             Stack ID to assign the mcp to (self-hosted)
+      --type string                 Mcp type: "internal" (self-hosted) or "external" (remote) (inferred from other flags if omitted)
 ```
 
 ### Options inherited from parent commands
