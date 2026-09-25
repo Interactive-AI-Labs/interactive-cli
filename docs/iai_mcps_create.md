@@ -19,6 +19,18 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
+When neither --auth-type nor a catalog entry decides the auth type, --credential
+alone is sent as a bearer token (Authorization: Bearer); pass --auth-type
+api_key (X-API-Key), or --auth-type custom with --auth-header and an optional
+--auth-header-prefix, to send it another way.
+
+An internal mcp's server receives its credential as the MCP_API_KEY
+environment variable (don't set that name with --env) and must check every
+request against it: the platform doesn't, so a server that ignores it answers
+anyone who can reach it, including the internet with --endpoint. Agents send
+the credential as a bearer token, so only a bearer or no-auth internal mcp can
+be attached to an agent.
+
 An internal mcp is verified automatically once ready. An external mcp is stored
 before the platform contacts the provider; after create, run 'iai mcps tools
 <mcp_name>' to verify the endpoint and credential. Tool discovery can be
@@ -88,8 +100,8 @@ iai mcps create <mcp_name> [flags]
       --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
-      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)
-      --credential string           Credential required by the mcp server
+      --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal, default 100m)
+      --credential string           Credential the mcp server requires; an internal mcp's server reads it from MCP_API_KEY
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
       --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)
@@ -98,9 +110,9 @@ iai mcps create <mcp_name> [flags]
   -h, --help                        help for create
       --image-name string           Container image name (internal)
       --image-tag string            Container image tag (internal)
-      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal)
+      --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
-      --port int                    MCP port to expose (internal)
+      --port int                    Port the mcp's own server listens on (internal, default 3000)
       --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal)
       --stack-id string             Stack ID to assign the mcp to (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
