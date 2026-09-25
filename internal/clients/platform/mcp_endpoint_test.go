@@ -38,7 +38,7 @@ func TestMcpEndpointWireShape(t *testing.T) {
 }
 
 func TestMcpEndpointResponse(t *testing.T) {
-	internal := "http://tools.project.svc.cluster.local:8080/mcp"
+	internal := "http://tools:8080/mcp"
 	public := "tools.example.com"
 	for _, tt := range []struct {
 		name, body string

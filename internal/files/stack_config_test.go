@@ -512,9 +512,9 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 		want  deployment.CreateMcpBody
 	}{
 		{
-			name: "internal",
+			name: "self-hosted is sent as the older value",
 			input: McpConfig{
-				Type:      "internal",
+				Type:      "self-hosted",
 				Port:      8080,
 				Path:      "/mcp",
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
@@ -534,9 +534,9 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "external with bearer auth",
+			name: "remote with bearer auth is sent as the older value",
 			input: McpConfig{
-				Type:        "external",
+				Type:        "remote",
 				EndpointURL: "https://example.com/mcp",
 				Auth:        deployment.McpAuthBody{Type: "bearer", Credential: "token"},
 			},
@@ -578,7 +578,7 @@ func TestServiceConfigFromDescribe(t *testing.T) {
 				Resources:  deployment.Resources{Memory: "512M", CPU: "1"},
 				Env:        []deployment.EnvVar{{Name: "K", Value: "V"}},
 				SecretRefs: []deployment.SecretRef{{SecretName: "s"}},
-				Endpoint:   "example.com",
+				Endpoint:   &deployment.Endpoint{Private: "svc:8080", Public: "example.com"},
 				Replicas:   3,
 			},
 			want: ServiceConfig{
@@ -597,6 +597,14 @@ func TestServiceConfigFromDescribe(t *testing.T) {
 			},
 		},
 		{
+			name: "private endpoint only",
+			desc: &deployment.DescribeServiceResponse{
+				ServicePort: 8080,
+				Endpoint:    &deployment.Endpoint{Private: "svc:8080"},
+			},
+			want: ServiceConfig{ServicePort: 8080},
+		},
+		{
 			name: "without endpoint",
 			desc: &deployment.DescribeServiceResponse{ServicePort: 8080},
 			want: ServiceConfig{ServicePort: 8080},
@@ -607,6 +615,49 @@ func TestServiceConfigFromDescribe(t *testing.T) {
 			got := ServiceConfigFromDescribe(tt.desc)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("ServiceConfigFromDescribe() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAgentConfigFromDescribe(t *testing.T) {
+	tests := []struct {
+		name string
+		desc *deployment.DescribeAgentResponse
+		want AgentConfig
+	}{
+		{
+			name: "with public endpoint",
+			desc: &deployment.DescribeAgentResponse{
+				Id:      "interactive-agent",
+				Version: "1.0.0",
+				Endpoint: &deployment.Endpoint{
+					Private: "my-agent:8080",
+					Public:  "my-agent-abc.interactive.ai",
+				},
+			},
+			want: AgentConfig{Id: "interactive-agent", Version: "1.0.0", Endpoint: true},
+		},
+		{
+			name: "private endpoint only",
+			desc: &deployment.DescribeAgentResponse{
+				Id:       "interactive-agent",
+				Version:  "1.0.0",
+				Endpoint: &deployment.Endpoint{Private: "my-agent:8080"},
+			},
+			want: AgentConfig{Id: "interactive-agent", Version: "1.0.0"},
+		},
+		{
+			name: "without endpoint",
+			desc: &deployment.DescribeAgentResponse{Id: "interactive-agent", Version: "1.0.0"},
+			want: AgentConfig{Id: "interactive-agent", Version: "1.0.0"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AgentConfigFromDescribe(tt.desc)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("AgentConfigFromDescribe() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -676,7 +727,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 			desc: &deployment.DescribeMcpResponse{
 				McpOutput: deployment.McpOutput{
 					Type:        "internal",
-					EndpointURL: "http://tools.p1.svc.cluster.local:8080/mcp",
+					EndpointURL: "http://tools:8080/mcp",
 					Auth:        deployment.McpAuthInfo{Type: "none"},
 				},
 				Port:      8080,
@@ -702,14 +753,33 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 					Type: "internal",
 					Auth: deployment.McpAuthInfo{Type: "none"},
 				},
-				Endpoint: "tools-p1.apps.interactive.ai",
-				Port:     8080,
+				Endpoint: &deployment.Endpoint{
+					Private: "tools:8080",
+					Public:  "tools-p1.apps.interactive.ai",
+				},
+				Port: 8080,
 			},
 			want: McpConfig{
 				Type:     "internal",
 				Port:     8080,
 				Endpoint: true,
 				Auth:     deployment.McpAuthBody{Type: "none"},
+			},
+		},
+		{
+			name: "internal with only a private endpoint",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type: "internal",
+					Auth: deployment.McpAuthInfo{Type: "none"},
+				},
+				Endpoint: &deployment.Endpoint{Private: "tools:8080"},
+				Port:     8080,
+			},
+			want: McpConfig{
+				Type: "internal",
+				Port: 8080,
+				Auth: deployment.McpAuthBody{Type: "none"},
 			},
 		},
 		{
@@ -738,6 +808,32 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				},
 				Headers: map[string]string{"X-Team": "dev"},
 			},
+		},
+		{
+			name: "new remote type is exported as the older value",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type:        "remote",
+					EndpointURL: "https://example.com/mcp",
+					Auth:        deployment.McpAuthInfo{Type: "none"},
+				},
+			},
+			want: McpConfig{
+				Type:        "external",
+				EndpointURL: "https://example.com/mcp",
+				Auth:        deployment.McpAuthBody{Type: "none"},
+			},
+		},
+		{
+			name: "new self-hosted type is exported as the older value",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type:        "self-hosted",
+					EndpointURL: "http://tools:8080/mcp",
+					Auth:        deployment.McpAuthInfo{Type: "none"},
+				},
+			},
+			want: McpConfig{Type: "internal", Auth: deployment.McpAuthBody{Type: "none"}},
 		},
 	}
 

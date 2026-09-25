@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/auth"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -178,7 +179,7 @@ Machine authentication (--auth-type client_credentials):
 			backend = platform.McpBackendExternal
 		}
 		if mcpType != "" {
-			backend = platform.McpBackend(mcpType)
+			backend = platform.McpBackend(deployment.McpTypeValue(mcpType))
 		}
 		if err := validateMcpBackendFlags(cmd, backend); err != nil {
 			return err

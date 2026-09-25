@@ -2,6 +2,8 @@ package files
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
@@ -280,5 +282,45 @@ func TestDiffStackConfigsReportsMcpEndpointChange(t *testing.T) {
 	want := "Stack: s\n\n  ~ mcp tools (update)\n    - endpoint\n"
 	if diff := cmp.Diff(want, out.String()); diff != "" {
 		t.Errorf("PrintStackDiffDetailed() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestDiffStackConfigsMcpTypeNames(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileType string
+		liveType string
+	}{
+		{name: "older file name, new operator", fileType: "internal", liveType: "self-hosted"},
+		{name: "new file name, older operator", fileType: "self-hosted", liveType: "internal"},
+		{name: "older remote name, new operator", fileType: "external", liveType: "remote"},
+		{name: "new remote name, older operator", fileType: "remote", liveType: "external"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "stack.yaml")
+			content := "organization: o\nproject: p\nstack-id: s\nmcps:\n  tools:\n    type: " +
+				tt.fileType + "\n"
+			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+				t.Fatalf("write config: %v", err)
+			}
+			local, err := LoadStackConfig(path)
+			if err != nil {
+				t.Fatalf("LoadStackConfig() error = %v", err)
+			}
+			live := &StackConfig{
+				StackId: "s",
+				Mcps: map[string]McpConfig{
+					"tools": McpConfigFromDescribe(&deployment.DescribeMcpResponse{
+						McpOutput: deployment.McpOutput{Type: tt.liveType},
+					}),
+				},
+			}
+
+			if d := DiffStackConfigs(local, live); len(d.Mcps.Updated) > 0 {
+				t.Errorf("type %q in the file diffs against live %q", tt.fileType, tt.liveType)
+			}
+		})
 	}
 }

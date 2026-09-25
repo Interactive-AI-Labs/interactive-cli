@@ -72,9 +72,7 @@ func PrintServiceDescribe(out io.Writer, svc *deployment.DescribeServiceResponse
 		fmt.Fprintf(w, "Replicas:\t%d\n", svc.Replicas)
 	}
 
-	if svc.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", svc.Endpoint)
-	}
+	printEndpoint(w, svc.Endpoint)
 
 	if svc.Healthcheck != nil {
 		fmt.Fprintln(w)
@@ -159,9 +157,7 @@ func PrintServiceRevision(out io.Writer, rev *deployment.ServiceRevisionResponse
 		fmt.Fprintf(w, "Replicas:\t%d\n", rev.Replicas)
 	}
 
-	if rev.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
-	}
+	printEndpoint(w, rev.Endpoint)
 
 	if rev.Healthcheck != nil {
 		fmt.Fprintln(w)
