@@ -23,6 +23,11 @@ tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" 
 a "tools-prod" in one project can share a prefix, and a routine. Attach further
 mcps in their own commands.
 
+An attached mcp's credential reaches the agent without --env or --secret,
+and describe doesn't show it. Env names starting with IAI_MCP_ or MCP_KEY_
+are reserved, and --secret can't name an MCP credential or a secret with
+IAI_MCP_ keys — attach the mcp instead.
+
 ```
 iai agents create <agent_name> [flags]
 ```

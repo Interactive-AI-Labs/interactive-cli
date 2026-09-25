@@ -6,6 +6,10 @@ Encrypted key-value pairs for services and agents
 
 Manage secrets in InteractiveAI projects.
 
+Names starting with iai-mcp- and keys starting with IAI_MCP_ are reserved for
+MCP credentials. Those are set and rotated with 'iai mcps create|update
+--credential', aren't listed here, and can't be read, changed or deleted here.
+
 ### Options
 
 ```

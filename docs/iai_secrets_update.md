@@ -21,6 +21,9 @@ Secret data can be provided via:
 
 When both are provided, --data values take precedence.
 
+Keys starting with IAI_MCP_ are reserved for MCP credentials and rejected. An
+MCP's credential can't be changed here; use 'iai mcps update <mcp> --credential'.
+
 ```
 iai secrets update <secret_name> [flags]
 ```

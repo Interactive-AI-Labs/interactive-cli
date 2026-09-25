@@ -6,6 +6,9 @@ Get a secret in a project
 
 Get a secret in a specific project using the deployment service.
 
+MCP credentials are write-only and can't be read; rotate one with
+'iai mcps update <mcp> --credential'.
+
 ```
 iai secrets get <secret_name> [flags]
 ```

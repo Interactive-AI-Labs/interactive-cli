@@ -5,13 +5,15 @@ Create an mcp in a project
 ### Synopsis
 
 Create an mcp — a hosted MCP server ("internal"), a custom external URL,
-or a catalog-backed provider.
+or a catalog-backed provider. Names starting with iai-mcp- are reserved.
 
 Internal: --image-name and --image-tag identify the image. --port, --path,
 --memory, and --cpu configure how it runs. --env NAME=VALUE and --secret
 configure the server itself and can each be repeated; --secret takes the name
 of a secret that already exists in the project (see 'iai secrets'), which is
 loaded whole as environment variables. Secret values are never passed here.
+--env can't set MCP_API_KEY while the mcp has a credential, and --secret can't
+name an MCP credential.
 External custom: --external-url — a server not owned by the platform, dialed
 directly at that URL, path included.
 External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are

@@ -6,6 +6,8 @@ Delete a secret in a project
 
 Delete a secret in a specific project using the deployment service.
 
+An MCP's credential can't be deleted here; it goes away with 'iai mcps delete <mcp>'.
+
 ```
 iai secrets delete <secret_name> [flags]
 ```

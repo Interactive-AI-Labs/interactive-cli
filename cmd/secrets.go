@@ -31,14 +31,18 @@ var secretsCmd = &cobra.Command{
 	Aliases: []string{"secret"},
 	Short:   "Encrypted key-value pairs for services and agents",
 	GroupID: groupInfra,
-	Long:    `Manage secrets in InteractiveAI projects.`,
+	Long: `Manage secrets in InteractiveAI projects.
+
+Names starting with iai-mcp- and keys starting with IAI_MCP_ are reserved for
+MCP credentials. Those are set and rotated with 'iai mcps create|update
+--credential', aren't listed here, and can't be read, changed or deleted here.`,
 }
 
 var secretsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List secrets in a project",
-	Long:    `List secrets in a specific project.`,
+	Long:    `List secrets in a specific project. MCP credentials aren't listed; see 'iai mcps'.`,
 	Example: `  iai secrets list
   iai secrets list -p my-project -o my-org
   iai secrets list --json`,
@@ -80,7 +84,10 @@ Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
-When both are provided, --data values take precedence.`,
+When both are provided, --data values take precedence.
+
+Names starting with iai-mcp- and keys starting with IAI_MCP_ are reserved for
+MCP credentials and rejected.`,
 	Example: `  iai secrets create my-secret -d API_KEY=abc123
   iai secrets create my-secret -d API_KEY=abc123 -d DB_PASS=secret
   iai secrets create my-secret --from-env-file .env
@@ -156,7 +163,10 @@ Secret data can be provided via:
   --data KEY=VALUE         (can be repeated)
   --from-env-file FILE     (KEY=VALUE pairs, one per line)
 
-When both are provided, --data values take precedence.`,
+When both are provided, --data values take precedence.
+
+Keys starting with IAI_MCP_ are reserved for MCP credentials and rejected. An
+MCP's credential can't be changed here; use 'iai mcps update <mcp> --credential'.`,
 	Example: `  # Update a single key (other keys preserved)
   iai secrets update my-secret -d API_KEY=new-value
 
@@ -290,7 +300,9 @@ var secretsDeleteCmd = &cobra.Command{
 	Use:     "delete <secret_name>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a secret in a project",
-	Long:    `Delete a secret in a specific project using the deployment service.`,
+	Long: `Delete a secret in a specific project using the deployment service.
+
+An MCP's credential can't be deleted here; it goes away with 'iai mcps delete <mcp>'.`,
 	Example: `  iai secrets delete my-secret
   iai secrets delete my-secret -p my-project -o my-org`,
 	Args: cobra.ExactArgs(1),
@@ -335,7 +347,10 @@ var secretsDeleteCmd = &cobra.Command{
 var secretsGetCmd = &cobra.Command{
 	Use:   "get <secret_name>",
 	Short: "Get a secret in a project",
-	Long:  `Get a secret in a specific project using the deployment service.`,
+	Long: `Get a secret in a specific project using the deployment service.
+
+MCP credentials are write-only and can't be read; rotate one with
+'iai mcps update <mcp> --credential'.`,
 	Example: `  iai secrets get my-secret
   iai secrets get my-secret -p my-project
   iai secrets get my-secret --json`,

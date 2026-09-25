@@ -12,6 +12,9 @@ Secret data can be provided via:
 
 When both are provided, --data values take precedence.
 
+Names starting with iai-mcp- and keys starting with IAI_MCP_ are reserved for
+MCP credentials and rejected.
+
 ```
 iai secrets create [secret_name] [flags]
 ```

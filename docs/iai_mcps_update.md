@@ -10,7 +10,8 @@ Only the flags you pass are applied; everything else is left at its current
 value.
 
 Lists (--env, --secret) replace the entire current list when provided — pass
-every value you want to keep.
+every value you want to keep. --env can't set MCP_API_KEY while the mcp has a
+credential, and --secret can't name an MCP credential.
 
 Use --clear-env, --clear-secret, or --clear-stack-id to remove those
 configurations entirely.
