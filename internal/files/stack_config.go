@@ -103,6 +103,10 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	if cfg.Mcps == nil {
 		cfg.Mcps = make(map[string]McpConfig)
 	}
+	for name, mcp := range cfg.Mcps {
+		mcp.Type = deployment.McpTypeValue(mcp.Type)
+		cfg.Mcps[name] = mcp
+	}
 
 	return &cfg, nil
 }
@@ -134,7 +138,7 @@ func (d DatabaseConfig) ToCreateRequest(stackId string) deployment.CreateDatabas
 
 func (m McpConfig) ToCreateRequest(stackId string) deployment.CreateMcpBody {
 	return deployment.CreateMcpBody{
-		Type:        m.Type,
+		Type:        deployment.McpTypeValue(m.Type),
 		Port:        m.Port,
 		Path:        m.Path,
 		Image:       m.Image,
@@ -157,7 +161,7 @@ func ServiceConfigFromDescribe(svc *deployment.DescribeServiceResponse) ServiceC
 		Resources:   svc.Resources,
 		Env:         svc.Env,
 		SecretRefs:  svc.SecretRefs,
-		Endpoint:    svc.Endpoint != "",
+		Endpoint:    svc.Endpoint != nil && svc.Endpoint.Public != "",
 		Replicas:    svc.Replicas,
 		Autoscaling: svc.Autoscaling,
 		Healthcheck: svc.Healthcheck,
@@ -171,7 +175,7 @@ func AgentConfigFromDescribe(agent *deployment.DescribeAgentResponse) AgentConfi
 		Version:     agent.Version,
 		AgentConfig: agent.AgentConfig,
 		SecretRefs:  agent.SecretRefs,
-		Endpoint:    agent.Endpoint != "",
+		Endpoint:    agent.Endpoint != nil && agent.Endpoint.Public != "",
 		Schedule:    agent.Schedule,
 		Env:         agent.Env,
 	}
@@ -196,19 +200,20 @@ func DatabaseConfigFromDescribe(db *deployment.DescribeDatabaseResponse) Databas
 }
 
 func McpConfigFromDescribe(mcp *deployment.DescribeMcpResponse) McpConfig {
+	mcpType := deployment.McpTypeValue(mcp.Type)
 	endpointURL := ""
-	if mcp.Type == "external" {
+	if mcpType == "external" {
 		endpointURL = mcp.EndpointURL
 	}
 	return McpConfig{
-		Type:        mcp.Type,
+		Type:        mcpType,
 		Port:        mcp.Port,
 		Path:        mcp.Path,
 		Image:       mcp.Image,
 		Resources:   mcp.Resources,
 		Env:         mcp.Env,
 		SecretRefs:  mcp.SecretRefs,
-		Endpoint:    mcp.Endpoint != "",
+		Endpoint:    mcp.Endpoint != nil && mcp.Endpoint.Public != "",
 		EndpointURL: endpointURL,
 		CatalogID:   mcp.CatalogID,
 		Auth: deployment.McpAuthBody{

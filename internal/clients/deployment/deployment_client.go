@@ -291,6 +291,22 @@ type SecretRef struct {
 	SecretName string `json:"secretName" yaml:"secretName"`
 }
 
+type Endpoint struct {
+	Private string `json:"private,omitempty"`
+	Public  string `json:"public,omitempty"`
+}
+
+// UnmarshalJSON also accepts the older plain public hostname string.
+func (e *Endpoint) UnmarshalJSON(data []byte) error {
+	var hostname string
+	if err := json.Unmarshal(data, &hostname); err == nil {
+		*e = Endpoint{Public: hostname}
+		return nil
+	}
+	type endpoint Endpoint
+	return json.Unmarshal(data, (*endpoint)(e))
+}
+
 type ServiceOutput struct {
 	Name      string `json:"name"`
 	ProjectId string `json:"projectId"`
@@ -303,7 +319,7 @@ type DescribeServiceResponse struct {
 	ServiceOutput
 
 	Message     string       `json:"message,omitempty"`
-	Endpoint    string       `json:"endpoint,omitempty"`
+	Endpoint    *Endpoint    `json:"endpoint,omitempty"`
 	ServicePort int          `json:"servicePort"`
 	Image       ImageSpec    `json:"image"`
 	Resources   Resources    `json:"resources"`
@@ -1328,7 +1344,7 @@ type AgentRevisionResponse struct {
 	Version     string      `json:"version"`
 	AgentConfig any         `json:"agentConfig"`
 	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
-	Endpoint    string      `json:"endpoint,omitempty"`
+	Endpoint    *Endpoint   `json:"endpoint,omitempty"`
 	Schedule    *Schedule   `json:"schedule,omitempty"`
 	Env         []EnvVar    `json:"env,omitempty"`
 	StackId     string      `json:"stackId,omitempty"`
@@ -1341,7 +1357,7 @@ type ServiceRevisionResponse struct {
 	Resources   Resources    `json:"resources"`
 	Env         []EnvVar     `json:"env,omitempty"`
 	SecretRefs  []SecretRef  `json:"secretRefs,omitempty"`
-	Endpoint    string       `json:"endpoint,omitempty"`
+	Endpoint    *Endpoint    `json:"endpoint,omitempty"`
 	Replicas    int          `json:"replicas,omitempty"`
 	StackId     string       `json:"stackId,omitempty"`
 	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
@@ -1379,7 +1395,7 @@ type DescribeAgentResponse struct {
 	Version     string      `json:"version"`
 	AgentConfig any         `json:"agentConfig"`
 	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
-	Endpoint    string      `json:"endpoint,omitempty"`
+	Endpoint    *Endpoint   `json:"endpoint,omitempty"`
 	Schedule    *Schedule   `json:"schedule,omitempty"`
 	Env         []EnvVar    `json:"env,omitempty"`
 	StackId     string      `json:"stackId,omitempty"`

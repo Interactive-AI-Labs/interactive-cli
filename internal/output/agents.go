@@ -47,9 +47,7 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 	if agent.Updated != "" {
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(agent.Updated))
 	}
-	if agent.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", agent.Endpoint)
-	}
+	printEndpoint(w, agent.Endpoint)
 	if len(agent.Env) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
@@ -110,9 +108,7 @@ func PrintAgentRevision(out io.Writer, rev *deployment.AgentRevisionResponse) er
 	fmt.Fprintf(w, "Id:\t%s\n", rev.Id)
 	fmt.Fprintf(w, "Version:\t%s\n", rev.Version)
 
-	if rev.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
-	}
+	printEndpoint(w, rev.Endpoint)
 	if len(rev.Env) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")

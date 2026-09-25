@@ -30,6 +30,24 @@ func TestPrintAgentDescribe(t *testing.T) {
 				"Status:     deployed\n",
 		},
 		{
+			name: "private endpoint only",
+			agent: &deployment.DescribeAgentResponse{
+				Name:     "minimal-agent",
+				Id:       "interactive-agent",
+				Version:  "0.1.0",
+				Revision: 1,
+				Status:   "deployed",
+				Endpoint: &deployment.Endpoint{Private: "minimal-agent:8080"},
+			},
+			want: "Name:       minimal-agent\n" +
+				"Id:         interactive-agent\n" +
+				"Version:    0.1.0\n" +
+				"Revision:   1\n" +
+				"Status:     deployed\n" +
+				"Endpoint:\n" +
+				"  Private:   minimal-agent:8080\n",
+		},
+		{
 			name: "agent with message",
 			agent: &deployment.DescribeAgentResponse{
 				Name:     "msg-agent",
@@ -162,9 +180,12 @@ func TestPrintAgentRevision(t *testing.T) {
 					},
 					Source: &deployment.RevisionSource{Type: "cli", Version: "0.39.0"},
 				},
-				Id:       "interactive-agent",
-				Version:  "2.0.0",
-				Endpoint: "my-agent.interactive.ai",
+				Id:      "interactive-agent",
+				Version: "2.0.0",
+				Endpoint: &deployment.Endpoint{
+					Private: "my-agent:8080",
+					Public:  "my-agent.interactive.ai",
+				},
 				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "debug"},
 					{
@@ -185,7 +206,9 @@ func TestPrintAgentRevision(t *testing.T) {
 				"Source:     iai 0.39.0\n" +
 				"Id:         interactive-agent\n" +
 				"Version:    2.0.0\n" +
-				"Endpoint:   my-agent.interactive.ai\n" +
+				"Endpoint:\n" +
+				"  Private:   my-agent:8080\n" +
+				"  Public:    my-agent.interactive.ai\n" +
 				"\n" +
 				"Environment:\n" +
 				"  LOG_LEVEL=debug\n" +

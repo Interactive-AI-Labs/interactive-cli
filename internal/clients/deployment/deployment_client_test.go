@@ -379,3 +379,102 @@ func TestDecodeSecretData(t *testing.T) {
 		})
 	}
 }
+
+func TestDescribeServiceResponseEndpoint(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want *Endpoint
+	}{
+		{
+			name: "internal and public",
+			body: `{"endpoint":{"private":"svc:8080","public":"svc-abc.interactive.ai"}}`,
+			want: &Endpoint{Private: "svc:8080", Public: "svc-abc.interactive.ai"},
+		},
+		{
+			name: "private only",
+			body: `{"endpoint":{"private":"svc:8080"}}`,
+			want: &Endpoint{Private: "svc:8080"},
+		},
+		{
+			name: "older public hostname string",
+			body: `{"endpoint":"svc-abc.interactive.ai"}`,
+			want: &Endpoint{Public: "svc-abc.interactive.ai"},
+		},
+		{
+			name: "no endpoint",
+			body: `{}`,
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got DescribeServiceResponse
+			if err := json.Unmarshal([]byte(tt.body), &got); err != nil {
+				t.Fatalf("unmarshal error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, got.Endpoint); diff != "" {
+				t.Errorf("endpoint mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMcpTypeNames(t *testing.T) {
+	tests := []struct {
+		in        string
+		wantName  string
+		wantValue string
+	}{
+		{in: "self-hosted", wantName: "self-hosted", wantValue: "internal"},
+		{in: "remote", wantName: "remote", wantValue: "external"},
+		{in: "internal", wantName: "self-hosted", wantValue: "internal"},
+		{in: "external", wantName: "remote", wantValue: "external"},
+		{in: " remote ", wantName: "remote", wantValue: "external"},
+		{in: "", wantName: "", wantValue: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			if got := McpTypeName(tt.in); got != tt.wantName {
+				t.Errorf("McpTypeName(%q) = %q, want %q", tt.in, got, tt.wantName)
+			}
+			if got := McpTypeValue(tt.in); got != tt.wantValue {
+				t.Errorf("McpTypeValue(%q) = %q, want %q", tt.in, got, tt.wantValue)
+			}
+		})
+	}
+}
+
+func TestDescribeMcpResponseEndpoint(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want *Endpoint
+	}{
+		{
+			name: "private and public",
+			body: `{"endpoint":{"private":"tools:8080","public":"tools-abc.interactive.ai"}}`,
+			want: &Endpoint{Private: "tools:8080", Public: "tools-abc.interactive.ai"},
+		},
+		{
+			name: "older public hostname string",
+			body: `{"endpoint":"tools-abc.interactive.ai"}`,
+			want: &Endpoint{Public: "tools-abc.interactive.ai"},
+		},
+		{name: "remote mcp without endpoint", body: `{}`, want: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got DescribeMcpResponse
+			if err := json.Unmarshal([]byte(tt.body), &got); err != nil {
+				t.Fatalf("unmarshal error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, got.Endpoint); diff != "" {
+				t.Errorf("endpoint mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}

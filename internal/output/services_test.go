@@ -104,6 +104,72 @@ func TestPrintServiceDescribe(t *testing.T) {
 				"Replicas:   1\n",
 		},
 		{
+			name: "private endpoint only",
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
+					Name:      "minimal-svc",
+					ProjectId: "proj-123",
+					Revision:  1,
+					Status:    "deployed",
+				},
+				ServicePort: 8080,
+				Image: deployment.ImageSpec{
+					Type: "external",
+					Name: "nginx",
+					Tag:  "latest",
+				},
+				Resources: deployment.Resources{Memory: "128M", CPU: "100m"},
+				Replicas:  1,
+				Endpoint:  &deployment.Endpoint{Private: "minimal-svc:8080"},
+			},
+			want: "Name:       minimal-svc\n" +
+				"Revision:   1\n" +
+				"Status:     deployed\n" +
+				"Port:       8080\n" +
+				"Image:\n" +
+				"  Type:   external\n" +
+				"  Name:   nginx\n" +
+				"  Tag:    latest\n" +
+				"Resources:\n" +
+				"  CPU:      100m\n" +
+				"  Memory:   128M\n" +
+				"Replicas:   1\n" +
+				"Endpoint:\n" +
+				"  Private:   minimal-svc:8080\n",
+		},
+		{
+			name: "empty endpoint prints nothing",
+			svc: &deployment.DescribeServiceResponse{
+				ServiceOutput: deployment.ServiceOutput{
+					Name:      "minimal-svc",
+					ProjectId: "proj-123",
+					Revision:  1,
+					Status:    "deployed",
+				},
+				ServicePort: 8080,
+				Image: deployment.ImageSpec{
+					Type: "external",
+					Name: "nginx",
+					Tag:  "latest",
+				},
+				Resources: deployment.Resources{Memory: "128M", CPU: "100m"},
+				Replicas:  1,
+				Endpoint:  &deployment.Endpoint{},
+			},
+			want: "Name:       minimal-svc\n" +
+				"Revision:   1\n" +
+				"Status:     deployed\n" +
+				"Port:       8080\n" +
+				"Image:\n" +
+				"  Type:   external\n" +
+				"  Name:   nginx\n" +
+				"  Tag:    latest\n" +
+				"Resources:\n" +
+				"  CPU:      100m\n" +
+				"  Memory:   128M\n" +
+				"Replicas:   1\n",
+		},
+		{
 			name: "zero replicas prints zero",
 			svc: &deployment.DescribeServiceResponse{
 				ServiceOutput: deployment.ServiceOutput{
@@ -178,7 +244,10 @@ func TestPrintServiceDescribe(t *testing.T) {
 					Revision:  10,
 					Status:    "deployed",
 				},
-				Endpoint:    "full-svc-abc.dev.interactive.ai",
+				Endpoint: &deployment.Endpoint{
+					Private: "full-svc:443",
+					Public:  "full-svc-abc.dev.interactive.ai",
+				},
 				ServicePort: 443,
 				Image: deployment.ImageSpec{
 					Type:       "platform",
@@ -229,7 +298,9 @@ func TestPrintServiceDescribe(t *testing.T) {
 				"  Max Replicas:   8\n" +
 				"  CPU%:           65\n" +
 				"  Memory%:        80\n" +
-				"Endpoint:         full-svc-abc.dev.interactive.ai\n" +
+				"Endpoint:\n" +
+				"  Private:   full-svc:443\n" +
+				"  Public:    full-svc-abc.dev.interactive.ai\n" +
 				"\n" +
 				"Healthcheck:\n" +
 				"  Path:            /healthz\n" +
@@ -379,7 +450,7 @@ func TestPrintServiceRevision(t *testing.T) {
 					Repository: "apps",
 				},
 				Resources: deployment.Resources{Memory: "512M", CPU: "500m"},
-				Endpoint:  "api.interactive.ai",
+				Endpoint:  &deployment.Endpoint{Private: "api:443", Public: "api.interactive.ai"},
 				Env: []deployment.EnvVar{
 					{Name: "LOG_LEVEL", Value: "info"},
 				},
@@ -399,7 +470,9 @@ func TestPrintServiceRevision(t *testing.T) {
 				"  CPU:      500m\n" +
 				"  Memory:   512M\n" +
 				"Replicas:   0\n" +
-				"Endpoint:   api.interactive.ai\n" +
+				"Endpoint:\n" +
+				"  Private:   api:443\n" +
+				"  Public:    api.interactive.ai\n" +
 				"\n" +
 				"Environment:\n" +
 				"  LOG_LEVEL=info\n",

@@ -11,6 +11,34 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
+// MCP types users see; every operator accepts the older "internal" and "external" values.
+const (
+	McpTypeSelfHosted = "self-hosted"
+	McpTypeRemote     = "remote"
+)
+
+// McpTypeName maps an MCP type, current or older name, to the name users see.
+func McpTypeName(mcpType string) string {
+	switch mcpType = strings.TrimSpace(mcpType); mcpType {
+	case "internal":
+		return McpTypeSelfHosted
+	case "external":
+		return McpTypeRemote
+	}
+	return mcpType
+}
+
+// McpTypeValue maps an MCP type to the older value that every operator accepts.
+func McpTypeValue(mcpType string) string {
+	switch mcpType = strings.TrimSpace(mcpType); mcpType {
+	case McpTypeSelfHosted:
+		return "internal"
+	case McpTypeRemote:
+		return "external"
+	}
+	return mcpType
+}
+
 // CreateMcpBody mirrors the operator's CreateMcpRequest; fields are mutually exclusive by type.
 type CreateMcpBody struct {
 	Type string `json:"type,omitempty"` // "internal" (default) | "external"
@@ -85,7 +113,7 @@ type DescribeMcpResponse struct {
 	Path          string            `json:"path"`
 	Headers       map[string]string `json:"headers,omitempty"`
 	HasCredential bool              `json:"hasCredential"`
-	Endpoint      string            `json:"endpoint,omitempty"`
+	Endpoint      *Endpoint         `json:"endpoint,omitempty"`
 	Port          int               `json:"port,omitempty"`
 	Image         ImageSpec         `json:"image,omitempty"`
 	Resources     Resources         `json:"resources,omitempty"`
