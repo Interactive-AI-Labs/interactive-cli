@@ -343,6 +343,12 @@ func TestMcpAuthTypeOr(t *testing.T) {
 			credential: "secret", want: "bearer",
 		},
 		{
+			name:       "internal credential defaults to bearer too",
+			backend:    platform.McpBackendInternal,
+			credential: "secret",
+			want:       "bearer",
+		},
+		{
 			name:    "no auth fields defaults to none",
 			backend: platform.McpBackendExternal,
 			want:    "none",
