@@ -19,9 +19,17 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-For internal and custom external mcps, --credential alone is sent as a bearer
-token (Authorization: Bearer); pass --auth-type api_key, or --auth-type custom
-with --auth-header, to send it another way.
+When neither --auth-type nor a catalog entry decides the auth type, --credential
+alone is sent as a bearer token (Authorization: Bearer); pass --auth-type
+api_key (X-API-Key), or --auth-type custom with --auth-header and an optional
+--auth-header-prefix, to send it another way.
+
+An internal mcp's server receives its credential as the MCP_API_KEY
+environment variable (don't set that name with --env) and must check every
+request against it: the platform doesn't, so a server that ignores it answers
+anyone who can reach it, including the internet with --endpoint. Agents send
+the credential as a bearer token, so only a bearer or no-auth internal mcp can
+be attached to an agent.
 
 An internal mcp is verified automatically once ready. An external mcp is stored
 before the platform contacts the provider; after create, run 'iai mcps tools
@@ -93,7 +101,7 @@ iai mcps create <mcp_name> [flags]
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal, default 100m)
-      --credential string           Credential required by the mcp server
+      --credential string           Credential the mcp server requires; an internal mcp's server reads it from MCP_API_KEY
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
       --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)

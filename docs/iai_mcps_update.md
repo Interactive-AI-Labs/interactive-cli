@@ -18,7 +18,10 @@ configurations entirely.
 The type (internal/external) and, for external mcps, the endpoint/catalog cannot
 change — delete and recreate instead. Internal workload flags can be updated
 independently. Internal auth fields can be updated independently; external
-credential changes require --auth-type.
+credential changes require --auth-type, and so does adding a credential to an
+internal mcp created without one (e.g. --auth-type bearer). Changing the
+credential restarts the mcp and every agent attached to it, so an internal
+mcp's server reads the new value from MCP_API_KEY.
 
 ```
 iai mcps update <mcp_name> [flags]
@@ -54,7 +57,7 @@ iai mcps update <mcp_name> [flags]
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
       --client-secret-stdin         Read the client secret from stdin, keeping it out of shell history and the process list
       --cpu string                  CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal, default 100m)
-      --credential string           Credential required by the mcp server
+      --credential string           Credential the mcp server requires; an internal mcp's server reads it from MCP_API_KEY
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
       --endpoint                    Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)

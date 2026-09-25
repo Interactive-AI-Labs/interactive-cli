@@ -130,9 +130,17 @@ derived from the catalog entry, which provides its own credential header and
 prefix. The entry decides the auth type — omit --auth-type unless it accepts
 more than one, in which case the error names the options.
 
-For internal and custom external mcps, --credential alone is sent as a bearer
-token (Authorization: Bearer); pass --auth-type api_key, or --auth-type custom
-with --auth-header, to send it another way.
+When neither --auth-type nor a catalog entry decides the auth type, --credential
+alone is sent as a bearer token (Authorization: Bearer); pass --auth-type
+api_key (X-API-Key), or --auth-type custom with --auth-header and an optional
+--auth-header-prefix, to send it another way.
+
+An internal mcp's server receives its credential as the MCP_API_KEY
+environment variable (don't set that name with --env) and must check every
+request against it: the platform doesn't, so a server that ignores it answers
+anyone who can reach it, including the internet with --endpoint. Agents send
+the credential as a bearer token, so only a bearer or no-auth internal mcp can
+be attached to an agent.
 
 An internal mcp is verified automatically once ready. An external mcp is stored
 before the platform contacts the provider; after create, run 'iai mcps tools
@@ -378,7 +386,10 @@ configurations entirely.
 The type (internal/external) and, for external mcps, the endpoint/catalog cannot
 change — delete and recreate instead. Internal workload flags can be updated
 independently. Internal auth fields can be updated independently; external
-credential changes require --auth-type.`,
+credential changes require --auth-type, and so does adding a credential to an
+internal mcp created without one (e.g. --auth-type bearer). Changing the
+credential restarts the mcp and every agent attached to it, so an internal
+mcp's server reads the new value from MCP_API_KEY.`,
 	Example: `  iai mcps update my-tool --image-tag v2
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update my-tool --endpoint
@@ -1015,7 +1026,7 @@ func init() {
 		c.Flags().
 			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create`)
 		c.Flags().
-			StringVar(&mcpCredential, "credential", "", "Credential required by the mcp server")
+			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires; an internal mcp's server reads it from MCP_API_KEY")
 		c.Flags().
 			BoolVar(&mcpCredentialStdin, "credential-stdin", false, "Read the credential from stdin instead of --credential")
 		c.Flags().
