@@ -385,6 +385,10 @@ var agentDescribeCmd = &cobra.Command{
 	Short:   "Describe an agent in detail",
 	Long: `Show detailed information about a specific agent including its configuration.
 
+Endpoint shows Private (name:port), reachable only within the project, and
+Public, the externally accessible hostname, shown when the agent was created or
+updated with --endpoint.
+
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
 Use --revision to view a specific past revision instead of the current state.
@@ -1022,7 +1026,7 @@ func init() {
 	agentCreateCmd.Flags().
 		StringVar(&agentFile, "file", "", "Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)")
 	agentCreateCmd.Flags().
-		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent at <agent-name>-<project-hash>.interactive.ai")
+		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai")
 	agentCreateCmd.Flags().
 		StringArrayVar(&agentEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
 	agentCreateCmd.Flags().
@@ -1056,7 +1060,7 @@ func init() {
 	agentUpdateCmd.Flags().
 		StringVar(&agentFile, "file", "", "Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)")
 	agentUpdateCmd.Flags().
-		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent at <agent-name>-<project-hash>.interactive.ai")
+		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai")
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
 	agentUpdateCmd.Flags().

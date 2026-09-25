@@ -123,16 +123,16 @@ func TestPrintMcpListIncludesStack(t *testing.T) {
 				Status: utils.ToPtr("healthy"), VerifyStatus: utils.ToPtr("ok"),
 				ToolCount: 3, StackId: utils.ToPtr("stack-123"),
 			},
-			want: "NAME    BACKEND    STATUS    VERIFY   TOOLS   CREDENTIAL   STACK\n" +
-				"tools   internal   healthy   ok       3       none         stack-123\n",
+			want: "NAME    TYPE          STATUS    VERIFY   TOOLS   CREDENTIAL   STACK\n" +
+				"tools   self-hosted   healthy   ok       3       none         stack-123\n",
 		},
 		{
 			name: "external mcp never has one",
 			mcp: platform.McpSchema{
 				Name: "notion", Backend: "external", AuthType: utils.ToPtr("oauth"),
 			},
-			want: "NAME     BACKEND    STATUS   VERIFY          TOOLS   CREDENTIAL   STACK\n" +
-				"notion   external   -        needs sign-in   0       none         -\n",
+			want: "NAME     TYPE     STATUS   VERIFY          TOOLS   CREDENTIAL   STACK\n" +
+				"notion   remote   -        needs sign-in   0       none         -\n",
 		},
 	}
 	for _, tt := range tests {
@@ -350,7 +350,7 @@ func TestPrintMcpDetail(t *testing.T) {
 				AuthType: utils.ToPtr("oauth"),
 			},
 			want: "Name:             asana\n" +
-				"Backend:          external\n" +
+				"Type:             remote\n" +
 				"Auth Type:        oauth\n" +
 				"Credential Set:   false\n" +
 				"Tools:            0 (needs a sign-in first — run 'iai mcps connect asana')\n",
@@ -365,7 +365,7 @@ func TestPrintMcpDetail(t *testing.T) {
 				ToolCount:     46,
 			},
 			want: "Name:             asana\n" +
-				"Backend:          external\n" +
+				"Type:             remote\n" +
 				"Auth Type:        oauth\n" +
 				"Credential Set:   true\n" +
 				"Tools:            46 (see 'iai mcps tools asana')\n",
@@ -379,7 +379,7 @@ func TestPrintMcpDetail(t *testing.T) {
 				HasCredential: true,
 			},
 			want: "Name:             acme\n" +
-				"Backend:          external\n" +
+				"Type:             remote\n" +
 				"Auth Type:        bearer\n" +
 				"Credential Set:   true\n" +
 				"Tools:            0 (see 'iai mcps tools acme')\n",
@@ -394,7 +394,7 @@ func TestPrintMcpDetail(t *testing.T) {
 				AuthHeaderPrefix: utils.ToPtr("Token "),
 			},
 			want: "Name:                 acme\n" +
-				"Backend:              external\n" +
+				"Type:                 remote\n" +
 				"Auth Type:            custom\n" +
 				"Auth Header:          X-Token\n" +
 				"Auth Header Prefix:   \"Token \"\n" +
@@ -435,7 +435,7 @@ func TestPrintMcpDetailRendersEnvAndSecrets(t *testing.T) {
 				SecretRefs: []string{"smoke-token", "smoke-basic"},
 			},
 			want: "Name:             smoke-mcp\n" +
-				"Backend:          internal\n" +
+				"Type:             self-hosted\n" +
 				"Credential Set:   false\n" +
 				"Tools:            0 (see 'iai mcps tools smoke-mcp')\n" +
 				"\n" +
@@ -452,7 +452,7 @@ func TestPrintMcpDetailRendersEnvAndSecrets(t *testing.T) {
 				Backend: platform.McpBackendExternal,
 			},
 			want: "Name:             plain\n" +
-				"Backend:          external\n" +
+				"Type:             remote\n" +
 				"Credential Set:   false\n" +
 				"Tools:            0 (see 'iai mcps tools plain')\n",
 		},
@@ -464,7 +464,7 @@ func TestPrintMcpDetailRendersEnvAndSecrets(t *testing.T) {
 				Env:     []platform.McpEnvVar{{Name: "A", Value: "b"}},
 			},
 			want: "Name:             envonly\n" +
-				"Backend:          internal\n" +
+				"Type:             self-hosted\n" +
 				"Credential Set:   false\n" +
 				"Tools:            0 (see 'iai mcps tools envonly')\n" +
 				"\n" +
@@ -479,7 +479,7 @@ func TestPrintMcpDetailRendersEnvAndSecrets(t *testing.T) {
 				SecretRefs: []string{"one", "two"},
 			},
 			want: "Name:             secretonly\n" +
-				"Backend:          internal\n" +
+				"Type:             self-hosted\n" +
 				"Credential Set:   false\n" +
 				"Tools:            0 (see 'iai mcps tools secretonly')\n" +
 				"\n" +
