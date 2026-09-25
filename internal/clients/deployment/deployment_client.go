@@ -291,6 +291,23 @@ type SecretRef struct {
 	SecretName string `json:"secretName" yaml:"secretName"`
 }
 
+// Endpoint is where a service or agent can be reached.
+type Endpoint struct {
+	Internal string `json:"internal,omitempty"` // Reachable only within the project (name:port)
+	Public   string `json:"public,omitempty"`   // Externally accessible hostname, set when enabled
+}
+
+// UnmarshalJSON also accepts the older plain public hostname string.
+func (e *Endpoint) UnmarshalJSON(data []byte) error {
+	var hostname string
+	if err := json.Unmarshal(data, &hostname); err == nil {
+		*e = Endpoint{Public: hostname}
+		return nil
+	}
+	type endpoint Endpoint
+	return json.Unmarshal(data, (*endpoint)(e))
+}
+
 type ServiceOutput struct {
 	Name      string `json:"name"`
 	ProjectId string `json:"projectId"`
@@ -303,7 +320,7 @@ type DescribeServiceResponse struct {
 	ServiceOutput
 
 	Message     string       `json:"message,omitempty"`
-	Endpoint    string       `json:"endpoint,omitempty"`
+	Endpoint    Endpoint     `json:"endpoint"`
 	ServicePort int          `json:"servicePort"`
 	Image       ImageSpec    `json:"image"`
 	Resources   Resources    `json:"resources"`
@@ -1328,7 +1345,7 @@ type AgentRevisionResponse struct {
 	Version     string      `json:"version"`
 	AgentConfig any         `json:"agentConfig"`
 	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
-	Endpoint    string      `json:"endpoint,omitempty"`
+	Endpoint    Endpoint    `json:"endpoint"`
 	Schedule    *Schedule   `json:"schedule,omitempty"`
 	Env         []EnvVar    `json:"env,omitempty"`
 	StackId     string      `json:"stackId,omitempty"`
@@ -1341,7 +1358,7 @@ type ServiceRevisionResponse struct {
 	Resources   Resources    `json:"resources"`
 	Env         []EnvVar     `json:"env,omitempty"`
 	SecretRefs  []SecretRef  `json:"secretRefs,omitempty"`
-	Endpoint    string       `json:"endpoint,omitempty"`
+	Endpoint    Endpoint     `json:"endpoint"`
 	Replicas    int          `json:"replicas,omitempty"`
 	StackId     string       `json:"stackId,omitempty"`
 	Autoscaling *Autoscaling `json:"autoscaling,omitempty"`
@@ -1379,7 +1396,7 @@ type DescribeAgentResponse struct {
 	Version     string      `json:"version"`
 	AgentConfig any         `json:"agentConfig"`
 	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
-	Endpoint    string      `json:"endpoint,omitempty"`
+	Endpoint    Endpoint    `json:"endpoint"`
 	Schedule    *Schedule   `json:"schedule,omitempty"`
 	Env         []EnvVar    `json:"env,omitempty"`
 	StackId     string      `json:"stackId,omitempty"`

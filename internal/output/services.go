@@ -72,8 +72,11 @@ func PrintServiceDescribe(out io.Writer, svc *deployment.DescribeServiceResponse
 		fmt.Fprintf(w, "Replicas:\t%d\n", svc.Replicas)
 	}
 
-	if svc.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", svc.Endpoint)
+	if svc.Endpoint.Internal != "" {
+		fmt.Fprintf(w, "Internal Endpoint:\t%s\n", svc.Endpoint.Internal)
+	}
+	if svc.Endpoint.Public != "" {
+		fmt.Fprintf(w, "Public Endpoint:\t%s\n", svc.Endpoint.Public)
 	}
 
 	if svc.Healthcheck != nil {
@@ -159,8 +162,11 @@ func PrintServiceRevision(out io.Writer, rev *deployment.ServiceRevisionResponse
 		fmt.Fprintf(w, "Replicas:\t%d\n", rev.Replicas)
 	}
 
-	if rev.Endpoint != "" {
-		fmt.Fprintf(w, "Endpoint:\t%s\n", rev.Endpoint)
+	if rev.Endpoint.Internal != "" {
+		fmt.Fprintf(w, "Internal Endpoint:\t%s\n", rev.Endpoint.Internal)
+	}
+	if rev.Endpoint.Public != "" {
+		fmt.Fprintf(w, "Public Endpoint:\t%s\n", rev.Endpoint.Public)
 	}
 
 	if rev.Healthcheck != nil {

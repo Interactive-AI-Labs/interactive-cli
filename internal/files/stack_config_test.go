@@ -574,7 +574,7 @@ func TestServiceConfigFromDescribe(t *testing.T) {
 				Resources:  deployment.Resources{Memory: "512M", CPU: "1"},
 				Env:        []deployment.EnvVar{{Name: "K", Value: "V"}},
 				SecretRefs: []deployment.SecretRef{{SecretName: "s"}},
-				Endpoint:   "example.com",
+				Endpoint:   deployment.Endpoint{Internal: "svc:8080", Public: "example.com"},
 				Replicas:   3,
 			},
 			want: ServiceConfig{
@@ -591,6 +591,14 @@ func TestServiceConfigFromDescribe(t *testing.T) {
 				Endpoint:   true,
 				Replicas:   3,
 			},
+		},
+		{
+			name: "internal endpoint only",
+			desc: &deployment.DescribeServiceResponse{
+				ServicePort: 8080,
+				Endpoint:    deployment.Endpoint{Internal: "svc:8080"},
+			},
+			want: ServiceConfig{ServicePort: 8080},
 		},
 		{
 			name: "without endpoint",
