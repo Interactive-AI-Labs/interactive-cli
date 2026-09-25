@@ -21,6 +21,8 @@ Secret data can be provided via:
 
 When both are provided, --data values take precedence.
 
+Keys starting with IAI_MCP_ are reserved.
+
 ```
 iai secrets update <secret_name> [flags]
 ```

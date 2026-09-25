@@ -91,7 +91,9 @@ on their create/update commands).
 --mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
 tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
 a "tools-prod" in one project can share a prefix, and a routine. Attach further
-mcps in their own commands.`,
+mcps in their own commands.
+
+Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.`,
 	Example: `  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
@@ -169,8 +171,8 @@ routines and policies first using --schema-version on their create/update
 commands, then update the agent with the new config and version.
 
 Lists (--env, --secret) replace their user-managed values when provided — pass
-every value you want to keep. Managed MCP credential references are preserved
-during env updates and clears; detach the MCP to remove its credential.
+every value you want to keep. Env names starting with IAI_MCP_ or MCP_KEY_
+are reserved.
 
 For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone

@@ -121,6 +121,8 @@ var mcpCreateCmd = &cobra.Command{
   Remote: hosted elsewhere; requires --external-url, including the endpoint path.
   Catalog: a predefined remote provider; --catalog-id supplies its endpoint and auth settings.
 
+Names starting with iai-mcp- are reserved.
+
 On create, a credential defaults to bearer authentication unless --auth-type,
 the custom header flags, or a catalog entry with a single auth method select
 otherwise. For a catalog entry with several methods, pass --auth-type to use
@@ -358,7 +360,8 @@ Only the flags you pass are applied; everything else is left at its current
 value.
 
 Lists (--env, --secret) replace the entire current list when provided — pass
-every value you want to keep.
+every value you want to keep. --env can't set MCP_API_KEY while the mcp has a
+credential.
 
 Use --clear-env, --clear-secret, or --clear-stack-id to remove those
 configurations entirely.

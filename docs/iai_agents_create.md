@@ -23,6 +23,8 @@ tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" 
 a "tools-prod" in one project can share a prefix, and a routine. Attach further
 mcps in their own commands.
 
+Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.
+
 ```
 iai agents create <agent_name> [flags]
 ```
