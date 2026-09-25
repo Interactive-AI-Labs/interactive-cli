@@ -999,7 +999,7 @@ func init() {
 
 	for _, c := range []*cobra.Command{mcpCreateCmd, mcpUpdateCmd} {
 		c.Flags().
-			IntVar(&mcpPort, "port", 0, "MCP port to expose (internal)")
+			IntVar(&mcpPort, "port", 0, "Port the mcp's own server listens on (internal, default 3000)")
 		c.Flags().
 			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp at <mcp-name>-<project-hash>.interactive.ai (internal)")
 		c.Flags().
@@ -1009,9 +1009,9 @@ func init() {
 		c.Flags().
 			StringVar(&mcpImageTag, "image-tag", "", "Container image tag (internal)")
 		c.Flags().
-			StringVar(&mcpMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal)")
+			StringVar(&mcpMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal, default 128M)")
 		c.Flags().
-			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal)")
+			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (internal, default 100m)")
 		c.Flags().
 			StringVar(&mcpAuthType, "auth-type", "", `How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create`)
 		c.Flags().
