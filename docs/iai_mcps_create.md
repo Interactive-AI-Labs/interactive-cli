@@ -4,71 +4,48 @@ Create an mcp in a project
 
 ### Synopsis
 
-Create an mcp — a hosted MCP server ("internal"), a custom external URL,
-or a catalog-backed provider.
+Create an MCP server:
+  Internal: hosted by the platform; requires --image-name and --image-tag.
+  External: hosted elsewhere; requires --external-url, including the endpoint path.
+  Catalog: a predefined external provider; --catalog-id supplies its endpoint and auth settings.
 
-Internal: --image-name and --image-tag identify the image. --port, --path,
---memory, and --cpu configure how it runs. --env NAME=VALUE and --secret
-configure the server itself and can each be repeated; --secret takes the name
-of a secret that already exists in the project (see 'iai secrets'), which is
-loaded whole as environment variables. Secret values are never passed here.
-External custom: --external-url — a server not owned by the platform, dialed
-directly at that URL, path included.
-External catalog: --catalog-id (see 'iai mcps catalog'); external URL and auth are
-derived from the catalog entry, which provides its own credential header and
-prefix. The entry decides the auth type — omit --auth-type unless it accepts
-more than one, in which case the error names the options.
+On create, a credential defaults to bearer authentication unless --auth-type,
+the custom header flags, or a catalog entry with a single auth method select
+otherwise. For a catalog entry with several methods, pass --auth-type to use
+one other than bearer.
 
-When neither --auth-type nor a catalog entry decides the auth type, --credential
-alone is sent as a bearer token (Authorization: Bearer); pass --auth-type
-api_key (X-API-Key), or --auth-type custom with --auth-header and an optional
---auth-header-prefix, to send it another way.
+Internal servers receive the credential through the MCP_API_KEY environment
+variable; don't set that name with --env. Your server must check the credential
+on every request, because the platform doesn't. --endpoint exposes the server
+publicly. Agents can only attach bearer or no-auth internal MCPs.
 
-An internal mcp's server receives its credential as the MCP_API_KEY
-environment variable (don't set that name with --env) and must check every
-request against it: the platform doesn't, so a server that ignores it answers
-anyone who can reach it, including the internet with --endpoint. Agents send
-the credential as a bearer token, so only a bearer or no-auth internal mcp can
-be attached to an agent.
+Internal MCPs verify automatically when ready. For external MCPs, check the
+connection after creation with 'iai mcps tools <mcp_name>'; for OAuth, run
+'iai mcps connect <mcp_name>' first. Except for client_credentials, a
+successful create or anonymous tool discovery doesn't prove the credential
+works.
 
-An internal mcp is verified automatically once ready. An external mcp is stored
-before the platform contacts the provider; after create, run 'iai mcps tools
-<mcp_name>' to verify the endpoint and credential. Tool discovery can be
-anonymous, so it only catches a bad credential when the provider protects it.
-An --auth-type oauth mcp has no credential until the user signs in; connect it
-before running the tools check.
+OAuth (--auth-type oauth) uses the signed-in user's identity, even with your
+own app. For providers without automatic client registration (e.g. GitHub,
+Slack, Google Workspace), register an app and supply --client-id and
+--client-secret (or --client-secret-stdin). Create reports the redirect URI
+to register and rejects missing registration details before sign-in.
+Rotate with 'iai mcps update --auth-type oauth --client-id ...'; this clears
+the stored token, so sign in again afterwards.
 
-Some providers publish no dynamic client registration — GitHub, Slack, Google
-Workspace — so there is no app for the sign-in to run under until you register
-one yourself. Pass its --client-id and --client-secret alongside --auth-type
-oauth and the sign-in runs under your app; the token still belongs to whoever
-signs in. 'iai mcps create' names the redirect URI to register when a provider
-needs this, and refuses rather than dead-ending at the provider's error page.
-Rotating the pair is 'iai mcps update --auth-type oauth --client-id ...', which
-drops the stored token, so sign in again afterwards.
-
-An --auth-type client_credentials mcp has no sign-in. You register an app at the
-provider and pass its --client-id and --client-secret; the platform mints and
-refreshes tokens from that pair. The token is not tied to a person, so every
-agent in the project shares one provider identity.
-
-Unlike the other external types, the pair is checked while you wait: a provider
-that refuses it fails the create and leaves nothing behind, so a create that
-succeeds means the provider accepted the credential.
-
-What client_credentials supports:
-  - Catalog entries only. The issuer, token endpoint and scopes come from the
-    reviewed entry, so --client-id cannot be combined with --external-url.
-  - Providers that accept a client secret at the token endpoint, sent either as
-    HTTP Basic or in the form body. The entry decides which.
-
-What it does not support:
-  - Providers that only issue tokens to a signed-in person. Many advertise the
-    grant and still refuse a machine token; 'iai mcps tools' is how you find out.
-  - Signed JWT assertions or client certificates in place of a secret.
-  - Changing the pair in place. Rotating means delete and recreate, because
-    tokens minted for the old app stop working.
-  - 'iai mcps connect' and 'iai mcps disconnect', which are for sign-in types.
+Machine authentication (--auth-type client_credentials):
+  - Requires --catalog-id and a registered app's --client-id and
+    --client-secret (or --client-secret-stdin); --external-url is unsupported.
+  - The reviewed catalog entry supplies the issuer, token endpoint, scopes,
+    and secret delivery method (HTTP Basic or form data).
+  - No sign-in: all agents share the app identity. Tokens renew automatically.
+  - Creation checks the pair with the provider; rejection leaves no MCP.
+    Acceptance does not guarantee tool access; check with 'iai mcps tools'.
+    Some providers advertise this grant but require a signed-in user.
+  - Signed JWT assertions and client certificates are unsupported.
+  - Rotate by deleting and recreating the MCP; tokens minted for the old app
+    stop working. 'iai mcps connect' and 'disconnect' apply only to user
+    sign-in.
 
 ```
 iai mcps create <mcp_name> [flags]
@@ -93,9 +70,9 @@ iai mcps create <mcp_name> [flags]
 ### Options
 
 ```
-      --auth-header string          Custom header used to send the credential
-      --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
+      --auth-header string          Header used for custom authentication
+      --auth-header-prefix string   Optional credential prefix for custom authentication (e.g. "Token ")
+      --auth-type string            Authentication type: "bearer" (Authorization: Bearer), "api_key" (X-API-Key), "custom", "none", "oauth", or "client_credentials"; inferred on create
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog external mcp)
       --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
@@ -113,7 +90,7 @@ iai mcps create <mcp_name> [flags]
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
       --port int                    Port the mcp's own server listens on (internal, default 3000)
-      --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal)
+      --secret stringArray          Existing project secret whose keys become environment variables; repeatable (internal)
       --stack-id string             Stack ID to assign the mcp to (internal)
       --type string                 Mcp type: "internal" or "external" (inferred from other flags if omitted)
 ```
