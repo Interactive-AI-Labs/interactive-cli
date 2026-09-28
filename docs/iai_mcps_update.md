@@ -47,9 +47,9 @@ iai mcps update <mcp_name> [flags]
 ### Options
 
 ```
-      --auth-header string          Custom header used to send the credential
-      --auth-header-prefix string   Credential value prefix
-      --auth-type string            How the credential is sent: "bearer", "api_key", "custom", "none", "oauth", or "client_credentials"; inferred on create
+      --auth-header string          Header used for custom authentication
+      --auth-header-prefix string   Optional credential prefix for custom authentication (e.g. "Token ")
+      --auth-type string            Authentication type: "bearer" (Authorization: Bearer), "api_key" (X-API-Key), "custom", "none", "oauth", or "client_credentials"; inferred on create
       --clear-env                   Remove all environment variables from the mcp (internal)
       --clear-secret                Remove all secret references from the mcp (internal)
       --clear-stack-id              Remove the mcp from its stack (internal)
@@ -68,7 +68,7 @@ iai mcps update <mcp_name> [flags]
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (internal, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (internal, default "/mcp")
       --port int                    Port the mcp's own server listens on (internal, default 3000)
-      --secret stringArray          Secrets to be loaded as env vars; can be repeated (internal)
+      --secret stringArray          Existing project secret whose keys become environment variables; repeatable (internal)
       --stack-id string             Stack ID to assign the mcp to (internal)
 ```
 
