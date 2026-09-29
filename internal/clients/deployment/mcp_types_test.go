@@ -49,8 +49,16 @@ func TestCreateMcpBodyEndpointJSON(t *testing.T) {
 		endpoint bool
 		want     string
 	}{
-		{name: "enabled is sent", endpoint: true, want: `{"type":"internal","image":{"type":"","name":"","tag":""},"resources":{"memory":"","cpu":""},"endpoint":true,"auth":{}}`},
-		{name: "disabled is omitted", endpoint: false, want: `{"type":"internal","image":{"type":"","name":"","tag":""},"resources":{"memory":"","cpu":""},"auth":{}}`},
+		{
+			name:     "enabled is sent",
+			endpoint: true,
+			want:     `{"type":"internal","image":{"type":"","name":"","tag":""},"resources":{"memory":"","cpu":""},"endpoint":true,"auth":{}}`,
+		},
+		{
+			name:     "disabled is omitted",
+			endpoint: false,
+			want:     `{"type":"internal","image":{"type":"","name":"","tag":""},"resources":{"memory":"","cpu":""},"auth":{}}`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
