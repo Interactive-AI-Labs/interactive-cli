@@ -15,9 +15,6 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
 nested JSON values.
 
-Use --summary for JSON severity counts over the entire time window, without
-the log-entry limit. Unlabeled lines contribute to total only.
-
 ```
 iai mcps logs <mcp_name> [flags]
 ```
@@ -31,7 +28,6 @@ iai mcps logs <mcp_name> [flags]
   iai mcps logs my-tool --timestamps
   iai mcps logs my-tool --fields logger,pid
   iai mcps logs my-tool --since 30m --level error --message 'timeout|failed'
-  iai mcps logs my-tool --summary --since 3h
   iai mcps logs my-tool --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z
 ```
 
@@ -50,7 +46,6 @@ iai mcps logs <mcp_name> [flags]
       --raw                 Output exact server JSON lines without formatting
       --since string        Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time
       --start-time string   Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window
-      --summary             Output JSON severity counts instead of log entries
       --timestamps          Include platform log timestamps
 ```
 

@@ -64,6 +64,7 @@ services:
 				Agents:    map[string]AgentConfig{},
 				Databases: map[string]DatabaseConfig{},
 				Mcps:      map[string]McpConfig{},
+				Jobs:      map[string]JobConfig{},
 			},
 		},
 		{
@@ -116,6 +117,7 @@ services:
 				Agents:    map[string]AgentConfig{},
 				Databases: map[string]DatabaseConfig{},
 				Mcps:      map[string]McpConfig{},
+				Jobs:      map[string]JobConfig{},
 			},
 		},
 		{
@@ -159,6 +161,7 @@ databases:
 					},
 				},
 				Mcps: map[string]McpConfig{},
+				Jobs: map[string]JobConfig{},
 			},
 		},
 		{
@@ -204,6 +207,7 @@ mcps:
 						Auth:      deployment.McpAuthBody{Type: "none"},
 					},
 				},
+				Jobs: map[string]JobConfig{},
 			},
 		},
 		{
@@ -872,6 +876,7 @@ mcps:
     tools:
         auth:
             type: none
+jobs: {}
 `
 	if diff := cmp.Diff(want, string(got)); diff != "" {
 		t.Errorf("yaml.Marshal() mismatch (-want +got):\n%s", diff)

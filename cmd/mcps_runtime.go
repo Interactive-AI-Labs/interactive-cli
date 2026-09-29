@@ -16,7 +16,6 @@ import (
 var (
 	mcpLogsOptions    deployment.LogsOptions
 	mcpLogsFormat     output.LogFormatOptions
-	mcpLogsSummary    bool
 	mcpLogFieldsSince string
 )
 
@@ -32,17 +31,13 @@ Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
 --all-fields to include additional top-level fields after the message. Use
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
-nested JSON values.
-
-Use --summary for JSON severity counts over the entire time window, without
-the log-entry limit. Unlabeled lines contribute to total only.`,
+nested JSON values.`,
 	Example: `  iai mcps logs my-tool
   iai mcps logs my-tool --follow
   iai mcps logs my-tool --since 3h
   iai mcps logs my-tool --timestamps
   iai mcps logs my-tool --fields logger,pid
   iai mcps logs my-tool --since 30m --level error --message 'timeout|failed'
-  iai mcps logs my-tool --summary --since 3h
   iai mcps logs my-tool --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -68,20 +63,6 @@ the log-entry limit. Unlabeled lines contribute to total only.`,
 		)
 		if err != nil {
 			return err
-		}
-
-		if mcpLogsSummary {
-			raw, err := client.GetMcpLogSummary(
-				ctx,
-				pCtx.orgId,
-				pCtx.projectId,
-				name,
-				mcpLogsOptions,
-			)
-			if err != nil {
-				return err
-			}
-			return output.PrintRawJSON(cmd.OutOrStdout(), raw)
 		}
 
 		logs, err := client.GetMcpLogs(ctx, pCtx.orgId, pCtx.projectId, name, mcpLogsOptions)
@@ -296,12 +277,6 @@ func init() {
 		"",
 		"JSON log severity: debug, info, warn, or error",
 	)
-	f.BoolVar(
-		&mcpLogsSummary,
-		"summary",
-		false,
-		"Output JSON severity counts instead of log entries",
-	)
 	f.BoolVar(&mcpLogsFormat.Raw, "raw", false, "Output exact server JSON lines without formatting")
 	f.BoolVar(
 		&mcpLogsFormat.Decode,
@@ -323,9 +298,6 @@ func init() {
 	)
 	f.BoolVar(&mcpLogsFormat.Timestamps, "timestamps", false, "Include platform log timestamps")
 
-	for _, flag := range []string{"follow", "limit", "level", "raw", "decode", "fields", "all-fields", "timestamps"} {
-		mcpLogsCmd.MarkFlagsMutuallyExclusive("summary", flag)
-	}
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

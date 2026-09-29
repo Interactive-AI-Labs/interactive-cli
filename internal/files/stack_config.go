@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,6 +20,7 @@ type StackConfig struct {
 	Agents       map[string]AgentConfig    `yaml:"agents"       json:"agents"`
 	Databases    map[string]DatabaseConfig `yaml:"databases"    json:"databases"`
 	Mcps         map[string]McpConfig      `yaml:"mcps"         json:"mcps"`
+	Jobs         map[string]JobConfig      `yaml:"jobs"         json:"jobs"`
 }
 
 type ServiceConfig struct {
@@ -67,6 +71,25 @@ type McpConfig struct {
 	Headers     map[string]string      `yaml:"headers,omitempty"     json:"headers,omitempty"`
 }
 
+// JobConfig references script job files by path; loading reads them into Script and Pyproject.
+type JobConfig struct {
+	Type          string                   `yaml:"type"                    json:"type"`
+	Image         *deployment.ImageSpec    `yaml:"image,omitempty"         json:"image,omitempty"`
+	Command       []string                 `yaml:"command,omitempty"       json:"command,omitempty"`
+	Args          []string                 `yaml:"args,omitempty"          json:"args,omitempty"`
+	ScriptFile    string                   `yaml:"scriptFile,omitempty"    json:"scriptFile,omitempty"`
+	PyprojectFile string                   `yaml:"pyprojectFile,omitempty" json:"pyprojectFile,omitempty"`
+	Script        string                   `yaml:"-"                       json:"-"`
+	Pyproject     string                   `yaml:"-"                       json:"-"`
+	Resources     deployment.Resources     `yaml:"resources"               json:"resources"`
+	Env           []deployment.EnvVar      `yaml:"env,omitempty"           json:"env,omitempty"`
+	SecretRefs    []deployment.SecretRef   `yaml:"secretRefs,omitempty"    json:"secretRefs,omitempty"`
+	Cron          *deployment.JobCron      `yaml:"cron,omitempty"          json:"cron,omitempty"`
+	Timeout       *int64                   `yaml:"timeout,omitempty"       json:"timeout,omitempty"`
+	Retries       *int32                   `yaml:"retries,omitempty"       json:"retries,omitempty"`
+	Retention     *deployment.JobRetention `yaml:"retention,omitempty"     json:"retention,omitempty"`
+}
+
 func LoadStackConfig(path string) (*StackConfig, error) {
 	if path == "" {
 		return &StackConfig{}, nil
@@ -81,10 +104,11 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
-	if (len(cfg.Services) > 0 || len(cfg.Agents) > 0 || len(cfg.Databases) > 0 || len(cfg.Mcps) > 0) &&
+	if (len(cfg.Services) > 0 || len(cfg.Agents) > 0 || len(cfg.Databases) > 0 || len(cfg.Mcps) > 0 ||
+		len(cfg.Jobs) > 0) &&
 		cfg.StackId == "" {
 		return nil, fmt.Errorf(
-			"stack-id is required when services, agents, databases, or mcps are defined in config file",
+			"stack-id is required when services, agents, databases, mcps, or jobs are defined in config file",
 		)
 	}
 
@@ -108,7 +132,48 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		cfg.Mcps[name] = mcp
 	}
 
+	if cfg.Jobs == nil {
+		cfg.Jobs = make(map[string]JobConfig)
+	}
+	for name, job := range cfg.Jobs {
+		job, err := loadJobFiles(job, filepath.Dir(path))
+		if err != nil {
+			return nil, fmt.Errorf("job %q: %w", name, err)
+		}
+		cfg.Jobs[name] = job
+	}
+
 	return &cfg, nil
+}
+
+// loadJobFiles resolves file paths against the config file's directory.
+func loadJobFiles(job JobConfig, dir string) (JobConfig, error) {
+	if job.Type != "script" {
+		if job.ScriptFile != "" || job.PyprojectFile != "" {
+			return JobConfig{}, fmt.Errorf(
+				"scriptFile and pyprojectFile are only available for script jobs",
+			)
+		}
+		return job, nil
+	}
+	if job.ScriptFile == "" || job.PyprojectFile == "" {
+		return JobConfig{}, fmt.Errorf("scriptFile and pyprojectFile are required for script jobs")
+	}
+	var err error
+	if job.Script, err = inputs.ReadJobFile(resolvePath(dir, job.ScriptFile)); err != nil {
+		return JobConfig{}, err
+	}
+	if job.Pyproject, err = inputs.ReadJobFile(resolvePath(dir, job.PyprojectFile)); err != nil {
+		return JobConfig{}, err
+	}
+	return job, nil
+}
+
+func resolvePath(dir, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(dir, path)
 }
 
 func (a AgentConfig) ToCreateRequest(stackId string) deployment.CreateAgentBody {
@@ -151,6 +216,43 @@ func (m McpConfig) ToCreateRequest(stackId string) deployment.CreateMcpBody {
 		Auth:        m.Auth,
 		Headers:     m.Headers,
 		StackId:     stackId,
+	}
+}
+
+func (j JobConfig) ToCreateRequest(stackId string) deployment.CreateJobBody {
+	return deployment.CreateJobBody{
+		Type:       j.Type,
+		Image:      j.Image,
+		Command:    j.Command,
+		Args:       j.Args,
+		Script:     j.Script,
+		Pyproject:  j.Pyproject,
+		Resources:  j.Resources,
+		Env:        j.Env,
+		SecretRefs: j.SecretRefs,
+		StackId:    stackId,
+		Cron:       j.Cron,
+		Timeout:    j.Timeout,
+		Retries:    j.Retries,
+		Retention:  j.Retention,
+	}
+}
+
+func JobConfigFromDescribe(job *deployment.DescribeJobResponse) JobConfig {
+	return JobConfig{
+		Type:       job.Type,
+		Image:      job.Image,
+		Command:    job.Command,
+		Args:       job.Args,
+		Script:     job.Script,
+		Pyproject:  job.Pyproject,
+		Resources:  job.Resources,
+		Env:        job.Env,
+		SecretRefs: job.SecretRefs,
+		Cron:       job.Cron,
+		Timeout:    job.Timeout,
+		Retries:    job.Retries,
+		Retention:  job.Retention,
 	}
 }
 
@@ -261,6 +363,7 @@ func FetchLiveStack(
 		Agents:    make(map[string]AgentConfig),
 		Databases: make(map[string]DatabaseConfig),
 		Mcps:      make(map[string]McpConfig),
+		Jobs:      make(map[string]JobConfig),
 	}
 
 	svcs, err := deployClient.ListServices(ctx, orgId, projectId, stackId)
@@ -311,7 +414,56 @@ func FetchLiveStack(
 		cfg.Mcps[mcp.Name] = McpConfigFromDescribe(desc)
 	}
 
+	jobs, err := deployClient.ListJobs(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list jobs: %w", err)
+	}
+	for _, job := range jobs {
+		desc, err := deployClient.DescribeJob(ctx, orgId, projectId, job.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe job %q: %w", job.Name, err)
+		}
+		cfg.Jobs[job.Name] = JobConfigFromDescribe(desc)
+	}
+
 	return cfg, nil
+}
+
+// WriteJobFiles writes script job files under dir/jobs/<name>/ and points the config at them.
+func WriteJobFiles(cfg *StackConfig, dir string) error {
+	for name, job := range cfg.Jobs {
+		if job.Type != "script" {
+			continue
+		}
+		jobDir := filepath.Join("jobs", name)
+		if err := os.MkdirAll(filepath.Join(dir, jobDir), 0o755); err != nil {
+			return fmt.Errorf("failed to create %s: %w", jobDir, err)
+		}
+		job.ScriptFile = filepath.Join(jobDir, "main.py")
+		job.PyprojectFile = filepath.Join(jobDir, "pyproject.toml")
+		for path, contents := range map[string]string{
+			job.ScriptFile:    job.Script,
+			job.PyprojectFile: job.Pyproject,
+		} {
+			if err := os.WriteFile(filepath.Join(dir, path), []byte(contents), 0o644); err != nil {
+				return fmt.Errorf("failed to write %s: %w", path, err)
+			}
+		}
+		cfg.Jobs[name] = job
+	}
+	return nil
+}
+
+// ScriptJobNames lists script jobs, whose files only WriteJobFiles exports.
+func ScriptJobNames(cfg *StackConfig) []string {
+	var names []string
+	for name, job := range cfg.Jobs {
+		if job.Type == "script" {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
 
 func MarshalStackConfig(cfg *StackConfig) ([]byte, error) {

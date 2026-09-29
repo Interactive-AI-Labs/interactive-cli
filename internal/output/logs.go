@@ -17,6 +17,7 @@ import (
 
 type logEntry struct {
 	Replica   string `json:"replica,omitempty"`
+	RunId     string `json:"runId,omitempty"`
 	Timestamp string `json:"timestamp,omitempty"`
 	Line      string `json:"line"`
 }
@@ -79,7 +80,7 @@ type LogFormatOptions struct {
 func PrintLogStream(
 	out io.Writer,
 	r io.Reader,
-	showReplica bool,
+	showIdentifier bool,
 	meta LogsMeta,
 	opts LogFormatOptions,
 ) error {
@@ -124,8 +125,19 @@ func PrintLogStream(
 		if opts.Timestamps && entry.Timestamp != "" {
 			timestampPart = formatLogTimestamp(entry.Timestamp) + " "
 		}
-		replicaPart := replicaPrefix(showReplica, entry.Replica, useColor, colorMap, &nextColor)
-		prefix := timestampPart + replicaPart
+		identifier, display := entry.Replica, trimReplicaSuffix(entry.Replica)
+		if entry.RunId != "" {
+			identifier, display = entry.RunId, entry.RunId[:min(8, len(entry.RunId))]
+		}
+		identifierPart := identifierPrefix(
+			showIdentifier,
+			identifier,
+			display,
+			useColor,
+			colorMap,
+			&nextColor,
+		)
+		prefix := timestampPart + identifierPart
 		if extras != "" {
 			fmt.Fprintf(out, "%s%s  %s\n", prefix, mainLine, extras)
 		} else {
@@ -210,27 +222,26 @@ func formatLogLine(
 	return b.String(), extras
 }
 
-func replicaPrefix(
+func identifierPrefix(
 	show bool,
-	replica string,
+	identifier, display string,
 	useColor bool,
 	colorMap map[string]string,
 	nextColor *int,
 ) string {
-	if !show || replica == "" {
+	if !show || identifier == "" {
 		return ""
 	}
-	displayReplica := trimReplicaSuffix(replica)
 	if !useColor {
-		return fmt.Sprintf("[%s] ", displayReplica)
+		return fmt.Sprintf("[%s] ", display)
 	}
-	c, ok := colorMap[replica]
+	c, ok := colorMap[identifier]
 	if !ok {
 		c = replicaColors[*nextColor%len(replicaColors)]
-		colorMap[replica] = c
+		colorMap[identifier] = c
 		*nextColor++
 	}
-	return fmt.Sprintf("%s[%s]%s ", c, displayReplica, colorReset)
+	return fmt.Sprintf("%s[%s]%s ", c, display, colorReset)
 }
 
 func trimReplicaSuffix(replica string) string {

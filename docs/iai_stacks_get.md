@@ -4,12 +4,17 @@ Export live stack configuration
 
 ### Synopsis
 
-Fetch the live services, agents, databases, and mcps for a stack and write
-them as a stack configuration file.
+Fetch the live services, agents, databases, mcps, and jobs for a stack and
+write them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making
 changes. MCP credentials are never exported; include auth.credential before
 syncing credentialed MCPs.
+
+With --file, each script job's files are written to jobs/<name>/main.py and
+jobs/<name>/pyproject.toml next to the config file, overwriting existing
+files. Other outputs omit script job files; add scriptFile and pyprojectFile
+before syncing.
 
 The organization and project are read from flags or resolved via 'iai
 organizations select' / 'iai projects select'.
@@ -29,7 +34,7 @@ iai stacks get [flags]
 ### Options
 
 ```
-  -f, --file string           Write output to file instead of stdout
+  -f, --file string           Write output to file instead of stdout; cannot combine with --json or --yaml
   -h, --help                  help for get
       --json                  Output as JSON
   -o, --organization string   Organization name

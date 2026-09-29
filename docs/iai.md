@@ -97,6 +97,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai files](iai_files.md)	 - Manage documents stored in a project
 * [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
 * [iai images](iai_images.md)	 - Manage container images
+* [iai jobs](iai_jobs.md)	 - Manage saved jobs and executions
 * [iai login](iai_login.md)	 - Authenticate with InteractiveAI
 * [iai logout](iai_logout.md)	 - Clear local session
 * [iai macros](iai_macros.md)	 - Pre-approved response templates used in routines

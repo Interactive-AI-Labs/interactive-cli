@@ -1,6 +1,7 @@
 package files
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ type StackDiff struct {
 	Agents    ResourceTypeDiff `json:"agents"`
 	Databases ResourceTypeDiff `json:"databases"`
 	Mcps      ResourceTypeDiff `json:"mcps"`
+	Jobs      ResourceTypeDiff `json:"jobs"`
 }
 
 // ResourceTypeDiff records which resources were created, updated, or deleted.
@@ -59,14 +61,38 @@ func DiffStackConfigs(local, live *StackConfig) *StackDiff {
 		local.Mcps, live.Mcps,
 		func(a, b McpConfig) []fieldChange { return diffFields(a, b) },
 	)
+	d.Jobs = diffResourceMap(
+		local.Jobs, live.Jobs,
+		func(a, b JobConfig) []fieldChange { return diffFields(jobDiffView(a), jobDiffView(b)) },
+	)
 	return d
+}
+
+// jobDiffView compares file contents by digest; live jobs have no file paths.
+func jobDiffView(job JobConfig) any {
+	view := struct {
+		JobConfig
+		Script    string `json:"script,omitempty"`
+		Pyproject string `json:"pyproject,omitempty"`
+	}{JobConfig: job}
+	view.ScriptFile, view.PyprojectFile = "", ""
+	if job.Type == "script" {
+		view.Script, view.Pyproject = contentDigest(job.Script), contentDigest(job.Pyproject)
+	}
+	return view
+}
+
+func contentDigest(contents string) string {
+	sum := sha256.Sum256([]byte(contents))
+	return fmt.Sprintf("sha256:%x (%d B)", sum[:6], len(contents))
 }
 
 func (d *StackDiff) HasChanges() bool {
 	return len(d.Services.Created)+len(d.Services.Updated)+len(d.Services.Deleted)+
 		len(d.Agents.Created)+len(d.Agents.Updated)+len(d.Agents.Deleted)+
 		len(d.Databases.Created)+len(d.Databases.Updated)+len(d.Databases.Deleted)+
-		len(d.Mcps.Created)+len(d.Mcps.Updated)+len(d.Mcps.Deleted) > 0
+		len(d.Mcps.Created)+len(d.Mcps.Updated)+len(d.Mcps.Deleted)+
+		len(d.Jobs.Created)+len(d.Jobs.Updated)+len(d.Jobs.Deleted) > 0
 }
 
 func diffResourceMap[T any](
@@ -133,6 +159,9 @@ func PrintStackDiffDetailed(
 	})
 	printSection(out, "mcp", d.Mcps, func(name string) []fieldChange {
 		return diffFields(live.Mcps[name], local.Mcps[name])
+	})
+	printSection(out, "job", d.Jobs, func(name string) []fieldChange {
+		return diffFields(jobDiffView(live.Jobs[name]), jobDiffView(local.Jobs[name]))
 	})
 
 	return nil

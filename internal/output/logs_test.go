@@ -8,12 +8,12 @@ import (
 
 func TestPrintLogStream(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		showReplica bool
-		opts        LogFormatOptions
-		want        string
-		wantErr     bool
+		name           string
+		input          string
+		showIdentifier bool
+		opts           LogFormatOptions
+		want           string
+		wantErr        bool
 	}{
 		{
 			name:  "empty input produces no output",
@@ -36,31 +36,63 @@ func TestPrintLogStream(t *testing.T) {
 			want:  "log message\n",
 		},
 		{
-			name:  "JSON entry with replica but showReplica false prints line only",
+			name:  "JSON entry with replica but showIdentifier false prints line only",
 			input: `{"replica":"pod-1","line":"hello"}` + "\n",
 			want:  "hello\n",
 		},
 		{
-			name:        "JSON entry with replica and showReplica true keeps suffix",
-			input:       `{"replica":"pod-1","line":"hello"}` + "\n",
-			showReplica: true,
-			want:        "[1] hello\n",
+			name:           "JSON entry with replica and showIdentifier true keeps suffix",
+			input:          `{"replica":"pod-1","line":"hello"}` + "\n",
+			showIdentifier: true,
+			want:           "[1] hello\n",
 		},
 		{
-			name:        "JSON entry with empty replica and showReplica true prints line only",
-			input:       `{"replica":"","line":"no replica"}` + "\n",
-			showReplica: true,
-			want:        "no replica\n",
+			name:           "JSON entry with empty replica and showIdentifier true prints line only",
+			input:          `{"replica":"","line":"no replica"}` + "\n",
+			showIdentifier: true,
+			want:           "no replica\n",
 		},
 		{
 			name: "multiple replicas get prefixed",
 			input: `{"replica":"pod-1","line":"first"}` + "\n" +
 				`{"replica":"pod-2","line":"second"}` + "\n" +
 				`{"replica":"pod-1","line":"third"}` + "\n",
-			showReplica: true,
+			showIdentifier: true,
 			want: "[1] first\n" +
 				"[2] second\n" +
 				"[1] third\n",
+		},
+		{
+			name: "job runs display eight character prefixes",
+			input: `{"runId":"12345678-1234-1234-1234-123456789abc","line":"first"}` + "\n" +
+				`{"runId":"87654321-1234-1234-1234-123456789abc","line":"second"}` + "\n",
+			showIdentifier: true,
+			want: "[12345678] first\n" +
+				"[87654321] second\n",
+		},
+		{
+			name:           "short run identifiers remain unchanged",
+			input:          `{"runId":"run-1","line":"hello"}` + "\n",
+			showIdentifier: true,
+			want:           "[run-1] hello\n",
+		},
+		{
+			name:  "single run hides identifier",
+			input: `{"runId":"run-1","line":"hello"}` + "\n",
+			want:  "hello\n",
+		},
+		{
+			name:           "older job logs without run ID",
+			input:          `{"timestamp":"1000","line":"hello"}` + "\n",
+			showIdentifier: true,
+			want:           "hello\n",
+		},
+		{
+			name:           "raw job logs preserve server JSON",
+			input:          `{"runId":"12345678-1234-1234-1234-123456789abc","line":"hello"}` + "\n",
+			showIdentifier: true,
+			opts:           LogFormatOptions{Raw: true},
+			want:           `{"runId":"12345678-1234-1234-1234-123456789abc","line":"hello"}` + "\n",
 		},
 		{
 			name: "mixed JSON and non-JSON lines",
@@ -82,7 +114,7 @@ func TestPrintLogStream(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			r := strings.NewReader(tt.input)
-			err := PrintLogStream(&buf, r, tt.showReplica, LogsMeta{}, tt.opts)
+			err := PrintLogStream(&buf, r, tt.showIdentifier, LogsMeta{}, tt.opts)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("PrintLogStream() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -97,11 +129,11 @@ func TestPrintLogStreamStructuredJSON(t *testing.T) {
 	t.Setenv("TZ", "Europe/Madrid")
 
 	tests := []struct {
-		name        string
-		input       string
-		showReplica bool
-		opts        LogFormatOptions
-		want        string
+		name           string
+		input          string
+		showIdentifier bool
+		opts           LogFormatOptions
+		want           string
 	}{
 		{
 			name:  "structured JSON log extracts level and msg",
@@ -160,10 +192,10 @@ func TestPrintLogStreamStructuredJSON(t *testing.T) {
 			want:  `{"line":"plain text","replica":"pod-1"}` + "\n",
 		},
 		{
-			name:        "structured JSON with replica prefix",
-			input:       `{"replica":"db-1","line":"{\"level\":\"warning\",\"msg\":\"low memory\"}"}` + "\n",
-			showReplica: true,
-			want:        "[1] WARNING low memory\n",
+			name:           "structured JSON with replica prefix",
+			input:          `{"replica":"db-1","line":"{\"level\":\"warning\",\"msg\":\"low memory\"}"}` + "\n",
+			showIdentifier: true,
+			want:           "[1] WARNING low memory\n",
 		},
 		{
 			name:  "all-fields flag shows all extra fields sorted",
@@ -206,7 +238,7 @@ func TestPrintLogStreamStructuredJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			r := strings.NewReader(tt.input)
-			err := PrintLogStream(&buf, r, tt.showReplica, LogsMeta{}, tt.opts)
+			err := PrintLogStream(&buf, r, tt.showIdentifier, LogsMeta{}, tt.opts)
 			if err != nil {
 				t.Fatalf("PrintLogStream() error = %v", err)
 			}

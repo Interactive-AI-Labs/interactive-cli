@@ -192,14 +192,6 @@ func (c *DeploymentClient) GetMcpLogs(
 	return c.fetchLogs(ctx, mcpsPath(orgId, projectId, mcpName)+"/logs", opts)
 }
 
-func (c *DeploymentClient) GetMcpLogSummary(
-	ctx context.Context, orgId, projectId, mcpName string, opts LogsOptions,
-) ([]byte, error) {
-	path := mcpsPath(orgId, projectId, mcpName) + "/logs/summary?" + opts.query().Encode()
-
-	return c.sendJSONRequest(ctx, http.MethodGet, path, nil)
-}
-
 // CreateMcp deploys an internal MCP or registers an external one (custom endpoint or catalog-backed).
 func (c *DeploymentClient) CreateMcp(
 	ctx context.Context,
