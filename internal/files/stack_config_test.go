@@ -519,6 +519,7 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 				Path:      "/mcp",
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
 				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Endpoint:  true,
 				Auth:      deployment.McpAuthBody{Type: "none"},
 			},
 			want: deployment.CreateMcpBody{
@@ -527,6 +528,7 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 				Path:      "/mcp",
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
 				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+				Endpoint:  true,
 				Auth:      deployment.McpAuthBody{Type: "none"},
 				StackId:   "stack-123",
 			},
