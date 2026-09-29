@@ -1,0 +1,51 @@
+## iai jobs runs logs
+
+Show logs for one job run
+
+### Synopsis
+
+Show one run's logs, including after run-history cleanup.
+
+```
+iai jobs runs logs <run_id> [flags]
+```
+
+### Examples
+
+```
+  iai jobs runs logs <run_id>
+  iai jobs runs logs <run_id> --follow
+  iai jobs runs logs <run_id> --timestamps
+```
+
+### Options
+
+```
+      --all-fields          Show all extra top-level fields from structured (JSON) logs after the message
+      --decode              Decode embedded JSON strings into nested JSON values; outputs raw JSON
+      --end-time string     Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow
+      --fields strings      Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON
+  -f, --follow              Stream new entries for up to 10 minutes; reconnect to continue; cannot combine with --end-time
+  -h, --help                help for logs
+      --limit int           Maximum entries (1-5000, default 1000); with --follow, limits only the initial batch
+      --raw                 Output exact server JSON lines without formatting
+      --since string        Relative lookback (e.g. 30m, 1h, 3d); default 1h, maximum 3d; cannot combine with --start-time/--end-time
+      --start-time string   Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window
+      --timestamps          Include platform log timestamps
+```
+
+### Options inherited from parent commands
+
+```
+      --api-key string               API key for authentication
+      --cfg-file string              Path to YAML config file with organization, project, and optional service definitions
+      --deployment-hostname string   Hostname for the deployment API (default "https://deployment.interactive.ai")
+      --hostname string              Hostname for the API (default "https://app.interactive.ai")
+  -o, --organization string          Organization name that owns the project
+  -p, --project string               Project name
+```
+
+### SEE ALSO
+
+* [iai jobs runs](iai_jobs_runs.md)	 - Inspect and manage job runs
+

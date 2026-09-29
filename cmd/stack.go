@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
@@ -47,28 +49,32 @@ var stackCmd = &cobra.Command{
 	Aliases: []string{"stack", "st"},
 	Short:   "Declarative resource sync from config files",
 	GroupID: groupInfra,
-	Long:    `Manage stacks and their resources (services, agents, databases, mcps) from stack configuration files.`,
+	Long:    `Manage stacks and their resources (services, agents, databases, mcps, jobs) from stack configuration files.`,
 }
 
 var stackSyncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync services, agents, databases, and mcps from a stack config file",
-	Long: `Sync services, agents, databases, and mcps in a project from a stack configuration file.
+	Short: "Sync services, agents, databases, mcps, and jobs from a stack config file",
+	Long: `Sync services, agents, databases, mcps, and jobs in a project from a stack configuration file.
 
-Services, agents, databases, and mcps are created and updated to match the config
+Services, agents, databases, mcps, and jobs are created and updated to match the config
 file. Resources the config file no longer mentions are NOT deleted by
 default: a config that omits a resource looks identical to a stale one, so
 the sync refuses each deletion, reports it on stderr, and continues with the
 creates and updates. Pass --allow-delete with the resource types you intend
-to decommission (services, agents, databases, mcps, or all) to delete them; within
-each resource type, deletes run after that type's creates and updates.
+to decommission (services, agents, databases, mcps, jobs, or all) to delete them;
+within each resource type, deletes run after that type's creates and updates.
 
 Resource types sync in order: services, databases, mcps, then agents once
-the mcps are ready.
+the mcps are ready, and finally jobs.
 
 Updates replace the whole live spec of each resource. For every service, agent,
-or mcp updated, the live revision being replaced is printed to stderr so a
-sync from a stale config file is visible before it lands.
+mcp, or job updated, the live revision being replaced is printed to stderr so a
+sync from a stale config file is visible before it lands. Jobs can only be
+updated or deleted when all their runs have finished.
+
+Script jobs reference their files with scriptFile and pyprojectFile, resolved
+relative to the config file.
 
 Use --dry-run to print the full plan — creates, updates, deletes, and
 refused deletions — without applying anything.
@@ -359,6 +365,43 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
+		jobBodies := make(map[string]deployment.CreateJobBody)
+		for name, jobCfg := range cfg.Jobs {
+			jobBodies[name] = jobCfg.ToCreateRequest(cfg.StackId)
+		}
+
+		hasJobs := false
+		if len(jobBodies) == 0 {
+			hasJobs, err = sync.HasJobs(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(jobBodies) > 0 || hasJobs {
+			_, err := runPhase("jobs", func(opts sync.Options) (*sync.Result, error) {
+				return sync.Jobs(
+					cmd.Context(),
+					cmd.ErrOrStderr(),
+					deployClient,
+					orgId,
+					projectId,
+					cfg.StackId,
+					jobBodies,
+					opts,
+				)
+			})
+			if err != nil {
+				return err
+			}
+		}
+
 		if !ranSync {
 			fmt.Fprintf(out, "No resources to sync for stack %q.\n", cfg.StackId)
 		}
@@ -370,12 +413,17 @@ The organization and project are read from the config file, flags, or resolved v
 var stackGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Export live stack configuration",
-	Long: `Fetch the live services, agents, databases, and mcps for a stack and write
-them as a stack configuration file.
+	Long: `Fetch the live services, agents, databases, mcps, and jobs for a stack and
+write them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making
 changes. MCP credentials are never exported; include auth.credential before
 syncing credentialed MCPs.
+
+With --file, each script job's files are written to jobs/<name>/main.py and
+jobs/<name>/pyproject.toml next to the config file, overwriting existing
+files. Other outputs omit script job files; add scriptFile and pyprojectFile
+before syncing.
 
 The organization and project are read from flags or resolved via 'iai
 organizations select' / 'iai projects select'.`,
@@ -415,27 +463,39 @@ organizations select' / 'iai projects select'.`,
 		liveCfg.Organization = pCtx.orgName
 		liveCfg.Project = pCtx.projectName
 
+		if stackGetFile == "" {
+			if names := files.ScriptJobNames(liveCfg); len(names) > 0 {
+				fmt.Fprintf(
+					cmd.ErrOrStderr(),
+					"Warning: files of script jobs %s are not exported; use --file to write them.\n",
+					strings.Join(names, ", "),
+				)
+			}
+			if stackGetJSON {
+				return output.PrintStructuredJSON(out, liveCfg)
+			}
+			if stackGetYAML {
+				return output.PrintStructuredYAML(out, liveCfg)
+			}
+			yamlData, err := files.MarshalStackConfig(liveCfg)
+			if err != nil {
+				return err
+			}
+			fmt.Fprint(out, string(yamlData))
+			return nil
+		}
+
+		if err := files.WriteJobFiles(liveCfg, filepath.Dir(stackGetFile)); err != nil {
+			return err
+		}
 		yamlData, err := files.MarshalStackConfig(liveCfg)
 		if err != nil {
 			return err
 		}
-
-		if stackGetJSON {
-			return output.PrintStructuredJSON(out, liveCfg)
+		if err := os.WriteFile(stackGetFile, yamlData, 0o644); err != nil {
+			return err
 		}
-		if stackGetYAML {
-			return output.PrintStructuredYAML(out, liveCfg)
-		}
-
-		if stackGetFile != "" {
-			if err := os.WriteFile(stackGetFile, yamlData, 0o644); err != nil {
-				return err
-			}
-			fmt.Fprintf(out, "Stack configuration written to %s\n", stackGetFile)
-			return nil
-		}
-
-		fmt.Fprint(out, string(yamlData))
+		fmt.Fprintf(out, "Stack configuration written to %s\n", stackGetFile)
 		return nil
 	},
 }
@@ -519,8 +579,8 @@ var stackListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List stacks in a project",
-	Long: `List stacks and their resource counts (services, agents, databases, mcps)
-in a project. Stacks are discovered from the live resources that belong
+	Long: `List stacks and their resource counts (services, agents, databases, mcps,
+jobs) in a project. Stacks are discovered from the live resources that belong
 to them.
 
 The organization and project are read from flags or resolved via
@@ -560,7 +620,7 @@ The organization and project are read from flags or resolved via
 			return nil
 		}
 
-		headers := []string{"STACK ID", "SERVICES", "AGENTS", "DATABASES", "MCPS"}
+		headers := []string{"STACK ID", "SERVICES", "AGENTS", "DATABASES", "MCPS", "JOBS"}
 		rows := make([][]string, len(stacks))
 		for i, s := range stacks {
 			rows[i] = []string{
@@ -569,6 +629,7 @@ The organization and project are read from flags or resolved via
 				fmt.Sprintf("%d", s.AgentCount),
 				fmt.Sprintf("%d", s.DatabaseCount),
 				fmt.Sprintf("%d", s.McpCount),
+				fmt.Sprintf("%d", s.JobCount),
 			}
 		}
 		return output.PrintTable(out, headers, rows)
@@ -583,7 +644,7 @@ func init() {
 	stackSyncCmd.Flags().
 		StringVarP(&stackSyncOrganization, "organization", "o", "", "Organization name that owns the project")
 	stackSyncCmd.Flags().
-		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services, agents, databases, mcps, or all); deletions are refused otherwise")
+		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services, agents, databases, mcps, jobs, or all); deletions are refused otherwise")
 	stackSyncCmd.Flags().
 		BoolVar(&stackSyncDryRun, "dry-run", false, "Print the full plan (creates, updates, deletes, refused deletions) without applying anything")
 	stackSyncCmd.Flags().
@@ -595,7 +656,7 @@ func init() {
 	stackGetCmd.Flags().
 		StringVar(&stackGetStackID, "stack-id", "", "Stack ID to export")
 	stackGetCmd.Flags().
-		StringVarP(&stackGetFile, "file", "f", "", "Write output to file instead of stdout")
+		StringVarP(&stackGetFile, "file", "f", "", "Write output to file instead of stdout; cannot combine with --json or --yaml")
 	stackGetCmd.Flags().
 		StringVarP(&stackGetOrg, "organization", "o", "", "Organization name")
 	stackGetCmd.Flags().
@@ -604,7 +665,7 @@ func init() {
 		BoolVar(&stackGetJSON, "json", false, "Output as JSON")
 	stackGetCmd.Flags().
 		BoolVar(&stackGetYAML, "yaml", false, "Output as YAML")
-	stackGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	stackGetCmd.MarkFlagsMutuallyExclusive("file", "json", "yaml")
 
 	stackDiffCmd.Flags().
 		StringVarP(&stackDiffFile, "file", "f", "", "Path to local stack configuration file")

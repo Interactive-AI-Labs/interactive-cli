@@ -95,6 +95,21 @@ func HasMcps(
 	return len(existing) > 0, nil
 }
 
+func HasJobs(
+	ctx context.Context,
+	deployClient *deployment.DeploymentClient,
+	orgId,
+	projectId,
+	stackId string,
+) (bool, error) {
+	existing, err := deployClient.ListJobs(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return false, fmt.Errorf("failed to list jobs: %w", err)
+	}
+
+	return len(existing) > 0, nil
+}
+
 func PrintResult(
 	out io.Writer,
 	label string,
@@ -426,6 +441,53 @@ func waitForMcps(
 		case <-time.After(interval):
 		}
 	}
+}
+
+func Jobs(
+	ctx context.Context,
+	warnW io.Writer,
+	deployClient *deployment.DeploymentClient,
+	orgId,
+	projectId,
+	stackId string,
+	desired map[string]deployment.CreateJobBody,
+	opts Options,
+) (*Result, error) {
+	existing, err := deployClient.ListJobs(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list jobs: %w", err)
+	}
+
+	existingByName := make(map[string]deployment.JobOutput)
+	for _, job := range existing {
+		existingByName[job.Name] = job
+	}
+
+	return syncResources(
+		warnW,
+		existingByName,
+		desired,
+		opts,
+		resourceOps[deployment.JobOutput, deployment.CreateJobBody]{
+			resource:  "job",
+			allowFlag: "jobs",
+			create: func(name string, body deployment.CreateJobBody) error {
+				_, err := deployClient.CreateJob(ctx, orgId, projectId, name, body)
+				return err
+			},
+			update: func(name string, body deployment.CreateJobBody) error {
+				_, err := deployClient.PutJob(ctx, orgId, projectId, name, body)
+				return err
+			},
+			delete: func(name string) error {
+				_, err := deployClient.DeleteJob(ctx, orgId, projectId, name)
+				return err
+			},
+			banner: func(w io.Writer, job deployment.JobOutput) {
+				preflight.PrintUpdateBanner(w, "job "+job.Name, job.Revision, job.Updated)
+			},
+		},
+	)
 }
 
 type resourceOps[E, B any] struct {

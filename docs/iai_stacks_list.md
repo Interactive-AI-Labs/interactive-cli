@@ -4,8 +4,8 @@ List stacks in a project
 
 ### Synopsis
 
-List stacks and their resource counts (services, agents, databases, mcps)
-in a project. Stacks are discovered from the live resources that belong
+List stacks and their resource counts (services, agents, databases, mcps,
+jobs) in a project. Stacks are discovered from the live resources that belong
 to them.
 
 The organization and project are read from flags or resolved via

@@ -1,25 +1,29 @@
 ## iai stacks sync
 
-Sync services, agents, databases, and mcps from a stack config file
+Sync services, agents, databases, mcps, and jobs from a stack config file
 
 ### Synopsis
 
-Sync services, agents, databases, and mcps in a project from a stack configuration file.
+Sync services, agents, databases, mcps, and jobs in a project from a stack configuration file.
 
-Services, agents, databases, and mcps are created and updated to match the config
+Services, agents, databases, mcps, and jobs are created and updated to match the config
 file. Resources the config file no longer mentions are NOT deleted by
 default: a config that omits a resource looks identical to a stale one, so
 the sync refuses each deletion, reports it on stderr, and continues with the
 creates and updates. Pass --allow-delete with the resource types you intend
-to decommission (services, agents, databases, mcps, or all) to delete them; within
-each resource type, deletes run after that type's creates and updates.
+to decommission (services, agents, databases, mcps, jobs, or all) to delete them;
+within each resource type, deletes run after that type's creates and updates.
 
 Resource types sync in order: services, databases, mcps, then agents once
-the mcps are ready.
+the mcps are ready, and finally jobs.
 
 Updates replace the whole live spec of each resource. For every service, agent,
-or mcp updated, the live revision being replaced is printed to stderr so a
-sync from a stale config file is visible before it lands.
+mcp, or job updated, the live revision being replaced is printed to stderr so a
+sync from a stale config file is visible before it lands. Jobs can only be
+updated or deleted when all their runs have finished.
+
+Script jobs reference their files with scriptFile and pyprojectFile, resolved
+relative to the config file.
 
 Use --dry-run to print the full plan — creates, updates, deletes, and
 refused deletions — without applying anything.
@@ -89,7 +93,7 @@ services:
 ### Options
 
 ```
-      --allow-delete strings    Resource types the sync may delete when the config omits them (services, agents, databases, mcps, or all); deletions are refused otherwise
+      --allow-delete strings    Resource types the sync may delete when the config omits them (services, agents, databases, mcps, jobs, or all); deletions are refused otherwise
       --dry-run                 Print the full plan (creates, updates, deletes, refused deletions) without applying anything
   -f, --file string             Path to stack configuration file
   -h, --help                    help for sync

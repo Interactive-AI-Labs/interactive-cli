@@ -208,6 +208,7 @@ iai observations search --type GENERATION
 
 ### Documentation
 
+- Document bottom-up: put option details in the option's help text. Keep command descriptions concise and focused on the operation; do not repeat defaults, limits, units, or option-specific behavior.
 - Docs in `docs/` are markdown files named `iai_<resource>_<verb>.md`.
 - When adding or renaming commands, update the parent doc's SEE ALSO section and create/rename the command doc accordingly.
 

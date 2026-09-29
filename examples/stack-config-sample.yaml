@@ -10,17 +10,28 @@
 #   iai stack sync --cfg-file stack-config.yaml
 #
 # The organization and project fields are optional and provide defaults for all commands.
-# The stack-id, services, agents, and databases maps are used by the 'stack sync' command.
+# The stack-id and services, agents, databases, mcps, and jobs maps are used by 'stack sync'.
 #
 # Note: The stack-id is used to group resources together. Resources with the same stack-id
 # are managed as a unit. When syncing, the command will:
 # - Create resources that exist in the config but not in the project
 # - Update resources that exist in both (where supported)
-# - Delete resources (with the same stack-id) that exist in the project but not in the config
+# - Refuse deletion of omitted resources unless their type is included in --allow-delete
 
 organization: my-org
 project: my-project
 stack-id: my-stack-v1
+
+# Sync saves this definition; run it manually with 'iai jobs run hello'.
+# File paths are relative to this configuration file.
+jobs:
+  hello:
+    type: script
+    scriptFile: jobs/main.py
+    pyprojectFile: jobs/pyproject.toml
+    resources:
+      memory: "128M"
+      cpu: "250m"
 
 services:
   # Example service with fixed replicas

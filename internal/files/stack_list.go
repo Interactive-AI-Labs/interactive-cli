@@ -15,10 +15,11 @@ type StackInfo struct {
 	AgentCount    int    `json:"agentCount"`
 	DatabaseCount int    `json:"databaseCount"`
 	McpCount      int    `json:"mcpCount"`
+	JobCount      int    `json:"jobCount"`
 }
 
 // ListStacks discovers stacks and their resource counts from live services,
-// agents, databases, and mcps. Resources without a stackId are skipped.
+// agents, databases, mcps, and jobs. Resources without a stackId are skipped.
 func ListStacks(
 	ctx context.Context,
 	deployClient *deployment.DeploymentClient,
@@ -101,6 +102,26 @@ func ListStacks(
 			stacks[mcp.StackId] = s
 		}
 		s.McpCount++
+	}
+
+	jobs, err := deployClient.ListJobs(ctx, orgId, projectId, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list jobs: %w", err)
+	}
+	for _, job := range jobs {
+		desc, err := deployClient.DescribeJob(ctx, orgId, projectId, job.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe job %q: %w", job.Name, err)
+		}
+		if desc.StackId == "" {
+			continue
+		}
+		s, ok := stacks[desc.StackId]
+		if !ok {
+			s = &StackInfo{StackID: desc.StackId}
+			stacks[desc.StackId] = s
+		}
+		s.JobCount++
 	}
 
 	result := make([]StackInfo, 0, len(stacks))
