@@ -178,6 +178,7 @@ mcps:
     resources:
       cpu: "250m"
       memory: "512M"
+    endpoint: true
     auth:
       type: none
 `,
@@ -199,6 +200,7 @@ mcps:
 							Tag:  "v1",
 						},
 						Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
+						Endpoint:  true,
 						Auth:      deployment.McpAuthBody{Type: "none"},
 					},
 				},
@@ -689,6 +691,23 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Resources: deployment.Resources{CPU: "250m", Memory: "512M"},
 				Env:       []deployment.EnvVar{{Name: "K", Value: "V"}},
 				Auth:      deployment.McpAuthBody{Type: "none"},
+			},
+		},
+		{
+			name: "internal with public endpoint",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type: "internal",
+					Auth: deployment.McpAuthInfo{Type: "none"},
+				},
+				Endpoint: "tools-p1.apps.interactive.ai",
+				Port:     8080,
+			},
+			want: McpConfig{
+				Type:     "internal",
+				Port:     8080,
+				Endpoint: true,
+				Auth:     deployment.McpAuthBody{Type: "none"},
 			},
 		},
 		{
