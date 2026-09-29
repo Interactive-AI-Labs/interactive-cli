@@ -257,3 +257,28 @@ func clientsImageSpec(name, tag string) deployment.ImageSpec {
 func clientsResources(mem, cpu string) deployment.Resources {
 	return deployment.Resources{Memory: mem, CPU: cpu}
 }
+
+func TestDiffStackConfigsReportsMcpEndpointChange(t *testing.T) {
+	live := &StackConfig{
+		StackId: "s",
+		Mcps: map[string]McpConfig{
+			"tools": {Type: "internal", Port: 8080, Endpoint: true},
+		},
+	}
+	local := &StackConfig{
+		StackId: "s",
+		Mcps: map[string]McpConfig{
+			"tools": {Type: "internal", Port: 8080},
+		},
+	}
+
+	var out bytes.Buffer
+	if err := PrintStackDiffDetailed(&out, local, live, DiffStackConfigs(local, live)); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := "Stack: s\n\n  ~ mcp tools (update)\n    - endpoint\n"
+	if diff := cmp.Diff(want, out.String()); diff != "" {
+		t.Errorf("PrintStackDiffDetailed() mismatch (-want +got):\n%s", diff)
+	}
+}
