@@ -22,8 +22,7 @@ type CreateMcpBody struct {
 	Resources  Resources   `json:"resources,omitempty"`
 	Env        []EnvVar    `json:"env,omitempty"`
 	SecretRefs []SecretRef `json:"secretRefs,omitempty"`
-	// PutMcp is a full replace, so omitting Endpoint disables the public endpoint.
-	Endpoint bool `json:"endpoint,omitempty"`
+	Endpoint   bool        `json:"endpoint,omitempty"`
 
 	// external only — endpointUrl and catalogId are mutually exclusive.
 	EndpointURL string `json:"endpointUrl,omitempty"`
