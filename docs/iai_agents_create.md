@@ -18,11 +18,6 @@ Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
 on their create/update commands).
 
---mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
-tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
-a "tools-prod" in one project can share a prefix, and a routine. Attach further
-mcps in their own commands.
-
 Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.
 
 ```
@@ -36,6 +31,7 @@ iai agents create <agent_name> [flags]
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --mcp tools-dev --mcp-id tools
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --mcp tools-dev --mcp-endpoint public
 ```
 
 ### Options
@@ -46,8 +42,9 @@ iai agents create <agent_name> [flags]
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
   -h, --help                       help for create
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
-      --mcp stringArray            Attach one MCP by name (see 'iai mcps list')
-      --mcp-id string              Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp
+      --mcp stringArray            Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands
+      --mcp-endpoint string        Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
+      --mcp-id string              Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
   -o, --organization string        Organization name
   -p, --project string             Project name
       --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'

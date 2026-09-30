@@ -152,6 +152,9 @@ agents:
           hostname: integration
           port: 8080
           transport: http
+        # An MCP in the project by name; endpoint: public dials its public endpoint (default private)
+        - ref: tools-dev
+          endpoint: public
 
       knowledge_base:
         prompt:
