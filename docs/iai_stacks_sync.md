@@ -14,6 +14,9 @@ creates and updates. Pass --allow-delete with the resource types you intend
 to decommission (services, agents, databases, mcps, or all) to delete them; within
 each resource type, deletes run after that type's creates and updates.
 
+Resource types sync in order: services, databases, mcps, then agents once
+the mcps are ready.
+
 Updates replace the whole live spec of each resource. For every service, agent,
 or mcp updated, the live revision being replaced is printed to stderr so a
 sync from a stale config file is visible before it lands.
@@ -33,6 +36,7 @@ iai stacks sync [flags]
   iai stacks sync --file stack.yaml
   iai stacks sync --file stack.yaml --project my-project --organization my-org
   iai stacks sync --file stack.yaml --dry-run
+  iai stacks sync --file stack.yaml --wait-timeout 10m
   iai stacks sync --file stack.yaml --allow-delete services,agents
 ```
 
@@ -85,12 +89,14 @@ services:
 ### Options
 
 ```
-      --allow-delete strings   Resource types the sync may delete when the config omits them (services, agents, databases, mcps, or all); deletions are refused otherwise
-      --dry-run                Print the full plan (creates, updates, deletes, refused deletions) without applying anything
-  -f, --file string            Path to stack configuration file
-  -h, --help                   help for sync
-  -o, --organization string    Organization name that owns the project
-  -p, --project string         Project name to sync resources in
+      --allow-delete strings    Resource types the sync may delete when the config omits them (services, agents, databases, mcps, or all); deletions are refused otherwise
+      --dry-run                 Print the full plan (creates, updates, deletes, refused deletions) without applying anything
+  -f, --file string             Path to stack configuration file
+  -h, --help                    help for sync
+      --no-wait                 Sync agents without waiting for the mcps to be ready
+  -o, --organization string     Organization name that owns the project
+  -p, --project string          Project name to sync resources in
+      --wait-timeout duration   How long to wait for every mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged (default 5m0s)
 ```
 
 ### Options inherited from parent commands

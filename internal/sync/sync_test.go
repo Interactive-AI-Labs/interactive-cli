@@ -2,7 +2,9 @@ package sync
 
 import (
 	"bytes"
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -608,5 +610,141 @@ func TestAgentsPrintsUpdateBanner(t *testing.T) {
 	}
 	if len(result.Updated) != 1 || result.Updated[0] != "agent-a" {
 		t.Errorf("Updated = %v, want [agent-a]", result.Updated)
+	}
+}
+
+func TestWaitForMcps(t *testing.T) {
+	type poll struct {
+		state deployment.McpVerifyState
+		err   error
+	}
+	ok := poll{state: deployment.McpVerifyState{Status: "ok"}}
+	pending := poll{state: deployment.McpVerifyState{Status: "pending"}}
+
+	tests := []struct {
+		name     string
+		polls    map[string][]poll // answers per fetch; the last one repeats
+		order    []string
+		timeout  time.Duration
+		canceled bool
+		wantErr  string
+	}{
+		{
+			name:  "all ok on first poll",
+			polls: map[string][]poll{"a": {ok}, "b": {ok}},
+			order: []string{"a", "b"},
+		},
+		{
+			name:  "no mcps",
+			order: nil,
+		},
+		{
+			name:  "pending then ok",
+			polls: map[string][]poll{"a": {pending, pending, ok}, "b": {ok}},
+			order: []string{"a", "b"},
+		},
+		{
+			name: "error then ok",
+			polls: map[string][]poll{"a": {
+				{state: deployment.McpVerifyState{Status: "error", Error: "dial failed"}},
+				ok,
+			}},
+			order: []string{"a"},
+		},
+		{
+			name:  "failed check then ok",
+			polls: map[string][]poll{"a": {{err: errors.New("bad gateway")}, ok}},
+			order: []string{"a"},
+		},
+		{
+			name:  "ok then pending waits for both at once",
+			polls: map[string][]poll{"a": {ok, pending, ok}, "b": {pending, ok}},
+			order: []string{"a", "b"},
+		},
+		{
+			name:    "stays pending",
+			polls:   map[string][]poll{"a": {ok}, "b": {pending}},
+			order:   []string{"a", "b"},
+			wantErr: "mcps not ready after 50ms: b (pending)",
+		},
+		{
+			name: "stays error",
+			polls: map[string][]poll{"a": {
+				{state: deployment.McpVerifyState{Status: "error", Error: "dial failed"}},
+			}},
+			order:   []string{"a"},
+			wantErr: "mcps not ready after 50ms: a (error: dial failed)",
+		},
+		{
+			name:    "error without message",
+			polls:   map[string][]poll{"a": {{state: deployment.McpVerifyState{Status: "error"}}}},
+			order:   []string{"a"},
+			wantErr: "mcps not ready after 50ms: a (error)",
+		},
+		{
+			name:    "empty status",
+			polls:   map[string][]poll{"a": {{}}},
+			order:   []string{"a"},
+			wantErr: "mcps not ready after 50ms: a (unknown)",
+		},
+		{
+			name:    "check keeps failing",
+			polls:   map[string][]poll{"a": {{err: errors.New("mcp not found")}}},
+			order:   []string{"a"},
+			wantErr: "mcps not ready after 50ms: a (check failed: mcp not found)",
+		},
+		{
+			name:    "status is case sensitive",
+			polls:   map[string][]poll{"a": {{state: deployment.McpVerifyState{Status: "OK"}}}},
+			order:   []string{"a"},
+			wantErr: "mcps not ready after 50ms: a (OK)",
+		},
+		{
+			name: "reasons keep names order",
+			polls: map[string][]poll{
+				"a": {{state: deployment.McpVerifyState{Status: "error", Error: "timeout"}}},
+				"b": {ok},
+				"c": {pending},
+			},
+			order:   []string{"c", "a", "b"},
+			wantErr: "mcps not ready after 50ms: c (pending), a (error: timeout)",
+		},
+		{
+			name:     "canceled while waiting",
+			polls:    map[string][]poll{"a": {pending}},
+			order:    []string{"a"},
+			timeout:  time.Hour,
+			canceled: true,
+			wantErr:  "context canceled",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if tt.canceled {
+				cancel()
+			}
+
+			fetches := make(map[string]int)
+			fetch := func(_ context.Context, name string) (deployment.McpVerifyState, error) {
+				answers := tt.polls[name]
+				p := answers[min(fetches[name], len(answers)-1)]
+				fetches[name]++
+				return p.state, p.err
+			}
+
+			timeout := cmp.Or(tt.timeout, 50*time.Millisecond)
+			err := waitForMcps(ctx, fetch, tt.order, timeout, time.Millisecond)
+
+			gotErr := ""
+			if err != nil {
+				gotErr = err.Error()
+			}
+			if gotErr != tt.wantErr {
+				t.Errorf("waitForMcps() error = %q, want %q", gotErr, tt.wantErr)
+			}
+		})
 	}
 }
