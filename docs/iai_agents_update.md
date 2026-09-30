@@ -30,18 +30,6 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
---mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
-tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
-a "tools-prod" in one project can share a prefix, and a routine. Attach further
-mcps in their own commands. Attaching an mcp that is already attached leaves any
-prefix it has alone; pass the mcp's own name as --mcp-id to go back to the
-default.
-
---detach-mcp removes an mcp reference by name, whichever prefix it was given;
-combine with --mcp in the same command to swap one for another. Detach an mcp
-before deleting it — 'iai mcps delete' blocks by default while an agent still
-references it.
-
 Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces; the names of any env vars or secret refs that
 --env/--secret would drop from the live agent (the flags replace the entire
@@ -74,6 +62,7 @@ iai agents update <agent_name> [flags]
   iai agents update chat-agent --clear-stack-id
   iai agents update chat-agent --mcp github
   iai agents update chat-agent --mcp tools-dev --mcp-id tools
+  iai agents update chat-agent --mcp tools-dev --mcp-endpoint public
   iai agents update chat-agent --detach-mcp stripe
 ```
 
@@ -84,7 +73,7 @@ iai agents update <agent_name> [flags]
       --clear-schedule             Remove the schedule configuration from the agent
       --clear-secret               Remove all secret references from the agent
       --clear-stack-id             Remove the agent from its stack
-      --detach-mcp stringArray     Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)
+      --detach-mcp stringArray     Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it
       --endpoint                   Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Environment variable (NAME=VALUE); can be repeated
       --expect-revision int        Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)
@@ -92,8 +81,9 @@ iai agents update <agent_name> [flags]
       --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
   -h, --help                       help for update
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
-      --mcp stringArray            Attach one MCP by name (see 'iai mcps list'). Without --file, appends to the agent's current mcps
-      --mcp-id string              Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp
+      --mcp stringArray            Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them
+      --mcp-endpoint string        Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
+      --mcp-id string              Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name; pass its name to go back to that), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
   -o, --organization string        Organization name
   -p, --project string             Project name
       --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'

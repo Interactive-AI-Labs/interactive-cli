@@ -217,12 +217,14 @@ func TestBuildAgentRequestBody(t *testing.T) {
 
 func TestMcpRefsFor(t *testing.T) {
 	tests := []struct {
-		name       string
-		names      []string
-		id         string
-		idGiven    bool
-		want       []McpRef
-		errContain string
+		name          string
+		names         []string
+		id            string
+		idGiven       bool
+		endpoint      string
+		endpointGiven bool
+		want          []McpRef
+		errContain    string
 	}{
 		{
 			name:  "a name alone takes the mcp's own name as its prefix",
@@ -265,10 +267,37 @@ func TestMcpRefsFor(t *testing.T) {
 			names:      []string{"  "},
 			errContain: "--mcp must name an mcp",
 		},
+		{
+			name:          "--mcp-endpoint public dials the mcp's public endpoint",
+			names:         []string{"tools-dev"},
+			endpoint:      "public",
+			endpointGiven: true,
+			want:          []McpRef{{Name: "tools-dev", Public: true, SetEndpoint: true}},
+		},
+		{
+			name:          "--mcp-endpoint private is the default, so only the reset survives",
+			names:         []string{"tools-dev"},
+			endpoint:      "private",
+			endpointGiven: true,
+			want:          []McpRef{{Name: "tools-dev", SetEndpoint: true}},
+		},
+		{
+			name:          "an unknown --mcp-endpoint",
+			names:         []string{"tools-dev"},
+			endpoint:      "internet",
+			endpointGiven: true,
+			errContain:    `--mcp-endpoint must be "private" or "public"`,
+		},
+		{
+			name:          "--mcp-endpoint with no --mcp at all",
+			endpoint:      "public",
+			endpointGiven: true,
+			errContain:    "--mcp-endpoint sets the endpoint for the mcp --mcp attaches",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := McpRefsFor(tt.names, tt.id, tt.idGiven)
+			got, err := McpRefsFor(tt.names, tt.id, tt.idGiven, tt.endpoint, tt.endpointGiven)
 			if tt.errContain != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.errContain) {
 					t.Fatalf("error = %v, want to contain %q", err, tt.errContain)
@@ -357,6 +386,93 @@ func TestInjectMcpRefs(t *testing.T) {
 			cfg:  map[string]any{"mcps": []any{"tools-dev"}},
 			refs: []McpRef{{Name: "tools-dev", SetId: true}},
 			want: []any{"tools-dev"},
+		},
+		{
+			name: "a public endpoint attaches as a ref",
+			cfg:  map[string]any{},
+			refs: []McpRef{{Name: "tools-dev", Public: true, SetEndpoint: true}},
+			want: []any{map[string]any{"ref": "tools-dev", "endpoint": "public"}},
+		},
+		{
+			name: "a public endpoint on an mcp already attached keeps its prefix",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+			},
+			refs: []McpRef{{Name: "tools-dev", Public: true, SetEndpoint: true}},
+			want: []any{
+				map[string]any{"ref": "tools-dev", "id": "tools", "endpoint": "public"},
+			},
+		},
+		{
+			name: "a new prefix keeps the public endpoint already set",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "endpoint": "public"}},
+			},
+			refs: []McpRef{{Name: "tools-dev", Id: "tools", SetId: true}},
+			want: []any{
+				map[string]any{"ref": "tools-dev", "id": "tools", "endpoint": "public"},
+			},
+		},
+		{
+			name: "attaching again with no endpoint leaves the public one alone",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "endpoint": "public"}},
+			},
+			refs: []McpRef{{Name: "tools-dev"}},
+			want: []any{map[string]any{"ref": "tools-dev", "endpoint": "public"}},
+		},
+		{
+			name: "asking for the private endpoint puts the entry back in its short form",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "endpoint": "public"}},
+			},
+			refs: []McpRef{{Name: "tools-dev", SetEndpoint: true}},
+			want: []any{"tools-dev"},
+		},
+		{
+			name: "asking for the private endpoint keeps the prefix",
+			cfg: map[string]any{
+				"mcps": []any{
+					map[string]any{"ref": "tools-dev", "id": "tools", "endpoint": "public"},
+				},
+			},
+			refs: []McpRef{{Name: "tools-dev", SetEndpoint: true}},
+			want: []any{map[string]any{"ref": "tools-dev", "id": "tools"}},
+		},
+		{
+			name: "clearing the prefix keeps the public endpoint",
+			cfg: map[string]any{
+				"mcps": []any{
+					map[string]any{"ref": "tools-dev", "id": "tools", "endpoint": "public"},
+				},
+			},
+			refs: []McpRef{{Name: "tools-dev", SetId: true}},
+			want: []any{map[string]any{"ref": "tools-dev", "endpoint": "public"}},
+		},
+		{
+			name: "fields the command does not set are kept",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "id": "tools", "extra": "x"}},
+			},
+			refs: []McpRef{{Name: "tools-dev", Public: true, SetEndpoint: true}},
+			want: []any{
+				map[string]any{
+					"ref":      "tools-dev",
+					"id":       "tools",
+					"extra":    "x",
+					"endpoint": "public",
+				},
+			},
+		},
+		{
+			name: "a prefix change leaves an endpoint value for the platform to judge",
+			cfg: map[string]any{
+				"mcps": []any{map[string]any{"ref": "tools-dev", "endpoint": "PUBLIC"}},
+			},
+			refs: []McpRef{{Name: "tools-dev", Id: "tools", SetId: true}},
+			want: []any{
+				map[string]any{"ref": "tools-dev", "id": "tools", "endpoint": "PUBLIC"},
+			},
 		},
 		{
 			name:       "a server configured in full is not turned into a ref",

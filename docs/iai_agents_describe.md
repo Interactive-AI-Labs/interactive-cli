@@ -10,6 +10,10 @@ Endpoint shows Private (name:port), reachable only within the project, and
 Public, the externally accessible hostname, shown when the agent was created or
 updated with --endpoint.
 
+In Agent Config, each attached mcp shows the endpoint the agent dials it on: an
+entry with endpoint: public uses the mcp's public endpoint, one without endpoint its
+private one.
+
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
 Use --revision to view a specific past revision instead of the current state.

@@ -32,6 +32,7 @@ var (
 	agentSecretRefs     []string
 	agentMcpNames       []string
 	agentMcpId          string
+	agentMcpEndpoint    string
 	agentDetachMcpNames []string
 
 	agentScheduleUptime   string
@@ -88,22 +89,24 @@ Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
 on their create/update commands).
 
---mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
-tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
-a "tools-prod" in one project can share a prefix, and a routine. Attach further
-mcps in their own commands.
-
 Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.`,
 	Example: `  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
-  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --mcp tools-dev --mcp-id tools`,
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --mcp tools-dev --mcp-id tools
+  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --mcp tools-dev --mcp-endpoint public`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		agentName := strings.TrimSpace(args[0])
 
-		mcpRefs, err := inputs.McpRefsFor(agentMcpNames, agentMcpId, cmd.Flags().Changed("mcp-id"))
+		mcpRefs, err := inputs.McpRefsFor(
+			agentMcpNames,
+			agentMcpId,
+			cmd.Flags().Changed("mcp-id"),
+			agentMcpEndpoint,
+			cmd.Flags().Changed("mcp-endpoint"),
+		)
 		if err != nil {
 			return err
 		}
@@ -181,18 +184,6 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
---mcp attaches one mcp by name. --mcp-id chooses the prefix this agent calls its
-tools by — 'tools:send_email' — instead of the mcp's name, so a "tools-dev" and
-a "tools-prod" in one project can share a prefix, and a routine. Attach further
-mcps in their own commands. Attaching an mcp that is already attached leaves any
-prefix it has alone; pass the mcp's own name as --mcp-id to go back to the
-default.
-
---detach-mcp removes an mcp reference by name, whichever prefix it was given;
-combine with --mcp in the same command to swap one for another. Detach an mcp
-before deleting it — 'iai mcps delete' blocks by default while an agent still
-references it.
-
 Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces; the names of any env vars or secret refs that
 --env/--secret would drop from the live agent (the flags replace the entire
@@ -217,6 +208,7 @@ config diff.`,
   iai agents update chat-agent --clear-stack-id
   iai agents update chat-agent --mcp github
   iai agents update chat-agent --mcp tools-dev --mcp-id tools
+  iai agents update chat-agent --mcp tools-dev --mcp-endpoint public
   iai agents update chat-agent --detach-mcp stripe`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -224,7 +216,13 @@ config diff.`,
 		errW := cmd.ErrOrStderr()
 		agentName := strings.TrimSpace(args[0])
 
-		mcpRefs, err := inputs.McpRefsFor(agentMcpNames, agentMcpId, cmd.Flags().Changed("mcp-id"))
+		mcpRefs, err := inputs.McpRefsFor(
+			agentMcpNames,
+			agentMcpId,
+			cmd.Flags().Changed("mcp-id"),
+			agentMcpEndpoint,
+			cmd.Flags().Changed("mcp-endpoint"),
+		)
 		if err != nil {
 			return err
 		}
@@ -390,6 +388,10 @@ var agentDescribeCmd = &cobra.Command{
 Endpoint shows Private (name:port), reachable only within the project, and
 Public, the externally accessible hostname, shown when the agent was created or
 updated with --endpoint.
+
+In Agent Config, each attached mcp shows the endpoint the agent dials it on: an
+entry with endpoint: public uses the mcp's public endpoint, one without endpoint its
+private one.
 
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
@@ -1043,9 +1045,11 @@ func init() {
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
 	// StringArrayVar, not StringVar, so a second --mcp is seen and rejected rather than silently winning.
 	agentCreateCmd.Flags().
-		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list')")
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands")
 	agentCreateCmd.Flags().
-		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp")
+		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp")
+	agentCreateCmd.Flags().
+		StringVar(&agentMcpEndpoint, "mcp-endpoint", "", "Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp")
 	_ = agentCreateCmd.MarkFlagRequired("id")
 	_ = agentCreateCmd.MarkFlagRequired("version")
 	_ = agentCreateCmd.MarkFlagRequired("file")
@@ -1085,11 +1089,13 @@ func init() {
 		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
 	// StringArrayVar, not StringVar, so a second --mcp is seen and rejected rather than silently winning.
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list'). Without --file, appends to the agent's current mcps")
+		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them")
 	agentUpdateCmd.Flags().
-		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by (defaults to its name); needs exactly one --mcp")
+		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name; pass its name to go back to that), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp")
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name; can be repeated. Without --file, removes from the agent's current mcps (applied before --mcp)")
+		StringVar(&agentMcpEndpoint, "mcp-endpoint", "", "Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp")
+	agentUpdateCmd.Flags().
+		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it")
 	agentUpdateCmd.Flags().
 		IntVar(&agentExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)")
 	agentUpdateCmd.Flags().

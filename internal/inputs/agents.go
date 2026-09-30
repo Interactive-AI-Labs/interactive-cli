@@ -28,18 +28,26 @@ type AgentInput struct {
 	DetachMcpNames []string // removed before McpRefs are (re-)injected
 }
 
-// McpRef is one attachment: the mcp, and the prefix this agent calls its tools by.
+// McpRef is one attachment: the mcp, the prefix this agent calls its tools by, and the endpoint it dials.
 type McpRef struct {
 	Name string
 	Id   string // empty means the mcp's name
 	// SetId tells --mcp-id naming the mcp itself, which clears a prefix, from no
 	// --mcp-id at all, which leaves whatever is attached alone.
-	SetId bool
+	SetId       bool
+	Public      bool // dial the mcp's public hostname instead of its in-project address
+	SetEndpoint bool // same as SetId, for --mcp-endpoint
 }
 
-// McpRefsFor builds the attachment --mcp asks for, with the prefix --mcp-id gives it.
+// McpRefsFor builds the attachment --mcp asks for, with the prefix --mcp-id and the endpoint --mcp-endpoint give it.
 // One attachment per command: a prefix describes exactly one, and so does a detach.
-func McpRefsFor(names []string, id string, idGiven bool) ([]McpRef, error) {
+func McpRefsFor(
+	names []string,
+	id string,
+	idGiven bool,
+	endpoint string,
+	endpointGiven bool,
+) ([]McpRef, error) {
 	if len(names) > 1 {
 		return nil, fmt.Errorf(
 			"--mcp attaches one mcp (got %d); attach further mcps in their own commands",
@@ -59,6 +67,17 @@ func McpRefsFor(names []string, id string, idGiven bool) ([]McpRef, error) {
 			)
 		}
 	}
+	endpoint = strings.TrimSpace(endpoint)
+	if endpointGiven {
+		if endpoint != "private" && endpoint != "public" {
+			return nil, fmt.Errorf(`--mcp-endpoint must be "private" or "public"`)
+		}
+		if len(names) == 0 {
+			return nil, fmt.Errorf(
+				"--mcp-endpoint sets the endpoint for the mcp --mcp attaches; pass --mcp <name> too",
+			)
+		}
+	}
 	refs := make([]McpRef, 0, len(names))
 	for _, name := range names {
 		if name = strings.TrimSpace(name); name == "" {
@@ -68,7 +87,13 @@ func McpRefsFor(names []string, id string, idGiven bool) ([]McpRef, error) {
 		if prefix == name {
 			prefix = "" // the default, so the config keeps its short form
 		}
-		refs = append(refs, McpRef{Name: name, Id: prefix, SetId: idGiven})
+		refs = append(refs, McpRef{
+			Name:        name,
+			Id:          prefix,
+			SetId:       idGiven,
+			Public:      endpoint == "public",
+			SetEndpoint: endpointGiven,
+		})
 	}
 	return refs, nil
 }
@@ -89,14 +114,21 @@ func mcpEntryName(entry any) string {
 }
 
 func mcpEntry(ref McpRef) any {
-	if ref.Id == "" {
+	if ref.Id == "" && !ref.Public {
 		return ref.Name
 	}
-	return map[string]any{"ref": ref.Name, "id": ref.Id}
+	entry := map[string]any{"ref": ref.Name}
+	if ref.Id != "" {
+		entry["id"] = ref.Id
+	}
+	if ref.Public {
+		entry["endpoint"] = "public"
+	}
+	return entry
 }
 
 // InjectMcpRefs attaches each ref to the agent config's mcps list, preserving existing entries.
-// One already attached keeps its prefix unless this call gives one, so no unrelated update resets it.
+// One already attached keeps its prefix and endpoint unless this call gives them, so no unrelated update resets them.
 func InjectMcpRefs(agentConfig any, refs []McpRef) (any, error) {
 	if len(refs) == 0 {
 		return agentConfig, nil
@@ -121,18 +153,36 @@ func InjectMcpRefs(agentConfig any, refs []McpRef) (any, error) {
 			mcps = append(mcps, mcpEntry(ref))
 			continue
 		}
-		if !ref.SetId {
+		if !ref.SetId && !ref.SetEndpoint {
 			continue
 		}
-		if existing, isMap := mcps[i].(map[string]any); isMap {
-			if attaches, _ := existing["ref"].(string); attaches == "" {
-				return nil, fmt.Errorf(
-					"mcp %q is configured in full in this agent's config; set its prefix there, not with --mcp",
-					ref.Name,
-				)
+		entry, isMap := mcps[i].(map[string]any)
+		if !isMap {
+			mcps[i] = mcpEntry(ref)
+			continue
+		}
+		if attaches, _ := entry["ref"].(string); attaches == "" {
+			return nil, fmt.Errorf(
+				"mcp %q is configured in full in this agent's config; set its prefix and endpoint there, not with --mcp",
+				ref.Name,
+			)
+		}
+		if ref.SetId {
+			delete(entry, "id")
+			if ref.Id != "" {
+				entry["id"] = ref.Id
 			}
 		}
-		mcps[i] = mcpEntry(ref)
+		if ref.SetEndpoint {
+			delete(entry, "endpoint")
+			if ref.Public {
+				entry["endpoint"] = "public"
+			}
+		}
+		mcps[i] = entry
+		if len(entry) == 1 {
+			mcps[i] = ref.Name
+		}
 	}
 	cfg["mcps"] = mcps
 	return cfg, nil
