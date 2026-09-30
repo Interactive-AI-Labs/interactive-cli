@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
+	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -19,6 +21,8 @@ var (
 	stackSyncOrganization string
 	stackSyncAllowDelete  []string
 	stackSyncDryRun       bool
+	stackSyncNoWait       bool
+	stackSyncWaitTimeout  time.Duration
 
 	stackGetStackID string
 	stackGetFile    string
@@ -59,6 +63,9 @@ creates and updates. Pass --allow-delete with the resource types you intend
 to decommission (services, agents, databases, mcps, or all) to delete them; within
 each resource type, deletes run after that type's creates and updates.
 
+Resource types sync in order: services, databases, mcps, then agents once
+the mcps are ready.
+
 Updates replace the whole live spec of each resource. For every service, agent,
 or mcp updated, the live revision being replaced is printed to stderr so a
 sync from a stale config file is visible before it lands.
@@ -70,6 +77,7 @@ The organization and project are read from the config file, flags, or resolved v
 	Example: `  iai stacks sync --file stack.yaml
   iai stacks sync --file stack.yaml --project my-project --organization my-org
   iai stacks sync --file stack.yaml --dry-run
+  iai stacks sync --file stack.yaml --wait-timeout 10m
   iai stacks sync --file stack.yaml --allow-delete services,agents`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -90,6 +98,10 @@ The organization and project are read from the config file, flags, or resolved v
 
 		if cfg.StackId == "" {
 			return fmt.Errorf("stack-id is required for sync command")
+		}
+
+		if stackSyncWaitTimeout <= 0 {
+			return fmt.Errorf("--wait-timeout must be positive; pass --no-wait to skip the wait")
 		}
 
 		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
@@ -150,7 +162,10 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 		ranSync := false
 
-		runPhase := func(label string, run func(sync.Options) (*sync.Result, error)) error {
+		runPhase := func(
+			label string,
+			run func(sync.Options) (*sync.Result, error),
+		) (*sync.Result, error) {
 			ranSync = true
 			fmt.Fprint(out, verb+" "+label)
 			done := output.PrintLoadingDots(out)
@@ -162,12 +177,12 @@ The organization and project are read from the config file, flags, or resolved v
 			fmt.Fprintln(out)
 			if stackSyncDryRun {
 				if err != nil {
-					return err
+					return nil, err
 				}
 				sync.PrintPlan(out, label, result)
-				return nil
+				return result, nil
 			}
-			return sync.PrintResult(out, label, result, err)
+			return result, sync.PrintResult(out, label, result, err)
 		}
 
 		svcBodies := make(map[string]deployment.CreateServiceBody)
@@ -190,7 +205,7 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(svcBodies) > 0 || hasServices {
-			err := runPhase("services", func(opts sync.Options) (*sync.Result, error) {
+			_, err := runPhase("services", func(opts sync.Options) (*sync.Result, error) {
 				return sync.Services(
 					cmd.Context(),
 					cmd.ErrOrStderr(),
@@ -227,7 +242,7 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(dbBodies) > 0 || hasDatabases {
-			err := runPhase("databases", func(opts sync.Options) (*sync.Result, error) {
+			_, err := runPhase("databases", func(opts sync.Options) (*sync.Result, error) {
 				return sync.Databases(
 					cmd.Context(),
 					cmd.ErrOrStderr(),
@@ -263,8 +278,9 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
+		var mcpResult *sync.Result
 		if len(mcpBodies) > 0 || hasMcps {
-			err := runPhase("mcps", func(opts sync.Options) (*sync.Result, error) {
+			mcpResult, err = runPhase("mcps", func(opts sync.Options) (*sync.Result, error) {
 				return sync.Mcps(
 					cmd.Context(),
 					cmd.ErrOrStderr(),
@@ -278,6 +294,31 @@ The organization and project are read from the config file, flags, or resolved v
 			})
 			if err != nil {
 				return err
+			}
+		}
+
+		var changedMcps []string
+		if mcpResult != nil {
+			changedMcps = slices.Concat(mcpResult.Created, mcpResult.Updated)
+		}
+		if len(changedMcps) > 0 && !stackSyncDryRun && !stackSyncNoWait {
+			fmt.Fprint(out, "Waiting for mcps to be ready")
+			done := output.PrintLoadingDots(out)
+			err := sync.WaitForMcps(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				changedMcps,
+				stackSyncWaitTimeout,
+			)
+			close(done)
+			fmt.Fprintln(out)
+			if err != nil {
+				return fmt.Errorf(
+					"%w; agents were not synced — check with 'iai mcps describe <mcp_name>'",
+					err,
+				)
 			}
 		}
 
@@ -301,7 +342,7 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(agentBodies) > 0 || hasAgents {
-			err := runPhase("agents", func(opts sync.Options) (*sync.Result, error) {
+			_, err := runPhase("agents", func(opts sync.Options) (*sync.Result, error) {
 				return sync.Agents(
 					cmd.Context(),
 					cmd.ErrOrStderr(),
@@ -545,6 +586,11 @@ func init() {
 		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services, agents, databases, mcps, or all); deletions are refused otherwise")
 	stackSyncCmd.Flags().
 		BoolVar(&stackSyncDryRun, "dry-run", false, "Print the full plan (creates, updates, deletes, refused deletions) without applying anything")
+	stackSyncCmd.Flags().
+		BoolVar(&stackSyncNoWait, "no-wait", false, "Sync agents without waiting for the mcps to be ready")
+	stackSyncCmd.Flags().
+		DurationVar(&stackSyncWaitTimeout, "wait-timeout", 5*time.Minute, "How long to wait for every mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged")
+	stackSyncCmd.MarkFlagsMutuallyExclusive("no-wait", "wait-timeout")
 
 	stackGetCmd.Flags().
 		StringVar(&stackGetStackID, "stack-id", "", "Stack ID to export")

@@ -1,11 +1,13 @@
 package sync
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
@@ -361,6 +363,69 @@ func Mcps(
 			},
 		},
 	)
+}
+
+const mcpWaitInterval = 5 * time.Second
+
+// WaitForMcps polls each mcp until its verify status is ok, failing once timeout passes.
+func WaitForMcps(
+	ctx context.Context,
+	deployClient *deployment.DeploymentClient,
+	orgId,
+	projectId string,
+	names []string,
+	timeout time.Duration,
+) error {
+	fetch := func(ctx context.Context, name string) (deployment.McpVerifyState, error) {
+		mcp, err := deployClient.DescribeMcp(ctx, orgId, projectId, name)
+		if err != nil {
+			return deployment.McpVerifyState{}, err
+		}
+		return mcp.Verify, nil
+	}
+	return waitForMcps(ctx, fetch, names, timeout, mcpWaitInterval)
+}
+
+func waitForMcps(
+	ctx context.Context,
+	fetch func(context.Context, string) (deployment.McpVerifyState, error),
+	names []string,
+	timeout,
+	interval time.Duration,
+) error {
+	timedOut := time.After(timeout)
+	for {
+		var notReady []string
+		for _, name := range names {
+			state, err := fetch(ctx, name)
+			if err != nil {
+				state = deployment.McpVerifyState{Status: "check failed", Error: err.Error()}
+			}
+			if state.Status == "ok" {
+				continue
+			}
+			reason := cmp.Or(state.Status, "unknown")
+			if state.Error != "" {
+				reason += ": " + state.Error
+			}
+			notReady = append(notReady, fmt.Sprintf("%s (%s)", name, reason))
+		}
+		if len(notReady) == 0 {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timedOut:
+			return fmt.Errorf(
+				"mcps not ready after %s: %s",
+				timeout,
+				strings.Join(notReady, ", "),
+			)
+		case <-time.After(interval):
+		}
+	}
 }
 
 type resourceOps[E, B any] struct {
