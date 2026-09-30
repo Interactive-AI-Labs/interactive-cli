@@ -207,43 +207,6 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		agentBodies := make(map[string]deployment.CreateAgentBody)
-		for name, agentCfg := range cfg.Agents {
-			agentBodies[name] = agentCfg.ToCreateRequest(cfg.StackId)
-		}
-
-		hasAgents := false
-		if len(agentBodies) == 0 {
-			hasAgents, err = sync.HasAgents(
-				cmd.Context(),
-				deployClient,
-				orgId,
-				projectId,
-				cfg.StackId,
-			)
-			if err != nil {
-				return err
-			}
-		}
-
-		if len(agentBodies) > 0 || hasAgents {
-			err := runPhase("agents", func(opts sync.Options) (*sync.Result, error) {
-				return sync.Agents(
-					cmd.Context(),
-					cmd.ErrOrStderr(),
-					deployClient,
-					orgId,
-					projectId,
-					cfg.StackId,
-					agentBodies,
-					opts,
-				)
-			})
-			if err != nil {
-				return err
-			}
-		}
-
 		dbBodies := make(map[string]deployment.CreateDatabaseBody)
 		for name, dbCfg := range cfg.Databases {
 			dbBodies[name] = dbCfg.ToCreateRequest(cfg.StackId)
@@ -310,6 +273,43 @@ The organization and project are read from the config file, flags, or resolved v
 					projectId,
 					cfg.StackId,
 					mcpBodies,
+					opts,
+				)
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		agentBodies := make(map[string]deployment.CreateAgentBody)
+		for name, agentCfg := range cfg.Agents {
+			agentBodies[name] = agentCfg.ToCreateRequest(cfg.StackId)
+		}
+
+		hasAgents := false
+		if len(agentBodies) == 0 {
+			hasAgents, err = sync.HasAgents(
+				cmd.Context(),
+				deployClient,
+				orgId,
+				projectId,
+				cfg.StackId,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(agentBodies) > 0 || hasAgents {
+			err := runPhase("agents", func(opts sync.Options) (*sync.Result, error) {
+				return sync.Agents(
+					cmd.Context(),
+					cmd.ErrOrStderr(),
+					deployClient,
+					orgId,
+					projectId,
+					cfg.StackId,
+					agentBodies,
 					opts,
 				)
 			})
