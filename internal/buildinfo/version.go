@@ -1,6 +1,6 @@
 package buildinfo
 
 const (
-	Version   = "0.49.0"
+	Version   = "0.50.0"
 	UserAgent = "iai/" + Version
 )
