@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v3"
@@ -283,6 +284,143 @@ services:
     replicas: 1
 `,
 			errContains: "stack-id is required",
+		},
+		{
+			name: "remote mcp with headers",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  docs:
+    type: remote
+    endpointUrl: https://example.com/mcp
+    auth:
+      type: none
+    headers:
+      X-Team: docs
+`,
+			errContains: "headers are not supported for remote mcps",
+		},
+		{
+			name: "remote mcp with both catalogId and endpointUrl",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  docs:
+    type: remote
+    catalogId: awsknowledge
+    endpointUrl: https://example.com/mcp
+    auth:
+      type: none
+`,
+			errContains: "exactly one of catalogId or endpointUrl",
+		},
+		{
+			name: "remote mcp with neither catalogId nor endpointUrl",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  docs:
+    type: remote
+    auth:
+      type: none
+`,
+			errContains: "exactly one of catalogId or endpointUrl",
+		},
+		{
+			name: "catalog mcp with its own auth header",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  docs:
+    type: remote
+    catalogId: github
+    auth:
+      type: custom
+      header: X-Token
+      credential: tok
+`,
+			errContains: "auth.header and auth.headerPrefix come from the catalog entry",
+		},
+		{
+			name: "custom remote mcp without a header",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  acme:
+    type: remote
+    endpointUrl: https://mcp.acme.com/mcp
+    auth:
+      type: custom
+      credential: tok
+`,
+			errContains: "auth.header is required for auth.type custom",
+		},
+		{
+			name: "remote mcp with a header on a non-custom auth type",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  acme:
+    type: remote
+    endpointUrl: https://mcp.acme.com/mcp
+    auth:
+      type: bearer
+      credential: tok
+      header: X-Token
+`,
+			errContains: "auth.header and auth.headerPrefix require auth.type custom",
+		},
+		{
+			name: "remote mcp with self-hosted fields",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  docs:
+    type: remote
+    catalogId: awsknowledge
+    port: 8080
+    image:
+      type: internal
+      name: docs
+      tag: v1
+    endpoint: true
+    auth:
+      type: none
+`,
+			errContains: `mcp "docs": port, image, endpoint not allowed for remote mcps`,
+		},
+		{
+			name: "remote mcp without auth type",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  docs:
+    type: remote
+    catalogId: awsknowledge
+`,
+			errContains: "auth.type is required for remote mcps",
+		},
+		{
+			name: "remote mcp with oauth",
+			config: `organization: test-org
+project: test-project
+stack-id: stack-123
+mcps:
+  docs:
+    type: external
+    catalogId: github
+    auth:
+      type: oauth
+`,
+			errContains: `auth.type "oauth" is not supported in stack files`,
 		},
 	}
 
@@ -563,6 +701,69 @@ func TestMcpConfigToCreateRequest(t *testing.T) {
 	}
 }
 
+func TestMcpConfigToPlatformCreateRequest(t *testing.T) {
+	tests := []struct {
+		name    string
+		mcpName string
+		input   McpConfig
+		want    platform.McpCreateRequest
+	}{
+		{
+			name:    "catalog entry without credential",
+			mcpName: "docs",
+			input: McpConfig{
+				Type:      "remote",
+				CatalogID: "awsknowledge",
+				Auth:      deployment.McpAuthBody{Type: "none"},
+			},
+			want: platform.McpCreateRequest{
+				Name:      "docs",
+				Backend:   platform.McpBackendExternal,
+				CatalogID: utils.NilIfZero("awsknowledge"),
+				Transport: "streamable_http",
+				Auth:      platform.McpAuth{Type: platform.McpAuthNone},
+				StackID:   utils.NilIfZero("stack-123"),
+			},
+		},
+		{
+			name:    "endpoint with custom header auth",
+			mcpName: "acme",
+			input: McpConfig{
+				Type:        "remote",
+				EndpointURL: "https://mcp.acme.com/mcp",
+				Auth: deployment.McpAuthBody{
+					Type:         "custom",
+					Credential:   "token",
+					Header:       "X-Token",
+					HeaderPrefix: "Token ",
+				},
+			},
+			want: platform.McpCreateRequest{
+				Name:        "acme",
+				Backend:     platform.McpBackendExternal,
+				EndpointURL: utils.NilIfZero("https://mcp.acme.com/mcp"),
+				Transport:   "streamable_http",
+				Auth: platform.McpAuth{
+					Type:         platform.McpAuthCustom,
+					Credential:   utils.NilIfZero("token"),
+					HeaderName:   utils.NilIfZero("X-Token"),
+					HeaderPrefix: utils.NilIfZero("Token "),
+				},
+				StackID: utils.NilIfZero("stack-123"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.ToPlatformCreateRequest(tt.mcpName, "stack-123")
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("ToPlatformCreateRequest() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestServiceConfigFromDescribe(t *testing.T) {
 	tests := []struct {
 		name string
@@ -787,30 +988,49 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 			},
 		},
 		{
-			name: "external keeps endpoint and auth routing",
+			name: "external catalog entry keeps only its id and auth type",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type:        "external",
+					EndpointURL: "https://api.github.com/mcp",
+					CatalogID:   "github",
+					Auth: deployment.McpAuthInfo{
+						Type:         "api_key",
+						Header:       "X-Token",
+						HeaderPrefix: "Token ",
+					},
+				},
+				Path: "/mcp",
+			},
+			want: McpConfig{
+				Type:      "remote",
+				CatalogID: "github",
+				Auth:      deployment.McpAuthBody{Type: "api_key"},
+			},
+		},
+		{
+			name: "external endpoint keeps its url and auth routing only",
 			desc: &deployment.DescribeMcpResponse{
 				McpOutput: deployment.McpOutput{
 					Type:        "external",
 					EndpointURL: "https://example.com/mcp",
-					CatalogID:   "github",
 					Auth: deployment.McpAuthInfo{
 						Type:         "custom",
 						Header:       "X-Token",
 						HeaderPrefix: "Token ",
 					},
 				},
+				Path:    "/mcp",
 				Headers: map[string]string{"X-Team": "dev"},
 			},
 			want: McpConfig{
 				Type:        "remote",
 				EndpointURL: "https://example.com/mcp",
-				CatalogID:   "github",
 				Auth: deployment.McpAuthBody{
 					Type:         "custom",
 					Header:       "X-Token",
 					HeaderPrefix: "Token ",
 				},
-				Headers: map[string]string{"X-Team": "dev"},
 			},
 		},
 		{
@@ -826,6 +1046,35 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Type:        "remote",
 				EndpointURL: "https://example.com/mcp",
 				Auth:        deployment.McpAuthBody{Type: "none"},
+			},
+		},
+		{
+			name: "remote without an auth type reads as none",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type:        "external",
+					EndpointURL: "https://example.com/mcp",
+				},
+			},
+			want: McpConfig{
+				Type:        "remote",
+				EndpointURL: "https://example.com/mcp",
+				Auth:        deployment.McpAuthBody{Type: "none"},
+			},
+		},
+		{
+			name: "external drops a header on a non-custom auth type",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type:        "external",
+					EndpointURL: "https://example.com/mcp",
+					Auth:        deployment.McpAuthInfo{Type: "bearer", Header: "Authorization"},
+				},
+			},
+			want: McpConfig{
+				Type:        "remote",
+				EndpointURL: "https://example.com/mcp",
+				Auth:        deployment.McpAuthBody{Type: "bearer"},
 			},
 		},
 		{
@@ -846,6 +1095,113 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 			got := McpConfigFromDescribe(tt.desc)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("McpConfigFromDescribe() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMcpConfigFromPlatform(t *testing.T) {
+	tests := []struct {
+		name  string
+		input platform.McpSchema
+		want  McpConfig
+	}{
+		{
+			name: "catalog entry keeps only its id and auth type",
+			input: platform.McpSchema{
+				Name:           "docs",
+				Backend:        platform.McpBackendExternal,
+				CatalogID:      utils.NilIfZero("awsknowledge"),
+				EndpointURL:    utils.NilIfZero("https://knowledge-mcp.global.api.aws"),
+				AuthType:       utils.NilIfZero("none"),
+				AuthHeaderName: utils.NilIfZero("X-API-Key"),
+			},
+			want: McpConfig{
+				Type:      "remote",
+				CatalogID: "awsknowledge",
+				Auth:      deployment.McpAuthBody{Type: "none"},
+			},
+		},
+		{
+			name: "endpoint keeps its url and header routing",
+			input: platform.McpSchema{
+				Name:             "acme",
+				Backend:          platform.McpBackendExternal,
+				EndpointURL:      utils.NilIfZero("https://mcp.acme.com/mcp"),
+				AuthType:         utils.NilIfZero("custom"),
+				AuthHeaderName:   utils.NilIfZero("X-Token"),
+				AuthHeaderPrefix: utils.NilIfZero("Token "),
+			},
+			want: McpConfig{
+				Type:        "remote",
+				EndpointURL: "https://mcp.acme.com/mcp",
+				Auth: deployment.McpAuthBody{
+					Type:         "custom",
+					Header:       "X-Token",
+					HeaderPrefix: "Token ",
+				},
+			},
+		},
+		{
+			name: "endpoint drops a header on a non-custom auth type",
+			input: platform.McpSchema{
+				Name:           "acme",
+				Backend:        platform.McpBackendExternal,
+				EndpointURL:    utils.NilIfZero("https://mcp.acme.com/mcp"),
+				AuthType:       utils.NilIfZero("bearer"),
+				AuthHeaderName: utils.NilIfZero("Authorization"),
+			},
+			want: McpConfig{
+				Type:        "remote",
+				EndpointURL: "https://mcp.acme.com/mcp",
+				Auth:        deployment.McpAuthBody{Type: "bearer"},
+			},
+		},
+		{
+			name:  "missing auth type reads as none",
+			input: platform.McpSchema{Name: "bare", Backend: platform.McpBackendExternal},
+			want:  McpConfig{Type: "remote", Auth: deployment.McpAuthBody{Type: "none"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := McpConfigFromPlatform(tt.input)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("McpConfigFromPlatform() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestStackManagedRemote(t *testing.T) {
+	tests := []struct {
+		name     string
+		authType *string
+		want     bool
+	}{
+		{name: "none", authType: utils.NilIfZero("none"), want: true},
+		{name: "bearer", authType: utils.NilIfZero("bearer"), want: true},
+		{name: "api_key", authType: utils.NilIfZero("api_key"), want: true},
+		{name: "custom", authType: utils.NilIfZero("custom"), want: true},
+		{name: "oauth needs iai mcps", authType: utils.NilIfZero("oauth")},
+		{
+			name:     "client_credentials needs iai mcps",
+			authType: utils.NilIfZero("client_credentials"),
+		},
+		{name: "missing auth type reads as none", want: true},
+		{name: "unknown auth type needs iai mcps", authType: utils.NilIfZero("mtls")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcp := platform.McpSchema{
+				Name:     "docs",
+				Backend:  platform.McpBackendExternal,
+				AuthType: tt.authType,
+			}
+			if got := StackManagedRemote(mcp); got != tt.want {
+				t.Errorf("StackManagedRemote() = %v, want %v", got, tt.want)
 			}
 		})
 	}

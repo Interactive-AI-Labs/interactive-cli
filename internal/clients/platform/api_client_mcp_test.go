@@ -7,6 +7,36 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestRemoteStackMcps(t *testing.T) {
+	stack := func(s string) *string { return &s }
+	mcps := []McpSchema{
+		{Name: "docs", Backend: McpBackendExternal, StackId: stack("s1")},
+		{Name: "tools", Backend: McpBackendInternal, StackId: stack("s1")},
+		{Name: "other", Backend: McpBackendExternal, StackId: stack("s2")},
+		{Name: "loose", Backend: McpBackendExternal},
+	}
+	tests := []struct {
+		name    string
+		stackID string
+		want    []string
+	}{
+		{name: "one stack keeps its remote mcps only", stackID: "s1", want: []string{"docs"}},
+		{name: "no stack keeps every remote mcp", want: []string{"docs", "other", "loose"}},
+		{name: "unknown stack keeps none", stackID: "s3"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []string
+			for _, mcp := range RemoteStackMcps(mcps, tt.stackID) {
+				got = append(got, mcp.Name)
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("RemoteStackMcps() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestDecodeMcpCatalog(t *testing.T) {
 	tests := []struct {
 		name    string

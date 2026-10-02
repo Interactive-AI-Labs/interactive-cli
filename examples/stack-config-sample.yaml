@@ -33,6 +33,31 @@ jobs:
       memory: "128M"
       cpu: "250m"
 
+# Self-hosted mcps run on the deployment operator; remote ones are registered on the platform.
+# A remote mcp takes exactly one of catalogId or endpointUrl, an auth.type of none, bearer,
+# api_key or custom, and none of the self-hosted keys. Create oauth and client_credentials
+# mcps with 'iai mcps create'; a stack never manages them.
+mcps:
+  tools:
+    type: self-hosted
+    port: 8080
+    image:
+      type: internal
+      name: my-mcp
+      tag: v1
+    resources:
+      memory: "128M"
+      cpu: "250m"
+    endpoint: true
+    auth:
+      type: none
+  # The catalog entry supplies the endpoint and the auth headers.
+  docs:
+    type: remote
+    catalogId: awsknowledge
+    auth:
+      type: none
+
 services:
   # Example service with fixed replicas
   api-service:
@@ -164,8 +189,10 @@ agents:
           port: 8080
           transport: http
         # An MCP in the project by name; endpoint: public dials its public endpoint (default private)
-        - ref: tools-dev
+        - ref: tools
           endpoint: public
+        # A remote mcp the platform owns, attached by name
+        - ref: docs
 
       knowledge_base:
         prompt:
