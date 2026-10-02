@@ -127,6 +127,7 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	if cfg.Mcps == nil {
 		cfg.Mcps = make(map[string]McpConfig)
 	}
+	// Older internal/external names load as self-hosted/remote so diff matches live.
 	for name, mcp := range cfg.Mcps {
 		mcp.Type = deployment.McpTypeName(mcp.Type)
 		cfg.Mcps[name] = mcp
