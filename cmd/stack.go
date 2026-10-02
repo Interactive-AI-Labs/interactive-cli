@@ -66,7 +66,8 @@ to decommission (services, agents, databases, mcps, jobs, or all) to delete them
 within each resource type, deletes run after that type's creates and updates.
 
 Resource types sync in order: services, databases, mcps, then agents once
-the mcps are ready, and finally jobs.
+the self-hosted mcps are ready, and finally jobs. Self-hosted mcps run on the
+deployment operator; remote ones are registered on the platform.
 
 Updates replace the whole live spec of each resource. For every service, agent,
 mcp, or job updated, the live revision being replaced is printed to stderr so a
@@ -266,15 +267,21 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		mcpBodies := make(map[string]deployment.CreateMcpBody)
+		remoteMcps := make(map[string]platform.McpCreateRequest)
 		for name, mcpCfg := range cfg.Mcps {
+			if mcpCfg.Type == deployment.McpTypeRemote {
+				remoteMcps[name] = mcpCfg.ToPlatformCreateRequest(name, cfg.StackId)
+				continue
+			}
 			mcpBodies[name] = mcpCfg.ToCreateRequest(cfg.StackId)
 		}
 
 		hasMcps := false
-		if len(mcpBodies) == 0 {
+		if len(mcpBodies) == 0 && len(remoteMcps) == 0 {
 			hasMcps, err = sync.HasMcps(
 				cmd.Context(),
 				deployClient,
+				apiClient,
 				orgId,
 				projectId,
 				cfg.StackId,
@@ -285,16 +292,18 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		var mcpResult *sync.Result
-		if len(mcpBodies) > 0 || hasMcps {
+		if len(mcpBodies) > 0 || len(remoteMcps) > 0 || hasMcps {
 			mcpResult, err = runPhase("mcps", func(opts sync.Options) (*sync.Result, error) {
 				return sync.Mcps(
 					cmd.Context(),
 					cmd.ErrOrStderr(),
 					deployClient,
+					apiClient,
 					orgId,
 					projectId,
 					cfg.StackId,
 					mcpBodies,
+					remoteMcps,
 					opts,
 				)
 			})
@@ -303,9 +312,14 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
+		// Only self-hosted mcps roll out; remote ones are registered on the platform with nothing to wait for.
 		var changedMcps []string
 		if mcpResult != nil {
-			changedMcps = slices.Concat(mcpResult.Created, mcpResult.Updated)
+			for _, name := range slices.Concat(mcpResult.Created, mcpResult.Updated) {
+				if _, selfHosted := mcpBodies[name]; selfHosted {
+					changedMcps = append(changedMcps, name)
+				}
+			}
 		}
 		if len(changedMcps) > 0 && !stackSyncDryRun && !stackSyncNoWait {
 			fmt.Fprint(out, "Waiting for mcps to be ready")
@@ -440,7 +454,7 @@ organizations select' / 'iai projects select'.`,
 
 		fmt.Fprintf(cmd.ErrOrStderr(), "Exporting stack %q...\n", stackGetStackID)
 
-		pCtx, _, deployClient, err := resolveProject(
+		pCtx, apiClient, deployClient, err := resolveProject(
 			cmd.Context(),
 			stackGetOrg,
 			stackGetProject,
@@ -452,6 +466,7 @@ organizations select' / 'iai projects select'.`,
 		liveCfg, err := files.FetchLiveStack(
 			cmd.Context(),
 			deployClient,
+			apiClient,
 			pCtx.orgId,
 			pCtx.projectId,
 			stackGetStackID,
@@ -537,7 +552,7 @@ Use --json for machine-readable output in CI pipelines.`,
 			stackDiffProject = localCfg.Project
 		}
 
-		pCtx, _, deployClient, err := resolveProject(
+		pCtx, apiClient, deployClient, err := resolveProject(
 			cmd.Context(),
 			stackDiffOrg,
 			stackDiffProject,
@@ -557,6 +572,7 @@ Use --json for machine-readable output in CI pipelines.`,
 		liveCfg, err := files.FetchLiveStack(
 			cmd.Context(),
 			deployClient,
+			apiClient,
 			pCtx.orgId,
 			pCtx.projectId,
 			stackID,
@@ -592,7 +608,7 @@ The organization and project are read from flags or resolved via
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		pCtx, _, deployClient, err := resolveProject(
+		pCtx, apiClient, deployClient, err := resolveProject(
 			cmd.Context(),
 			stackListOrg,
 			stackListProj,
@@ -604,6 +620,7 @@ The organization and project are read from flags or resolved via
 		stacks, err := files.ListStacks(
 			cmd.Context(),
 			deployClient,
+			apiClient,
 			pCtx.orgId,
 			pCtx.projectId,
 		)
@@ -648,9 +665,9 @@ func init() {
 	stackSyncCmd.Flags().
 		BoolVar(&stackSyncDryRun, "dry-run", false, "Print the full plan (creates, updates, deletes, refused deletions) without applying anything")
 	stackSyncCmd.Flags().
-		BoolVar(&stackSyncNoWait, "no-wait", false, "Sync agents without waiting for the mcps to be ready")
+		BoolVar(&stackSyncNoWait, "no-wait", false, "Sync agents without waiting for the self-hosted mcps to be ready")
 	stackSyncCmd.Flags().
-		DurationVar(&stackSyncWaitTimeout, "wait-timeout", 5*time.Minute, "How long to wait for every mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged")
+		DurationVar(&stackSyncWaitTimeout, "wait-timeout", 5*time.Minute, "How long to wait for every self-hosted mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged")
 	stackSyncCmd.MarkFlagsMutuallyExclusive("no-wait", "wait-timeout")
 
 	stackGetCmd.Flags().
