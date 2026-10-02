@@ -397,11 +397,6 @@ func TestDescribeServiceResponseEndpoint(t *testing.T) {
 			want: &Endpoint{Private: "svc:8080"},
 		},
 		{
-			name: "older public hostname string",
-			body: `{"endpoint":"svc-abc.interactive.ai"}`,
-			want: &Endpoint{Public: "svc-abc.interactive.ai"},
-		},
-		{
 			name: "no endpoint",
 			body: `{}`,
 			want: nil,
@@ -457,11 +452,6 @@ func TestDescribeMcpResponseEndpoint(t *testing.T) {
 			name: "private and public",
 			body: `{"endpoint":{"private":"tools:8080","public":"tools-abc.interactive.ai"}}`,
 			want: &Endpoint{Private: "tools:8080", Public: "tools-abc.interactive.ai"},
-		},
-		{
-			name: "older public hostname string",
-			body: `{"endpoint":"tools-abc.interactive.ai"}`,
-			want: &Endpoint{Public: "tools-abc.interactive.ai"},
 		},
 		{name: "remote mcp without endpoint", body: `{}`, want: nil},
 	}
