@@ -382,9 +382,10 @@ func TestDecodeSecretData(t *testing.T) {
 
 func TestDescribeServiceResponseEndpoint(t *testing.T) {
 	tests := []struct {
-		name string
-		body string
-		want *Endpoint
+		name    string
+		body    string
+		want    *Endpoint
+		wantErr bool
 	}{
 		{
 			name: "internal and public",
@@ -401,12 +402,24 @@ func TestDescribeServiceResponseEndpoint(t *testing.T) {
 			body: `{}`,
 			want: nil,
 		},
+		{
+			name:    "older public hostname string is rejected",
+			body:    `{"endpoint":"svc-abc.interactive.ai"}`,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got DescribeServiceResponse
-			if err := json.Unmarshal([]byte(tt.body), &got); err != nil {
+			err := json.Unmarshal([]byte(tt.body), &got)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("unmarshal expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
 				t.Fatalf("unmarshal error = %v", err)
 			}
 			if diff := cmp.Diff(tt.want, got.Endpoint); diff != "" {
@@ -444,9 +457,10 @@ func TestMcpTypeNames(t *testing.T) {
 
 func TestDescribeMcpResponseEndpoint(t *testing.T) {
 	tests := []struct {
-		name string
-		body string
-		want *Endpoint
+		name    string
+		body    string
+		want    *Endpoint
+		wantErr bool
 	}{
 		{
 			name: "private and public",
@@ -454,12 +468,24 @@ func TestDescribeMcpResponseEndpoint(t *testing.T) {
 			want: &Endpoint{Private: "tools:8080", Public: "tools-abc.interactive.ai"},
 		},
 		{name: "remote mcp without endpoint", body: `{}`, want: nil},
+		{
+			name:    "older public hostname string is rejected",
+			body:    `{"endpoint":"tools-abc.interactive.ai"}`,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got DescribeMcpResponse
-			if err := json.Unmarshal([]byte(tt.body), &got); err != nil {
+			err := json.Unmarshal([]byte(tt.body), &got)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("unmarshal expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
 				t.Fatalf("unmarshal error = %v", err)
 			}
 			if diff := cmp.Diff(tt.want, got.Endpoint); diff != "" {
