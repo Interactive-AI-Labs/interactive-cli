@@ -301,7 +301,15 @@ func TestDiffStackConfigsMcpTypeNames(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "stack.yaml")
 			content := "organization: o\nproject: p\nstack-id: s\nmcps:\n  tools:\n    type: " +
-				tt.fileType + "\n"
+				tt.fileType + "\n    auth:\n      type: none\n"
+			liveMcp := deployment.McpOutput{
+				Type: tt.liveType,
+				Auth: deployment.McpAuthInfo{Type: "none"},
+			}
+			if deployment.McpTypeName(tt.fileType) == deployment.McpTypeRemote {
+				content += "    endpointUrl: https://example.com/mcp\n"
+				liveMcp.EndpointURL = "https://example.com/mcp"
+			}
 			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 				t.Fatalf("write config: %v", err)
 			}
@@ -313,7 +321,7 @@ func TestDiffStackConfigsMcpTypeNames(t *testing.T) {
 				StackId: "s",
 				Mcps: map[string]McpConfig{
 					"tools": McpConfigFromDescribe(&deployment.DescribeMcpResponse{
-						McpOutput: deployment.McpOutput{Type: tt.liveType},
+						McpOutput: liveMcp,
 					}),
 				},
 			}

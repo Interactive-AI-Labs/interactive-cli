@@ -130,6 +130,8 @@ type McpCreateRequest struct {
 	Transport   string             `json:"transport"`
 	Auth        McpAuth            `json:"auth"`
 	Workload    *McpCreateWorkload `json:"workload,omitempty"`
+	// StackID groups a remote MCP into a stack; a self-hosted MCP's stack travels in Workload.
+	StackID *string `json:"stack_id,omitempty"`
 }
 
 type McpUpdateRequest = map[string]any
@@ -212,6 +214,32 @@ func (c *APIClient) ListMcps(
 		return nil, nil, err
 	}
 	return &data, raw, nil
+}
+
+// ListRemoteMcps returns the project's remote MCPs, narrowed to one stack when stackID is set; the platform has no stack filter.
+func (c *APIClient) ListRemoteMcps(
+	ctx context.Context, orgID, projectID, stackID string,
+) ([]McpSchema, error) {
+	data, _, err := c.ListMcps(ctx, orgID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return RemoteStackMcps(data.Mcps, stackID), nil
+}
+
+// RemoteStackMcps keeps the remote MCPs of one stack, or every remote MCP when stackID is empty.
+func RemoteStackMcps(mcps []McpSchema, stackID string) []McpSchema {
+	var remote []McpSchema
+	for _, mcp := range mcps {
+		if mcp.Backend != McpBackendExternal {
+			continue
+		}
+		if stackID != "" && (mcp.StackId == nil || *mcp.StackId != stackID) {
+			continue
+		}
+		remote = append(remote, mcp)
+	}
+	return remote
 }
 
 func (c *APIClient) DescribeMcp(

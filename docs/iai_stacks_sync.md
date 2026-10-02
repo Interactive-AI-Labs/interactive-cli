@@ -15,7 +15,8 @@ to decommission (services, agents, databases, mcps, jobs, or all) to delete them
 within each resource type, deletes run after that type's creates and updates.
 
 Resource types sync in order: services, databases, mcps, then agents once
-the mcps are ready, and finally jobs.
+the self-hosted mcps are ready, and finally jobs. Self-hosted mcps run on the
+deployment operator; remote ones are registered on the platform.
 
 Updates replace the whole live spec of each resource. For every service, agent,
 mcp, or job updated, the live revision being replaced is printed to stderr so a
@@ -89,6 +90,29 @@ services:
       memoryPercentage: 85
 ```
 
+> **Note:** a remote mcp takes exactly one of `catalogId` or `endpointUrl`, an `auth.type` of none, bearer, api_key or custom, and none of the self-hosted keys; a catalog entry supplies its own endpoint and auth headers. Create oauth and client_credentials mcps with `iai mcps create`; a stack never manages them.
+
+```yaml
+mcps:
+  tools:
+    type: self-hosted
+    port: 8080
+    image:
+      type: internal
+      name: my-mcp
+      tag: v1
+    resources:
+      memory: "128M"
+      cpu: "250m"
+    auth:
+      type: none
+  docs:
+    type: remote
+    catalogId: awsknowledge
+    auth:
+      type: none
+```
+
 
 ### Options
 
@@ -97,10 +121,10 @@ services:
       --dry-run                 Print the full plan (creates, updates, deletes, refused deletions) without applying anything
   -f, --file string             Path to stack configuration file
   -h, --help                    help for sync
-      --no-wait                 Sync agents without waiting for the mcps to be ready
+      --no-wait                 Sync agents without waiting for the self-hosted mcps to be ready
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name to sync resources in
-      --wait-timeout duration   How long to wait for every mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged (default 5m0s)
+      --wait-timeout duration   How long to wait for every self-hosted mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged (default 5m0s)
 ```
 
 ### Options inherited from parent commands
