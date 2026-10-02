@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func TestAllowDeleteResource(t *testing.T) {
@@ -85,48 +87,353 @@ func TestAllowDeleteResource(t *testing.T) {
 	}
 }
 
-func TestMcpsRejectsCredentialedUpdateWithoutCredential(t *testing.T) {
+func TestRequireMcpCredential(t *testing.T) {
 	tests := []struct {
-		name string
-		body deployment.CreateMcpBody
+		name       string
+		authType   string
+		credential string
+		wantErr    bool
 	}{
-		{name: "auth omitted", body: deployment.CreateMcpBody{}},
+		{name: "unknown auth type passes"},
+		{name: "none needs no credential", authType: "none"},
+		{name: "none is matched case-insensitively", authType: "None"},
+		{name: "bearer without credential is refused", authType: "bearer", wantErr: true},
+		{name: "api_key without credential is refused", authType: "api_key", wantErr: true},
+		{name: "bearer with credential passes", authType: "bearer", credential: "token"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := requireMcpCredential("tools", tt.authType, tt.credential)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("requireMcpCredential() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil && !strings.Contains(err.Error(), "auth.credential is required") {
+				t.Fatalf("requireMcpCredential() error = %v, want auth.credential error", err)
+			}
+		})
+	}
+}
+
+func TestMcpConflicts(t *testing.T) {
+	stack := func(s string) *string { return &s }
+	operator := map[string]deployment.McpOutput{
+		"tools":     {Name: "tools", Type: "internal", StackId: "s1"},
+		"legacy":    {Name: "legacy", Type: "external", StackId: "s1"},
+		"svc":       {Name: "svc", Type: "internal", StackId: "s2"},
+		"oldremote": {Name: "oldremote", Type: "external", StackId: "s2"},
+	}
+	external := platform.McpBackendExternal
+	platformMcps := map[string]platform.McpSchema{
+		"tools": {Name: "tools", Backend: platform.McpBackendInternal, StackId: stack("s1")},
+		"svc":   {Name: "svc", Backend: platform.McpBackendInternal, StackId: stack("s2")},
+		"docs":  {Name: "docs", Backend: external, StackId: stack("s1"), AuthType: stack("none")},
+		"github": {
+			Name:     "github",
+			Backend:  external,
+			StackId:  stack("s1"),
+			AuthType: stack("oauth"),
+		},
+		"shared": {
+			Name:     "shared",
+			Backend:  external,
+			StackId:  stack("s2"),
+			AuthType: stack("bearer"),
+		},
+		"loose": {Name: "loose", Backend: external, AuthType: stack("none")},
+	}
+	tests := []struct {
+		name            string
+		selfHosted      []string
+		remote          []string
+		wantTypeChanged []string
+		wantUnmanaged   []string
+	}{
 		{
-			name: "credential omitted",
-			body: deployment.CreateMcpBody{Auth: deployment.McpAuthBody{Type: "bearer"}},
+			name:       "same types and stack on both sides",
+			selfHosted: []string{"tools"},
+			remote:     []string{"docs"},
+		},
+		{
+			name:            "self-hosted mcp that is remote on the platform",
+			selfHosted:      []string{"docs"},
+			wantTypeChanged: []string{"docs"},
+		},
+		{
+			name:          "self-hosted mcp that is remote in another stack",
+			selfHosted:    []string{"shared"},
+			wantUnmanaged: []string{"shared"},
+		},
+		{
+			name:          "self-hosted mcp that is remote without a stack",
+			selfHosted:    []string{"loose"},
+			wantUnmanaged: []string{"loose"},
+		},
+		{
+			name:          "self-hosted mcp that is self-hosted in another stack",
+			selfHosted:    []string{"svc"},
+			wantUnmanaged: []string{"svc"},
+		},
+		{
+			name:            "self-hosted mcp still remote on the operator",
+			selfHosted:      []string{"legacy"},
+			wantTypeChanged: []string{"legacy"},
+		},
+		{
+			name:          "self-hosted mcp named like an oauth remote mcp",
+			selfHosted:    []string{"github"},
+			wantUnmanaged: []string{"github"},
+		},
+		{
+			name:            "remote mcp that is self-hosted on the operator",
+			remote:          []string{"tools"},
+			wantTypeChanged: []string{"tools"},
+		},
+		{
+			name:          "remote mcp that is self-hosted in another stack",
+			remote:        []string{"svc"},
+			wantUnmanaged: []string{"svc"},
+		},
+		{
+			name:            "remote mcp still on the operator",
+			remote:          []string{"legacy"},
+			wantTypeChanged: []string{"legacy"},
+		},
+		{
+			name:          "remote mcp still on the operator in another stack",
+			remote:        []string{"oldremote"},
+			wantUnmanaged: []string{"oldremote"},
+		},
+		{
+			name:          "remote mcp owned by another stack",
+			remote:        []string{"shared"},
+			wantUnmanaged: []string{"shared"},
+		},
+		{
+			name:          "remote mcp without a stack",
+			remote:        []string{"loose"},
+			wantUnmanaged: []string{"loose"},
+		},
+		{
+			name:          "remote mcp set up with iai mcps",
+			remote:        []string{"github"},
+			wantUnmanaged: []string{"github"},
+		},
+		{
+			name:       "new names conflict with nothing",
+			selfHosted: []string{"new"},
+			remote:     []string{"other"},
+		},
+		{
+			name:       "conflicts are sorted",
+			selfHosted: []string{"docs"},
+			remote: []string{
+				"tools",
+				"legacy",
+				"shared",
+				"loose",
+				"svc",
+				"github",
+				"oldremote",
+			},
+			wantTypeChanged: []string{"docs", "legacy", "tools"},
+			wantUnmanaged:   []string{"github", "loose", "oldremote", "shared", "svc"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-				switch {
-				case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/mcps":
-					fmt.Fprint(
-						w,
-						`{"mcps":[{"name":"tools","projectId":"p1","revision":1,"type":"external","auth":{"type":"bearer"}}]}`,
-					)
-				case r.Method == http.MethodPut:
-					t.Errorf("credentialed mcp update reached PUT without auth.credential")
-					fmt.Fprint(w, `{}`)
-				default:
-					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
-					w.WriteHeader(http.StatusNotFound)
-				}
-			})
-
-			_, err := Mcps(
-				context.Background(),
-				&bytes.Buffer{},
-				client,
-				"o1",
-				"p1",
-				"stack-1",
-				map[string]deployment.CreateMcpBody{"tools": tt.body},
-				Options{},
+			selfHosted := make(map[string]deployment.CreateMcpBody, len(tt.selfHosted))
+			for _, name := range tt.selfHosted {
+				selfHosted[name] = deployment.CreateMcpBody{}
+			}
+			remote := make(map[string]platform.McpCreateRequest, len(tt.remote))
+			for _, name := range tt.remote {
+				remote[name] = platform.McpCreateRequest{Name: name}
+			}
+			typeChanged, unmanaged := mcpConflicts(
+				operator,
+				platformMcps,
+				"s1",
+				selfHosted,
+				remote,
 			)
-			if err == nil || !strings.Contains(err.Error(), "auth.credential is required") {
-				t.Fatalf("Mcps() error = %v, want auth.credential error", err)
+			if !reflect.DeepEqual(typeChanged, tt.wantTypeChanged) ||
+				!reflect.DeepEqual(unmanaged, tt.wantUnmanaged) {
+				t.Fatalf(
+					"mcpConflicts() = %v, %v, want %v, %v",
+					typeChanged, unmanaged, tt.wantTypeChanged, tt.wantUnmanaged,
+				)
+			}
+		})
+	}
+}
+
+func TestRemoteMcpPatch(t *testing.T) {
+	str := func(s string) *string { return &s }
+	none := platform.McpAuth{Type: platform.McpAuthNone}
+	bearer := func(credential string) platform.McpAuth {
+		auth := platform.McpAuth{Type: platform.McpAuthBearer}
+		if credential != "" {
+			auth.Credential = str(credential)
+		}
+		return auth
+	}
+	liveGithub := platform.McpSchema{
+		CatalogID: str("github"), AuthType: str("bearer"), HasCredential: true,
+	}
+	liveAcme := func(authType string) platform.McpSchema {
+		return platform.McpSchema{
+			EndpointURL: str(
+				"https://mcp.acme.com/mcp",
+			),
+			AuthType:      str(authType),
+			HasCredential: true,
+		}
+	}
+	tests := []struct {
+		name    string
+		live    platform.McpSchema
+		body    platform.McpCreateRequest
+		want    platform.McpUpdateRequest
+		wantErr string
+	}{
+		{
+			name: "catalog entry without credential",
+			live: platform.McpSchema{CatalogID: str("awsknowledge"), AuthType: str("none")},
+			body: platform.McpCreateRequest{CatalogID: str("awsknowledge"), Auth: none},
+			want: platform.McpUpdateRequest{"auth": map[string]any{"type": "none"}},
+		},
+		{
+			name: "credential rotation on a catalog entry",
+			live: liveGithub,
+			body: platform.McpCreateRequest{CatalogID: str("github"), Auth: bearer("rotated")},
+			want: platform.McpUpdateRequest{
+				"auth": map[string]any{"type": "bearer", "credential": "rotated"},
+			},
+		},
+		{
+			name: "no credential in the config keeps the live one",
+			live: liveGithub,
+			body: platform.McpCreateRequest{CatalogID: str("github"), Auth: bearer("")},
+			want: platform.McpUpdateRequest{},
+		},
+		{
+			name:    "no credential in the config and none live",
+			live:    platform.McpSchema{CatalogID: str("github"), AuthType: str("bearer")},
+			body:    platform.McpCreateRequest{CatalogID: str("github"), Auth: bearer("")},
+			wantErr: "auth.credential is required",
+		},
+		{
+			name:    "no credential with an auth type change",
+			live:    platform.McpSchema{CatalogID: str("github"), AuthType: str("none")},
+			body:    platform.McpCreateRequest{CatalogID: str("github"), Auth: bearer("")},
+			wantErr: "auth.credential is required",
+		},
+		{
+			name: "custom always needs its credential",
+			live: liveAcme("custom"),
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth: platform.McpAuth{
+					Type:       platform.McpAuthCustom,
+					HeaderName: str("X-Token"),
+				},
+			},
+			wantErr: "auth.credential is required",
+		},
+		{
+			name: "endpoint with custom header auth",
+			live: liveAcme("custom"),
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth: platform.McpAuth{
+					Type:         platform.McpAuthCustom,
+					Credential:   str("token"),
+					HeaderName:   str("X-Token"),
+					HeaderPrefix: str("Token "),
+				},
+			},
+			want: platform.McpUpdateRequest{
+				"endpoint_url": "https://mcp.acme.com/mcp",
+				"auth": map[string]any{
+					"type":          "custom",
+					"credential":    "token",
+					"header_name":   "X-Token",
+					"header_prefix": "Token ",
+				},
+			},
+		},
+		{
+			name: "endpoint without a header override clears a previous one",
+			live: liveAcme("bearer"),
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth:        bearer("token"),
+			},
+			want: platform.McpUpdateRequest{
+				"endpoint_url": "https://mcp.acme.com/mcp",
+				"auth": map[string]any{
+					"type":          "bearer",
+					"credential":    "token",
+					"header_name":   nil,
+					"header_prefix": nil,
+				},
+			},
+		},
+		{
+			name: "endpoint url change without a credential keeps the live one",
+			live: liveAcme("bearer"),
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://new.example.com/mcp"),
+				Auth:        bearer(""),
+			},
+			want: platform.McpUpdateRequest{"endpoint_url": "https://new.example.com/mcp"},
+		},
+		{
+			name:    "catalog entry change",
+			live:    platform.McpSchema{CatalogID: str("github"), AuthType: str("none")},
+			body:    platform.McpCreateRequest{CatalogID: str("gitlab"), Auth: none},
+			wantErr: "changed its catalog entry",
+		},
+		{
+			name: "catalog entry to endpoint url",
+			live: platform.McpSchema{
+				CatalogID:   str("github"),
+				EndpointURL: str("https://api.github.com/mcp"),
+				AuthType:    str("none"),
+			},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://api.github.com/mcp"),
+				Auth:        none,
+			},
+			wantErr: "changed its catalog entry",
+		},
+		{
+			name: "endpoint url to catalog entry",
+			live: platform.McpSchema{
+				EndpointURL: str("https://api.github.com/mcp"),
+				AuthType:    str("none"),
+			},
+			body:    platform.McpCreateRequest{CatalogID: str("github"), Auth: none},
+			wantErr: "changed its catalog entry",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := remoteMcpPatch("docs", tt.live, tt.body)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("remoteMcpPatch() error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("remoteMcpPatch() error = %v", err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("remoteMcpPatch() = %#v, want %#v", got, tt.want)
 			}
 		})
 	}

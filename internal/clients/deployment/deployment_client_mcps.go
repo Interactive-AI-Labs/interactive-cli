@@ -65,12 +65,12 @@ type CreateMcpBody struct {
 
 // McpAuthBody is the auth block of a create/update request.
 type McpAuthBody struct {
-	Type string `json:"type,omitempty" yaml:"type,omitempty"` // bearer | api_key | none
-	// Credential is required for bearer and api_key, forbidden for none.
+	Type string `json:"type,omitempty" yaml:"type,omitempty"` // bearer | api_key | custom | none
+	// Credential is required for bearer, api_key and custom, forbidden for none.
 	Credential string `json:"credential,omitempty" yaml:"credential,omitempty"`
-	// Header overrides the default header (Authorization / X-API-Key).
+	// Header is the header a custom credential is sent in; the other types imply their own.
 	Header string `json:"header,omitempty" yaml:"header,omitempty"`
-	// HeaderPrefix overrides the default value prefix (bearer's "Bearer ").
+	// HeaderPrefix is the value prefix of a custom credential.
 	HeaderPrefix string `json:"headerPrefix,omitempty" yaml:"headerPrefix,omitempty"`
 }
 
