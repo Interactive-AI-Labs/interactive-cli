@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 // StackInfo holds summary info for a stack discovered from live resources.
@@ -23,6 +24,7 @@ type StackInfo struct {
 func ListStacks(
 	ctx context.Context,
 	deployClient *deployment.DeploymentClient,
+	apiClient *platform.APIClient,
 	orgId, projectId string,
 ) ([]StackInfo, error) {
 	stacks := make(map[string]*StackInfo)
@@ -100,6 +102,22 @@ func ListStacks(
 		if !ok {
 			s = &StackInfo{StackID: mcp.StackId}
 			stacks[mcp.StackId] = s
+		}
+		s.McpCount++
+	}
+	remoteMcps, err := apiClient.ListRemoteMcps(ctx, orgId, projectId, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list remote mcps: %w", err)
+	}
+	// Counted even when a stack file cannot express them: list is a census of what carries the stack.
+	for _, mcp := range remoteMcps {
+		if mcp.StackId == nil || *mcp.StackId == "" {
+			continue
+		}
+		s, ok := stacks[*mcp.StackId]
+		if !ok {
+			s = &StackInfo{StackID: *mcp.StackId}
+			stacks[*mcp.StackId] = s
 		}
 		s.McpCount++
 	}

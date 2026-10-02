@@ -1,16 +1,29 @@
 package files
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"gopkg.in/yaml.v3"
 )
+
+// Auth types a stack file can hold for a remote MCP; oauth and client_credentials need 'iai mcps create'.
+var stackRemoteAuthTypes = []string{
+	string(platform.McpAuthNone),
+	string(platform.McpAuthBearer),
+	string(platform.McpAuthAPIKey),
+	string(platform.McpAuthCustom),
+}
 
 type StackConfig struct {
 	Organization string                    `yaml:"organization" json:"organization"`
@@ -130,6 +143,11 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 	// Older internal/external names load as self-hosted/remote so diff matches live.
 	for name, mcp := range cfg.Mcps {
 		mcp.Type = deployment.McpTypeName(mcp.Type)
+		if mcp.Type == deployment.McpTypeRemote {
+			if err := validateRemoteMcp(name, mcp); err != nil {
+				return nil, err
+			}
+		}
 		cfg.Mcps[name] = mcp
 	}
 
@@ -220,6 +238,75 @@ func (m McpConfig) ToCreateRequest(stackId string) deployment.CreateMcpBody {
 	}
 }
 
+// validateRemoteMcp rejects what the platform's remote MCP contract cannot carry.
+func validateRemoteMcp(name string, mcp McpConfig) error {
+	if (mcp.CatalogID == "") == (mcp.EndpointURL == "") {
+		return fmt.Errorf("mcp %q: remote mcps need exactly one of catalogId or endpointUrl", name)
+	}
+	if mcp.CatalogID != "" && (mcp.Auth.Header != "" || mcp.Auth.HeaderPrefix != "") {
+		return fmt.Errorf(
+			"mcp %q: auth.header and auth.headerPrefix come from the catalog entry", name,
+		)
+	}
+	var selfHostedOnly []string
+	for _, field := range []struct {
+		key string
+		set bool
+	}{
+		{"port", mcp.Port != 0},
+		{"path", mcp.Path != ""},
+		{"image", mcp.Image != (deployment.ImageSpec{})},
+		{"resources", mcp.Resources != (deployment.Resources{})},
+		{"env", len(mcp.Env) > 0},
+		{"secretRefs", len(mcp.SecretRefs) > 0},
+		{"endpoint", mcp.Endpoint},
+	} {
+		if field.set {
+			selfHostedOnly = append(selfHostedOnly, field.key)
+		}
+	}
+	if len(selfHostedOnly) > 0 {
+		return fmt.Errorf(
+			"mcp %q: %s not allowed for remote mcps",
+			name, strings.Join(selfHostedOnly, ", "),
+		)
+	}
+	if len(mcp.Headers) > 0 {
+		return fmt.Errorf("mcp %q: headers are not supported for remote mcps", name)
+	}
+	if mcp.Auth.Type == "" {
+		return fmt.Errorf(
+			"mcp %q: auth.type is required for remote mcps (%s)",
+			name, strings.Join(stackRemoteAuthTypes, ", "),
+		)
+	}
+	if !slices.Contains(stackRemoteAuthTypes, mcp.Auth.Type) {
+		return fmt.Errorf(
+			"mcp %q: auth.type %q is not supported in stack files; use 'iai mcps create'",
+			name, mcp.Auth.Type,
+		)
+	}
+	return nil
+}
+
+// ToPlatformCreateRequest maps a remote MCP to the platform's create body; the platform owns remote MCPs.
+func (m McpConfig) ToPlatformCreateRequest(name, stackId string) platform.McpCreateRequest {
+	return platform.McpCreateRequest{
+		Name:        name,
+		Backend:     platform.McpBackendExternal,
+		CatalogID:   utils.NilIfZero(m.CatalogID),
+		EndpointURL: utils.NilIfZero(m.EndpointURL),
+		Transport:   "streamable_http",
+		Auth: platform.McpAuth{
+			Type:         platform.McpAuthType(m.Auth.Type),
+			Credential:   utils.NilIfZero(m.Auth.Credential),
+			HeaderName:   utils.NilIfZero(m.Auth.Header),
+			HeaderPrefix: utils.NilIfZero(m.Auth.HeaderPrefix),
+		},
+		StackID: utils.NilIfZero(stackId),
+	}
+}
+
 func (j JobConfig) ToCreateRequest(stackId string) deployment.CreateJobBody {
 	return deployment.CreateJobBody{
 		Type:       j.Type,
@@ -304,27 +391,34 @@ func DatabaseConfigFromDescribe(db *deployment.DescribeDatabaseResponse) Databas
 
 func McpConfigFromDescribe(mcp *deployment.DescribeMcpResponse) McpConfig {
 	mcpType := deployment.McpTypeName(mcp.Type)
-	endpointURL := ""
+	auth := deployment.McpAuthBody{Type: mcp.Auth.Type}
+	// Header routing belongs to a custom credential; the other types imply their own.
+	if mcp.Auth.Type == string(platform.McpAuthCustom) {
+		auth.Header, auth.HeaderPrefix = mcp.Auth.Header, mcp.Auth.HeaderPrefix
+	}
 	if mcpType == deployment.McpTypeRemote {
-		endpointURL = mcp.EndpointURL
+		// Only what a remote mcp may declare, so the export loads back; a missing auth type reads as none.
+		auth.Type = cmp.Or(mcp.Auth.Type, string(platform.McpAuthNone))
+		if mcp.CatalogID != "" {
+			return McpConfig{
+				Type:      mcpType,
+				CatalogID: mcp.CatalogID,
+				Auth:      deployment.McpAuthBody{Type: auth.Type},
+			}
+		}
+		return McpConfig{Type: mcpType, EndpointURL: mcp.EndpointURL, Auth: auth}
 	}
 	return McpConfig{
-		Type:        mcpType,
-		Port:        mcp.Port,
-		Path:        mcp.Path,
-		Image:       mcp.Image,
-		Resources:   mcp.Resources,
-		Env:         mcp.Env,
-		SecretRefs:  mcp.SecretRefs,
-		Endpoint:    mcp.Endpoint != nil && mcp.Endpoint.Public != "",
-		EndpointURL: endpointURL,
-		CatalogID:   mcp.CatalogID,
-		Auth: deployment.McpAuthBody{
-			Type:         mcp.Auth.Type,
-			Header:       mcp.Auth.Header,
-			HeaderPrefix: mcp.Auth.HeaderPrefix,
-		},
-		Headers: mcp.Headers,
+		Type:       mcpType,
+		Port:       mcp.Port,
+		Path:       mcp.Path,
+		Image:      mcp.Image,
+		Resources:  mcp.Resources,
+		Env:        mcp.Env,
+		SecretRefs: mcp.SecretRefs,
+		Endpoint:   mcp.Endpoint != nil && mcp.Endpoint.Public != "",
+		Auth:       auth,
+		Headers:    mcp.Headers,
 	}
 }
 
@@ -353,9 +447,45 @@ func (s ServiceConfig) ToCreateRequest(stackId string) deployment.CreateServiceB
 	return body
 }
 
+// StackManagedRemote reports whether a stack file can express a remote MCP; oauth and client_credentials ones are managed with 'iai mcps' only.
+func StackManagedRemote(mcp platform.McpSchema) bool {
+	// A missing auth type reads as none, which is what a stack file sends for it.
+	return mcp.AuthType == nil || slices.Contains(stackRemoteAuthTypes, *mcp.AuthType)
+}
+
+// McpConfigFromPlatform maps a remote MCP the platform owns; a catalog entry supplies its own endpoint and headers, so only its id is kept.
+func McpConfigFromPlatform(mcp platform.McpSchema) McpConfig {
+	// A missing auth type reads as none, the default StackManagedRemote applies.
+	cfg := McpConfig{
+		Type: deployment.McpTypeRemote,
+		Auth: deployment.McpAuthBody{Type: string(platform.McpAuthNone)},
+	}
+	if mcp.AuthType != nil && *mcp.AuthType != "" {
+		cfg.Auth.Type = *mcp.AuthType
+	}
+	if mcp.CatalogID != nil && *mcp.CatalogID != "" {
+		cfg.CatalogID = *mcp.CatalogID
+		return cfg
+	}
+	if mcp.EndpointURL != nil {
+		cfg.EndpointURL = *mcp.EndpointURL
+	}
+	// Header routing belongs to a custom credential; the other types imply their own.
+	if cfg.Auth.Type == string(platform.McpAuthCustom) {
+		if mcp.AuthHeaderName != nil {
+			cfg.Auth.Header = *mcp.AuthHeaderName
+		}
+		if mcp.AuthHeaderPrefix != nil {
+			cfg.Auth.HeaderPrefix = *mcp.AuthHeaderPrefix
+		}
+	}
+	return cfg
+}
+
 func FetchLiveStack(
 	ctx context.Context,
 	deployClient *deployment.DeploymentClient,
+	apiClient *platform.APIClient,
 	orgId, projectId, stackId string,
 ) (*StackConfig, error) {
 	cfg := &StackConfig{
@@ -413,6 +543,15 @@ func FetchLiveStack(
 			return nil, fmt.Errorf("failed to describe mcp %q: %w", mcp.Name, err)
 		}
 		cfg.Mcps[mcp.Name] = McpConfigFromDescribe(desc)
+	}
+	remoteMcps, err := apiClient.ListRemoteMcps(ctx, orgId, projectId, stackId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list remote mcps: %w", err)
+	}
+	for _, mcp := range remoteMcps {
+		if StackManagedRemote(mcp) {
+			cfg.Mcps[mcp.Name] = McpConfigFromPlatform(mcp)
+		}
 	}
 
 	jobs, err := deployClient.ListJobs(ctx, orgId, projectId, stackId)

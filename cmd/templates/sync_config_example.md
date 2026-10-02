@@ -43,3 +43,26 @@ services:
       memoryPercentage: 85
 ```
 
+> **Note:** a remote mcp takes exactly one of `catalogId` or `endpointUrl`, an `auth.type` of none, bearer, api_key or custom, and none of the self-hosted keys; a catalog entry supplies its own endpoint and auth headers. Create oauth and client_credentials mcps with `iai mcps create`; a stack never manages them.
+
+```yaml
+mcps:
+  tools:
+    type: self-hosted
+    port: 8080
+    image:
+      type: internal
+      name: my-mcp
+      tag: v1
+    resources:
+      memory: "128M"
+      cpu: "250m"
+    auth:
+      type: none
+  docs:
+    type: remote
+    catalogId: awsknowledge
+    auth:
+      type: none
+```
+
