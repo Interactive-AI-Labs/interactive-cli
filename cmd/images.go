@@ -43,7 +43,7 @@ var imageCmd = &cobra.Command{
 	Aliases: []string{"image"},
 	Short:   "Manage container images",
 	GroupID: groupInfra,
-	Long:    `Manage container images used by services.`,
+	Long:    `Manage container images in the project's private registry, used by services, jobs, and self-hosted MCPs.`,
 }
 
 var imageListCmd = &cobra.Command{

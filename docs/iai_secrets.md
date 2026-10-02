@@ -1,6 +1,6 @@
 ## iai secrets
 
-Encrypted key-value pairs for services and agents
+Encrypted key-value pairs for services, agents, jobs, and MCPs
 
 ### Synopsis
 

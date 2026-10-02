@@ -4,7 +4,7 @@ Manage container images
 
 ### Synopsis
 
-Manage container images used by services.
+Manage container images in the project's private registry, used by services, jobs, and self-hosted MCPs.
 
 ### Options
 

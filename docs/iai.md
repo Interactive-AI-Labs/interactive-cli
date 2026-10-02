@@ -116,7 +116,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai run-items](iai_run-items.md)	 - Inspect results of evaluation runs
 * [iai score-configs](iai_score-configs.md)	 - Define scoring schemas for evaluation
 * [iai scores](iai_scores.md)	 - Read and write evaluation scores
-* [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services and agents
+* [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services, agents, jobs, and MCPs
 * [iai services](iai_services.md)	 - Deploy and manage HTTP services
 * [iai sessions](iai_sessions.md)	 - Browse trace-derived conversation sessions
 * [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)

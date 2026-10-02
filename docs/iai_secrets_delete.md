@@ -36,5 +36,5 @@ iai secrets delete <secret_name> [flags]
 
 ### SEE ALSO
 
-* [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services and agents
+* [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services, agents, jobs, and MCPs
 
