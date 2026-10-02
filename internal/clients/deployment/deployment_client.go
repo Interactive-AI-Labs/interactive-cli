@@ -296,17 +296,6 @@ type Endpoint struct {
 	Public  string `json:"public,omitempty"`
 }
 
-// UnmarshalJSON also accepts the older plain public hostname string.
-func (e *Endpoint) UnmarshalJSON(data []byte) error {
-	var hostname string
-	if err := json.Unmarshal(data, &hostname); err == nil {
-		*e = Endpoint{Public: hostname}
-		return nil
-	}
-	type endpoint Endpoint
-	return json.Unmarshal(data, (*endpoint)(e))
-}
-
 type ServiceOutput struct {
 	Name      string `json:"name"`
 	ProjectId string `json:"projectId"`
