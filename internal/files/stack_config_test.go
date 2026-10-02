@@ -165,7 +165,7 @@ databases:
 			},
 		},
 		{
-			name: "valid config with mcps",
+			name: "older mcp type name loads as the new name",
 			content: `organization: test-org
 project: test-project
 stack-id: stack-123
@@ -194,7 +194,7 @@ mcps:
 				Databases:    map[string]DatabaseConfig{},
 				Mcps: map[string]McpConfig{
 					"tools": {
-						Type: "internal",
+						Type: "self-hosted",
 						Port: 8080,
 						Path: "/mcp",
 						Image: deployment.ImageSpec{
@@ -741,7 +741,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Env:       []deployment.EnvVar{{Name: "K", Value: "V"}},
 			},
 			want: McpConfig{
-				Type:      "internal",
+				Type:      "self-hosted",
 				Port:      8080,
 				Path:      "/mcp",
 				Image:     deployment.ImageSpec{Type: "internal", Name: "my-mcp", Tag: "v1"},
@@ -764,7 +764,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Port: 8080,
 			},
 			want: McpConfig{
-				Type:     "internal",
+				Type:     "self-hosted",
 				Port:     8080,
 				Endpoint: true,
 				Auth:     deployment.McpAuthBody{Type: "none"},
@@ -781,7 +781,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Port:     8080,
 			},
 			want: McpConfig{
-				Type: "internal",
+				Type: "self-hosted",
 				Port: 8080,
 				Auth: deployment.McpAuthBody{Type: "none"},
 			},
@@ -802,7 +802,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Headers: map[string]string{"X-Team": "dev"},
 			},
 			want: McpConfig{
-				Type:        "external",
+				Type:        "remote",
 				EndpointURL: "https://example.com/mcp",
 				CatalogID:   "github",
 				Auth: deployment.McpAuthBody{
@@ -814,7 +814,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 			},
 		},
 		{
-			name: "new remote type is exported as the older value",
+			name: "remote type is exported as is",
 			desc: &deployment.DescribeMcpResponse{
 				McpOutput: deployment.McpOutput{
 					Type:        "remote",
@@ -823,13 +823,13 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				},
 			},
 			want: McpConfig{
-				Type:        "external",
+				Type:        "remote",
 				EndpointURL: "https://example.com/mcp",
 				Auth:        deployment.McpAuthBody{Type: "none"},
 			},
 		},
 		{
-			name: "new self-hosted type is exported as the older value",
+			name: "self-hosted type is exported as is",
 			desc: &deployment.DescribeMcpResponse{
 				McpOutput: deployment.McpOutput{
 					Type:        "self-hosted",
@@ -837,7 +837,7 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 					Auth:        deployment.McpAuthInfo{Type: "none"},
 				},
 			},
-			want: McpConfig{Type: "internal", Auth: deployment.McpAuthBody{Type: "none"}},
+			want: McpConfig{Type: "self-hosted", Auth: deployment.McpAuthBody{Type: "none"}},
 		},
 	}
 

@@ -128,7 +128,7 @@ func LoadStackConfig(path string) (*StackConfig, error) {
 		cfg.Mcps = make(map[string]McpConfig)
 	}
 	for name, mcp := range cfg.Mcps {
-		mcp.Type = deployment.McpTypeValue(mcp.Type)
+		mcp.Type = deployment.McpTypeName(mcp.Type)
 		cfg.Mcps[name] = mcp
 	}
 
@@ -302,9 +302,9 @@ func DatabaseConfigFromDescribe(db *deployment.DescribeDatabaseResponse) Databas
 }
 
 func McpConfigFromDescribe(mcp *deployment.DescribeMcpResponse) McpConfig {
-	mcpType := deployment.McpTypeValue(mcp.Type)
+	mcpType := deployment.McpTypeName(mcp.Type)
 	endpointURL := ""
-	if mcpType == "external" {
+	if mcpType == deployment.McpTypeRemote {
 		endpointURL = mcp.EndpointURL
 	}
 	return McpConfig{
