@@ -843,10 +843,9 @@ func waitForSignIn(
 
 var mcpVerifyCmd = &cobra.Command{
 	Use:   "verify <mcp_name>",
-	Short: "Re-verify a remote mcp and refresh its cached tools",
+	Short: "Re-verify an mcp and refresh its cached tools",
 	Long: `Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
-Remote mcps only — self-hosted mcps verify automatically once ready and reject a
-manual verify.`,
+Works for self-hosted and remote mcps.`,
 	Example: `  iai mcps verify my-tool
   iai mcps verify my-tool --json`,
 	Args: cobra.ExactArgs(1),
