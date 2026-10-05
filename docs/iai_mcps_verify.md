@@ -1,12 +1,11 @@
 ## iai mcps verify
 
-Re-verify a remote mcp and refresh its cached tools
+Re-verify an mcp and refresh its cached tools
 
 ### Synopsis
 
 Re-dial the mcp (initialize + list tools) and refresh the cached tool list.
-Remote mcps only — self-hosted mcps verify automatically once ready and reject a
-manual verify.
+Works for self-hosted and remote mcps.
 
 ```
 iai mcps verify <mcp_name> [flags]

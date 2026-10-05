@@ -171,10 +171,10 @@ func TestPrintMcpTools(t *testing.T) {
 			want:    "No tools cached - run 'iai mcps verify' first.\n",
 		},
 		{
-			name:    "an internal mcp is not sent to verify",
+			name:    "an internal mcp waits for readiness or verify",
 			backend: platform.McpBackendInternal,
 			tools:   nil,
-			want:    "No tools available yet. Try again after the mcp is ready.\n",
+			want:    "No tools cached yet - wait for the mcp to be ready, or run 'iai mcps verify'.\n",
 		},
 	}
 

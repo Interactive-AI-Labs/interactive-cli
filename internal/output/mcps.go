@@ -181,7 +181,10 @@ func PrintMcpTools(
 ) error {
 	if len(tools) == 0 {
 		if backend == platform.McpBackendInternal {
-			fmt.Fprintln(out, "No tools available yet. Try again after the mcp is ready.")
+			fmt.Fprintln(
+				out,
+				"No tools cached yet - wait for the mcp to be ready, or run 'iai mcps verify'.",
+			)
 		} else {
 			fmt.Fprintln(out, "No tools cached - run 'iai mcps verify' first.")
 		}
