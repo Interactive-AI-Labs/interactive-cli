@@ -4,8 +4,9 @@ Show mcp details, verify state, and cached tools
 
 ### Synopsis
 
-Show the mcp's record (type, connection URL, optional public endpoint for self-hosted mcps, catalog origin) and its latest
-verify result — a tool count, not the tool list itself (see 'iai mcps tools').
+Show the mcp's record (type, connection URL, optional public endpoint and running
+image for self-hosted mcps, catalog origin) and its latest verify result — a tool
+count, not the tool list itself (see 'iai mcps tools').
 
 ```
 iai mcps describe <mcp_name> [flags]

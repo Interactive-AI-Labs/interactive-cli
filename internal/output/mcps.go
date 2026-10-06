@@ -131,6 +131,15 @@ func PrintMcpDetail(out io.Writer, m *platform.McpSchema) error {
 	if m.Status != nil {
 		fmt.Fprintf(w, "Status:\t%s\n", *m.Status)
 	}
+	if m.Image != nil {
+		fmt.Fprintln(w, "Image:")
+		fmt.Fprintf(w, "  Type:\t%s\n", m.Image.Type)
+		fmt.Fprintf(w, "  Name:\t%s\n", m.Image.Name)
+		fmt.Fprintf(w, "  Tag:\t%s\n", m.Image.Tag)
+		if m.Image.Repository != "" {
+			fmt.Fprintf(w, "  Repository:\t%s\n", m.Image.Repository)
+		}
+	}
 	if m.VerifyStatus != nil {
 		fmt.Fprintf(w, "Verify Status:\t%s\n", *m.VerifyStatus)
 	}
