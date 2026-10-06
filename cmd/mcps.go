@@ -118,8 +118,10 @@ var mcpCreateCmd = &cobra.Command{
 	Short: "Create an mcp in a project",
 	Long: `Create an MCP server:
   Self-hosted: hosted by the platform; requires --image-name and --image-tag.
-  Remote: hosted elsewhere; requires --external-url, including the endpoint path.
+  Remote: hosted elsewhere; requires --remote-url, including the endpoint path.
   Catalog: a predefined remote provider; --catalog-id supplies its endpoint and auth settings.
+
+--external-url remains a deprecated alias for --remote-url.
 
 Names starting with iai-mcp- are reserved.
 
@@ -149,7 +151,7 @@ the stored token, so sign in again afterwards.
 
 Machine authentication (--auth-type client_credentials):
   - Requires --catalog-id and a registered app's --client-id and
-    --client-secret (or --client-secret-stdin); --external-url is unsupported.
+    --client-secret (or --client-secret-stdin); --remote-url is unsupported.
   - The reviewed catalog entry supplies the issuer, token endpoint, scopes,
     and secret delivery method (HTTP Basic or form data).
   - No sign-in: all agents share the app identity. Tokens renew automatically.
@@ -163,8 +165,8 @@ Machine authentication (--auth-type client_credentials):
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
-  iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
-  iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
+  iai mcps create acme --remote-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
+  iai mcps create acme --remote-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
@@ -311,22 +313,30 @@ Machine authentication (--auth-type client_credentials):
 			return err
 		}
 
+		mcpTypeName := deployment.McpTypeName(string(res.Backend))
 		if authType == platform.McpAuthOAuth {
 			fmt.Fprintf(
 				out,
-				"Created %s — it needs a sign-in before it can be used.\n  iai mcps connect %s\n",
+				"Created %s — %s; it needs a sign-in before it can be used.\n  iai mcps connect %s\n",
 				mcpName,
+				mcpTypeName,
 				mcpName,
 			)
 		} else if authType == platform.McpAuthClientCredentials {
 			fmt.Fprintf(
 				out,
-				"Created %s — no sign-in needed. Verify the provider connection:\n  iai mcps tools %s\n",
+				"Created %s — %s; no sign-in needed. Verify the provider connection:\n  iai mcps tools %s\n",
 				mcpName,
+				mcpTypeName,
 				mcpName,
 			)
 		} else {
-			fmt.Fprintf(out, "Created %s — %s\n", mcpName, res.Backend)
+			fmt.Fprintf(
+				out,
+				"Created %s — %s\n",
+				mcpName,
+				mcpTypeName,
+			)
 		}
 		return nil
 	},
@@ -459,7 +469,7 @@ mcp's server reads the new value from MCP_API_KEY.`,
 			return err
 		}
 
-		fmt.Fprintf(out, "Updated %s — %s\n", mcpName, res.Backend)
+		fmt.Fprintf(out, "Updated %s — %s\n", mcpName, deployment.McpTypeName(string(res.Backend)))
 		return nil
 	},
 }
@@ -1036,7 +1046,10 @@ func init() {
 	mcpCreateCmd.Flags().
 		StringVar(&mcpType, "type", "", `Mcp type: "self-hosted" or "remote" (inferred from other flags if omitted)`)
 	mcpCreateCmd.Flags().
-		StringVar(&mcpEndpointURL, "external-url", "", "Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)")
+		StringVar(&mcpEndpointURL, "remote-url", "", "Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)")
+	mcpCreateCmd.Flags().
+		StringVar(&mcpEndpointURL, "external-url", "", "Deprecated alias for --remote-url")
+	_ = mcpCreateCmd.Flags().MarkDeprecated("external-url", "use --remote-url instead")
 	mcpCreateCmd.Flags().
 		StringVar(&mcpCatalogID, "catalog-id", "", "Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog remote mcp)")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
@@ -1045,12 +1058,13 @@ func init() {
 	mcpUpdateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential-stdin")
-	// client_credentials reads its issuer, token endpoint and scopes off a curated
-	// catalog entry, so there is nothing for it to read on a --external-url mcp.
-	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "external-url")
-	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "external-url")
+	for _, urlFlag := range []string{"remote-url", "external-url"} {
+		mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", urlFlag)
+		mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", urlFlag)
+		mcpCreateCmd.MarkFlagsMutuallyExclusive(urlFlag, "image-name")
+	}
+	mcpCreateCmd.MarkFlagsMutuallyExclusive("remote-url", "external-url")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "image-name")
-	mcpCreateCmd.MarkFlagsMutuallyExclusive("external-url", "image-name")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "auth-header")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("catalog-id", "auth-header-prefix")
 

@@ -7,6 +7,76 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestDecodeMcpBackendNames(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want McpBackend
+	}{
+		{name: "legacy self-hosted", body: `"internal"`, want: McpBackendInternal},
+		{name: "self-hosted", body: `"self-hosted"`, want: McpBackendInternal},
+		{name: "legacy remote", body: `"external"`, want: McpBackendExternal},
+		{name: "remote", body: `"remote"`, want: McpBackendExternal},
+		{name: "unknown is preserved", body: `"future"`, want: "future"},
+		{name: "null keeps the string zero value", body: `null`, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := []byte(
+				`{"success":true,"data":{"mcp":{"name":"tools","backend":` + tt.body + `}}}`,
+			)
+			data, err := decodeSuccess[McpDetailData](body, "get mcp")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.want, data.Mcp.Backend); diff != "" {
+				t.Fatalf("backend mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestEncodeMcpBackendNames(t *testing.T) {
+	tests := []struct {
+		name    string
+		backend McpBackend
+		want    string
+	}{
+		{
+			name:    "self-hosted uses legacy request value",
+			backend: McpBackendInternal,
+			want:    "internal",
+		},
+		{name: "remote uses legacy request value", backend: McpBackendExternal, want: "external"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			encoded, err := json.Marshal(McpCreateRequest{Name: "tools", Backend: tt.backend})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fields map[string]any
+			if err := json.Unmarshal(encoded, &fields); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.want, fields["backend"]); diff != "" {
+				t.Fatalf("request backend mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestDecodeMcpBackendRejectsNonStrings(t *testing.T) {
+	for _, body := range []string{`123`, `{}`, `[]`, `true`} {
+		t.Run(body, func(t *testing.T) {
+			var backend McpBackend
+			if err := json.Unmarshal([]byte(body), &backend); err == nil {
+				t.Fatal("expected a non-string backend to be rejected")
+			}
+		})
+	}
+}
+
 func TestRemoteStackMcps(t *testing.T) {
 	stack := func(s string) *string { return &s }
 	mcps := []McpSchema{

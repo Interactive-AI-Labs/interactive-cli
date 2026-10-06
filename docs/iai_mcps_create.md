@@ -6,8 +6,10 @@ Create an mcp in a project
 
 Create an MCP server:
   Self-hosted: hosted by the platform; requires --image-name and --image-tag.
-  Remote: hosted elsewhere; requires --external-url, including the endpoint path.
+  Remote: hosted elsewhere; requires --remote-url, including the endpoint path.
   Catalog: a predefined remote provider; --catalog-id supplies its endpoint and auth settings.
+
+--external-url remains a deprecated alias for --remote-url.
 
 Names starting with iai-mcp- are reserved.
 
@@ -37,7 +39,7 @@ the stored token, so sign in again afterwards.
 
 Machine authentication (--auth-type client_credentials):
   - Requires --catalog-id and a registered app's --client-id and
-    --client-secret (or --client-secret-stdin); --external-url is unsupported.
+    --client-secret (or --client-secret-stdin); --remote-url is unsupported.
   - The reviewed catalog entry supplies the issuer, token endpoint, scopes,
     and secret delivery method (HTTP Basic or form data).
   - No sign-in: all agents share the app identity. Tokens renew automatically.
@@ -59,8 +61,8 @@ iai mcps create <mcp_name> [flags]
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
-  iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
-  iai mcps create acme --external-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
+  iai mcps create acme --remote-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
+  iai mcps create acme --remote-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN" --auth-header X-Token --auth-header-prefix "Token "
   iai mcps create github --catalog-id github --credential "$GITHUB_TOKEN"
   iai mcps create github --catalog-id github --credential-stdin < token.txt
   iai mcps create notion --catalog-id notion
@@ -85,13 +87,13 @@ iai mcps create <mcp_name> [flags]
       --description string          Human-readable description of the mcp
       --endpoint                    Expose the mcp publicly at <mcp-name>-<project-hash>.interactive.ai (self-hosted)
       --env stringArray             Environment variable (NAME=VALUE); can be repeated (self-hosted)
-      --external-url string         Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)
   -h, --help                        help for create
       --image-name string           Container image name (self-hosted)
       --image-tag string            Container image tag (self-hosted)
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
       --port int                    Port the mcp's own server listens on (self-hosted, default 3000)
+      --remote-url string           Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)
       --secret stringArray          Existing project secret whose keys become environment variables; repeatable (self-hosted)
       --stack-id string             Stack ID to assign the mcp to (self-hosted)
       --type string                 Mcp type: "self-hosted" or "remote" (inferred from other flags if omitted)

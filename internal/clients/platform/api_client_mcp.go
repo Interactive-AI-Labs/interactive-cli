@@ -15,6 +15,23 @@ const (
 	McpBackendExternal McpBackend = "external"
 )
 
+// Accept both API naming sets while retaining legacy values for requests.
+func (backend *McpBackend) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	switch value {
+	case "self-hosted":
+		*backend = McpBackendInternal
+	case "remote":
+		*backend = McpBackendExternal
+	default:
+		*backend = McpBackend(value)
+	}
+	return nil
+}
+
 // McpAuthType is how an mcp sends its credential. The platform owns the set; a
 // value it does not know is refused there, so these exist to keep the CLI's own
 // comparisons honest rather than to validate.
