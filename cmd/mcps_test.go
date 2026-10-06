@@ -504,15 +504,17 @@ func TestCatalogCreateAuthResolution(t *testing.T) {
 	}
 }
 
-// The backend resolves the issuer, token endpoint and scopes for
-// client_credentials from a curated catalog entry, so --client-id on a
-// --external-url mcp can only ever reach it as a contradictory payload.
-func TestClientIdAndExternalUrlAreMutuallyExclusive(t *testing.T) {
+func TestMcpRemoteURLFlagGroups(t *testing.T) {
 	tests := []struct {
 		name    string
 		flags   []string
 		wantErr bool
 	}{
+		{
+			name:    "client id with a remote url",
+			flags:   []string{"--remote-url", "https://mcp.acme.com/mcp", "--client-id", "abc"},
+			wantErr: true,
+		},
 		{
 			name:    "client id with an external url",
 			flags:   []string{"--external-url", "https://mcp.acme.com/mcp", "--client-id", "abc"},
@@ -526,19 +528,71 @@ func TestClientIdAndExternalUrlAreMutuallyExclusive(t *testing.T) {
 			name:  "an external url on its own",
 			flags: []string{"--external-url", "https://mcp.acme.com/mcp", "--credential", "t"},
 		},
+		{
+			name:  "a remote url on its own",
+			flags: []string{"--remote-url", "https://mcp.acme.com/mcp", "--credential", "t"},
+		},
+		{
+			name: "both url names",
+			flags: []string{
+				"--remote-url",
+				"https://mcp.acme.com/mcp",
+				"--external-url",
+				"https://mcp.other.com/mcp",
+			},
+			wantErr: true,
+		},
+		{
+			name:    "remote url with a catalog entry",
+			flags:   []string{"--remote-url", "https://mcp.acme.com/mcp", "--catalog-id", "github"},
+			wantErr: true,
+		},
+		{
+			name: "external url with a catalog entry",
+			flags: []string{
+				"--external-url",
+				"https://mcp.acme.com/mcp",
+				"--catalog-id",
+				"github",
+			},
+			wantErr: true,
+		},
+		{
+			name:    "remote url with an image",
+			flags:   []string{"--remote-url", "https://mcp.acme.com/mcp", "--image-name", "tools"},
+			wantErr: true,
+		},
+		{
+			name: "external url with an image",
+			flags: []string{
+				"--external-url",
+				"https://mcp.acme.com/mcp",
+				"--image-name",
+				"tools",
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			for _, name := range []string{"remote-url", "external-url", "catalog-id", "client-id", "credential", "image-name"} {
+				flag := mcpCreateCmd.Flags().Lookup(name)
+				previousValue, previousChanged := flag.Value.String(), flag.Changed
+				t.Cleanup(func() {
+					if err := flag.Value.Set(previousValue); err != nil {
+						t.Errorf("restore %s: %v", name, err)
+					}
+					flag.Changed = previousChanged
+				})
+				if err := flag.Value.Set(flag.DefValue); err != nil {
+					t.Fatalf("reset %s: %v", name, err)
+				}
+				flag.Changed = false
+			}
 			if err := mcpCreateCmd.ParseFlags(tt.flags); err != nil {
 				t.Fatalf("ParseFlags: %v", err)
 			}
-			// Parsed flags stick to the shared command, so each case starts clean.
-			defer func() {
-				for _, name := range []string{"external-url", "catalog-id", "client-id", "credential"} {
-					mcpCreateCmd.Flags().Lookup(name).Changed = false
-				}
-			}()
 
 			err := mcpCreateCmd.ValidateFlagGroups()
 			if tt.wantErr && err == nil {
@@ -546,6 +600,11 @@ func TestClientIdAndExternalUrlAreMutuallyExclusive(t *testing.T) {
 			}
 			if !tt.wantErr && err != nil {
 				t.Fatalf("unexpected refusal: %v", err)
+			}
+			if !tt.wantErr &&
+				(mcpCreateCmd.Flags().Changed("remote-url") || mcpCreateCmd.Flags().Changed("external-url")) &&
+				mcpEndpointURL != "https://mcp.acme.com/mcp" {
+				t.Fatalf("remote URL = %q, want https://mcp.acme.com/mcp", mcpEndpointURL)
 			}
 		})
 	}
