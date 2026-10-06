@@ -508,8 +508,9 @@ var mcpDescribeCmd = &cobra.Command{
 	Use:     "describe <mcp_name>",
 	Aliases: []string{"desc"},
 	Short:   "Show mcp details, verify state, and cached tools",
-	Long: `Show the mcp's record (type, connection URL, optional public endpoint for self-hosted mcps, catalog origin) and its latest
-verify result — a tool count, not the tool list itself (see 'iai mcps tools').`,
+	Long: `Show the mcp's record (type, connection URL, optional public endpoint and running
+image for self-hosted mcps, catalog origin) and its latest verify result — a tool
+count, not the tool list itself (see 'iai mcps tools').`,
 	Example: `  iai mcps describe my-tool
   iai mcps describe my-tool --json`,
 	Args: cobra.ExactArgs(1),

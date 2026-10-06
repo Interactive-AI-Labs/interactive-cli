@@ -401,6 +401,46 @@ func TestPrintMcpDetail(t *testing.T) {
 				"Credential Set:       false\n" +
 				"Tools:                0 (see 'iai mcps tools acme')\n",
 		},
+		{
+			name: "self-hosted mcp shows the image it runs",
+			mcp: platform.McpSchema{
+				Name:    "tools-mcp",
+				Backend: platform.McpBackendInternal,
+				Status:  utils.ToPtr("Running"),
+				Image: &platform.McpImage{
+					Type:       "external",
+					Repository: "ghcr.io/acme",
+					Name:       "tools-mcp",
+					Tag:        "0.1.56",
+				},
+			},
+			want: "Name:     tools-mcp\n" +
+				"Type:     self-hosted\n" +
+				"Status:   Running\n" +
+				"Image:\n" +
+				"  Type:           external\n" +
+				"  Name:           tools-mcp\n" +
+				"  Tag:            0.1.56\n" +
+				"  Repository:     ghcr.io/acme\n" +
+				"Credential Set:   false\n" +
+				"Tools:            0 (see 'iai mcps tools tools-mcp')\n",
+		},
+		{
+			name: "image without a repository omits the repository line",
+			mcp: platform.McpSchema{
+				Name:    "tools-mcp",
+				Backend: platform.McpBackendInternal,
+				Image:   &platform.McpImage{Type: "internal", Name: "tools-mcp", Tag: "1.2.0"},
+			},
+			want: "Name:   tools-mcp\n" +
+				"Type:   self-hosted\n" +
+				"Image:\n" +
+				"  Type:           internal\n" +
+				"  Name:           tools-mcp\n" +
+				"  Tag:            1.2.0\n" +
+				"Credential Set:   false\n" +
+				"Tools:            0 (see 'iai mcps tools tools-mcp')\n",
+		},
 	}
 
 	for _, tt := range tests {

@@ -65,7 +65,8 @@ type McpSchema struct {
 	StackId          *string     `json:"stack_id,omitempty"`
 	Env              []McpEnvVar `json:"env,omitempty"`
 	// Secret names, never values.
-	SecretRefs []string `json:"secret_refs,omitempty"`
+	SecretRefs []string  `json:"secret_refs,omitempty"`
+	Image      *McpImage `json:"image,omitempty"`
 }
 
 type McpToolSchema struct {
@@ -123,6 +124,14 @@ type McpAuth struct {
 type McpEnvVar struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+// McpImage mirrors deployment.ImageSpec; kept here so this package doesn't import deployment.
+type McpImage struct {
+	Type       string `json:"type"`
+	Repository string `json:"repository,omitempty"`
+	Name       string `json:"name"`
+	Tag        string `json:"tag"`
 }
 
 type McpCreateWorkload struct {
