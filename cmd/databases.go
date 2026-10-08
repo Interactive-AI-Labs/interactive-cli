@@ -58,7 +58,7 @@ var (
 var databasesCmd = &cobra.Command{
 	Use:     "databases",
 	Aliases: []string{"database", "db"},
-	Short:   "PostgreSQL instances with pgvector support",
+	Short:   "PostgreSQL instances with extension support, including pgvector",
 	GroupID: groupInfra,
 	Long: `Manage PostgreSQL databases in InteractiveAI projects.
 
@@ -796,7 +796,7 @@ func init() {
 	dbLogsCmd.Flags().
 		StringVar(&dbLogsSince, "since", "", logsSinceUsage)
 	dbLogsCmd.Flags().
-		StringVar(&dbLogsStartTime, "start-time", "", logsStartTimeUsage)
+		StringVar(&dbLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
 	dbLogsCmd.Flags().
 		StringVar(&dbLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	dbLogsCmd.Flags().

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -128,6 +129,9 @@ var genDocsCmd = &cobra.Command{
 			}
 		}
 
+		if err := errors.Join(indexFlagErrs...); err != nil {
+			return err
+		}
 		return os.WriteFile(
 			filepath.Join(outDir, "cli-index.md"),
 			[]byte(commandIndex(rootCmd, version)),

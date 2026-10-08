@@ -39,8 +39,13 @@ func indexCommand(c *cobra.Command, note string) {
 	c.Annotations[commandNoteAnnotation] = note
 }
 
+// A renamed flag would otherwise drop out of the index silently.
+var indexFlagErrs []error
+
 func indexFlag(c *cobra.Command, name, note string) {
-	_ = c.Flags().SetAnnotation(name, flagNoteAnnotation, []string{note})
+	if err := c.Flags().SetAnnotation(name, flagNoteAnnotation, []string{note}); err != nil {
+		indexFlagErrs = append(indexFlagErrs, fmt.Errorf("%s --%s: %w", c.CommandPath(), name, err))
+	}
 }
 
 func commandIndex(root *cobra.Command, version string) string {

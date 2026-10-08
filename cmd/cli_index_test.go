@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -63,5 +64,11 @@ func TestCommandIndex(t *testing.T) {
 		if got, want := lines[2], "things (Manage things): "+tt.want; got != want {
 			t.Errorf("got  %q\nwant %q", got, want)
 		}
+	}
+}
+
+func TestIndexFlagsExist(t *testing.T) {
+	if err := errors.Join(indexFlagErrs...); err != nil {
+		t.Fatal(err)
 	}
 }

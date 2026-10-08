@@ -90,7 +90,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai collections](iai_collections.md)	 - Knowledge bases (searchable tables of chunks) inside a pgvector database
 * [iai comments](iai_comments.md)	 - Annotate traces, observations, and sessions
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
-* [iai databases](iai_databases.md)	 - PostgreSQL instances with pgvector support
+* [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
 * [iai dataset-items](iai_dataset-items.md)	 - Manage items in evaluation datasets
 * [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
 * [iai datasets](iai_datasets.md)	 - Create and list evaluation datasets
@@ -121,7 +121,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai sessions](iai_sessions.md)	 - Browse trace-derived conversation sessions
 * [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)
 * [iai stacks](iai_stacks.md)	 - Declarative resource sync from config files
-* [iai traces](iai_traces.md)	 - Browse agent decision traces
+* [iai traces](iai_traces.md)	 - Browse agent decision traces with full attribution
 * [iai update](iai_update.md)	 - Update iai to the latest version
 * [iai variables](iai_variables.md)	 - Contextual attributes referenced in policies and routines
 
