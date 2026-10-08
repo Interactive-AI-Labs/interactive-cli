@@ -65,7 +65,7 @@ var (
 var tracesCmd = &cobra.Command{
 	Use:              "traces",
 	Aliases:          []string{"trace"},
-	Short:            "Browse agent decision traces",
+	Short:            "Browse agent decision traces with full attribution",
 	GroupID:          groupObserve,
 	Long:             `Manage traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,

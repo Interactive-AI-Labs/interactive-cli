@@ -36,5 +36,5 @@ iai databases delete <database_name> [flags]
 
 ### SEE ALSO
 
-* [iai databases](iai_databases.md)	 - PostgreSQL instances with pgvector support
+* [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
 
