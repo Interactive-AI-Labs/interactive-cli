@@ -304,6 +304,7 @@ func init() {
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
 	indexFlag(mcpLogsCmd, "timestamps", "")
+	indexFlag(mcpLogsCmd, "message", "regex filter")
 
 	mcpLogFieldsCmd.Flags().
 		StringVar(&mcpLogFieldsSince, "since", "1h", "Relative duration to scan (e.g. 5m, 1h)")
