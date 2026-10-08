@@ -196,7 +196,6 @@ func makeCreateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
-	indexFlag(cmd, "labels", "")
 	cmd.Flags().
 		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
 	cmd.Flags().
@@ -434,7 +433,6 @@ func makeUpdateCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the new prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
-	indexFlag(cmd, "labels", "")
 	cmd.Flags().
 		StringVar(&schemaVersion, "schema-version", "", "Schema version to validate against (defaults to latest stable)")
 	cmd.Flags().

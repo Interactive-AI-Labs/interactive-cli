@@ -303,7 +303,6 @@ func init() {
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
-	indexFlag(mcpLogsCmd, "timestamps", "")
 	indexFlag(mcpLogsCmd, "message", "regex filter")
 
 	mcpLogFieldsCmd.Flags().
