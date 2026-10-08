@@ -1,6 +1,5 @@
 package cmd
 
-// The index lifts the "(max …)" notes from these.
 const (
 	logsSinceUsage = "Relative duration to look back (max 72h, e.g. 30m, 1h, 3d, 1w); default 1h; " +
 		"mutually exclusive with --start-time and --end-time"

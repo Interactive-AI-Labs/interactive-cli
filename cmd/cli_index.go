@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// A flag note, even empty, puts the flag in the index.
 const (
 	commandNoteAnnotation = "index_command_note"
 	flagNoteAnnotation    = "index_flag_note"
@@ -19,13 +18,11 @@ const (
 // Cobra keeps this annotation key unexported.
 const oneRequiredAnnotation = "cobra_annotation_one_required"
 
-// Inputs and version guards, shown wherever they exist.
 var indexNamedFlags = map[string]bool{
 	"file": true, "env": true, "secret": true,
 	"schema-version": true, "message": true, "expect-revision": true,
 }
 
-// Every other flag on a list command is a filter.
 var listSkipFlags = map[string]bool{
 	"organization": true, "project": true, "columns": true, "watch": true, "help": true,
 }
@@ -39,7 +36,6 @@ func indexCommand(c *cobra.Command, note string) {
 	c.Annotations[commandNoteAnnotation] = note
 }
 
-// A renamed flag would otherwise drop out of the index silently.
 var indexFlagErrs []error
 
 func indexFlag(c *cobra.Command, name, note string) {
