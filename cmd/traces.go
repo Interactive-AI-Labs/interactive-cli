@@ -467,6 +467,7 @@ func init() {
 		StringVar(&tracesSearch, "search", "", "Search in trace name (max 200 characters)")
 	tracesListCmd.Flags().
 		StringVar(&tracesFields, "fields", "core,metrics", "Field groups to include: core, io, metrics (comma-separated)")
+	indexFlag(tracesListCmd, "fields", "groups: core, io, metrics")
 
 	// Output flags
 	tracesListCmd.Flags().BoolVar(&tracesJSON, "json", false, "Output raw API response as JSON")
@@ -494,6 +495,7 @@ func init() {
 	tracesGetCmd.Flags().BoolVar(&tracesGetYAML, "yaml", false, "Output raw API response as YAML")
 	tracesGetCmd.Flags().BoolVar(&tracesGetSummary, "summary", false,
 		"Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)")
+	indexFlag(tracesGetCmd, "summary", "")
 	// --summary is a view, not a format, so it composes with --json/--yaml; --fields can't.
 	tracesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "fields")

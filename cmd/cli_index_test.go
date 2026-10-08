@@ -35,6 +35,21 @@ func TestCommandIndex(t *testing.T) {
 			c.Flags().String("name", "", "")
 			c.Flags().String("project", "", "")
 		}, "list [--name]"},
+		{"list", func(c *cobra.Command) {
+			c.Flags().String("from", "", "From (ISO 8601, default: 7 days ago)")
+			c.Flags().Int("limit", 0, "Items per page (max 100)")
+		}, "list [--from (default 7 days ago) --limit (max 100)]"},
+		{"logs", func(c *cobra.Command) {
+			c.Flags().String("since", "", "Look back (max 72h, e.g. 1h)")
+			c.Flags().Bool("follow", false, "Stream")
+		}, "logs [--since (max 72h)]"},
+		{"get", func(c *cobra.Command) { indexCommand(c, "<id>") }, "get <id>"},
+		{"get", func(c *cobra.Command) {
+			c.Flags().Bool("force", false, "")
+			c.Flags().String("env", "", "")
+			indexFlag(c, "force", "")
+			indexFlag(c, "env", "replaces")
+		}, "get [--env (replaces) --force]"},
 	}
 	for _, tt := range tests {
 		root := &cobra.Command{Use: "iai"}

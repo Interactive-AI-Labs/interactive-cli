@@ -245,13 +245,13 @@ func init() {
 		&mcpLogsOptions.Since,
 		"since",
 		"",
-		"Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time",
+		logsSinceUsage,
 	)
 	f.StringVar(
 		&mcpLogsOptions.StartTime,
 		"start-time",
 		"",
-		"Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window",
+		logsStartTimeUsage,
 	)
 	f.StringVar(
 		&mcpLogsOptions.EndTime,
@@ -263,7 +263,7 @@ func init() {
 		&mcpLogsOptions.Limit,
 		"limit",
 		0,
-		"Maximum number of log entries to return (1-5000); defaults to 1000",
+		logsLimitUsage,
 	)
 	f.StringVar(
 		&mcpLogsOptions.Message,
@@ -303,6 +303,7 @@ func init() {
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	mcpLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
+	indexFlag(mcpLogsCmd, "timestamps", "")
 
 	mcpLogFieldsCmd.Flags().
 		StringVar(&mcpLogFieldsSince, "since", "1h", "Relative duration to scan (e.g. 5m, 1h)")

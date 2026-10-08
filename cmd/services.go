@@ -1117,6 +1117,8 @@ func init() {
 		IntVar(&serviceExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated service (opt-in staleness guard)")
 	servUCmd.Flags().
 		BoolVar(&serviceForce, "force", false, "Apply even when the update would drop live env vars or secret refs")
+	indexFlag(servUCmd, "env", "replaces")
+	indexFlag(servUCmd, "secret", "replaces")
 
 	// Flags for "services list"
 	servListCmd.Flags().
@@ -1181,9 +1183,9 @@ func init() {
 	servLogsCmd.Flags().
 		BoolVarP(&servLogsFollow, "follow", "f", false, "Stream new log entries as they arrive; mutually exclusive with --end-time")
 	servLogsCmd.Flags().
-		StringVar(&servLogsSince, "since", "", "Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time")
+		StringVar(&servLogsSince, "since", "", logsSinceUsage)
 	servLogsCmd.Flags().
-		StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+		StringVar(&servLogsStartTime, "start-time", "", logsStartTimeUsage)
 	servLogsCmd.Flags().
 		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	servLogsCmd.Flags().
@@ -1197,12 +1199,13 @@ func init() {
 	servLogsCmd.Flags().
 		BoolVar(&servLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	servLogsCmd.Flags().
-		IntVar(&servLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
+		IntVar(&servLogsLimit, "limit", 0, logsLimitUsage)
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
+	indexFlag(servLogsCmd, "timestamps", "")
 
 	// Flags for "services log-fields"
 	servLogFieldsCmd.Flags().

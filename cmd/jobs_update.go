@@ -280,5 +280,7 @@ func init() {
 		false,
 		"Allow --env/--secret to drop live entries; --clear-env/--clear-secret need no override. Drop checks are skipped if live state cannot be fetched",
 	)
+	indexFlag(jobUpdateCmd, "env", "replaces")
+	indexFlag(jobUpdateCmd, "secret", "replaces")
 	jobsCmd.AddCommand(jobUpdateCmd)
 }

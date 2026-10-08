@@ -126,6 +126,7 @@ The server automatically assigns the "latest" label to new versions. Use
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
+	indexFlag(cmd, "labels", "")
 	cmd.Flags().
 		StringVarP(&message, "message", "m", "", "Commit message describing the change (stored on the new version)")
 	cmd.Flags().
@@ -361,6 +362,7 @@ Exactly one of --file or --content must be specified.`,
 		&labels, "labels", nil, "Labels for the new prompt version (comma-separated)",
 	)
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")
+	indexFlag(cmd, "labels", "")
 	cmd.Flags().
 		StringVarP(&message, "message", "m", "", "Commit message describing the change (stored on the new version)")
 	cmd.Flags().
