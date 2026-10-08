@@ -216,7 +216,6 @@ func init() {
 	datasetRunsListCmd.Flags().
 		StringVarP(&datasetRunsListProject, "project", "p", "", "Project name")
 
-	indexCommand(datasetRunsGetCmd, "<run-name>")
 	datasetRunsGetCmd.Flags().
 		StringVar(&datasetRunsGetDataset, "dataset-name", "", "Dataset name (required)")
 	_ = datasetRunsGetCmd.MarkFlagRequired("dataset-name")

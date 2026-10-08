@@ -1076,7 +1076,6 @@ func init() {
 	mcpRunToolCmd.Flags().
 		StringVar(&mcpArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
 	mcpRunToolCmd.MarkFlagsMutuallyExclusive("args", "args-file")
-	indexFlag(mcpRunToolCmd, "args", "")
 
 	mcpDeleteCmd.Flags().BoolVarP(&mcpForce, "force", "f", false, "Skip confirmation prompt")
 

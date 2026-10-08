@@ -181,7 +181,6 @@ func init() {
 		30*time.Minute,
 		"Give up waiting for the verdict after this long",
 	)
-	indexFlag(agentReplayCmd, "timeout", "")
 	f.BoolVar(
 		&replayJSON,
 		"json",

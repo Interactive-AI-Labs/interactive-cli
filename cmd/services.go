@@ -1205,7 +1205,6 @@ func init() {
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
-	indexFlag(servLogsCmd, "timestamps", "")
 
 	// Flags for "services log-fields"
 	servLogFieldsCmd.Flags().

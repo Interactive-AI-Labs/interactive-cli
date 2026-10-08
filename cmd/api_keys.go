@@ -490,7 +490,6 @@ func init() {
 		StringSliceVar(&apiKeysListColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,public_key,secret,note,created_at). Cannot be used with --json or --yaml.\nAvailable: id,public_key,secret,note,status,expires_at,last_used_at,created_at")
 	apiKeysListCmd.MarkFlagsMutuallyExclusive("columns", "json", "yaml")
 	apiKeysCreateCmd.Flags().StringVar(&apiKeyNote, "note", "", "API key note")
-	indexFlag(apiKeysCreateCmd, "note", "")
 	apiKeysUpdateCmd.Flags().StringVar(&apiKeyUpdateNote, "note", "", "API key note")
 	apiKeysCmd.AddCommand(apiKeysListCmd, apiKeysCreateCmd, apiKeysUpdateCmd, apiKeysDeleteCmd)
 

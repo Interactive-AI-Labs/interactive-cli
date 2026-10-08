@@ -1102,8 +1102,6 @@ func init() {
 		BoolVar(&agentShowDiff, "show-diff", false, "Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentForce, "force", false, "Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs")
-	indexFlag(agentUpdateCmd, "show-diff", "")
-	indexFlag(agentUpdateCmd, "force", "")
 	indexFlag(agentUpdateCmd, "env", "replaces")
 	indexFlag(agentUpdateCmd, "secret", "replaces")
 
@@ -1192,7 +1190,6 @@ func init() {
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
-	indexFlag(agentLogsCmd, "timestamps", "")
 
 	// Flags for "agents log-fields"
 	agentLogFieldsCmd.Flags().

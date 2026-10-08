@@ -289,7 +289,7 @@ func init() {
 	datasetItemsListCmd.Flags().
 		StringVarP(&datasetItemsListProject, "project", "p", "", "Project name")
 
-	indexCommand(datasetItemsGetCmd, "<id> (no --dataset-name)")
+	indexCommand(datasetItemsGetCmd, "(no --dataset-name)")
 	datasetItemsGetCmd.Flags().
 		BoolVar(&datasetItemsGetJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsGetCmd.Flags().

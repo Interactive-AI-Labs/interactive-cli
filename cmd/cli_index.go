@@ -18,13 +18,13 @@ const (
 // Cobra keeps this annotation key unexported.
 const oneRequiredAnnotation = "cobra_annotation_one_required"
 
-var indexNamedFlags = map[string]bool{
-	"file": true, "env": true, "secret": true,
-	"schema-version": true, "message": true, "expect-revision": true,
-}
-
-var listSkipFlags = map[string]bool{
-	"organization": true, "project": true, "columns": true, "watch": true, "help": true,
+var indexSkipFlags = map[string]bool{
+	"organization": true,
+	"project":      true,
+	"columns":      true,
+	"help":         true,
+	"json":         true,
+	"yaml":         true,
 }
 
 var usageNote = regexp.MustCompile(`\((max [^,;)]+)|default: (\d+ days ago)`)
@@ -52,17 +52,23 @@ func commandIndex(root *cobra.Command, version string) string {
 		root.Name(), version, root.Name(),
 	)
 	b.WriteString(
-		"Key flags only; `<command> --help` for the rest. `*` = --json or --yaml (not with --columns); " +
-			"commands without `*` or --json print text only.\n",
+		"`<command> --help` explains each flag. `*` = --json or --yaml (not with --columns); " +
+			"commands without `*` or --json print text only. --follow and --watch stream until stopped.\n",
 	)
 	for _, group := range indexableChildren(root) {
 		if !group.HasAvailableSubCommands() {
-			fmt.Fprintf(&b, "%s (%s)%s\n", group.Name(), shortOf(group), bracket(indexFlags(group)))
+			fmt.Fprintf(
+				&b,
+				"%s (%s)%s\n",
+				group.Name()+useArgs(group),
+				shortOf(group),
+				bracket(indexFlags(group)),
+			)
 			continue
 		}
 		var subs []string
 		for _, leaf := range indexLeaves(group) {
-			path := strings.TrimPrefix(leaf.CommandPath(), group.CommandPath()+" ")
+			path := strings.TrimPrefix(leaf.CommandPath(), group.CommandPath()+" ") + useArgs(leaf)
 			if note := leaf.Annotations[commandNoteAnnotation]; note != "" {
 				path += " " + note
 			}
@@ -71,6 +77,14 @@ func commandIndex(root *cobra.Command, version string) string {
 		fmt.Fprintf(&b, "%s (%s): %s\n", group.Name(), shortOf(group), strings.Join(subs, " · "))
 	}
 	return b.String()
+}
+
+func useArgs(c *cobra.Command) string {
+	_, args, _ := strings.Cut(c.Use, " ")
+	if args == "" {
+		return ""
+	}
+	return " " + args
 }
 
 func shortOf(c *cobra.Command) string {
@@ -140,16 +154,10 @@ func indexFlags(c *cobra.Command) []string {
 	})
 
 	local.VisitAll(func(f *pflag.Flag) {
-		if f.Hidden || shown[f.Name] || f.Name == "json" || f.Name == "yaml" {
+		if f.Hidden || shown[f.Name] || indexSkipFlags[f.Name] {
 			return
 		}
-		_, annotated := f.Annotations[flagNoteAnnotation]
 		note := flagNote(f)
-		filter := c.Name() == "list" && !listSkipFlags[f.Name]
-		limit := c.Name() == "logs" && note != ""
-		if !annotated && !indexNamedFlags[f.Name] && !filter && !limit {
-			return
-		}
 		if note != "" {
 			note = " (" + note + ")"
 		}
@@ -166,7 +174,7 @@ func indexFlags(c *cobra.Command) []string {
 }
 
 func flagNote(f *pflag.Flag) string {
-	if note := f.Annotations[flagNoteAnnotation]; len(note) > 0 && note[0] != "" {
+	if note := f.Annotations[flagNoteAnnotation]; len(note) > 0 {
 		return note[0]
 	}
 	m := usageNote.FindStringSubmatch(f.Usage)
