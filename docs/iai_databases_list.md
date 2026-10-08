@@ -40,5 +40,5 @@ iai databases list [flags]
 
 ### SEE ALSO
 
-* [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
+* [iai databases](iai_databases.md)	 - PostgreSQL instances with pgvector support
 

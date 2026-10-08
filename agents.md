@@ -176,6 +176,9 @@ Aliases: []string{"obs", "observation"},
 payload with `output.PrintRawJSON` / `output.PrintRawYAML` and guard table-only
 flags with `validateTableOnlyColumns`.
 
+**Command index:** `make docs` writes `docs/cli-index.md`, which the copilot
+reads.
+
 **Pagination (pick one per command, never both):**
 - Page-based: `--page` (default 1), `--limit`
 - Cursor-based: `--cursor`, `--limit`

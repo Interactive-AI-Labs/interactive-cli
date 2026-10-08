@@ -1,6 +1,6 @@
 ## iai databases
 
-PostgreSQL instances with extension support, including pgvector
+PostgreSQL instances with pgvector support
 
 ### Synopsis
 
