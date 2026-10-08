@@ -14,3 +14,8 @@ tag_name = "v{new_version}"
 filename = "internal/buildinfo/version.go"
 search = "\"{current_version}\""
 replace = "\"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "docs/cli-index.md"
+search = "iai v{current_version}:"
+replace = "iai v{new_version}:"

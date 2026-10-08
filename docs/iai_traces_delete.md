@@ -41,5 +41,5 @@ iai traces delete [trace-id] [flags]
 
 ### SEE ALSO
 
-* [iai traces](iai_traces.md)	 - Browse agent decision traces with full attribution
+* [iai traces](iai_traces.md)	 - Browse agent decision traces
 

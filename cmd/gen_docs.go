@@ -128,7 +128,11 @@ var genDocsCmd = &cobra.Command{
 			}
 		}
 
-		return nil
+		return os.WriteFile(
+			filepath.Join(outDir, "cli-index.md"),
+			[]byte(commandIndex(rootCmd, version)),
+			0o644,
+		)
 	},
 }
 

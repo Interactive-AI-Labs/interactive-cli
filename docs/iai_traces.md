@@ -1,6 +1,6 @@
 ## iai traces
 
-Browse agent decision traces with full attribution
+Browse agent decision traces
 
 ### Synopsis
 
