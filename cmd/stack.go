@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -66,13 +67,13 @@ to decommission (services, agents, databases, mcps, jobs, or all) to delete them
 within each resource type, deletes run after that type's creates and updates.
 
 Resource types sync in order: services, databases, mcps, then agents once
-the self-hosted mcps are ready, and finally jobs. Self-hosted mcps run on the
-deployment operator; remote ones are registered on the platform.
+the self-hosted mcps are ready, and finally jobs. Remote mcps are registered
+on the platform.
 
 Updates replace the whole live spec of each resource. For every service, agent,
-mcp, or job updated, the live revision being replaced is printed to stderr so a
-sync from a stale config file is visible before it lands. Jobs can only be
-updated or deleted when all their runs have finished.
+mcp, or job that changes, the live revision being replaced is printed to stderr
+so a sync from a stale config file is visible. Jobs can only be updated or
+deleted when all their runs have finished.
 
 Script jobs reference their files with scriptFile and pyprojectFile, resolved
 relative to the config file.
@@ -212,18 +213,21 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(svcBodies) > 0 || hasServices {
-			_, err := runPhase("services", func(opts sync.Options) (*sync.Result, error) {
-				return sync.Services(
-					cmd.Context(),
-					cmd.ErrOrStderr(),
-					deployClient,
-					orgId,
-					projectId,
-					cfg.StackId,
-					svcBodies,
-					opts,
-				)
-			})
+			_, err := runPhase(
+				"services",
+				func(opts sync.Options) (*sync.Result, error) {
+					return sync.Services(
+						cmd.Context(),
+						cmd.ErrOrStderr(),
+						deployClient,
+						orgId,
+						projectId,
+						cfg.StackId,
+						svcBodies,
+						opts,
+					)
+				},
+			)
 			if err != nil {
 				return err
 			}
@@ -249,18 +253,21 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(dbBodies) > 0 || hasDatabases {
-			_, err := runPhase("databases", func(opts sync.Options) (*sync.Result, error) {
-				return sync.Databases(
-					cmd.Context(),
-					cmd.ErrOrStderr(),
-					deployClient,
-					orgId,
-					projectId,
-					cfg.StackId,
-					dbBodies,
-					opts,
-				)
-			})
+			_, err := runPhase(
+				"databases",
+				func(opts sync.Options) (*sync.Result, error) {
+					return sync.Databases(
+						cmd.Context(),
+						cmd.ErrOrStderr(),
+						deployClient,
+						orgId,
+						projectId,
+						cfg.StackId,
+						dbBodies,
+						opts,
+					)
+				},
+			)
 			if err != nil {
 				return err
 			}
@@ -291,37 +298,33 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
-		var mcpResult *sync.Result
 		if len(mcpBodies) > 0 || len(remoteMcps) > 0 || hasMcps {
-			mcpResult, err = runPhase("mcps", func(opts sync.Options) (*sync.Result, error) {
-				return sync.Mcps(
-					cmd.Context(),
-					cmd.ErrOrStderr(),
-					deployClient,
-					apiClient,
-					orgId,
-					projectId,
-					cfg.StackId,
-					mcpBodies,
-					remoteMcps,
-					opts,
-				)
-			})
+			_, err := runPhase(
+				"mcps",
+				func(opts sync.Options) (*sync.Result, error) {
+					return sync.Mcps(
+						cmd.Context(),
+						cmd.ErrOrStderr(),
+						deployClient,
+						apiClient,
+						orgId,
+						projectId,
+						cfg.StackId,
+						mcpBodies,
+						remoteMcps,
+						opts,
+					)
+				},
+			)
 			if err != nil {
 				return err
 			}
 		}
 
-		// Only self-hosted mcps roll out; remote ones are registered on the platform with nothing to wait for.
-		var changedMcps []string
-		if mcpResult != nil {
-			for _, name := range slices.Concat(mcpResult.Created, mcpResult.Updated) {
-				if _, selfHosted := mcpBodies[name]; selfHosted {
-					changedMcps = append(changedMcps, name)
-				}
-			}
-		}
-		if len(changedMcps) > 0 && !stackSyncDryRun && !stackSyncNoWait {
+		// Agents attach to the self-hosted mcps in the config, so every one of them must be ready
+		// first; remote ones are registered on the platform with nothing to wait for.
+		selfHostedMcps := slices.Sorted(maps.Keys(mcpBodies))
+		if len(selfHostedMcps) > 0 && !stackSyncDryRun && !stackSyncNoWait {
 			fmt.Fprint(out, "Waiting for mcps to be ready")
 			done := output.PrintLoadingDots(out)
 			err := sync.WaitForMcps(
@@ -329,7 +332,7 @@ The organization and project are read from the config file, flags, or resolved v
 				deployClient,
 				orgId,
 				projectId,
-				changedMcps,
+				selfHostedMcps,
 				stackSyncWaitTimeout,
 			)
 			close(done)
@@ -362,18 +365,21 @@ The organization and project are read from the config file, flags, or resolved v
 		}
 
 		if len(agentBodies) > 0 || hasAgents {
-			_, err := runPhase("agents", func(opts sync.Options) (*sync.Result, error) {
-				return sync.Agents(
-					cmd.Context(),
-					cmd.ErrOrStderr(),
-					deployClient,
-					orgId,
-					projectId,
-					cfg.StackId,
-					agentBodies,
-					opts,
-				)
-			})
+			_, err := runPhase(
+				"agents",
+				func(opts sync.Options) (*sync.Result, error) {
+					return sync.Agents(
+						cmd.Context(),
+						cmd.ErrOrStderr(),
+						deployClient,
+						orgId,
+						projectId,
+						cfg.StackId,
+						agentBodies,
+						opts,
+					)
+				},
+			)
 			if err != nil {
 				return err
 			}

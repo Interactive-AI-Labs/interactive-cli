@@ -218,9 +218,15 @@ func Services(
 				_, err := deployClient.CreateService(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateServiceBody) error {
-				_, err := deployClient.PutService(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateServiceBody) (bool, error) {
+				return deployClient.PutService(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateServiceBody) (bool, error) {
+				plan, err := deployClient.PlanService(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
@@ -267,9 +273,15 @@ func Agents(
 				_, err := deployClient.CreateAgent(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateAgentBody) error {
-				_, err := deployClient.PutAgent(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateAgentBody) (bool, error) {
+				return deployClient.PutAgent(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateAgentBody) (bool, error) {
+				plan, err := deployClient.PlanAgent(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteAgent(ctx, orgId, projectId, name)
@@ -316,9 +328,15 @@ func Databases(
 				_, err := deployClient.CreateDatabase(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateDatabaseBody) error {
-				_, err := deployClient.PutDatabase(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateDatabaseBody) (bool, error) {
+				return deployClient.PutDatabase(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateDatabaseBody) (bool, error) {
+				plan, err := deployClient.PlanDatabase(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteDatabase(ctx, orgId, projectId, name)
@@ -328,7 +346,7 @@ func Databases(
 	)
 }
 
-// Mcps syncs self-hosted MCPs on the deployment operator and remote MCPs on the platform, which owns them.
+// Mcps syncs self-hosted MCPs and remote MCPs, which the platform owns.
 func Mcps(
 	ctx context.Context,
 	warnW io.Writer,
@@ -394,7 +412,7 @@ func Mcps(
 	)
 	if len(typeChanged) > 0 {
 		return nil, fmt.Errorf(
-			"mcps %s exist live with another type or as legacy remote mcps on the deployment operator; "+
+			"mcps %s exist live with another type or as legacy remote mcps in the project; "+
 				"omit them from the config, sync with --allow-delete mcps, then add them back",
 			strings.Join(typeChanged, ", "),
 		)
@@ -421,16 +439,15 @@ func Mcps(
 				_, err := deployClient.CreateMcp(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateMcpBody) error {
-				authType := body.Auth.Type
-				if authType == "" {
-					authType = existingByName[name].Auth.Type
+			update: func(name string, body deployment.CreateMcpBody) (bool, error) {
+				return deployClient.PutMcp(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateMcpBody) (bool, error) {
+				plan, err := deployClient.PlanMcp(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
 				}
-				if err := requireMcpCredential(name, authType, body.Auth.Credential); err != nil {
-					return err
-				}
-				_, err := deployClient.PutMcp(ctx, orgId, projectId, name, body)
-				return err
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteMcp(ctx, orgId, projectId, name, false)
@@ -485,13 +502,18 @@ func Mcps(
 					name,
 				)
 			},
-			update: func(name string, body platform.McpCreateRequest) error {
+			update: func(name string, body platform.McpCreateRequest) (bool, error) {
 				patch, err := remoteMcpPatch(name, remoteByName[name], body)
 				if err != nil || len(patch) == 0 {
-					return err
+					return false, err
 				}
 				_, _, err = apiClient.UpdateMcp(ctx, orgId, projectId, name, patch)
-				return err
+				return err == nil, err
+			},
+			// The platform has no dry run; the patch it would receive decides.
+			plan: func(name string, body platform.McpCreateRequest) (bool, error) {
+				patch, err := remoteMcpPatch(name, remoteByName[name], body)
+				return len(patch) > 0, err
 			},
 			delete: func(name string) error {
 				_, _, err := apiClient.DeleteMcp(ctx, orgId, projectId, name)
@@ -587,7 +609,7 @@ func remoteMcpPatch(
 		)
 	}
 	patch := platform.McpUpdateRequest{}
-	if body.EndpointURL != nil {
+	if body.EndpointURL != nil && *body.EndpointURL != str(live.EndpointURL) {
 		patch["endpoint_url"] = *body.EndpointURL
 	}
 	authType, credential := string(body.Auth.Type), str(body.Auth.Credential)
@@ -598,6 +620,11 @@ func remoteMcpPatch(
 			return patch, nil
 		}
 		return nil, requireMcpCredential(name, authType, credential)
+	}
+	if credential == "" && !live.HasCredential && authType == cmp.Or(str(live.AuthType), "none") &&
+		(body.CatalogID != nil || (str(body.Auth.HeaderName) == str(live.AuthHeaderName) &&
+			str(body.Auth.HeaderPrefix) == str(live.AuthHeaderPrefix))) {
+		return patch, nil
 	}
 	auth := map[string]any{"type": authType}
 	if credential != "" {
@@ -712,9 +739,15 @@ func Jobs(
 				_, err := deployClient.CreateJob(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateJobBody) error {
-				_, err := deployClient.PutJob(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateJobBody) (bool, error) {
+				return deployClient.PutJob(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateJobBody) (bool, error) {
+				plan, err := deployClient.PlanJob(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteJob(ctx, orgId, projectId, name)
@@ -731,9 +764,12 @@ type resourceOps[E, B any] struct {
 	resource  string
 	allowFlag string
 	create    func(name string, body B) error
-	update    func(name string, body B) error
-	delete    func(name string) error
-	banner    func(w io.Writer, existing E)
+	// update replaces the live resource and reports whether the server changed it.
+	update func(name string, body B) (bool, error)
+	// plan reports whether update would change the live resource, without applying it.
+	plan   func(name string, body B) (bool, error)
+	delete func(name string) error
+	banner func(w io.Writer, existing E)
 }
 
 func syncResources[E, B any](
@@ -768,7 +804,8 @@ func syncResources[E, B any](
 
 	for _, name := range desiredNames {
 		body := desired[name]
-		if existing, exists := existingByName[name]; !exists {
+		existing, exists := existingByName[name]
+		if !exists {
 			if !opts.DryRun {
 				if err := ops.create(name, body); err != nil {
 					return result, fmt.Errorf(
@@ -777,19 +814,23 @@ func syncResources[E, B any](
 				}
 			}
 			result.Created = append(result.Created, name)
-		} else {
-			if !opts.DryRun {
-				if ops.banner != nil {
-					ops.banner(warnW, existing)
-				}
-				if err := ops.update(name, body); err != nil {
-					return result, fmt.Errorf(
-						"failed to update %s %q: %w", ops.resource, name, err,
-					)
-				}
-			}
-			result.Updated = append(result.Updated, name)
+			continue
 		}
+		update := ops.update
+		if opts.DryRun {
+			update = ops.plan
+		}
+		changed, err := update(name, body)
+		if err != nil {
+			return result, fmt.Errorf("failed to update %s %q: %w", ops.resource, name, err)
+		}
+		if !changed {
+			continue
+		}
+		if ops.banner != nil && !opts.DryRun {
+			ops.banner(warnW, existing)
+		}
+		result.Updated = append(result.Updated, name)
 	}
 
 	for _, name := range toDelete {

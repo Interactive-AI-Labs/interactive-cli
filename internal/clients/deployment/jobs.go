@@ -135,17 +135,31 @@ func (c *DeploymentClient) DescribeJob(
 	return &response, nil
 }
 
-// PutJob replaces the whole definition; omitted optional fields return to their defaults.
+// PutJob replaces the whole definition and reports whether anything changed; omitted optional fields return to their defaults.
 func (c *DeploymentClient) PutJob(
 	ctx context.Context,
 	orgId, projectId, jobName string,
 	body CreateJobBody,
-) (string, error) {
+) (bool, error) {
 	data, err := c.sendJSONRequest(ctx, http.MethodPut, jobsPath(orgId, projectId, jobName), body)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return clients.ExtractServerMessage(data), nil
+	return decodeChanged(data), nil
+}
+
+// PlanJob asks what PutJob would do without applying it.
+func (c *DeploymentClient) PlanJob(
+	ctx context.Context,
+	orgId, projectId, jobName string,
+	body CreateJobBody,
+) (*Plan[CreateJobBody], error) {
+	path := jobsPath(orgId, projectId, jobName) + "?dryRun=true"
+	data, err := c.sendJSONRequest(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return decodePlan[CreateJobBody](data)
 }
 
 // PatchJob changes only the supplied definition fields.

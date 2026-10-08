@@ -405,10 +405,13 @@ func McpConfigFromDescribe(mcp *deployment.DescribeMcpResponse) McpConfig {
 		Header:       mcp.Auth.Header,
 		HeaderPrefix: mcp.Auth.HeaderPrefix,
 	}
+	if auth.Type != string(platform.McpAuthCustom) {
+		auth.Header, auth.HeaderPrefix = "", ""
+	}
 	if mcpType == deployment.McpTypeRemote {
 		// Only what a remote mcp may declare, so the export loads back: a missing auth type reads as none and header routing belongs to a custom credential.
 		auth.Type = cmp.Or(mcp.Auth.Type, string(platform.McpAuthNone))
-		if mcp.CatalogID != "" || auth.Type != string(platform.McpAuthCustom) {
+		if mcp.CatalogID != "" {
 			auth.Header, auth.HeaderPrefix = "", ""
 		}
 		if mcp.CatalogID != "" {

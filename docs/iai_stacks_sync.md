@@ -15,13 +15,13 @@ to decommission (services, agents, databases, mcps, jobs, or all) to delete them
 within each resource type, deletes run after that type's creates and updates.
 
 Resource types sync in order: services, databases, mcps, then agents once
-the self-hosted mcps are ready, and finally jobs. Self-hosted mcps run on the
-deployment operator; remote ones are registered on the platform.
+the self-hosted mcps are ready, and finally jobs. Remote mcps are registered
+on the platform.
 
 Updates replace the whole live spec of each resource. For every service, agent,
-mcp, or job updated, the live revision being replaced is printed to stderr so a
-sync from a stale config file is visible before it lands. Jobs can only be
-updated or deleted when all their runs have finished.
+mcp, or job that changes, the live revision being replaced is printed to stderr
+so a sync from a stale config file is visible. Jobs can only be updated or
+deleted when all their runs have finished.
 
 Script jobs reference their files with scriptFile and pyprojectFile, resolved
 relative to the config file.

@@ -302,7 +302,7 @@ func TestRemoteMcpPatch(t *testing.T) {
 			name: "catalog entry without credential",
 			live: platform.McpSchema{CatalogID: str("awsknowledge"), AuthType: str("none")},
 			body: platform.McpCreateRequest{CatalogID: str("awsknowledge"), Auth: none},
-			want: platform.McpUpdateRequest{"auth": map[string]any{"type": "none"}},
+			want: platform.McpUpdateRequest{},
 		},
 		{
 			name: "credential rotation on a catalog entry",
@@ -355,7 +355,6 @@ func TestRemoteMcpPatch(t *testing.T) {
 				},
 			},
 			want: platform.McpUpdateRequest{
-				"endpoint_url": "https://mcp.acme.com/mcp",
 				"auth": map[string]any{
 					"type":          "custom",
 					"credential":    "token",
@@ -372,7 +371,6 @@ func TestRemoteMcpPatch(t *testing.T) {
 				Auth:        bearer("token"),
 			},
 			want: platform.McpUpdateRequest{
-				"endpoint_url": "https://mcp.acme.com/mcp",
 				"auth": map[string]any{
 					"type":          "bearer",
 					"credential":    "token",
@@ -595,7 +593,7 @@ func TestServicesPrintsUpdateBanner(t *testing.T) {
 				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"}]}`,
 			)
 		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-a":
-			fmt.Fprint(w, `{}`)
+			fmt.Fprint(w, `{"changed":true}`)
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-new":
 			fmt.Fprint(w, `{}`)
 		default:
@@ -698,7 +696,7 @@ func TestSyncRefusesDeletionsByDefault(t *testing.T) {
 				case r.Method == http.MethodGet && r.URL.Path == tt.listPath:
 					fmt.Fprint(w, tt.listBody)
 				case tt.putPath != "" && r.Method == http.MethodPut && r.URL.Path == tt.putPath:
-					fmt.Fprint(w, `{}`)
+					fmt.Fprint(w, `{"changed":true}`)
 				case r.Method == http.MethodDelete && r.URL.Path == tt.deletePath:
 					t.Errorf("%s was deleted without --allow-delete", tt.deletePath)
 					fmt.Fprint(w, `{}`)
@@ -803,7 +801,7 @@ func TestSyncDeletesWithAllowDelete(t *testing.T) {
 				case r.Method == http.MethodGet && r.URL.Path == tt.listPath:
 					fmt.Fprint(w, tt.listBody)
 				case tt.putPath != "" && r.Method == http.MethodPut && r.URL.Path == tt.putPath:
-					fmt.Fprint(w, `{}`)
+					fmt.Fprint(w, `{"changed":true}`)
 				case r.Method == http.MethodDelete && r.URL.Path == tt.deletePath:
 					deleted = true
 					fmt.Fprint(w, `{}`)
@@ -843,6 +841,9 @@ func TestServicesDryRunPlansWithoutWriting(t *testing.T) {
 				w,
 				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
 			)
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/services/svc-a" &&
+			r.URL.Query().Get("dryRun") == "true":
+			fmt.Fprint(w, `{"changed":true,"servicePort":8080}`)
 		default:
 			t.Errorf("dry run made a write: %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -888,7 +889,7 @@ func TestAgentsPrintsUpdateBanner(t *testing.T) {
 				`{"agents":[{"name":"agent-a","projectId":"p1","revision":13,"status":"ready","updated":"2026-07-24T11:20:00Z"}]}`,
 			)
 		case r.Method == http.MethodPut && r.URL.Path == "/v1/organizations/o1/projects/p1/agents/agent-a":
-			fmt.Fprint(w, `{}`)
+			fmt.Fprint(w, `{"changed":true}`)
 		default:
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
