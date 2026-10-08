@@ -2,8 +2,6 @@ package files
 
 import (
 	"bytes"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
@@ -115,140 +113,106 @@ func TestToFlatMap(t *testing.T) {
 }
 
 func TestDiffStackConfigs(t *testing.T) {
-	svc1 := ServiceConfig{
+	svc := ServiceConfig{
 		ServicePort: 8080,
 		Image:       clientsImageSpec("nginx", "latest"),
 		Resources:   clientsResources("256M", "0.25"),
 		Replicas:    1,
 	}
-	svc1Mod := svc1
-	svc1Mod.Replicas = 2
+	scaled := svc
+	scaled.Replicas = 2
+	tools := McpConfig{Type: "self-hosted", Port: 8080}
+	public := tools
+	public.Endpoint = true
 
-	live := &StackConfig{
-		StackId: "test-stack",
-		Services: map[string]ServiceConfig{
-			"keep":   svc1,
-			"update": svc1,
-			"delete": svc1,
+	tests := []struct {
+		name        string
+		plan        *StackPlan
+		live        *StackConfig
+		want        *StackDiff
+		wantPrinted string
+	}{
+		{
+			name:        "no resources",
+			plan:        &StackPlan{StackId: "t"},
+			live:        &StackConfig{StackId: "t"},
+			want:        &StackDiff{StackID: "t"},
+			wantPrinted: "No differences found.\n",
 		},
-		Agents:    map[string]AgentConfig{},
-		Databases: map[string]DatabaseConfig{},
-		Mcps:      map[string]McpConfig{},
-	}
-	local := &StackConfig{
-		StackId: "test-stack",
-		Services: map[string]ServiceConfig{
-			"keep":   svc1,
-			"update": svc1Mod,
-			"create": svc1,
+		{
+			name: "unchanged resources are left out",
+			plan: &StackPlan{StackId: "t", Services: ResourcePlan[ServiceConfig]{
+				Desired: map[string]ServiceConfig{"api": svc},
+			}},
+			live:        &StackConfig{StackId: "t", Services: map[string]ServiceConfig{"api": svc}},
+			want:        &StackDiff{StackID: "t"},
+			wantPrinted: "No differences found.\n",
 		},
-		Agents:    map[string]AgentConfig{},
-		Databases: map[string]DatabaseConfig{},
-		Mcps:      map[string]McpConfig{},
-	}
-
-	d := DiffStackConfigs(local, live)
-
-	if d.StackID != "test-stack" {
-		t.Errorf("StackID = %q, want %q", d.StackID, "test-stack")
-	}
-
-	if diff := cmp.Diff([]string{"create"}, d.Services.Created); diff != "" {
-		t.Errorf("Created mismatch (-want +got):\n%s", diff)
-	}
-	if len(d.Services.Updated) != 1 || d.Services.Updated[0].Name != "update" {
-		t.Errorf("Updated = %+v, want [update]", d.Services.Updated)
-	}
-	if diff := cmp.Diff([]string{"delete"}, d.Services.Deleted); diff != "" {
-		t.Errorf("Deleted mismatch (-want +got):\n%s", diff)
-	}
-	if !d.HasChanges() {
-		t.Error("HasChanges() = false, want true")
-	}
-}
-
-func TestDiffStackConfigsNoChanges(t *testing.T) {
-	live := &StackConfig{
-		StackId:   "t",
-		Services:  map[string]ServiceConfig{},
-		Agents:    map[string]AgentConfig{},
-		Databases: map[string]DatabaseConfig{},
-		Mcps:      map[string]McpConfig{},
-	}
-	local := &StackConfig{
-		StackId:   "t",
-		Services:  map[string]ServiceConfig{},
-		Agents:    map[string]AgentConfig{},
-		Databases: map[string]DatabaseConfig{},
-		Mcps:      map[string]McpConfig{},
-	}
-	d := DiffStackConfigs(local, live)
-	if d.HasChanges() {
-		t.Error("HasChanges() = true, want false")
-	}
-}
-
-func TestPrintStackDiffDetailed(t *testing.T) {
-	live := &StackConfig{
-		StackId: "t",
-		Services: map[string]ServiceConfig{
-			"svc": {ServicePort: 8080, Replicas: 1},
+		{
+			name: "create, update, and delete",
+			plan: &StackPlan{StackId: "t", Services: ResourcePlan[ServiceConfig]{
+				Desired: map[string]ServiceConfig{"keep": svc, "update": scaled, "create": svc},
+				Changed: map[string]bool{"update": true},
+			}},
+			live: &StackConfig{StackId: "t", Services: map[string]ServiceConfig{
+				"keep": svc, "update": svc, "delete": svc,
+			}},
+			want: &StackDiff{StackID: "t", Services: ResourceTypeDiff{
+				Created: []string{"create"},
+				Updated: []ResourceChange{{
+					Name:    "update",
+					Changes: map[string]FieldDiff{"replicas": {Old: "1", New: "2"}},
+				}},
+				Deleted: []string{"delete"},
+			}},
+			wantPrinted: "Stack: t\n\n  + service create (create)\n\n  ~ service update (update)\n" +
+				"    replicas: 1 → 2\n\n  - service delete (delete)\n",
 		},
-		Agents:    map[string]AgentConfig{},
-		Databases: map[string]DatabaseConfig{},
-		Mcps:      map[string]McpConfig{},
-	}
-	local := &StackConfig{
-		StackId: "t",
-		Services: map[string]ServiceConfig{
-			"svc": {ServicePort: 8080, Replicas: 2},
+		{
+			name: "server-reported change without field differences",
+			plan: &StackPlan{StackId: "t", Services: ResourcePlan[ServiceConfig]{
+				Desired: map[string]ServiceConfig{"api": svc},
+				Changed: map[string]bool{"api": true},
+			}},
+			live: &StackConfig{StackId: "t", Services: map[string]ServiceConfig{"api": svc}},
+			want: &StackDiff{StackID: "t", Services: ResourceTypeDiff{
+				Updated: []ResourceChange{{Name: "api", Changes: map[string]FieldDiff{}}},
+			}},
+			wantPrinted: "Stack: t\n\n  ~ service api (update)\n",
 		},
-		Agents:    map[string]AgentConfig{},
-		Databases: map[string]DatabaseConfig{},
-		Mcps:      map[string]McpConfig{},
+		{
+			name: "mcp endpoint removed",
+			plan: &StackPlan{StackId: "s", Mcps: ResourcePlan[McpConfig]{
+				Desired: map[string]McpConfig{"tools": tools},
+				Changed: map[string]bool{"tools": true},
+			}},
+			live: &StackConfig{StackId: "s", Mcps: map[string]McpConfig{"tools": public}},
+			want: &StackDiff{StackID: "s", Mcps: ResourceTypeDiff{
+				Updated: []ResourceChange{{
+					Name:    "tools",
+					Changes: map[string]FieldDiff{"endpoint": {Old: "true"}},
+				}},
+			}},
+			wantPrinted: "Stack: s\n\n  ~ mcp tools (update)\n    - endpoint\n",
+		},
 	}
-
-	d := DiffStackConfigs(local, live)
-	var buf bytes.Buffer
-	if err := PrintStackDiffDetailed(&buf, local, live, d); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	got := buf.String()
-	if !bytes.Contains([]byte(got), []byte("svc")) {
-		t.Errorf("output missing 'svc':\n%s", got)
-	}
-	if !bytes.Contains([]byte(got), []byte("1 → 2")) {
-		t.Errorf("output missing '1 → 2':\n%s", got)
-	}
-}
-
-func TestPrintStackDiffDetailedNoChanges(t *testing.T) {
-	cfg := &StackConfig{
-		StackId:   "t",
-		Services:  map[string]ServiceConfig{},
-		Agents:    map[string]AgentConfig{},
-		Databases: map[string]DatabaseConfig{},
-		Mcps:      map[string]McpConfig{},
-	}
-	d := DiffStackConfigs(cfg, cfg)
-	var buf bytes.Buffer
-	if err := PrintStackDiffDetailed(&buf, cfg, cfg, d); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got := buf.String(); got != "No differences found.\n" {
-		t.Errorf("got %q, want %q", got, "No differences found.\n")
-	}
-}
-
-func TestDiffFieldsVersionFiltered(t *testing.T) {
-	// version is a config-only field the API never returns.
-	// It should not appear as a diff even when present in local only.
-	live := ServiceConfig{ServicePort: 8080}
-	local := ServiceConfig{ServicePort: 8080, Version: "v1"}
-	changes := diffFields(live, local)
-	if len(changes) != 0 {
-		t.Errorf("expected no changes, got %+v", changes)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DiffStackConfigs(tt.plan, tt.live)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Fatalf("diff mismatch (-want +got):\n%s", diff)
+			}
+			if got.HasChanges() != (tt.wantPrinted != "No differences found.\n") {
+				t.Fatalf("HasChanges() = %v", got.HasChanges())
+			}
+			var out bytes.Buffer
+			if err := PrintStackDiffDetailed(&out, tt.plan, tt.live, got); err != nil {
+				t.Fatal(err)
+			}
+			if out.String() != tt.wantPrinted {
+				t.Fatalf("printed = %q, want %q", out.String(), tt.wantPrinted)
+			}
+		})
 	}
 }
 
@@ -258,77 +222,4 @@ func clientsImageSpec(name, tag string) deployment.ImageSpec {
 
 func clientsResources(mem, cpu string) deployment.Resources {
 	return deployment.Resources{Memory: mem, CPU: cpu}
-}
-
-func TestDiffStackConfigsReportsMcpEndpointChange(t *testing.T) {
-	live := &StackConfig{
-		StackId: "s",
-		Mcps: map[string]McpConfig{
-			"tools": {Type: "internal", Port: 8080, Endpoint: true},
-		},
-	}
-	local := &StackConfig{
-		StackId: "s",
-		Mcps: map[string]McpConfig{
-			"tools": {Type: "internal", Port: 8080},
-		},
-	}
-
-	var out bytes.Buffer
-	if err := PrintStackDiffDetailed(&out, local, live, DiffStackConfigs(local, live)); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	want := "Stack: s\n\n  ~ mcp tools (update)\n    - endpoint\n"
-	if diff := cmp.Diff(want, out.String()); diff != "" {
-		t.Errorf("PrintStackDiffDetailed() mismatch (-want +got):\n%s", diff)
-	}
-}
-
-func TestDiffStackConfigsMcpTypeNames(t *testing.T) {
-	tests := []struct {
-		name     string
-		fileType string
-		liveType string
-	}{
-		{name: "older file name, new operator", fileType: "internal", liveType: "self-hosted"},
-		{name: "new file name, older operator", fileType: "self-hosted", liveType: "internal"},
-		{name: "older remote name, new operator", fileType: "external", liveType: "remote"},
-		{name: "new remote name, older operator", fileType: "remote", liveType: "external"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			path := filepath.Join(t.TempDir(), "stack.yaml")
-			content := "organization: o\nproject: p\nstack-id: s\nmcps:\n  tools:\n    type: " +
-				tt.fileType + "\n    auth:\n      type: none\n"
-			liveMcp := deployment.McpOutput{
-				Type: tt.liveType,
-				Auth: deployment.McpAuthInfo{Type: "none"},
-			}
-			if deployment.McpTypeName(tt.fileType) == deployment.McpTypeRemote {
-				content += "    endpointUrl: https://example.com/mcp\n"
-				liveMcp.EndpointURL = "https://example.com/mcp"
-			}
-			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
-				t.Fatalf("write config: %v", err)
-			}
-			local, err := LoadStackConfig(path)
-			if err != nil {
-				t.Fatalf("LoadStackConfig() error = %v", err)
-			}
-			live := &StackConfig{
-				StackId: "s",
-				Mcps: map[string]McpConfig{
-					"tools": McpConfigFromDescribe(&deployment.DescribeMcpResponse{
-						McpOutput: liveMcp,
-					}),
-				},
-			}
-
-			if d := DiffStackConfigs(local, live); len(d.Mcps.Updated) > 0 {
-				t.Errorf("type %q in the file diffs against live %q", tt.fileType, tt.liveType)
-			}
-		})
-	}
 }

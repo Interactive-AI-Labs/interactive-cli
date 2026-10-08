@@ -276,7 +276,7 @@ func TestJobConfigToCreateRequest(t *testing.T) {
 	}
 }
 
-func TestJobConfigFromDescribe(t *testing.T) {
+func TestJobConfigFromRequest(t *testing.T) {
 	tests := []struct {
 		name string
 		job  deployment.DescribeJobResponse
@@ -313,7 +313,7 @@ func TestJobConfigFromDescribe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if diff := cmp.Diff(tt.want, JobConfigFromDescribe(&tt.job)); diff != "" {
+			if diff := cmp.Diff(tt.want, JobConfigFromRequest(tt.job.CreateJobBody)); diff != "" {
 				t.Fatalf("config mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -419,27 +419,29 @@ func TestDiffStackConfigsJobs(t *testing.T) {
 		Pyproject: "[project]\nname = \"r\"\n",
 		Resources: deployment.Resources{CPU: "1", Memory: "1G"},
 	}
-	withPaths := report
-	withPaths.ScriptFile, withPaths.PyprojectFile = "main.py", "pyproject.toml"
-	changedScript := withPaths
+	changedScript := report
 	changedScript.Script = "print(2)\n"
 
 	tests := []struct {
 		name        string
-		local, live map[string]JobConfig
+		plan        ResourcePlan[JobConfig]
+		live        map[string]JobConfig
 		want        ResourceTypeDiff
 		wantPrinted string
 	}{
 		{
-			name:        "local file paths alone are not a change",
-			local:       map[string]JobConfig{"report": withPaths},
+			name:        "unchanged job",
+			plan:        ResourcePlan[JobConfig]{Desired: map[string]JobConfig{"report": report}},
 			live:        map[string]JobConfig{"report": report},
 			wantPrinted: "No differences found.\n",
 		},
 		{
-			name:  "changed script contents show as a digest change",
-			local: map[string]JobConfig{"report": changedScript},
-			live:  map[string]JobConfig{"report": report},
+			name: "changed script contents show as a digest change",
+			plan: ResourcePlan[JobConfig]{
+				Desired: map[string]JobConfig{"report": changedScript},
+				Changed: map[string]bool{"report": true},
+			},
+			live: map[string]JobConfig{"report": report},
 			want: ResourceTypeDiff{Updated: []ResourceChange{{
 				Name: "report",
 				Changes: map[string]FieldDiff{"script": {
@@ -452,7 +454,7 @@ func TestDiffStackConfigsJobs(t *testing.T) {
 		},
 		{
 			name:        "created and deleted jobs",
-			local:       map[string]JobConfig{"new": withPaths},
+			plan:        ResourcePlan[JobConfig]{Desired: map[string]JobConfig{"new": report}},
 			live:        map[string]JobConfig{"old": report},
 			want:        ResourceTypeDiff{Created: []string{"new"}, Deleted: []string{"old"}},
 			wantPrinted: "Stack: batch\n\n  + job new (create)\n\n  - job old (delete)\n",
@@ -460,14 +462,14 @@ func TestDiffStackConfigsJobs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			local := &StackConfig{StackId: "batch", Jobs: tt.local}
+			plan := &StackPlan{StackId: "batch", Jobs: tt.plan}
 			live := &StackConfig{StackId: "batch", Jobs: tt.live}
-			d := DiffStackConfigs(local, live)
+			d := DiffStackConfigs(plan, live)
 			if diff := cmp.Diff(tt.want, d.Jobs); diff != "" {
 				t.Fatalf("diff mismatch (-want +got):\n%s", diff)
 			}
 			var out strings.Builder
-			if err := PrintStackDiffDetailed(&out, local, live, d); err != nil {
+			if err := PrintStackDiffDetailed(&out, plan, live, d); err != nil {
 				t.Fatal(err)
 			}
 			if got := out.String(); got != tt.wantPrinted {

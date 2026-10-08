@@ -335,7 +335,7 @@ func (j JobConfig) ToCreateRequest(stackId string) deployment.CreateJobBody {
 	}
 }
 
-func JobConfigFromDescribe(job *deployment.DescribeJobResponse) JobConfig {
+func JobConfigFromRequest(job deployment.CreateJobBody) JobConfig {
 	return JobConfig{
 		Type:       job.Type,
 		Image:      job.Image,
@@ -574,7 +574,7 @@ func FetchLiveStack(
 		if err != nil {
 			return nil, fmt.Errorf("failed to describe job %q: %w", job.Name, err)
 		}
-		cfg.Jobs[job.Name] = JobConfigFromDescribe(desc)
+		cfg.Jobs[job.Name] = JobConfigFromRequest(desc.CreateJobBody)
 	}
 
 	return cfg, nil

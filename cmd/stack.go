@@ -587,13 +587,19 @@ Use --json for machine-readable output in CI pipelines.`,
 			return err
 		}
 
-		d := files.DiffStackConfigs(localCfg, liveCfg)
+		plan, err := files.PlanStack(
+			cmd.Context(), deployClient, pCtx.orgId, pCtx.projectId, stackID, localCfg, liveCfg,
+		)
+		if err != nil {
+			return err
+		}
+		d := files.DiffStackConfigs(plan, liveCfg)
 
 		if stackDiffJSON {
 			return output.PrintStructuredJSON(out, d)
 		}
 
-		return files.PrintStackDiffDetailed(out, localCfg, liveCfg, d)
+		return files.PrintStackDiffDetailed(out, plan, liveCfg, d)
 	},
 }
 
