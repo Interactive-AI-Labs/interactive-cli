@@ -2,11 +2,18 @@ package cmd
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+)
+
+// A flag note, even empty, puts the flag in the index.
+const (
+	commandNoteAnnotation = "index_command_note"
+	flagNoteAnnotation    = "index_flag_note"
 )
 
 // Cobra keeps this annotation key unexported.
@@ -21,6 +28,19 @@ var indexNamedFlags = map[string]bool{
 // Every other flag on a list command is a filter.
 var listSkipFlags = map[string]bool{
 	"organization": true, "project": true, "columns": true, "watch": true, "help": true,
+}
+
+var usageNote = regexp.MustCompile(`\((max [^,;)]+)|default: (\d+ days ago)`)
+
+func indexCommand(c *cobra.Command, note string) {
+	if c.Annotations == nil {
+		c.Annotations = map[string]string{}
+	}
+	c.Annotations[commandNoteAnnotation] = note
+}
+
+func indexFlag(c *cobra.Command, name, note string) {
+	_ = c.Flags().SetAnnotation(name, flagNoteAnnotation, []string{note})
 }
 
 func commandIndex(root *cobra.Command, version string) string {
@@ -42,6 +62,9 @@ func commandIndex(root *cobra.Command, version string) string {
 		var subs []string
 		for _, leaf := range indexLeaves(group) {
 			path := strings.TrimPrefix(leaf.CommandPath(), group.CommandPath()+" ")
+			if note := leaf.Annotations[commandNoteAnnotation]; note != "" {
+				path += " " + note
+			}
 			subs = append(subs, path+bracket(indexFlags(leaf)))
 		}
 		fmt.Fprintf(&b, "%s (%s): %s\n", group.Name(), shortOf(group), strings.Join(subs, " · "))
@@ -119,9 +142,17 @@ func indexFlags(c *cobra.Command) []string {
 		if f.Hidden || shown[f.Name] || f.Name == "json" || f.Name == "yaml" {
 			return
 		}
-		if indexNamedFlags[f.Name] || (c.Name() == "list" && !listSkipFlags[f.Name]) {
-			out = append(out, "--"+f.Name)
+		_, annotated := f.Annotations[flagNoteAnnotation]
+		note := flagNote(f)
+		filter := c.Name() == "list" && !listSkipFlags[f.Name]
+		limit := c.Name() == "logs" && note != ""
+		if !annotated && !indexNamedFlags[f.Name] && !filter && !limit {
+			return
 		}
+		if note != "" {
+			note = " (" + note + ")"
+		}
+		out = append(out, "--"+f.Name+note)
 	})
 
 	switch {
@@ -131,4 +162,19 @@ func indexFlags(c *cobra.Command) []string {
 		out = append(out, "--json")
 	}
 	return out
+}
+
+func flagNote(f *pflag.Flag) string {
+	if note := f.Annotations[flagNoteAnnotation]; len(note) > 0 && note[0] != "" {
+		return note[0]
+	}
+	m := usageNote.FindStringSubmatch(f.Usage)
+	switch {
+	case m == nil:
+		return ""
+	case m[1] != "":
+		return m[1]
+	default:
+		return "default " + m[2]
+	}
 }

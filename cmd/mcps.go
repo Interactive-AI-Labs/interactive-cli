@@ -1057,6 +1057,8 @@ func init() {
 	mcpUpdateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
 	mcpUpdateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
+	indexFlag(mcpUpdateCmd, "env", "replaces")
+	indexFlag(mcpUpdateCmd, "secret", "replaces")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential-stdin")
 	for _, urlFlag := range []string{"remote-url", "external-url"} {
@@ -1074,6 +1076,7 @@ func init() {
 	mcpRunToolCmd.Flags().
 		StringVar(&mcpArgsFile, "args-file", "", "Path to a file containing the tool arguments as a JSON object")
 	mcpRunToolCmd.MarkFlagsMutuallyExclusive("args", "args-file")
+	indexFlag(mcpRunToolCmd, "args", "")
 
 	mcpDeleteCmd.Flags().BoolVarP(&mcpForce, "force", "f", false, "Skip confirmation prompt")
 

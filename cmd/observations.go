@@ -225,6 +225,7 @@ func init() {
 		StringVar(&obsTraceID, "trace-id", "", "Trace ID to list observations for (scopes to a single trace)")
 	obsListCmd.Flags().
 		BoolVar(&obsIncludeIO, "include-io", false, "Include input/output/metadata in response (only with --trace-id)")
+	indexFlag(obsListCmd, "include-io", "needs --trace-id")
 	obsListCmd.Flags().BoolVar(&obsListJSON, "json", false, "Output raw API response as JSON")
 	obsListCmd.Flags().BoolVar(&obsListYAML, "yaml", false, "Output raw API response as YAML")
 	obsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
