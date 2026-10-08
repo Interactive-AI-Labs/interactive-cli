@@ -132,6 +132,7 @@ The server automatically assigns the "latest" label to new versions. Use
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().
 		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.MarkFlagsOneRequired("file", "content")
 	cmd.MarkFlagsMutuallyExclusive("file", "content")
 
 	return cmd
@@ -366,6 +367,7 @@ Exactly one of --file or --content must be specified.`,
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().
 		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.MarkFlagsOneRequired("file", "content")
 	cmd.MarkFlagsMutuallyExclusive("file", "content")
 
 	return cmd
