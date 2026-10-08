@@ -209,6 +209,7 @@ func init() {
 	_ = f.MarkHidden("agent-url")
 	_ = f.MarkHidden("agent-api-key")
 
+	agentReplayCmd.MarkFlagsOneRequired("dataset", "file", "run-id")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("dataset", "file", "run-id")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("scenarios", "file")
 	agentReplayCmd.MarkFlagsMutuallyExclusive("scenarios", "run-id")

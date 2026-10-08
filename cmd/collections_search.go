@@ -242,6 +242,8 @@ func init() {
 	searchCmd.Flags().IntVar(&searchLimit, "limit", 0, "Max results")
 	searchCmd.Flags().StringVar(&searchFilter, "filter", "", "Metadata filter as a JSON object")
 	searchCmd.Flags().BoolVar(&searchExact, "exact", false, "Exhaustive scan instead of the index")
+	searchCmd.MarkFlagsOneRequired("query", "vector")
+	searchCmd.MarkFlagsMutuallyExclusive("query", "vector")
 
 	searchBatchCmd.Flags().
 		StringVar(&searchFile, "file", "", "Path to a YAML/JSON batch-search file")

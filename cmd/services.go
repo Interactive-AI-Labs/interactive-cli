@@ -82,9 +82,9 @@ var servCCmd = &cobra.Command{
 	Short: "Create a service in a project",
 	Long:  `Create a service in a specific project using the deployment service.`,
 	Example: `  iai services create my-svc --image-type external --image-repository docker.io --image-name nginx --image-tag latest --port 80 --memory 512M --cpu 0.5
-  iai services create my-svc --image-name my-app --image-tag v1 --port 8080 --memory 1G --cpu 1 --replicas 3 --endpoint
-  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --env LOG_LEVEL=debug --secret DB_PASSWORD --healthcheck-path /health
-  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --schedule-uptime "Mon-Fri 08:00-18:00" --schedule-timezone Europe/Berlin`,
+  iai services create my-svc --image-type internal --image-name my-app --image-tag v1 --port 8080 --memory 1G --cpu 1 --replicas 3 --endpoint
+  iai services create my-svc --image-type internal --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --env LOG_LEVEL=debug --secret DB_PASSWORD --healthcheck-path /health
+  iai services create my-svc --image-type internal --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --schedule-uptime "Mon-Fri 08:00-18:00" --schedule-timezone Europe/Berlin`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -1020,6 +1020,9 @@ func init() {
 		StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
 	_ = servCCmd.MarkFlagRequired("memory")
 	_ = servCCmd.MarkFlagRequired("cpu")
+	_ = servCCmd.MarkFlagRequired("image-type")
+	_ = servCCmd.MarkFlagRequired("image-name")
+	_ = servCCmd.MarkFlagRequired("image-tag")
 
 	servCCmd.Flags().
 		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas for autoscaling")
