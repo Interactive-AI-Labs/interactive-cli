@@ -41,7 +41,7 @@ iai mcps logs <mcp_name> [flags]
   -f, --follow              Stream new log entries as they arrive; mutually exclusive with --end-time
   -h, --help                help for logs
       --level string        JSON log severity: debug, info, warn, or error
-      --limit int           Maximum number of log entries to return (max 5000); defaults to 1000
+      --limit int           Maximum number of log entries to return (1-5000); defaults to 1000
       --message string      Case-insensitive RE2 regular expression matched against the log line
       --raw                 Output exact server JSON lines without formatting
       --since string        Relative duration to look back (max 72h, e.g. 30m, 1h, 3d, 1w); default 1h; mutually exclusive with --start-time and --end-time

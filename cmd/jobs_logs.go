@@ -178,7 +178,7 @@ func init() {
 			&jobLogsStartTime,
 			"start-time",
 			"",
-			"Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window",
+			logsStartTimeUsage,
 		)
 		flags.StringVar(
 			&jobLogsEndTime,
@@ -211,6 +211,7 @@ func init() {
 			&jobLogsLimit, "limit", 0,
 			logsLimitUsage+"; with --follow, limits only the initial batch",
 		)
+		indexLogsLimits(cmd)
 		cmd.MarkFlagsMutuallyExclusive("raw", "fields")
 		cmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 		cmd.MarkFlagsMutuallyExclusive("decode", "fields")

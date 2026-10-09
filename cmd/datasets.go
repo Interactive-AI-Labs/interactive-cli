@@ -201,6 +201,7 @@ var datasetsCreateCmd = &cobra.Command{
 func init() {
 	datasetsListCmd.Flags().IntVar(&datasetsListPage, "page", 1, "Page number (starts at 1)")
 	datasetsListCmd.Flags().IntVar(&datasetsListLimit, "limit", 0, "Items per page (max 100)")
+	indexLimit(datasetsListCmd, "limit", "max 100")
 	datasetsListCmd.Flags().
 		StringSliceVar(&datasetsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	datasetsListCmd.Flags().

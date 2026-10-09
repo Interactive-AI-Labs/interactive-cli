@@ -177,9 +177,9 @@ payload with `output.PrintRawJSON` / `output.PrintRawYAML` and guard table-only
 flags with `validateTableOnlyColumns`.
 
 **Command index:** `make docs` writes `docs/cli-index.md`, which the copilot
-reads. It lists every command, its args and flags. A flag's "(max N)" or
-"default: N days ago" help text becomes its note; pin new ones in
-`TestIndexLiftsHelpTextNotes`. `indexFlag(cmd, name, note)` sets any other
+reads. It lists every command, its args and flags. Declare a flag's limit with
+`indexLimit(cmd, name, "max 100")` next to its definition; generation fails if
+the help text doesn't say the same. `indexFlag(cmd, name, note)` sets any other
 note, and `indexCommand(cmd, note)` adds one after a command's args.
 
 **Pagination (pick one per command, never both):**

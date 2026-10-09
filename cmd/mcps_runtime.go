@@ -251,7 +251,7 @@ func init() {
 		&mcpLogsOptions.StartTime,
 		"start-time",
 		"",
-		"Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window",
+		logsStartTimeUsage,
 	)
 	f.StringVar(
 		&mcpLogsOptions.EndTime,
@@ -265,6 +265,7 @@ func init() {
 		0,
 		logsLimitUsage,
 	)
+	indexLogsLimits(mcpLogsCmd)
 	f.StringVar(
 		&mcpLogsOptions.Message,
 		"message",

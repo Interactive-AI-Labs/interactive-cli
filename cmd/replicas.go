@@ -371,7 +371,7 @@ func init() {
 	replicasLogsCmd.Flags().
 		StringVar(&replicaLogsSince, "since", "", logsSinceUsage)
 	replicasLogsCmd.Flags().
-		StringVar(&replicaLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+		StringVar(&replicaLogsStartTime, "start-time", "", logsStartTimeUsage)
 	replicasLogsCmd.Flags().
 		StringVar(&replicaLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	replicasLogsCmd.Flags().
@@ -386,6 +386,7 @@ func init() {
 		BoolVar(&replicaLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	replicasLogsCmd.Flags().
 		IntVar(&replicaLogsLimit, "limit", 0, logsLimitUsage)
+	indexLogsLimits(replicasLogsCmd)
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

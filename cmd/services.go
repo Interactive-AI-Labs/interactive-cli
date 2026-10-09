@@ -1084,9 +1084,9 @@ func init() {
 		IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
 
 	servUCmd.Flags().
-		StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+		StringArrayVar(&serviceEnvVars, "env", nil, "Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
 	servUCmd.Flags().
-		StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
+		StringArrayVar(&serviceSecretRefs, "secret", nil, "Replace secret references; repeat for every entry to keep; dropping entries requires --force")
 	servUCmd.Flags().
 		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service publicly at <service-name>-<project-hash>.interactive.ai")
 
@@ -1185,7 +1185,7 @@ func init() {
 	servLogsCmd.Flags().
 		StringVar(&servLogsSince, "since", "", logsSinceUsage)
 	servLogsCmd.Flags().
-		StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+		StringVar(&servLogsStartTime, "start-time", "", logsStartTimeUsage)
 	servLogsCmd.Flags().
 		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	servLogsCmd.Flags().
@@ -1200,6 +1200,7 @@ func init() {
 		BoolVar(&servLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	servLogsCmd.Flags().
 		IntVar(&servLogsLimit, "limit", 0, logsLimitUsage)
+	indexLogsLimits(servLogsCmd)
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

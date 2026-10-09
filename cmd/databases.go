@@ -703,8 +703,10 @@ func addDatabaseResourceFlags(cmd *cobra.Command) {
 		StringVar(&dbPostgresVersion, "postgres-version", "", "PostgreSQL major or major.minor version (e.g. 18, 17.6); supported range 15–18; defaults to latest if omitted")
 	cmd.Flags().
 		StringVar(&dbCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m); max 7 vCPU (7000m)")
+	indexLimit(cmd, "cpu", "max 7 vCPU (7000m)")
 	cmd.Flags().
 		StringVar(&dbMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G); max 15G")
+	indexLimit(cmd, "memory", "max 15G")
 	cmd.Flags().
 		StringVar(&dbStorageSize, "storage-size", "", "Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased")
 	cmd.Flags().
@@ -796,7 +798,7 @@ func init() {
 	dbLogsCmd.Flags().
 		StringVar(&dbLogsSince, "since", "", logsSinceUsage)
 	dbLogsCmd.Flags().
-		StringVar(&dbLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+		StringVar(&dbLogsStartTime, "start-time", "", logsStartTimeUsage)
 	dbLogsCmd.Flags().
 		StringVar(&dbLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	dbLogsCmd.Flags().
@@ -811,6 +813,7 @@ func init() {
 		BoolVar(&dbLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	dbLogsCmd.Flags().
 		IntVar(&dbLogsLimit, "limit", 0, logsLimitUsage)
+	indexLogsLimits(dbLogsCmd)
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	dbLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
