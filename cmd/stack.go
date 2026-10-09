@@ -683,7 +683,7 @@ func init() {
 	stackGetCmd.Flags().
 		BoolVar(&stackGetYAML, "yaml", false, "Output as YAML")
 	stackGetCmd.MarkFlagsMutuallyExclusive("file", "json", "yaml")
-	indexFlag(stackGetCmd, "file", "output path, not with *")
+	indexFlag(stackGetCmd, "file", "cannot combine with --json or --yaml")
 
 	stackDiffCmd.Flags().
 		StringVarP(&stackDiffFile, "file", "f", "", "Path to local stack configuration file")

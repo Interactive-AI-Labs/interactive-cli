@@ -175,13 +175,13 @@ func init() {
 		&jobUpdateInput.EnvVars,
 		"env",
 		nil,
-		"Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force",
+		"Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force",
 	)
 	flags.StringArrayVar(
 		&jobUpdateInput.SecretRefs,
 		"secret",
 		nil,
-		"Replace secret references; repeat for every entry to keep; dropping entries requires --force",
+		"Replaces the secret references; repeat for every entry to keep; dropping entries requires --force",
 	)
 	flags.StringVar(&jobUpdateInput.StackId, "stack-id", "", "Stack ID to assign the job to")
 	flags.StringVar(
@@ -202,7 +202,7 @@ func init() {
 		0,
 		"Run time budget in seconds (1-21600, max 6h), including startup, dependency installation, and all retries; unchanged when omitted",
 	)
-	indexLimit(jobUpdateCmd, "timeout", "1-21600, max 6h")
+	indexFlag(jobUpdateCmd, "timeout", "1-21600, max 6h")
 	flags.Int32Var(
 		&jobUpdateRetries,
 		"retries",

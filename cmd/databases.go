@@ -703,10 +703,10 @@ func addDatabaseResourceFlags(cmd *cobra.Command) {
 		StringVar(&dbPostgresVersion, "postgres-version", "", "PostgreSQL major or major.minor version (e.g. 18, 17.6); supported range 15–18; defaults to latest if omitted")
 	cmd.Flags().
 		StringVar(&dbCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m); max 7 vCPU (7000m)")
-	indexLimit(cmd, "cpu", "max 7 vCPU (7000m)")
+	indexFlag(cmd, "cpu", "max 7 vCPU (7000m)")
 	cmd.Flags().
 		StringVar(&dbMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G); max 15G")
-	indexLimit(cmd, "memory", "max 15G")
+	indexFlag(cmd, "memory", "max 15G")
 	cmd.Flags().
 		StringVar(&dbStorageSize, "storage-size", "", "Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased")
 	cmd.Flags().

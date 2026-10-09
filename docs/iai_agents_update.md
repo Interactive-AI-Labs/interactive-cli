@@ -75,7 +75,7 @@ iai agents update <agent_name> [flags]
       --clear-stack-id             Remove the agent from its stack
       --detach-mcp stringArray     Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it
       --endpoint                   Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
-      --env stringArray            Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
+      --env stringArray            Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
       --expect-revision int        Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
       --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
@@ -89,7 +89,7 @@ iai agents update <agent_name> [flags]
       --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
       --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
       --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
-      --secret stringArray         Replace secret references; repeat for every entry to keep; dropping entries requires --force
+      --secret stringArray         Replaces the secret references; repeat for every entry to keep; dropping entries requires --force
       --show-diff                  Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp
       --stack-id string            Stack ID to assign the agent to
       --version string             Agent image version to deploy (e.g. 0.0.1)

@@ -161,7 +161,7 @@ func init() {
 	}
 	for _, c := range []*cobra.Command{documentsListCmd, documentsGetCmd} {
 		c.Flags().IntVar(&docLimit, "limit", 0, "Page size (1-1000, default 100)")
-		indexLimit(c, "limit", "1-1000")
+		indexFlag(c, "limit", "1-1000")
 		c.Flags().StringVar(&docCursor, "cursor", "", "Opaque cursor from a previous page")
 	}
 	documentsListCmd.Flags().

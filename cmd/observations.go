@@ -225,7 +225,7 @@ func init() {
 		StringVar(&obsTraceID, "trace-id", "", "Trace ID to list observations for (scopes to a single trace)")
 	obsListCmd.Flags().
 		BoolVar(&obsIncludeIO, "include-io", false, "Include input/output/metadata in response (only with --trace-id)")
-	indexFlag(obsListCmd, "include-io", "needs --trace-id")
+	indexFlag(obsListCmd, "include-io", "only with --trace-id")
 	obsListCmd.Flags().BoolVar(&obsListJSON, "json", false, "Output raw API response as JSON")
 	obsListCmd.Flags().BoolVar(&obsListYAML, "yaml", false, "Output raw API response as YAML")
 	obsListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
@@ -243,12 +243,12 @@ func init() {
 		"",
 		"Filter observations from this timestamp (ISO 8601, default: 7 days ago)",
 	)
-	indexLimit(obsListCmd, "from-timestamp", "default: 7 days ago")
+	indexFlag(obsListCmd, "from-timestamp", "default: 7 days ago")
 	obsListCmd.Flags().
 		StringVar(&obsListToTimestamp, "to-timestamp", "", "Filter observations to this timestamp (ISO 8601)")
 	obsListCmd.Flags().StringVar(&obsListCursor, "cursor", "", "Cursor for pagination")
 	obsListCmd.Flags().IntVar(&obsListLimit, "limit", 0, "Items per page (max 100)")
-	indexLimit(obsListCmd, "limit", "max 100")
+	indexFlag(obsListCmd, "limit", "max 100")
 	obsListCmd.Flags().
 		StringVar(&obsListFields, "fields", "", "Field groups to include (comma-separated)")
 	obsListCmd.Flags().StringVar(&obsListType, "type", "", "Filter by observation type")

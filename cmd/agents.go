@@ -1068,9 +1068,9 @@ func init() {
 	agentUpdateCmd.Flags().
 		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai")
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentEnvVars, "env", nil, "Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
+		StringArrayVar(&agentEnvVars, "env", nil, "Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentSecretRefs, "secret", nil, "Replace secret references; repeat for every entry to keep; dropping entries requires --force")
+		StringArrayVar(&agentSecretRefs, "secret", nil, "Replaces the secret references; repeat for every entry to keep; dropping entries requires --force")
 	agentUpdateCmd.Flags().
 		StringVar(&agentScheduleUptime, "schedule-uptime", "", "When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'")
 	agentUpdateCmd.Flags().

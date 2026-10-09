@@ -169,14 +169,14 @@ func init() {
 	f.StringVar(&replayRunID, "run-id", "",
 		"Re-attach to a run already started on the agent; no new run is started")
 	f.IntVar(&replayRepeat, "repeat", 1, "Iterations per scenario (1-20)")
-	indexLimit(agentReplayCmd, "repeat", "1-20")
+	indexFlag(agentReplayCmd, "repeat", "1-20")
 	f.IntVar(
 		&replayConcurrency,
 		"concurrency",
 		8,
 		"In-flight iterations across the whole run (1-32)",
 	)
-	indexLimit(agentReplayCmd, "concurrency", "1-32")
+	indexFlag(agentReplayCmd, "concurrency", "1-32")
 	f.DurationVar(
 		&replayTimeout,
 		"timeout",
