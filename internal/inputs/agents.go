@@ -98,7 +98,7 @@ func McpRefsFor(
 	return refs, nil
 }
 
-// mcpEntryName is the mcp an existing entry attaches: "id" is only the tool prefix once "ref" is set.
+// mcpEntryName identifies entries for editing: a reference's MCP name or an inline entry's id.
 func mcpEntryName(entry any) string {
 	switch e := entry.(type) {
 	case string:

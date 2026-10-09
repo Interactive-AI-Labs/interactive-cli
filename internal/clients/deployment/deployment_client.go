@@ -373,15 +373,67 @@ func (c *DeploymentClient) CreateService(
 // UpdatePatch is a partial-update body; omitted fields are kept, `null` clears.
 type UpdatePatch map[string]json.RawMessage
 
-// PutService PUTs the full service spec; the server resets omitted fields.
+// decodeChanged reads the `changed` flag a successful PUT returns; only an explicit false means the live resource already matched.
+func decodeChanged(respBody []byte) bool {
+	var result struct {
+		Changed *bool `json:"changed"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil || result.Changed == nil {
+		return true
+	}
+	return *result.Changed
+}
+
+// Plan is what replacing a resource would do: whether anything changes and the configuration the server would store.
+type Plan[T any] struct {
+	Changed bool
+	Config  T
+}
+
+// decodePlan reads a dry-run response: the `changed` flag with the configuration beside it.
+func decodePlan[T any](respBody []byte) (*Plan[T], error) {
+	var config T
+	if err := json.Unmarshal(respBody, &config); err != nil {
+		return nil, fmt.Errorf("failed to decode dry-run response: %w", err)
+	}
+	return &Plan[T]{Changed: decodeChanged(respBody), Config: config}, nil
+}
+
+// PutService PUTs the full service spec; the server resets omitted fields and reports whether anything changed.
 func (c *DeploymentClient) PutService(
 	ctx context.Context,
 	orgId,
 	projectId string,
 	serviceName string,
 	body CreateServiceBody,
-) (string, error) {
-	return c.sendServiceUpdate(ctx, http.MethodPut, orgId, projectId, serviceName, body)
+) (bool, error) {
+	path := servicePath(orgId, projectId, serviceName)
+	respBody, err := c.sendServiceUpdate(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return false, err
+	}
+	return decodeChanged(respBody), nil
+}
+
+// dryRunPath marks a query-free resource path as a replacement preview.
+func dryRunPath(path string) string {
+	return path + "?dryRun=true"
+}
+
+// PlanService asks what PutService would do without applying it.
+func (c *DeploymentClient) PlanService(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	serviceName string,
+	body CreateServiceBody,
+) (*Plan[DescribeServiceResponse], error) {
+	path := dryRunPath(servicePath(orgId, projectId, serviceName))
+	respBody, err := c.sendServiceUpdate(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return decodePlan[DescribeServiceResponse](respBody)
 }
 
 // PatchService PATCHes a partial update; only present fields are applied.
@@ -392,28 +444,36 @@ func (c *DeploymentClient) PatchService(
 	serviceName string,
 	patch UpdatePatch,
 ) (string, error) {
-	return c.sendServiceUpdate(ctx, http.MethodPatch, orgId, projectId, serviceName, patch)
+	path := servicePath(orgId, projectId, serviceName)
+	respBody, err := c.sendServiceUpdate(ctx, http.MethodPatch, path, patch)
+	if err != nil {
+		return "", err
+	}
+	return clients.ExtractServerMessage(respBody), nil
 }
 
-func (c *DeploymentClient) sendServiceUpdate(
-	ctx context.Context,
-	method, orgId, projectId, serviceName string,
-	body any,
-) (string, error) {
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return "", fmt.Errorf("failed to encode request body: %w", err)
-	}
-
-	path := fmt.Sprintf(
+func servicePath(orgId, projectId, serviceName string) string {
+	return fmt.Sprintf(
 		"/v1/organizations/%s/projects/%s/services/%s",
 		url.PathEscape(orgId),
 		url.PathEscape(projectId),
 		url.PathEscape(serviceName),
 	)
+}
+
+func (c *DeploymentClient) sendServiceUpdate(
+	ctx context.Context,
+	method, path string,
+	body any,
+) ([]byte, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
 	reqHTTP, err := c.newRequest(ctx, method, path)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	reqHTTP.Header.Set("Content-Type", "application/json")
@@ -421,25 +481,23 @@ func (c *DeploymentClient) sendServiceUpdate(
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {
-		return "", fmt.Errorf("service update request failed: %w", err)
+		return nil, fmt.Errorf("service update request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-
-	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if serverMessage != "" {
-			return "", fmt.Errorf("%s", serverMessage)
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
 		}
-		return "", fmt.Errorf("service update failed with status %s", resp.Status)
+		return nil, fmt.Errorf("service update failed with status %s", resp.Status)
 	}
 
-	return serverMessage, nil
+	return respBody, nil
 }
 
 func (c *DeploymentClient) DeleteService(
@@ -1394,7 +1452,7 @@ type agentsResponse struct {
 	Agents []AgentOutput `json:"agents"`
 }
 
-// agentValidationEnvelope is the deployment-operator error envelope for 422 responses.
+// agentValidationEnvelope is the error envelope for 422 responses.
 type agentValidationEnvelope struct {
 	Message string          `json:"message"`
 	Detail  json.RawMessage `json:"detail"`
@@ -1563,15 +1621,36 @@ func (c *DeploymentClient) CreateAgent(
 	return serverMessage, nil
 }
 
-// PutAgent PUTs the full agent spec; the server resets omitted fields.
+// PutAgent PUTs the full agent spec; the server resets omitted fields and reports whether anything changed.
 func (c *DeploymentClient) PutAgent(
 	ctx context.Context,
 	orgId,
 	projectId string,
 	agentName string,
 	body CreateAgentBody,
-) (string, error) {
-	return c.sendAgentUpdate(ctx, http.MethodPut, orgId, projectId, agentName, body)
+) (bool, error) {
+	path := agentPath(orgId, projectId, agentName)
+	respBody, err := c.sendAgentUpdate(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return false, err
+	}
+	return decodeChanged(respBody), nil
+}
+
+// PlanAgent asks what PutAgent would do without applying it.
+func (c *DeploymentClient) PlanAgent(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	agentName string,
+	body CreateAgentBody,
+) (*Plan[DescribeAgentResponse], error) {
+	path := dryRunPath(agentPath(orgId, projectId, agentName))
+	respBody, err := c.sendAgentUpdate(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return decodePlan[DescribeAgentResponse](respBody)
 }
 
 // PatchAgent PATCHes a partial update; only present fields are applied.
@@ -1582,28 +1661,36 @@ func (c *DeploymentClient) PatchAgent(
 	agentName string,
 	patch UpdatePatch,
 ) (string, error) {
-	return c.sendAgentUpdate(ctx, http.MethodPatch, orgId, projectId, agentName, patch)
+	path := agentPath(orgId, projectId, agentName)
+	respBody, err := c.sendAgentUpdate(ctx, http.MethodPatch, path, patch)
+	if err != nil {
+		return "", err
+	}
+	return clients.ExtractServerMessage(respBody), nil
 }
 
-func (c *DeploymentClient) sendAgentUpdate(
-	ctx context.Context,
-	method, orgId, projectId, agentName string,
-	body any,
-) (string, error) {
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return "", fmt.Errorf("failed to encode request body: %w", err)
-	}
-
-	path := fmt.Sprintf(
+func agentPath(orgId, projectId, agentName string) string {
+	return fmt.Sprintf(
 		"/v1/organizations/%s/projects/%s/agents/%s",
 		url.PathEscape(orgId),
 		url.PathEscape(projectId),
 		url.PathEscape(agentName),
 	)
+}
+
+func (c *DeploymentClient) sendAgentUpdate(
+	ctx context.Context,
+	method, path string,
+	body any,
+) ([]byte, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
 	reqHTTP, err := c.newRequest(ctx, method, path)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	reqHTTP.Header.Set("Content-Type", "application/json")
@@ -1611,29 +1698,27 @@ func (c *DeploymentClient) sendAgentUpdate(
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {
-		return "", fmt.Errorf("agent update request failed: %w", err)
+		return nil, fmt.Errorf("agent update request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if resp.StatusCode == http.StatusUnprocessableEntity {
-		return "", fmt.Errorf("%s", fmtAgentValErr(respBody))
+		return nil, fmt.Errorf("%s", fmtAgentValErr(respBody))
 	}
-
-	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if serverMessage != "" {
-			return "", fmt.Errorf("%s", serverMessage)
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
 		}
-		return "", fmt.Errorf("agent update failed with status %s", resp.Status)
+		return nil, fmt.Errorf("agent update failed with status %s", resp.Status)
 	}
 
-	return serverMessage, nil
+	return respBody, nil
 }
 
 func (c *DeploymentClient) DeleteAgent(
@@ -2264,14 +2349,36 @@ func (c *DeploymentClient) CreateDatabase(
 	return serverMessage, nil
 }
 
+// PutDatabase PUTs the full database spec; the server resets omitted fields and reports whether anything changed.
 func (c *DeploymentClient) PutDatabase(
 	ctx context.Context,
 	orgId,
 	projectId string,
 	databaseName string,
 	body CreateDatabaseBody,
-) (string, error) {
-	return c.sendDatabaseUpdate(ctx, http.MethodPut, orgId, projectId, databaseName, body)
+) (bool, error) {
+	path := databasePath(orgId, projectId, databaseName)
+	respBody, err := c.sendDatabaseUpdate(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return false, err
+	}
+	return decodeChanged(respBody), nil
+}
+
+// PlanDatabase asks what PutDatabase would do without applying it.
+func (c *DeploymentClient) PlanDatabase(
+	ctx context.Context,
+	orgId,
+	projectId string,
+	databaseName string,
+	body CreateDatabaseBody,
+) (*Plan[DescribeDatabaseResponse], error) {
+	path := dryRunPath(databasePath(orgId, projectId, databaseName))
+	respBody, err := c.sendDatabaseUpdate(ctx, http.MethodPut, path, body)
+	if err != nil {
+		return nil, err
+	}
+	return decodePlan[DescribeDatabaseResponse](respBody)
 }
 
 func (c *DeploymentClient) PatchDatabase(
@@ -2281,28 +2388,36 @@ func (c *DeploymentClient) PatchDatabase(
 	databaseName string,
 	patch UpdatePatch,
 ) (string, error) {
-	return c.sendDatabaseUpdate(ctx, http.MethodPatch, orgId, projectId, databaseName, patch)
+	path := databasePath(orgId, projectId, databaseName)
+	respBody, err := c.sendDatabaseUpdate(ctx, http.MethodPatch, path, patch)
+	if err != nil {
+		return "", err
+	}
+	return clients.ExtractServerMessage(respBody), nil
 }
 
-func (c *DeploymentClient) sendDatabaseUpdate(
-	ctx context.Context,
-	method, orgId, projectId, databaseName string,
-	body any,
-) (string, error) {
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return "", fmt.Errorf("failed to encode request body: %w", err)
-	}
-
-	path := fmt.Sprintf(
+func databasePath(orgId, projectId, databaseName string) string {
+	return fmt.Sprintf(
 		"/v1/organizations/%s/projects/%s/databases/%s",
 		url.PathEscape(orgId),
 		url.PathEscape(projectId),
 		url.PathEscape(databaseName),
 	)
+}
+
+func (c *DeploymentClient) sendDatabaseUpdate(
+	ctx context.Context,
+	method, path string,
+	body any,
+) ([]byte, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
 	reqHTTP, err := c.newRequest(ctx, method, path)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	reqHTTP.Header.Set("Content-Type", "application/json")
@@ -2310,25 +2425,23 @@ func (c *DeploymentClient) sendDatabaseUpdate(
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {
-		return "", fmt.Errorf("database update request failed: %w", err)
+		return nil, fmt.Errorf("database update request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-
-	serverMessage := clients.ExtractServerMessage(respBody)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if serverMessage != "" {
-			return "", fmt.Errorf("%s", serverMessage)
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
 		}
-		return "", fmt.Errorf("database update failed with status %s", resp.Status)
+		return nil, fmt.Errorf("database update failed with status %s", resp.Status)
 	}
 
-	return serverMessage, nil
+	return respBody, nil
 }
 
 func (c *DeploymentClient) DeleteDatabase(

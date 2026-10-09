@@ -23,7 +23,8 @@ var jobUpdateCmd = &cobra.Command{
 	Use:   "update <job_name>",
 	Short: "Update a job in a project",
 	Long: `Update supplied fields of a saved job; omitted fields keep their values.
-Preserves activation state and run history. All runs must be finished.`,
+Preserves activation state and run history. Configuration changes require all
+runs to be finished; an unchanged job keeps its revision.`,
 	Example: `  iai jobs update my-job --image-tag v2
   iai jobs update my-job --image-tag v2 --expect-revision 3
   iai jobs update my-job --memory 1G --cpu 0.5

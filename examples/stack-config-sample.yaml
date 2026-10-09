@@ -33,7 +33,7 @@ jobs:
       memory: "128M"
       cpu: "250m"
 
-# Self-hosted mcps run on the deployment operator; remote ones are registered on the platform.
+# Self-hosted mcps are deployed in the project; remote ones are registered on the platform.
 # A remote mcp takes exactly one of catalogId or endpointUrl, an auth.type of none, bearer,
 # api_key or custom, and none of the self-hosted keys. Create oauth and client_credentials
 # mcps with 'iai mcps create'; a stack never manages them.

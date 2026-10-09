@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 )
 
 // StackDiff holds the result of comparing two StackConfig values.
@@ -18,11 +19,12 @@ type StackDiff struct {
 	Jobs      ResourceTypeDiff `json:"jobs"`
 }
 
-// ResourceTypeDiff records which resources were created, updated, or deleted.
+// ResourceTypeDiff lists predicted creates, updates, deletes, and plans awaiting their dependencies.
 type ResourceTypeDiff struct {
-	Created []string         `json:"created"`
-	Updated []ResourceChange `json:"updated"`
-	Deleted []string         `json:"deleted"`
+	Created  []string            `json:"created"`
+	Updated  []ResourceChange    `json:"updated"`
+	Deleted  []string            `json:"deleted"`
+	Deferred map[string][]string `json:"deferred,omitempty"` // Resource names and changing MCP dependencies; validation and update decisions are deferred.
 }
 
 // ResourceChange describes a resource that differs between local and live.
@@ -43,39 +45,29 @@ type fieldChange struct {
 	new  string
 }
 
-func DiffStackConfigs(local, live *StackConfig) *StackDiff {
-	d := &StackDiff{StackID: live.StackId}
-	d.Services = diffResourceMap(
-		local.Services, live.Services,
-		func(a, b ServiceConfig) []fieldChange { return diffFields(a, b) },
-	)
-	d.Agents = diffResourceMap(
-		local.Agents, live.Agents,
-		func(a, b AgentConfig) []fieldChange { return diffFields(a, b) },
-	)
-	d.Databases = diffResourceMap(
-		local.Databases, live.Databases,
-		func(a, b DatabaseConfig) []fieldChange { return diffFields(a, b) },
-	)
-	d.Mcps = diffResourceMap(
-		local.Mcps, live.Mcps,
-		func(a, b McpConfig) []fieldChange { return diffFields(a, b) },
-	)
-	d.Jobs = diffResourceMap(
-		local.Jobs, live.Jobs,
-		func(a, b JobConfig) []fieldChange { return diffFields(jobDiffView(a), jobDiffView(b)) },
-	)
+// DiffStackConfigs lists planned changes and deferred resources, with field changes for each update.
+func DiffStackConfigs(plan *StackPlan, live *StackConfig) *StackDiff {
+	d := &StackDiff{StackID: plan.StackId}
+	d.Services = diffResourceMap(plan.Services, live.Services,
+		func(a, b ServiceConfig) []fieldChange { return diffFields(a, b) })
+	d.Agents = diffResourceMap(plan.Agents, live.Agents,
+		func(a, b AgentConfig) []fieldChange { return diffFields(a, b) })
+	d.Databases = diffResourceMap(plan.Databases, live.Databases,
+		func(a, b DatabaseConfig) []fieldChange { return diffFields(a, b) })
+	d.Mcps = diffResourceMap(plan.Mcps, live.Mcps,
+		func(a, b McpConfig) []fieldChange { return diffFields(a, b) })
+	d.Jobs = diffResourceMap(plan.Jobs, live.Jobs,
+		func(a, b JobConfig) []fieldChange { return diffFields(jobDiffView(a), jobDiffView(b)) })
 	return d
 }
 
-// jobDiffView compares file contents by digest; live jobs have no file paths.
+// jobDiffView hashes file contents for display; updated jobs come from server responses without file paths.
 func jobDiffView(job JobConfig) any {
 	view := struct {
 		JobConfig
 		Script    string `json:"script,omitempty"`
 		Pyproject string `json:"pyproject,omitempty"`
 	}{JobConfig: job}
-	view.ScriptFile, view.PyprojectFile = "", ""
 	if job.Type == "script" {
 		view.Script, view.Pyproject = contentDigest(job.Script), contentDigest(job.Pyproject)
 	}
@@ -89,19 +81,20 @@ func contentDigest(contents string) string {
 
 func (d *StackDiff) HasChanges() bool {
 	return len(d.Services.Created)+len(d.Services.Updated)+len(d.Services.Deleted)+
-		len(d.Agents.Created)+len(d.Agents.Updated)+len(d.Agents.Deleted)+
+		len(d.Agents.Created)+len(d.Agents.Updated)+len(d.Agents.Deleted)+len(d.Agents.Deferred)+
 		len(d.Databases.Created)+len(d.Databases.Updated)+len(d.Databases.Deleted)+
 		len(d.Mcps.Created)+len(d.Mcps.Updated)+len(d.Mcps.Deleted)+
 		len(d.Jobs.Created)+len(d.Jobs.Updated)+len(d.Jobs.Deleted) > 0
 }
 
 func diffResourceMap[T any](
-	local, live map[string]T,
+	plan ResourcePlan[T],
+	live map[string]T,
 	fieldDiffs func(a, b T) []fieldChange,
 ) ResourceTypeDiff {
-	var d ResourceTypeDiff
+	d := ResourceTypeDiff{Deferred: plan.Deferred}
 
-	for name := range local {
+	for name := range plan.Desired {
 		if _, ok := live[name]; !ok {
 			d.Created = append(d.Created, name)
 		}
@@ -109,23 +102,18 @@ func diffResourceMap[T any](
 	sort.Strings(d.Created)
 
 	for name := range live {
-		if _, ok := local[name]; !ok {
+		if _, ok := plan.Desired[name]; !ok {
 			d.Deleted = append(d.Deleted, name)
 		}
 	}
 	sort.Strings(d.Deleted)
 
-	for name := range local {
-		if liveVal, ok := live[name]; ok {
-			changes := fieldDiffs(liveVal, local[name])
-			if len(changes) > 0 {
-				rc := ResourceChange{Name: name, Changes: make(map[string]FieldDiff)}
-				for _, ch := range changes {
-					rc.Changes[ch.path] = FieldDiff{Old: ch.old, New: ch.new}
-				}
-				d.Updated = append(d.Updated, rc)
-			}
+	for name := range plan.Changed {
+		rc := ResourceChange{Name: name, Changes: make(map[string]FieldDiff)}
+		for _, ch := range fieldDiffs(live[name], plan.Desired[name]) {
+			rc.Changes[ch.path] = FieldDiff{Old: ch.old, New: ch.new}
 		}
+		d.Updated = append(d.Updated, rc)
 	}
 	sort.Slice(d.Updated, func(i, j int) bool {
 		return d.Updated[i].Name < d.Updated[j].Name
@@ -136,7 +124,8 @@ func diffResourceMap[T any](
 
 func PrintStackDiffDetailed(
 	out io.Writer,
-	local, live *StackConfig,
+	plan *StackPlan,
+	live *StackConfig,
 	d *StackDiff,
 ) error {
 	if !d.HasChanges() {
@@ -149,19 +138,19 @@ func PrintStackDiffDetailed(
 	// Re-computes diffFields for display ordering; the sorted
 	// []fieldChange gives stable human output unlike the map in ResourceChange.
 	printSection(out, "service", d.Services, func(name string) []fieldChange {
-		return diffFields(live.Services[name], local.Services[name])
+		return diffFields(live.Services[name], plan.Services.Desired[name])
 	})
 	printSection(out, "agent", d.Agents, func(name string) []fieldChange {
-		return diffFields(live.Agents[name], local.Agents[name])
+		return diffFields(live.Agents[name], plan.Agents.Desired[name])
 	})
 	printSection(out, "database", d.Databases, func(name string) []fieldChange {
-		return diffFields(live.Databases[name], local.Databases[name])
+		return diffFields(live.Databases[name], plan.Databases.Desired[name])
 	})
 	printSection(out, "mcp", d.Mcps, func(name string) []fieldChange {
-		return diffFields(live.Mcps[name], local.Mcps[name])
+		return diffFields(live.Mcps[name], plan.Mcps.Desired[name])
 	})
 	printSection(out, "job", d.Jobs, func(name string) []fieldChange {
-		return diffFields(jobDiffView(live.Jobs[name]), jobDiffView(local.Jobs[name]))
+		return diffFields(jobDiffView(live.Jobs[name]), jobDiffView(plan.Jobs.Desired[name]))
 	})
 
 	return nil
@@ -192,6 +181,16 @@ func printSection(
 	for _, name := range d.Deleted {
 		fmt.Fprintf(out, "\n  - %s %s (delete)\n", kind, name)
 	}
+
+	var deferred []string
+	for name := range d.Deferred {
+		deferred = append(deferred, name)
+	}
+	sort.Strings(deferred)
+	for _, name := range deferred {
+		fmt.Fprintf(out, "\n  ? %s %s (plan deferred; changing mcps: %s)\n",
+			kind, name, strings.Join(d.Deferred[name], ", "))
+	}
 }
 
 // diffFields returns a sorted list of field-level changes between two config
@@ -206,9 +205,6 @@ func diffFields(live, local any) []fieldChange {
 	for k, v := range localMap {
 		oldV, exists := liveMap[k]
 		if !exists {
-			if k == "version" {
-				continue
-			}
 			changes = append(changes, fieldChange{path: k, new: v})
 		} else if oldV != v {
 			changes = append(changes, fieldChange{path: k, old: oldV, new: v})
@@ -246,6 +242,9 @@ func toFlatMap(v any) map[string]string {
 func flatten(out map[string]string, prefix string, v any) {
 	switch val := v.(type) {
 	case map[string]any:
+		if prefix != "" && len(val) == 0 {
+			out[prefix] = "{}"
+		}
 		keys := make([]string, 0, len(val))
 		for k := range val {
 			keys = append(keys, k)
@@ -259,6 +258,9 @@ func flatten(out map[string]string, prefix string, v any) {
 			flatten(out, childPrefix, val[k])
 		}
 	case []any:
+		if prefix != "" && len(val) == 0 {
+			out[prefix] = "[]"
+		}
 		for i, item := range val {
 			childPrefix := fmt.Sprintf("%s[%d]", prefix, i)
 			flatten(out, childPrefix, item)

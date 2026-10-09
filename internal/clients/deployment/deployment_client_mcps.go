@@ -210,12 +210,12 @@ func (c *DeploymentClient) CreateMcp(
 	return clients.ExtractServerMessage(respBody), nil
 }
 
-// PutMcp fully replaces an MCP's spec; a credential change rotates the Secret and restarts the MCP and every attached agent.
+// PutMcp fully replaces an MCP's spec and reports whether anything changed; a credential change rotates the Secret and restarts the MCP and every attached agent.
 func (c *DeploymentClient) PutMcp(
 	ctx context.Context,
 	orgId, projectId, mcpName string,
 	body CreateMcpBody,
-) (string, error) {
+) (bool, error) {
 	respBody, err := c.sendJSONRequest(
 		ctx,
 		http.MethodPut,
@@ -223,9 +223,27 @@ func (c *DeploymentClient) PutMcp(
 		body,
 	)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return decodeMcpUpdateMessage(respBody), nil
+	return decodeChanged(respBody), nil
+}
+
+// PlanMcp asks what PutMcp would do without applying it.
+func (c *DeploymentClient) PlanMcp(
+	ctx context.Context,
+	orgId, projectId, mcpName string,
+	body CreateMcpBody,
+) (*Plan[DescribeMcpResponse], error) {
+	respBody, err := c.sendJSONRequest(
+		ctx,
+		http.MethodPut,
+		dryRunPath(mcpsPath(orgId, projectId, mcpName)),
+		body,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return decodePlan[DescribeMcpResponse](respBody)
 }
 
 // PatchMcp applies a partial update; a credential change rotates the Secret and restarts the MCP and every attached agent.
@@ -246,7 +264,7 @@ func (c *DeploymentClient) PatchMcp(
 	return decodeMcpUpdateMessage(respBody), nil
 }
 
-// decodeMcpUpdateMessage handles PutMcp/PatchMcp's optional {restarted: [...]} on top of the usual {message, warning}.
+// decodeMcpUpdateMessage handles PatchMcp's optional {restarted: [...]} on top of the usual {message, warning}.
 func decodeMcpUpdateMessage(respBody []byte) string {
 	var result map[string]any
 	if jsonErr := json.Unmarshal(respBody, &result); jsonErr == nil {

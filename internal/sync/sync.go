@@ -13,6 +13,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 )
@@ -30,12 +31,14 @@ type Result struct {
 	Created   []string
 	Updated   []string
 	Deleted   []string
-	Protected []string // would be deleted but deletion was not allowed
+	Protected []string            // would be deleted but deletion was not allowed
+	Deferred  map[string][]string // Agent names and changing MCP dependencies; their plans need a later check.
 }
 
 type Options struct {
 	AllowDelete bool
 	DryRun      bool
+	PendingMcps []string
 }
 
 func HasServices(
@@ -178,8 +181,24 @@ func PrintPlan(out io.Writer, label string, result *Result) {
 			label,
 		)
 	}
+
+	var deferred []string
+	for name := range result.Deferred {
+		deferred = append(deferred, name)
+	}
+	sort.Strings(deferred)
+	for _, name := range deferred {
+		fmt.Fprintf(
+			out,
+			"Plan deferred for %s %s: changing mcps: %s; check again after those changes.\n",
+			label,
+			name,
+			strings.Join(result.Deferred[name], ", "),
+		)
+	}
+
 	if len(result.Created) == 0 && len(result.Updated) == 0 &&
-		len(result.Deleted) == 0 && len(result.Protected) == 0 {
+		len(result.Deleted) == 0 && len(result.Protected) == 0 && len(result.Deferred) == 0 {
 		fmt.Fprintf(out, "No changes required; %s already match config.\n", label)
 	}
 }
@@ -218,9 +237,15 @@ func Services(
 				_, err := deployClient.CreateService(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateServiceBody) error {
-				_, err := deployClient.PutService(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateServiceBody) (bool, error) {
+				return deployClient.PutService(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateServiceBody) (bool, error) {
+				plan, err := deployClient.PlanService(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
@@ -255,21 +280,46 @@ func Agents(
 		existingByName[a.Name] = a
 	}
 
+	var deferred map[string][]string
+	if opts.DryRun {
+		deferred = make(map[string][]string)
+		for name, body := range desired {
+			if _, exists := existingByName[name]; !exists {
+				continue
+			}
+			if pending := inputs.PendingMcpRefs(
+				body.AgentConfig,
+				opts.PendingMcps,
+			); len(
+				pending,
+			) > 0 {
+				deferred[name] = pending
+			}
+		}
+	}
+
 	return syncResources(
 		warnW,
 		existingByName,
 		desired,
 		opts,
 		resourceOps[deployment.AgentOutput, deployment.CreateAgentBody]{
+			deferred:  deferred,
 			resource:  "agent",
 			allowFlag: "agents",
 			create: func(name string, body deployment.CreateAgentBody) error {
 				_, err := deployClient.CreateAgent(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateAgentBody) error {
-				_, err := deployClient.PutAgent(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateAgentBody) (bool, error) {
+				return deployClient.PutAgent(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateAgentBody) (bool, error) {
+				plan, err := deployClient.PlanAgent(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteAgent(ctx, orgId, projectId, name)
@@ -316,9 +366,15 @@ func Databases(
 				_, err := deployClient.CreateDatabase(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateDatabaseBody) error {
-				_, err := deployClient.PutDatabase(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateDatabaseBody) (bool, error) {
+				return deployClient.PutDatabase(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateDatabaseBody) (bool, error) {
+				plan, err := deployClient.PlanDatabase(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteDatabase(ctx, orgId, projectId, name)
@@ -328,7 +384,7 @@ func Databases(
 	)
 }
 
-// Mcps syncs self-hosted MCPs on the deployment operator and remote MCPs on the platform, which owns them.
+// Mcps syncs self-hosted MCPs and remote MCPs, which the platform owns.
 func Mcps(
 	ctx context.Context,
 	warnW io.Writer,
@@ -394,7 +450,7 @@ func Mcps(
 	)
 	if len(typeChanged) > 0 {
 		return nil, fmt.Errorf(
-			"mcps %s exist live with another type or as legacy remote mcps on the deployment operator; "+
+			"mcps %s exist live with another type or as legacy remote mcps in the project; "+
 				"omit them from the config, sync with --allow-delete mcps, then add them back",
 			strings.Join(typeChanged, ", "),
 		)
@@ -421,16 +477,15 @@ func Mcps(
 				_, err := deployClient.CreateMcp(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateMcpBody) error {
-				authType := body.Auth.Type
-				if authType == "" {
-					authType = existingByName[name].Auth.Type
+			update: func(name string, body deployment.CreateMcpBody) (bool, error) {
+				return deployClient.PutMcp(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateMcpBody) (bool, error) {
+				plan, err := deployClient.PlanMcp(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
 				}
-				if err := requireMcpCredential(name, authType, body.Auth.Credential); err != nil {
-					return err
-				}
-				_, err := deployClient.PutMcp(ctx, orgId, projectId, name, body)
-				return err
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteMcp(ctx, orgId, projectId, name, false)
@@ -485,13 +540,18 @@ func Mcps(
 					name,
 				)
 			},
-			update: func(name string, body platform.McpCreateRequest) error {
+			update: func(name string, body platform.McpCreateRequest) (bool, error) {
 				patch, err := remoteMcpPatch(name, remoteByName[name], body)
 				if err != nil || len(patch) == 0 {
-					return err
+					return false, err
 				}
 				_, _, err = apiClient.UpdateMcp(ctx, orgId, projectId, name, patch)
-				return err
+				return err == nil, err
+			},
+			// The platform has no dry run; the patch it would receive decides.
+			plan: func(name string, body platform.McpCreateRequest) (bool, error) {
+				patch, err := remoteMcpPatch(name, remoteByName[name], body)
+				return len(patch) > 0, err
 			},
 			delete: func(name string) error {
 				_, _, err := apiClient.DeleteMcp(ctx, orgId, projectId, name)
@@ -587,7 +647,7 @@ func remoteMcpPatch(
 		)
 	}
 	patch := platform.McpUpdateRequest{}
-	if body.EndpointURL != nil {
+	if body.EndpointURL != nil && *body.EndpointURL != str(live.EndpointURL) {
 		patch["endpoint_url"] = *body.EndpointURL
 	}
 	authType, credential := string(body.Auth.Type), str(body.Auth.Credential)
@@ -598,6 +658,12 @@ func remoteMcpPatch(
 			return patch, nil
 		}
 		return nil, requireMcpCredential(name, authType, credential)
+	}
+	if credential == "" && !live.HasCredential &&
+		authType == cmp.Or(str(live.AuthType), string(platform.McpAuthNone)) &&
+		(body.CatalogID != nil || (str(body.Auth.HeaderName) == str(live.AuthHeaderName) &&
+			str(body.Auth.HeaderPrefix) == str(live.AuthHeaderPrefix))) {
+		return patch, nil
 	}
 	auth := map[string]any{"type": authType}
 	if credential != "" {
@@ -712,9 +778,15 @@ func Jobs(
 				_, err := deployClient.CreateJob(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateJobBody) error {
-				_, err := deployClient.PutJob(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateJobBody) (bool, error) {
+				return deployClient.PutJob(ctx, orgId, projectId, name, body)
+			},
+			plan: func(name string, body deployment.CreateJobBody) (bool, error) {
+				plan, err := deployClient.PlanJob(ctx, orgId, projectId, name, body)
+				if err != nil {
+					return false, err
+				}
+				return plan.Changed, nil
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteJob(ctx, orgId, projectId, name)
@@ -731,9 +803,21 @@ type resourceOps[E, B any] struct {
 	resource  string
 	allowFlag string
 	create    func(name string, body B) error
-	update    func(name string, body B) error
-	delete    func(name string) error
-	banner    func(w io.Writer, existing E)
+	// update replaces the live resource and reports whether the server changed it.
+	update func(name string, body B) (bool, error)
+	// plan reports whether update would change the live resource, without applying it.
+	plan     func(name string, body B) (bool, error)
+	delete   func(name string) error
+	banner   func(w io.Writer, existing E)
+	deferred map[string][]string
+}
+
+// selectUpdate chooses planning or applying together with its error context.
+func selectUpdate[T any](dryRun bool, apply, plan T) (T, string) {
+	if dryRun {
+		return plan, "plan update for"
+	}
+	return apply, "update"
 }
 
 func syncResources[E, B any](
@@ -743,7 +827,7 @@ func syncResources[E, B any](
 	opts Options,
 	ops resourceOps[E, B],
 ) (*Result, error) {
-	result := &Result{}
+	result := &Result{Deferred: ops.deferred}
 
 	var toDelete []string
 	for name := range existingByName {
@@ -768,7 +852,8 @@ func syncResources[E, B any](
 
 	for _, name := range desiredNames {
 		body := desired[name]
-		if existing, exists := existingByName[name]; !exists {
+		existing, exists := existingByName[name]
+		if !exists {
 			if !opts.DryRun {
 				if err := ops.create(name, body); err != nil {
 					return result, fmt.Errorf(
@@ -777,19 +862,24 @@ func syncResources[E, B any](
 				}
 			}
 			result.Created = append(result.Created, name)
-		} else {
-			if !opts.DryRun {
-				if ops.banner != nil {
-					ops.banner(warnW, existing)
-				}
-				if err := ops.update(name, body); err != nil {
-					return result, fmt.Errorf(
-						"failed to update %s %q: %w", ops.resource, name, err,
-					)
-				}
-			}
-			result.Updated = append(result.Updated, name)
+			continue
 		}
+		if len(result.Deferred[name]) > 0 {
+			continue
+		}
+
+		update, action := selectUpdate(opts.DryRun, ops.update, ops.plan)
+		changed, err := update(name, body)
+		if err != nil {
+			return result, fmt.Errorf("failed to %s %s %q: %w", action, ops.resource, name, err)
+		}
+		if !changed {
+			continue
+		}
+		if ops.banner != nil && !opts.DryRun {
+			ops.banner(warnW, existing)
+		}
+		result.Updated = append(result.Updated, name)
 	}
 
 	for _, name := range toDelete {

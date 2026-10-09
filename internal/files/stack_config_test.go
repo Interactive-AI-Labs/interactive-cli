@@ -1078,6 +1078,41 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 			},
 		},
 		{
+			name: "self-hosted bearer does not export implied headers as custom overrides",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type: "self-hosted",
+					Auth: deployment.McpAuthInfo{
+						Type:         "bearer",
+						Header:       "Authorization",
+						HeaderPrefix: "Bearer ",
+					},
+				},
+			},
+			want: McpConfig{Type: "self-hosted", Auth: deployment.McpAuthBody{Type: "bearer"}},
+		},
+		{
+			name: "self-hosted custom auth keeps its routing",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type: "self-hosted",
+					Auth: deployment.McpAuthInfo{
+						Type:         "custom",
+						Header:       "X-Token",
+						HeaderPrefix: "Token ",
+					},
+				},
+			},
+			want: McpConfig{
+				Type: "self-hosted",
+				Auth: deployment.McpAuthBody{
+					Type:         "custom",
+					Header:       "X-Token",
+					HeaderPrefix: "Token ",
+				},
+			},
+		},
+		{
 			name: "self-hosted type is exported as is",
 			desc: &deployment.DescribeMcpResponse{
 				McpOutput: deployment.McpOutput{

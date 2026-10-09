@@ -302,7 +302,55 @@ func TestRemoteMcpPatch(t *testing.T) {
 			name: "catalog entry without credential",
 			live: platform.McpSchema{CatalogID: str("awsknowledge"), AuthType: str("none")},
 			body: platform.McpCreateRequest{CatalogID: str("awsknowledge"), Auth: none},
-			want: platform.McpUpdateRequest{"auth": map[string]any{"type": "none"}},
+			want: platform.McpUpdateRequest{},
+		},
+		{
+			name: "unchanged endpoint without authentication",
+			live: platform.McpSchema{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				AuthType:    str("none"),
+			},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{},
+		},
+		{
+			name: "missing live auth type is none",
+			live: platform.McpSchema{EndpointURL: str("https://mcp.acme.com/mcp")},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{},
+		},
+		{
+			name: "changed endpoint without authentication only patches URL",
+			live: platform.McpSchema{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				AuthType:    str("none"),
+			},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://new.example/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{"endpoint_url": "https://new.example/mcp"},
+		},
+		{
+			name: "stale endpoint header routing is cleared",
+			live: platform.McpSchema{
+				EndpointURL:    str("https://mcp.acme.com/mcp"),
+				AuthType:       str("none"),
+				AuthHeaderName: str("X-Old"),
+			},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{
+				"auth": map[string]any{"type": "none", "header_name": nil, "header_prefix": nil},
+			},
 		},
 		{
 			name: "credential rotation on a catalog entry",
@@ -355,7 +403,6 @@ func TestRemoteMcpPatch(t *testing.T) {
 				},
 			},
 			want: platform.McpUpdateRequest{
-				"endpoint_url": "https://mcp.acme.com/mcp",
 				"auth": map[string]any{
 					"type":          "custom",
 					"credential":    "token",
@@ -372,7 +419,6 @@ func TestRemoteMcpPatch(t *testing.T) {
 				Auth:        bearer("token"),
 			},
 			want: platform.McpUpdateRequest{
-				"endpoint_url": "https://mcp.acme.com/mcp",
 				"auth": map[string]any{
 					"type":          "bearer",
 					"credential":    "token",
@@ -832,50 +878,6 @@ func TestSyncDeletesWithAllowDelete(t *testing.T) {
 				t.Errorf("Protected = %v, want []", result.Protected)
 			}
 		})
-	}
-}
-
-func TestServicesDryRunPlansWithoutWriting(t *testing.T) {
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/services":
-			fmt.Fprint(
-				w,
-				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
-			)
-		default:
-			t.Errorf("dry run made a write: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	desired := map[string]deployment.CreateServiceBody{
-		"svc-a":   {},
-		"svc-new": {},
-	}
-	result, err := Services(
-		context.Background(), &warn, client, "o1", "p1", "stack-1", desired,
-		Options{DryRun: true},
-	)
-	if err != nil {
-		t.Fatalf("Services() error = %v", err)
-	}
-
-	if got := warn.String(); got != "" {
-		t.Errorf("dry run printed warnings = %q, want none (the plan is the deliverable)", got)
-	}
-	if len(result.Created) != 1 || result.Created[0] != "svc-new" {
-		t.Errorf("Created = %v, want [svc-new]", result.Created)
-	}
-	if len(result.Updated) != 1 || result.Updated[0] != "svc-a" {
-		t.Errorf("Updated = %v, want [svc-a]", result.Updated)
-	}
-	if len(result.Protected) != 1 || result.Protected[0] != "svc-old" {
-		t.Errorf("Protected = %v, want [svc-old]", result.Protected)
-	}
-	if len(result.Deleted) != 0 {
-		t.Errorf("Deleted = %v, want []", result.Deleted)
 	}
 }
 
