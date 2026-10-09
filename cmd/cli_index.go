@@ -57,7 +57,7 @@ func commandIndex(root *cobra.Command, version string) string {
 	fmt.Fprintf(
 		&b,
 		"%s v%s: `%s <group> <subcommand> [flags]`. Commands and flags not listed do not exist; "+
-			"--organization, --project and --columns are left out.\n",
+			"global flags, --organization, --project and --columns are left out.\n",
 		root.Name(), version, root.Name(),
 	)
 	b.WriteString(
@@ -140,7 +140,11 @@ func indexFlags(c *cobra.Command) []string {
 
 	all.VisitAll(func(f *pflag.Flag) {
 		if !f.Hidden && len(f.Annotations[cobra.BashCompOneRequiredFlag]) > 0 {
-			out = append(out, "--"+f.Name+" (required)")
+			note := "required"
+			if n := flagNote(f); n != "" {
+				note += "; " + n
+			}
+			out = append(out, "--"+f.Name+" ("+note+")")
 			shown[f.Name] = true
 		}
 	})

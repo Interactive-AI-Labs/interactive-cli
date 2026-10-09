@@ -3,7 +3,7 @@ package cmd
 import "github.com/spf13/cobra"
 
 const (
-	logsSinceUsage = "Relative duration to look back (max 72h, e.g. 30m, 1h, 3d, 1w); default 1h; " +
+	logsSinceUsage = "Relative duration to look back (max 72h, e.g. 30m, 1h, 3d); default 1h; " +
 		"mutually exclusive with --start-time and --end-time"
 	logsStartTimeUsage = "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); " +
 		"mutually exclusive with --since; max 72h window"
