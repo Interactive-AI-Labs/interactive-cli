@@ -237,7 +237,7 @@ func (c *DeploymentClient) PlanMcp(
 	respBody, err := c.sendJSONRequest(
 		ctx,
 		http.MethodPut,
-		mcpsPath(orgId, projectId, mcpName)+"?dryRun=true",
+		dryRunPath(mcpsPath(orgId, projectId, mcpName)),
 		body,
 	)
 	if err != nil {

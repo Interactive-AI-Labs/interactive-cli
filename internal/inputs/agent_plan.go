@@ -6,6 +6,7 @@ import (
 )
 
 // PendingMcpRefs lists changing MCP references that prevent planning an agent against live state.
+// Dependency lookup follows the server: only bare names and ref attach an MCP, not an inline entry's id.
 func PendingMcpRefs(agentConfig any, changing []string) []string {
 	config, _ := agentConfig.(map[string]any)
 	entries, _ := config["mcps"].([]any)

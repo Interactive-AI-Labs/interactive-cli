@@ -45,6 +45,24 @@ func TestPendingMcpRefs(t *testing.T) {
 			want:     []string{"tools"},
 		},
 		{
+			name:     "id alone is not an MCP reference",
+			config:   map[string]any{"mcps": []any{map[string]any{"id": "tools"}}},
+			changing: []string{"tools"},
+		},
+		{
+			name: "ref takes precedence over extra inline fields",
+			config: map[string]any{"mcps": []any{map[string]any{
+				"ref": "tools", "id": "prefix", "hostname": "https://example.com",
+			}}},
+			changing: []string{"tools"},
+			want:     []string{"tools"},
+		},
+		{
+			name:     "empty ref does not fall back to id",
+			config:   map[string]any{"mcps": []any{map[string]any{"ref": "", "id": "tools"}}},
+			changing: []string{"tools"},
+		},
+		{
 			name: "inline server is not a reference",
 			config: map[string]any{
 				"mcps": []any{map[string]any{"id": "tools", "hostname": "https://example.com"}},

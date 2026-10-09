@@ -415,6 +415,11 @@ func (c *DeploymentClient) PutService(
 	return decodeChanged(respBody), nil
 }
 
+// dryRunPath marks a query-free resource path as a replacement preview.
+func dryRunPath(path string) string {
+	return path + "?dryRun=true"
+}
+
 // PlanService asks what PutService would do without applying it.
 func (c *DeploymentClient) PlanService(
 	ctx context.Context,
@@ -423,7 +428,7 @@ func (c *DeploymentClient) PlanService(
 	serviceName string,
 	body CreateServiceBody,
 ) (*Plan[DescribeServiceResponse], error) {
-	path := servicePath(orgId, projectId, serviceName) + "?dryRun=true"
+	path := dryRunPath(servicePath(orgId, projectId, serviceName))
 	respBody, err := c.sendServiceUpdate(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, err
@@ -1640,7 +1645,7 @@ func (c *DeploymentClient) PlanAgent(
 	agentName string,
 	body CreateAgentBody,
 ) (*Plan[DescribeAgentResponse], error) {
-	path := agentPath(orgId, projectId, agentName) + "?dryRun=true"
+	path := dryRunPath(agentPath(orgId, projectId, agentName))
 	respBody, err := c.sendAgentUpdate(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, err
@@ -2368,7 +2373,7 @@ func (c *DeploymentClient) PlanDatabase(
 	databaseName string,
 	body CreateDatabaseBody,
 ) (*Plan[DescribeDatabaseResponse], error) {
-	path := databasePath(orgId, projectId, databaseName) + "?dryRun=true"
+	path := dryRunPath(databasePath(orgId, projectId, databaseName))
 	respBody, err := c.sendDatabaseUpdate(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, err

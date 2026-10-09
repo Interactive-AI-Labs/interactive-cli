@@ -154,7 +154,7 @@ func (c *DeploymentClient) PlanJob(
 	orgId, projectId, jobName string,
 	body CreateJobBody,
 ) (*Plan[CreateJobBody], error) {
-	path := jobsPath(orgId, projectId, jobName) + "?dryRun=true"
+	path := dryRunPath(jobsPath(orgId, projectId, jobName))
 	data, err := c.sendJSONRequest(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, err

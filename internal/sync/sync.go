@@ -659,7 +659,8 @@ func remoteMcpPatch(
 		}
 		return nil, requireMcpCredential(name, authType, credential)
 	}
-	if credential == "" && !live.HasCredential && authType == cmp.Or(str(live.AuthType), "none") &&
+	if credential == "" && !live.HasCredential &&
+		authType == cmp.Or(str(live.AuthType), string(platform.McpAuthNone)) &&
 		(body.CatalogID != nil || (str(body.Auth.HeaderName) == str(live.AuthHeaderName) &&
 			str(body.Auth.HeaderPrefix) == str(live.AuthHeaderPrefix))) {
 		return patch, nil
@@ -811,6 +812,14 @@ type resourceOps[E, B any] struct {
 	deferred map[string][]string
 }
 
+// selectUpdate chooses planning or applying together with its error context.
+func selectUpdate[T any](dryRun bool, apply, plan T) (T, string) {
+	if dryRun {
+		return plan, "plan update for"
+	}
+	return apply, "update"
+}
+
 func syncResources[E, B any](
 	warnW io.Writer,
 	existingByName map[string]E,
@@ -859,10 +868,7 @@ func syncResources[E, B any](
 			continue
 		}
 
-		update, action := ops.update, "update"
-		if opts.DryRun {
-			update, action = ops.plan, "plan update for"
-		}
+		update, action := selectUpdate(opts.DryRun, ops.update, ops.plan)
 		changed, err := update(name, body)
 		if err != nil {
 			return result, fmt.Errorf("failed to %s %s %q: %w", action, ops.resource, name, err)

@@ -6,6 +6,52 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestDryRunPath(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{
+			name: "service",
+			path: "/v1/organizations/o/projects/p/services/api",
+			want: "/v1/organizations/o/projects/p/services/api?dryRun=true",
+		},
+		{
+			name: "agent",
+			path: "/v1/organizations/o/projects/p/agents/helper",
+			want: "/v1/organizations/o/projects/p/agents/helper?dryRun=true",
+		},
+		{
+			name: "database",
+			path: "/v1/organizations/o/projects/p/databases/store",
+			want: "/v1/organizations/o/projects/p/databases/store?dryRun=true",
+		},
+		{
+			name: "mcp",
+			path: "/v1/organizations/o/projects/p/mcps/tools",
+			want: "/v1/organizations/o/projects/p/mcps/tools?dryRun=true",
+		},
+		{
+			name: "job",
+			path: "/v1/organizations/o/projects/p/jobs/report",
+			want: "/v1/organizations/o/projects/p/jobs/report?dryRun=true",
+		},
+		{
+			name: "escaped query characters stay in the resource name",
+			path: "/v1/organizations/o/projects/p/services/api%3FdryRun=false",
+			want: "/v1/organizations/o/projects/p/services/api%3FdryRun=false?dryRun=true",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := dryRunPath(tt.path); got != tt.want {
+				t.Fatalf("dryRunPath() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDecodeChanged(t *testing.T) {
 	tests := []struct {
 		name string
