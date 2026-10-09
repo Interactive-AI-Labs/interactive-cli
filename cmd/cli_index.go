@@ -26,12 +26,19 @@ var indexSkipFlags = map[string]bool{
 	"yaml":         true,
 }
 
+var indexFlagErrs []error
+
+// quoted records an error unless help already says note.
+func quoted(where, help, note string) bool {
+	if strings.Contains(strings.ToLower(help), strings.ToLower(note)) {
+		return true
+	}
+	indexFlagErrs = append(indexFlagErrs, fmt.Errorf("%s: help text lacks %q", where, note))
+	return false
+}
+
 func indexCommand(c *cobra.Command, note string) {
-	if !strings.Contains(strings.ToLower(c.Long+" "+c.Short), strings.ToLower(note)) {
-		indexFlagErrs = append(
-			indexFlagErrs,
-			fmt.Errorf("%s: help text lacks %q", c.CommandPath(), note),
-		)
+	if !quoted(c.CommandPath(), c.Long+" "+c.Short, note) {
 		return
 	}
 	if c.Annotations == nil {
@@ -40,22 +47,14 @@ func indexCommand(c *cobra.Command, note string) {
 	c.Annotations[commandNoteAnnotation] = note
 }
 
-var indexFlagErrs []error
-
 func indexFlag(c *cobra.Command, name, note string) {
+	where := c.CommandPath() + " --" + name
 	f := c.Flags().Lookup(name)
-	switch {
-	case f == nil:
-		indexFlagErrs = append(
-			indexFlagErrs,
-			fmt.Errorf("%s --%s: no such flag", c.CommandPath(), name),
-		)
-	case !strings.Contains(strings.ToLower(f.Usage), strings.ToLower(note)):
-		indexFlagErrs = append(
-			indexFlagErrs,
-			fmt.Errorf("%s --%s: help text lacks %q", c.CommandPath(), name, note),
-		)
-	default:
+	if f == nil {
+		indexFlagErrs = append(indexFlagErrs, fmt.Errorf("%s: no such flag", where))
+		return
+	}
+	if quoted(where, f.Usage, note) {
 		_ = c.Flags().SetAnnotation(name, flagNoteAnnotation, []string{note})
 	}
 }
