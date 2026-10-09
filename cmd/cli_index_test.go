@@ -19,6 +19,11 @@ func TestCommandIndex(t *testing.T) {
 			_ = c.Parent().MarkPersistentFlagRequired("db")
 		}, "get [--db (required)]"},
 		{"get", func(c *cobra.Command) {
+			c.Flags().Int("cpu", 0, "CPU (max 7)")
+			_ = c.MarkFlagRequired("cpu")
+			indexLimit(c, "cpu", "max 7")
+		}, "get [--cpu (required; max 7)]"},
+		{"get", func(c *cobra.Command) {
 			c.Flags().String("a", "", "")
 			c.Flags().String("b", "", "")
 			c.MarkFlagsOneRequired("b", "a")
