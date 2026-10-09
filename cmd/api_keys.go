@@ -507,7 +507,7 @@ func init() {
 		StringVar(&routerKeyDescription, "description", "", "Router key description")
 	routerKeysCreateCmd.Flags().
 		Float64Var(&routerKeyLimit, "limit", 0, "Credit limit in USD. If omitted, defaults to $100. Maximum is $2500.")
-	indexLimit(routerKeysCreateCmd, "limit", "Maximum is $2500")
+	indexFlag(routerKeysCreateCmd, "limit", "Maximum is $2500")
 	routerKeysCreateCmd.Flags().
 		StringVar(&routerKeyLimitReset, "limit-reset", "", "Limit reset period: daily, weekly, monthly. If omitted, defaults to monthly.")
 	routerKeysCreateCmd.Flags().

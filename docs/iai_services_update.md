@@ -63,7 +63,7 @@ iai services update <service_name> [flags]
       --clear-stack-id                      Remove the service from its stack
       --cpu string                          CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
       --endpoint                            Expose the service publicly at <service-name>-<project-hash>.interactive.ai
-      --env stringArray                     Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
+      --env stringArray                     Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
       --expect-revision int                 Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated service (opt-in staleness guard)
       --force                               Apply even when the update would drop live env vars or secret refs
       --healthcheck-initial-delay int       Initial delay in seconds before starting healthchecks
@@ -81,7 +81,7 @@ iai services update <service_name> [flags]
       --schedule-downtime string            When the service should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Sat-Sun 00:00-24:00'
       --schedule-timezone string            IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
       --schedule-uptime string              When the service should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Weekdays: Mon, Tue, Wed, Thu, Fri, Sat, Sun (case-insensitive). Times in 24h format; start: 00:00-23:59, end: 00:00-24:00 (24:00 = end of day). Example: 'Mon-Fri 07:30-20:30' or 'Mon-Fri 08:00-18:00, Sat 10:00-14:00'
-      --secret stringArray                  Replace secret references; repeat for every entry to keep; dropping entries requires --force
+      --secret stringArray                  Replaces the secret references; repeat for every entry to keep; dropping entries requires --force
       --stack-id string                     Stack ID to assign the service to
 ```
 

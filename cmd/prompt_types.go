@@ -272,7 +272,9 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 		cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
 	}
-	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
+	cmd.Flags().
+		StringVar(&folder, "folder", "", fmt.Sprintf("List items in a subfolder of %s/ (the %s/ prefix is implied)", ptCfg.Plural, ptCfg.Plural))
+	indexFlag(cmd, "folder", "prefix is implied")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
 	cmd.MarkFlagsMutuallyExclusive("json", "yaml")

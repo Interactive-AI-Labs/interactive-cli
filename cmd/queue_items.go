@@ -334,7 +334,7 @@ func init() {
 	queueItemsListCmd.Flags().
 		IntVar(&queueItemsListPage, "page", 1, "Page number (starts at 1)")
 	queueItemsListCmd.Flags().IntVar(&queueItemsListLimit, "limit", 0, "Items per page (max 100)")
-	indexLimit(queueItemsListCmd, "limit", "max 100")
+	indexFlag(queueItemsListCmd, "limit", "max 100")
 	queueItemsListCmd.Flags().
 		StringVar(&queueItemsListSortBy, "sort-by", "", "Sort by field: created_at, completed_at, status, object_id, updated_at (default: created_at)")
 	queueItemsListCmd.Flags().

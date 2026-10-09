@@ -1084,9 +1084,9 @@ func init() {
 		IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
 
 	servUCmd.Flags().
-		StringArrayVar(&serviceEnvVars, "env", nil, "Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
+		StringArrayVar(&serviceEnvVars, "env", nil, "Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
 	servUCmd.Flags().
-		StringArrayVar(&serviceSecretRefs, "secret", nil, "Replace secret references; repeat for every entry to keep; dropping entries requires --force")
+		StringArrayVar(&serviceSecretRefs, "secret", nil, "Replaces the secret references; repeat for every entry to keep; dropping entries requires --force")
 	servUCmd.Flags().
 		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service publicly at <service-name>-<project-hash>.interactive.ai")
 

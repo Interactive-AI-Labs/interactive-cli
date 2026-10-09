@@ -21,7 +21,7 @@ func TestCommandIndex(t *testing.T) {
 		{"get", func(c *cobra.Command) {
 			c.Flags().Int("cpu", 0, "CPU (max 7)")
 			_ = c.MarkFlagRequired("cpu")
-			indexLimit(c, "cpu", "max 7")
+			indexFlag(c, "cpu", "max 7")
 		}, "get [--cpu (required; max 7)]"},
 		{"get", func(c *cobra.Command) {
 			c.Flags().String("a", "", "")
@@ -42,18 +42,21 @@ func TestCommandIndex(t *testing.T) {
 		{"list", func(c *cobra.Command) {
 			c.Flags().String("from", "", "From (ISO 8601, default: 7 days ago)")
 			c.Flags().Int("limit", 0, "Items per page (max 100)")
-			indexLimit(c, "limit", "max 100")
+			indexFlag(c, "limit", "max 100")
 		}, "list [--from --limit (max 100)]"},
 		{"logs", func(c *cobra.Command) {
 			c.Flags().String("since", "", "Look back (max 72h, e.g. 1h)")
 			c.Flags().Bool("follow", false, "Stream")
-			indexLimit(c, "since", "max 72h")
+			indexFlag(c, "since", "max 72h")
 		}, "logs [--follow --since (max 72h)]"},
 		{"get <id> [rev]", func(*cobra.Command) {}, "get <id> [rev]"},
-		{"get <id>", func(c *cobra.Command) { indexCommand(c, "(no --x)") }, "get <id> (no --x)"},
+		{"get <id>", func(c *cobra.Command) {
+			c.Long = "Takes the id only; there is no --x flag."
+			indexCommand(c, "no --x")
+		}, "get <id> (no --x)"},
 		{"get", func(c *cobra.Command) {
 			c.Flags().Bool("force", false, "")
-			c.Flags().String("env", "", "")
+			c.Flags().String("env", "", "Replaces the env")
 			indexFlag(c, "env", "replaces")
 		}, "get [--env (replaces) --force]"},
 	}

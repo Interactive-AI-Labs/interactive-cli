@@ -209,12 +209,12 @@ func init() {
 		"",
 		"Filter sessions from this timestamp (ISO 8601, default: 7 days ago)",
 	)
-	indexLimit(sessionsListCmd, "from-timestamp", "default: 7 days ago")
+	indexFlag(sessionsListCmd, "from-timestamp", "default: 7 days ago")
 	sessionsListCmd.Flags().
 		StringVar(&sessionsToTimestamp, "to-timestamp", "", "Filter sessions to this timestamp (ISO 8601)")
 	sessionsListCmd.Flags().IntVar(&sessionsPage, "page", 1, "Page number (starts at 1)")
 	sessionsListCmd.Flags().IntVar(&sessionsLimit, "limit", 0, "Items per page (max 100)")
-	indexLimit(sessionsListCmd, "limit", "max 100")
+	indexFlag(sessionsListCmd, "limit", "max 100")
 	sessionsListCmd.Flags().
 		StringVar(&sessionsEnvironment, "environment", "", "Filter by environment")
 	sessionsListCmd.Flags().

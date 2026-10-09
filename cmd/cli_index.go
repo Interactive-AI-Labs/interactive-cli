@@ -27,6 +27,13 @@ var indexSkipFlags = map[string]bool{
 }
 
 func indexCommand(c *cobra.Command, note string) {
+	if !strings.Contains(strings.ToLower(c.Long+" "+c.Short), strings.ToLower(note)) {
+		indexFlagErrs = append(
+			indexFlagErrs,
+			fmt.Errorf("%s: help text lacks %q", c.CommandPath(), note),
+		)
+		return
+	}
 	if c.Annotations == nil {
 		c.Annotations = map[string]string{}
 	}
@@ -36,20 +43,21 @@ func indexCommand(c *cobra.Command, note string) {
 var indexFlagErrs []error
 
 func indexFlag(c *cobra.Command, name, note string) {
-	if err := c.Flags().SetAnnotation(name, flagNoteAnnotation, []string{note}); err != nil {
-		indexFlagErrs = append(indexFlagErrs, fmt.Errorf("%s --%s: %w", c.CommandPath(), name, err))
-	}
-}
-
-func indexLimit(c *cobra.Command, name, limit string) {
-	if f := c.Flags().Lookup(name); f != nil && !strings.Contains(f.Usage, limit) {
+	f := c.Flags().Lookup(name)
+	switch {
+	case f == nil:
 		indexFlagErrs = append(
 			indexFlagErrs,
-			fmt.Errorf("%s --%s: help text lacks %q", c.CommandPath(), name, limit),
+			fmt.Errorf("%s --%s: no such flag", c.CommandPath(), name),
 		)
-		return
+	case !strings.Contains(strings.ToLower(f.Usage), strings.ToLower(note)):
+		indexFlagErrs = append(
+			indexFlagErrs,
+			fmt.Errorf("%s --%s: help text lacks %q", c.CommandPath(), name, note),
+		)
+	default:
+		_ = c.Flags().SetAnnotation(name, flagNoteAnnotation, []string{note})
 	}
-	indexFlag(c, name, limit)
 }
 
 func commandIndex(root *cobra.Command, version string) string {
@@ -79,7 +87,7 @@ func commandIndex(root *cobra.Command, version string) string {
 		for _, leaf := range indexLeaves(group) {
 			path := strings.TrimPrefix(leaf.CommandPath(), group.CommandPath()+" ") + useArgs(leaf)
 			if note := leaf.Annotations[commandNoteAnnotation]; note != "" {
-				path += " " + note
+				path += " (" + note + ")"
 			}
 			subs = append(subs, path+bracket(indexFlags(leaf)))
 		}

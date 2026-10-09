@@ -331,7 +331,7 @@ This command requires Cookie or Bearer authentication; API keys are rejected by 
 func init() {
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
-	indexLimit(queuesListCmd, "limit", "max 100")
+	indexFlag(queuesListCmd, "limit", "max 100")
 	queuesListCmd.Flags().
 		StringVar(&queuesListSortBy, "sort-by", "", "Sort by field: name, description, created_at, updated_at, count_completed_items, count_pending_items (default: created_at)")
 	queuesListCmd.Flags().

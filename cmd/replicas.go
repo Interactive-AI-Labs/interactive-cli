@@ -392,7 +392,7 @@ func init() {
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	replicasLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
-	indexFlag(replicasLogsCmd, "message", "regex filter")
+	indexFlag(replicasLogsCmd, "message", "regular expression")
 
 	// Flags for "replicas log-fields"
 	replicaLogFieldsCmd.Flags().

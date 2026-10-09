@@ -4,7 +4,7 @@ Get a dataset item
 
 ### Synopsis
 
-Get detailed information about a specific dataset item.
+Get detailed information about a specific dataset item. Takes the item id only; there is no --dataset-name flag.
 
 ```
 iai dataset-items get <id> [flags]

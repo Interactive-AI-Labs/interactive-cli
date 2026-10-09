@@ -256,12 +256,12 @@ func init() {
 		"",
 		"Filter scores from this timestamp (ISO 8601, default: 7 days ago)",
 	)
-	indexLimit(scoresListCmd, "from-timestamp", "default: 7 days ago")
+	indexFlag(scoresListCmd, "from-timestamp", "default: 7 days ago")
 	scoresListCmd.Flags().
 		StringVar(&scoresToTimestamp, "to-timestamp", "", "Filter scores to this timestamp (ISO 8601)")
 	scoresListCmd.Flags().StringVar(&scoresCursor, "cursor", "", "Cursor for pagination")
 	scoresListCmd.Flags().IntVar(&scoresLimit, "limit", 0, "Items per page (max 100)")
-	indexLimit(scoresListCmd, "limit", "max 100")
+	indexFlag(scoresListCmd, "limit", "max 100")
 	scoresListCmd.Flags().
 		StringVar(&scoresFields, "fields", "", "Field groups to include (comma-separated)")
 	scoresListCmd.Flags().StringVar(&scoresName, "name", "", "Filter by score name")

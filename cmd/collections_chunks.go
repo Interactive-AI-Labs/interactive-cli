@@ -355,7 +355,7 @@ func init() {
 	_ = chunksUpsertCmd.MarkFlagRequired("file")
 
 	chunksListCmd.Flags().IntVar(&chunkLimit, "limit", 0, "Page size (1-1000, default 100)")
-	indexLimit(chunksListCmd, "limit", "1-1000")
+	indexFlag(chunksListCmd, "limit", "1-1000")
 	chunksListCmd.Flags().
 		StringVar(&chunkCursor, "cursor", "", "Opaque cursor from a previous page")
 	chunksListCmd.Flags().

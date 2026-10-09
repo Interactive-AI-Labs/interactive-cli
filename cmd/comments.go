@@ -217,7 +217,7 @@ func init() {
 		StringVar(&commentsListAuthorUserID, "author-user-id", "", "Filter by author user ID")
 	commentsListCmd.Flags().IntVar(&commentsListPage, "page", 1, "Page number (starts at 1)")
 	commentsListCmd.Flags().IntVar(&commentsListLimit, "limit", 0, "Items per page (max 100)")
-	indexLimit(commentsListCmd, "limit", "max 100")
+	indexFlag(commentsListCmd, "limit", "max 100")
 	commentsListCmd.Flags().
 		StringSliceVar(&commentsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	commentsListCmd.Flags().

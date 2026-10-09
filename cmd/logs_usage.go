@@ -11,7 +11,7 @@ const (
 )
 
 func indexLogsLimits(c *cobra.Command) {
-	indexLimit(c, "since", "max 72h")
-	indexLimit(c, "start-time", "max 72h window")
-	indexLimit(c, "limit", "1-5000")
+	indexFlag(c, "since", "max 72h")
+	indexFlag(c, "start-time", "max 72h window")
+	indexFlag(c, "limit", "1-5000")
 }

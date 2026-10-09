@@ -62,14 +62,14 @@ iai mcps update <mcp_name> [flags]
       --credential-stdin            Read the credential from stdin instead of --credential
       --description string          Human-readable description of the mcp
       --endpoint                    Expose the mcp publicly at <mcp-name>-<project-hash>.interactive.ai (self-hosted)
-      --env stringArray             Environment variable (NAME=VALUE); can be repeated (self-hosted)
+      --env stringArray             Replaces the environment variables (NAME=VALUE); repeat for every entry to keep (self-hosted)
   -h, --help                        help for update
       --image-name string           Container image name (self-hosted)
       --image-tag string            Container image tag (self-hosted)
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
       --port int                    Port the mcp's own server listens on (self-hosted, default 3000)
-      --secret stringArray          Existing project secret whose keys become environment variables; repeatable (self-hosted)
+      --secret stringArray          Replaces the secret references; repeat for every entry to keep (self-hosted)
       --stack-id string             Stack ID to assign the mcp to (self-hosted)
 ```
 
