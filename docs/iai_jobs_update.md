@@ -36,7 +36,7 @@ iai jobs update <job_name> [flags]
       --clear-stack-id                    Remove the job from its stack
       --command stringArray               Replace the entrypoint; repeat for every argument to keep; image jobs only
       --cpu string                        CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)
-      --env stringArray                   Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
+      --env stringArray                   Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
       --expect-revision int               Require this live revision before updating; also fail if the revision cannot be fetched
       --force                             Allow --env/--secret to drop live entries; --clear-env/--clear-secret need no override. Drop checks are skipped if live state cannot be fetched
   -h, --help                              help for update
@@ -53,7 +53,7 @@ iai jobs update <job_name> [flags]
       --schedule string                   Five-field cron schedule or calendar shortcut (e.g. '0 2 * * *', '@daily')
       --schedule-timezone string          IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC)
       --script string                     Replace the script from a local file; combined with the new or retained project file, maximum 350,000 bytes
-      --secret stringArray                Replace secret references; repeat for every entry to keep; dropping entries requires --force
+      --secret stringArray                Replaces the secret references; repeat for every entry to keep; dropping entries requires --force
       --stack-id string                   Stack ID to assign the job to
       --timeout int                       Run time budget in seconds (1-21600, max 6h), including startup, dependency installation, and all retries; unchanged when omitted
       --type string                       Job type: 'image' or 'script'; clears the old type's fields; supply the new type's inputs

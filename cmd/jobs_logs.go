@@ -172,13 +172,13 @@ func init() {
 			&jobLogsSince,
 			"since",
 			"",
-			"Relative lookback (e.g. 30m, 1h, 3d); default 1h, maximum 3d; cannot combine with --start-time/--end-time",
+			logsSinceUsage,
 		)
 		flags.StringVar(
 			&jobLogsStartTime,
 			"start-time",
 			"",
-			"Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window",
+			logsStartTimeUsage,
 		)
 		flags.StringVar(
 			&jobLogsEndTime,
@@ -209,8 +209,9 @@ func init() {
 		flags.BoolVar(&jobLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 		flags.IntVar(
 			&jobLogsLimit, "limit", 0,
-			"Maximum entries (1-5000, default 1000); with --follow, limits only the initial batch",
+			logsLimitUsage+"; with --follow, limits only the initial batch",
 		)
+		indexLogsLimits(cmd)
 		cmd.MarkFlagsMutuallyExclusive("raw", "fields")
 		cmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 		cmd.MarkFlagsMutuallyExclusive("decode", "fields")

@@ -132,6 +132,7 @@ var modelsGetCmd = &cobra.Command{
 func init() {
 	modelsListCmd.Flags().IntVar(&modelsListPage, "page", 0, "Page number (0-indexed)")
 	modelsListCmd.Flags().IntVar(&modelsListLimit, "limit", 50, "Items per page (max 100)")
+	indexFlag(modelsListCmd, "limit", "max 100")
 	modelsListCmd.Flags().StringVar(&modelsListSearch, "search", "", "Search filter")
 	modelsListCmd.Flags().StringVar(&modelsListRegion, "region", "", "Filter by region (us|eu)")
 	modelsListCmd.Flags().

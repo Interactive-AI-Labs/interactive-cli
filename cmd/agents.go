@@ -1068,9 +1068,9 @@ func init() {
 	agentUpdateCmd.Flags().
 		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai")
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+		StringArrayVar(&agentEnvVars, "env", nil, "Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentSecretRefs, "secret", nil, "Secret to inject as environment variables; can be repeated")
+		StringArrayVar(&agentSecretRefs, "secret", nil, "Replaces the secret references; repeat for every entry to keep; dropping entries requires --force")
 	agentUpdateCmd.Flags().
 		StringVar(&agentScheduleUptime, "schedule-uptime", "", "When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'")
 	agentUpdateCmd.Flags().
@@ -1102,6 +1102,8 @@ func init() {
 		BoolVar(&agentShowDiff, "show-diff", false, "Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentForce, "force", false, "Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs")
+	indexFlag(agentUpdateCmd, "env", "replaces")
+	indexFlag(agentUpdateCmd, "secret", "replaces")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().
@@ -1166,9 +1168,9 @@ func init() {
 	agentLogsCmd.Flags().
 		BoolVarP(&agentLogsFollow, "follow", "f", false, "Stream new log entries as they arrive; mutually exclusive with --end-time")
 	agentLogsCmd.Flags().
-		StringVar(&agentLogsSince, "since", "", "Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time")
+		StringVar(&agentLogsSince, "since", "", logsSinceUsage)
 	agentLogsCmd.Flags().
-		StringVar(&agentLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+		StringVar(&agentLogsStartTime, "start-time", "", logsStartTimeUsage)
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	agentLogsCmd.Flags().
@@ -1182,7 +1184,8 @@ func init() {
 	agentLogsCmd.Flags().
 		BoolVar(&agentLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	agentLogsCmd.Flags().
-		IntVar(&agentLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
+		IntVar(&agentLogsLimit, "limit", 0, logsLimitUsage)
+	indexLogsLimits(agentLogsCmd)
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

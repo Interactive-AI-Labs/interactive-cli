@@ -126,10 +126,12 @@ func init() {
 		"",
 		"Filter metrics from this timestamp (ISO 8601, default: 7 days ago)",
 	)
+	indexFlag(metricsListCmd, "from-timestamp", "default: 7 days ago")
 	metricsListCmd.Flags().
 		StringVar(&metricsListToTimestamp, "to-timestamp", "", "Filter metrics to this timestamp (ISO 8601)")
 	metricsListCmd.Flags().IntVar(&metricsListPage, "page", 1, "Page number (starts at 1)")
 	metricsListCmd.Flags().IntVar(&metricsListLimit, "limit", 0, "Items per page (max 365)")
+	indexFlag(metricsListCmd, "limit", "max 365")
 	metricsListCmd.Flags().
 		StringVar(&metricsListTraceName, "trace-name", "", "Filter by trace name")
 	metricsListCmd.Flags().StringVar(&metricsListUserID, "user-id", "", "Filter by user ID")

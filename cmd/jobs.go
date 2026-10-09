@@ -349,6 +349,7 @@ func init() {
 		0,
 		"Run time budget in seconds (1-21600, max 6h), including startup, dependency installation, and all retries; server default: 3600 seconds",
 	)
+	indexFlag(jobCreateCmd, "timeout", "1-21600, max 6h")
 	flags.Int32Var(
 		&jobRetries,
 		"retries",

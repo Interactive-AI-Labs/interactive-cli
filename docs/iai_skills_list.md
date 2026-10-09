@@ -32,7 +32,7 @@ iai skills list [flags]
 ### Options
 
 ```
-      --folder string         List items inside the given folder path
+      --folder string         List items in a subfolder of skills/ (the skills/ prefix is implied)
   -h, --help                  help for list
       --json                  Output response as JSON
   -o, --organization string   Organization name that owns the project

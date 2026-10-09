@@ -128,7 +128,7 @@ var datasetItemsGetCmd = &cobra.Command{
 	Use:     "get <id>",
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get a dataset item",
-	Long:    `Get detailed information about a specific dataset item.`,
+	Long:    `Get detailed information about a specific dataset item. Takes the item id only; there is no --dataset-name flag.`,
 	Example: `  iai dataset-items get item-123
   iai dataset-items get item-123 --json
   iai dataset-items get item-123 --yaml`,
@@ -277,6 +277,7 @@ func init() {
 		IntVar(&datasetItemsListPage, "page", 1, "Page number (starts at 1)")
 	datasetItemsListCmd.Flags().
 		IntVar(&datasetItemsListLimit, "limit", 0, "Items per page (max 100)")
+	indexFlag(datasetItemsListCmd, "limit", "max 100")
 	datasetItemsListCmd.Flags().
 		StringSliceVar(&datasetItemsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	datasetItemsListCmd.Flags().
@@ -289,6 +290,7 @@ func init() {
 	datasetItemsListCmd.Flags().
 		StringVarP(&datasetItemsListProject, "project", "p", "", "Project name")
 
+	indexCommand(datasetItemsGetCmd, "no --dataset-name")
 	datasetItemsGetCmd.Flags().
 		BoolVar(&datasetItemsGetJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsGetCmd.Flags().

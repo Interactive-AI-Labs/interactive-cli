@@ -453,6 +453,7 @@ func init() {
 		StringArrayVarP(&secretDataKVs, "data", "d", nil, "Secret data in KEY=VALUE form (repeatable)")
 	secretsCreateCmd.Flags().
 		StringVar(&secretEnvFile, "from-env-file", "", "Path to env file with KEY=VALUE pairs (one per line)")
+	secretsCreateCmd.MarkFlagsOneRequired("data", "from-env-file")
 
 	// secrets update
 	secretsUpdateCmd.Flags().

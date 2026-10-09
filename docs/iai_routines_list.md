@@ -26,7 +26,7 @@ iai routines list [flags]
 ### Options
 
 ```
-      --folder string         List items inside the given folder path
+      --folder string         List items in a subfolder of routines/ (the routines/ prefix is implied)
   -h, --help                  help for list
       --json                  Output response as JSON
       --limit int             Number of items per page (default: 50)

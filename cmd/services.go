@@ -82,9 +82,9 @@ var servCCmd = &cobra.Command{
 	Short: "Create a service in a project",
 	Long:  `Create a service in a specific project using the deployment service.`,
 	Example: `  iai services create my-svc --image-type external --image-repository docker.io --image-name nginx --image-tag latest --port 80 --memory 512M --cpu 0.5
-  iai services create my-svc --image-name my-app --image-tag v1 --port 8080 --memory 1G --cpu 1 --replicas 3 --endpoint
-  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --env LOG_LEVEL=debug --secret DB_PASSWORD --healthcheck-path /health
-  iai services create my-svc --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --schedule-uptime "Mon-Fri 08:00-18:00" --schedule-timezone Europe/Berlin`,
+  iai services create my-svc --image-type internal --image-name my-app --image-tag v1 --port 8080 --memory 1G --cpu 1 --replicas 3 --endpoint
+  iai services create my-svc --image-type internal --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --env LOG_LEVEL=debug --secret DB_PASSWORD --healthcheck-path /health
+  iai services create my-svc --image-type internal --image-name my-app --image-tag v1 --memory 512M --cpu 0.5 --schedule-uptime "Mon-Fri 08:00-18:00" --schedule-timezone Europe/Berlin`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -1020,6 +1020,9 @@ func init() {
 		StringVar(&serviceCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m)")
 	_ = servCCmd.MarkFlagRequired("memory")
 	_ = servCCmd.MarkFlagRequired("cpu")
+	_ = servCCmd.MarkFlagRequired("image-type")
+	_ = servCCmd.MarkFlagRequired("image-name")
+	_ = servCCmd.MarkFlagRequired("image-tag")
 
 	servCCmd.Flags().
 		IntVar(&serviceAutoscalingMin, "autoscaling-min-replicas", 0, "Minimum number of replicas for autoscaling")
@@ -1081,9 +1084,9 @@ func init() {
 		IntVar(&serviceAutoscalingMemory, "autoscaling-memory-percentage", 0, "Memory percentage threshold for autoscaling")
 
 	servUCmd.Flags().
-		StringArrayVar(&serviceEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+		StringArrayVar(&serviceEnvVars, "env", nil, "Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
 	servUCmd.Flags().
-		StringArrayVar(&serviceSecretRefs, "secret", nil, "Secrets to be loaded as env vars; can be repeated")
+		StringArrayVar(&serviceSecretRefs, "secret", nil, "Replaces the secret references; repeat for every entry to keep; dropping entries requires --force")
 	servUCmd.Flags().
 		BoolVar(&serviceEndpoint, "endpoint", false, "Expose the service publicly at <service-name>-<project-hash>.interactive.ai")
 
@@ -1114,6 +1117,8 @@ func init() {
 		IntVar(&serviceExpectRevision, "expect-revision", 0, "Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated service (opt-in staleness guard)")
 	servUCmd.Flags().
 		BoolVar(&serviceForce, "force", false, "Apply even when the update would drop live env vars or secret refs")
+	indexFlag(servUCmd, "env", "replaces")
+	indexFlag(servUCmd, "secret", "replaces")
 
 	// Flags for "services list"
 	servListCmd.Flags().
@@ -1178,9 +1183,9 @@ func init() {
 	servLogsCmd.Flags().
 		BoolVarP(&servLogsFollow, "follow", "f", false, "Stream new log entries as they arrive; mutually exclusive with --end-time")
 	servLogsCmd.Flags().
-		StringVar(&servLogsSince, "since", "", "Relative duration to look back (e.g. 30m, 1h, 3d, 1w); default 1h; max 72h; mutually exclusive with --start-time and --end-time")
+		StringVar(&servLogsSince, "since", "", logsSinceUsage)
 	servLogsCmd.Flags().
-		StringVar(&servLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+		StringVar(&servLogsStartTime, "start-time", "", logsStartTimeUsage)
 	servLogsCmd.Flags().
 		StringVar(&servLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	servLogsCmd.Flags().
@@ -1194,7 +1199,8 @@ func init() {
 	servLogsCmd.Flags().
 		BoolVar(&servLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	servLogsCmd.Flags().
-		IntVar(&servLogsLimit, "limit", 0, "Maximum number of log entries to return (1-5000); defaults to 1000")
+		IntVar(&servLogsLimit, "limit", 0, logsLimitUsage)
+	indexLogsLimits(servLogsCmd)
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	servLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

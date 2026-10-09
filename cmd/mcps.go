@@ -1057,6 +1057,10 @@ func init() {
 	mcpUpdateCmd.MarkFlagsMutuallyExclusive("client-secret", "client-secret-stdin")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
 	mcpUpdateCmd.MarkFlagsMutuallyExclusive("credential-stdin", "client-secret-stdin")
+	mcpUpdateCmd.Flags().Lookup("env").Usage = "Replaces the environment variables (NAME=VALUE); repeat for every entry to keep (self-hosted)"
+	mcpUpdateCmd.Flags().Lookup("secret").Usage = "Replaces the secret references; repeat for every entry to keep (self-hosted)"
+	indexFlag(mcpUpdateCmd, "env", "replaces")
+	indexFlag(mcpUpdateCmd, "secret", "replaces")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential")
 	mcpCreateCmd.MarkFlagsMutuallyExclusive("client-id", "credential-stdin")
 	for _, urlFlag := range []string{"remote-url", "external-url"} {

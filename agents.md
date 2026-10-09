@@ -176,6 +176,12 @@ Aliases: []string{"obs", "observation"},
 payload with `output.PrintRawJSON` / `output.PrintRawYAML` and guard table-only
 flags with `validateTableOnlyColumns`.
 
+**Command index:** `make docs` writes `docs/cli-index.md`, which the copilot
+reads. It lists every command, its args and flags. A note in the index must be
+text the help already says: `indexFlag(cmd, name, "max 100")` quotes the flag's
+help, `indexCommand(cmd, note)` quotes the command's Long or Short, and
+generation fails when the text isn't there. Fix the help first, then quote it.
+
 **Pagination (pick one per command, never both):**
 - Page-based: `--page` (default 1), `--limit`
 - Cursor-based: `--cursor`, `--limit`
