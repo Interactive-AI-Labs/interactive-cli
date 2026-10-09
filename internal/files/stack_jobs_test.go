@@ -421,6 +421,8 @@ func TestDiffStackConfigsJobs(t *testing.T) {
 	}
 	changedScript := report
 	changedScript.Script = "print(2)\n"
+	withPaths := report
+	withPaths.ScriptFile, withPaths.PyprojectFile = "/private/main.py", "/private/pyproject.toml"
 
 	tests := []struct {
 		name        string
@@ -453,8 +455,8 @@ func TestDiffStackConfigsJobs(t *testing.T) {
 				"    script: sha256:cc42155088fc (9 B) → sha256:0111afd387e1 (9 B)\n",
 		},
 		{
-			name:        "created and deleted jobs",
-			plan:        ResourcePlan[JobConfig]{Desired: map[string]JobConfig{"new": report}},
+			name:        "created job file paths are not displayed",
+			plan:        ResourcePlan[JobConfig]{Desired: map[string]JobConfig{"new": withPaths}},
 			live:        map[string]JobConfig{"old": report},
 			want:        ResourceTypeDiff{Created: []string{"new"}, Deleted: []string{"old"}},
 			wantPrinted: "Stack: batch\n\n  + job new (create)\n\n  - job old (delete)\n",

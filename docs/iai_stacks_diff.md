@@ -10,6 +10,10 @@ stack and show creates, updates, deletes, and field-level changes.
 The local file is read from --file or --cfg-file. The live state is fetched
 from the deployment API using --stack-id.
 
+Existing resources are validated as replacements; rejected replacements
+fail the diff. Agent plans depending on changing MCPs are deferred until
+those changes are applied.
+
 Use --json for machine-readable output in CI pipelines.
 
 ```
@@ -29,7 +33,7 @@ iai stacks diff [flags]
 ```
   -f, --file string           Path to local stack configuration file
   -h, --help                  help for diff
-      --json                  Output diff as JSON
+      --json                  Output diff as JSON; agents.deferred maps unplanned agents to their changing mcp dependencies
   -o, --organization string   Organization name
   -p, --project string        Project name
       --stack-id string       Stack ID to compare against live

@@ -40,6 +40,27 @@ func TestDiffFields(t *testing.T) {
 			want:  []fieldChange{{path: "a", old: "1"}},
 		},
 		{
+			name:  "list cleared",
+			live:  map[string]any{"tools": []any{"search"}},
+			local: map[string]any{"tools": []any{}},
+			want:  []fieldChange{{path: "tools", new: "[]"}, {path: "tools[0]", old: "search"}},
+		},
+		{
+			name:  "map cleared",
+			live:  map[string]any{"settings": map[string]any{"mode": "auto"}},
+			local: map[string]any{"settings": map[string]any{}},
+			want: []fieldChange{
+				{path: "settings", new: "{}"},
+				{path: "settings.mode", old: "auto"},
+			},
+		},
+		{
+			name:  "empty collections removed",
+			live:  map[string]any{"settings": map[string]any{}, "tools": []any{}},
+			local: map[string]any{},
+			want:  []fieldChange{{path: "settings", old: "{}"}, {path: "tools", old: "[]"}},
+		},
+		{
 			name:  "mixed changes",
 			live:  map[string]any{"a": "1", "b": "2", "c": "3"},
 			local: map[string]any{"a": "1", "b": "X", "d": "4"},
@@ -96,6 +117,21 @@ func TestToFlatMap(t *testing.T) {
 			},
 		},
 		{
+			name:  "empty collections",
+			input: map[string]any{"settings": map[string]any{}, "tools": []any{}},
+			want:  map[string]string{"settings": "{}", "tools": "[]"},
+		},
+		{
+			name:  "empty root map",
+			input: map[string]any{},
+			want:  map[string]string{},
+		},
+		{
+			name:  "nested empty collections",
+			input: map[string]any{"items": []any{map[string]any{}, []any{}}},
+			want:  map[string]string{"items[0]": "{}", "items[1]": "[]"},
+		},
+		{
 			name:  "bool and null",
 			input: map[string]any{"active": true, "extra": nil},
 			want:  map[string]string{"active": "true", "extra": "null"},
@@ -130,6 +166,7 @@ func TestDiffStackConfigs(t *testing.T) {
 		plan        *StackPlan
 		live        *StackConfig
 		want        *StackDiff
+		wantChanges bool
 		wantPrinted string
 	}{
 		{
@@ -149,7 +186,8 @@ func TestDiffStackConfigs(t *testing.T) {
 			wantPrinted: "No differences found.\n",
 		},
 		{
-			name: "create, update, and delete",
+			name:        "create, update, and delete",
+			wantChanges: true,
 			plan: &StackPlan{StackId: "t", Services: ResourcePlan[ServiceConfig]{
 				Desired: map[string]ServiceConfig{"keep": svc, "update": scaled, "create": svc},
 				Changed: map[string]bool{"update": true},
@@ -169,7 +207,8 @@ func TestDiffStackConfigs(t *testing.T) {
 				"    replicas: 1 → 2\n\n  - service delete (delete)\n",
 		},
 		{
-			name: "server-reported change without field differences",
+			name:        "server-reported change without field differences",
+			wantChanges: true,
 			plan: &StackPlan{StackId: "t", Services: ResourcePlan[ServiceConfig]{
 				Desired: map[string]ServiceConfig{"api": svc},
 				Changed: map[string]bool{"api": true},
@@ -181,7 +220,8 @@ func TestDiffStackConfigs(t *testing.T) {
 			wantPrinted: "Stack: t\n\n  ~ service api (update)\n",
 		},
 		{
-			name: "mcp endpoint removed",
+			name:        "mcp endpoint removed",
+			wantChanges: true,
 			plan: &StackPlan{StackId: "s", Mcps: ResourcePlan[McpConfig]{
 				Desired: map[string]McpConfig{"tools": tools},
 				Changed: map[string]bool{"tools": true},
@@ -195,6 +235,43 @@ func TestDiffStackConfigs(t *testing.T) {
 			}},
 			wantPrinted: "Stack: s\n\n  ~ mcp tools (update)\n    - endpoint\n",
 		},
+		{
+			name: "agent list cleared",
+			plan: &StackPlan{StackId: "s", Agents: ResourcePlan[AgentConfig]{
+				Desired: map[string]AgentConfig{
+					"helper": {AgentConfig: map[string]any{"tools": []any{}}},
+				},
+				Changed: map[string]bool{"helper": true},
+			}},
+			live: &StackConfig{
+				Agents: map[string]AgentConfig{
+					"helper": {AgentConfig: map[string]any{"tools": []any{"search"}}},
+				},
+			},
+			want: &StackDiff{StackID: "s", Agents: ResourceTypeDiff{Updated: []ResourceChange{{
+				Name: "helper", Changes: map[string]FieldDiff{
+					"agentConfig.tools": {New: "[]"}, "agentConfig.tools[0]": {Old: "search"},
+				},
+			}}}},
+			wantChanges: true,
+			wantPrinted: "Stack: s\n\n  ~ agent helper (update)\n    + agentConfig.tools: []\n    - agentConfig.tools[0]\n",
+		},
+		{
+			name: "deferred plans are visible without predicted updates",
+			plan: &StackPlan{StackId: "s", Agents: ResourcePlan[AgentConfig]{
+				Desired:  map[string]AgentConfig{"helper": {}},
+				Deferred: map[string][]string{"helper": {"tools", "web"}},
+			}},
+			live: &StackConfig{Agents: map[string]AgentConfig{"helper": {}}},
+			want: &StackDiff{
+				StackID: "s",
+				Agents: ResourceTypeDiff{
+					Deferred: map[string][]string{"helper": {"tools", "web"}},
+				},
+			},
+			wantChanges: true,
+			wantPrinted: "Stack: s\n\n  ? agent helper (plan deferred; changing mcps: tools, web)\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -202,7 +279,7 @@ func TestDiffStackConfigs(t *testing.T) {
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Fatalf("diff mismatch (-want +got):\n%s", diff)
 			}
-			if got.HasChanges() != (tt.wantPrinted != "No differences found.\n") {
+			if got.HasChanges() != tt.wantChanges {
 				t.Fatalf("HasChanges() = %v", got.HasChanges())
 			}
 			var out bytes.Buffer

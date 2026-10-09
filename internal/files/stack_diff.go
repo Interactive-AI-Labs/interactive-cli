@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 )
 
 // StackDiff holds the result of comparing two StackConfig values.
@@ -18,11 +19,12 @@ type StackDiff struct {
 	Jobs      ResourceTypeDiff `json:"jobs"`
 }
 
-// ResourceTypeDiff records which resources were created, updated, or deleted.
+// ResourceTypeDiff lists predicted creates, updates, deletes, and plans awaiting their dependencies.
 type ResourceTypeDiff struct {
-	Created []string         `json:"created"`
-	Updated []ResourceChange `json:"updated"`
-	Deleted []string         `json:"deleted"`
+	Created  []string            `json:"created"`
+	Updated  []ResourceChange    `json:"updated"`
+	Deleted  []string            `json:"deleted"`
+	Deferred map[string][]string `json:"deferred,omitempty"` // Resource names and changing MCP dependencies; validation and update decisions are deferred.
 }
 
 // ResourceChange describes a resource that differs between local and live.
@@ -43,7 +45,7 @@ type fieldChange struct {
 	new  string
 }
 
-// DiffStackConfigs lists what applying the plan would create, update, and delete, with the field changes of each update.
+// DiffStackConfigs lists planned changes and deferred resources, with field changes for each update.
 func DiffStackConfigs(plan *StackPlan, live *StackConfig) *StackDiff {
 	d := &StackDiff{StackID: plan.StackId}
 	d.Services = diffResourceMap(plan.Services, live.Services,
@@ -59,7 +61,7 @@ func DiffStackConfigs(plan *StackPlan, live *StackConfig) *StackDiff {
 	return d
 }
 
-// jobDiffView compares script and project file contents by digest instead of printing them.
+// jobDiffView hashes file contents for display; updated jobs come from server responses without file paths.
 func jobDiffView(job JobConfig) any {
 	view := struct {
 		JobConfig
@@ -79,7 +81,7 @@ func contentDigest(contents string) string {
 
 func (d *StackDiff) HasChanges() bool {
 	return len(d.Services.Created)+len(d.Services.Updated)+len(d.Services.Deleted)+
-		len(d.Agents.Created)+len(d.Agents.Updated)+len(d.Agents.Deleted)+
+		len(d.Agents.Created)+len(d.Agents.Updated)+len(d.Agents.Deleted)+len(d.Agents.Deferred)+
 		len(d.Databases.Created)+len(d.Databases.Updated)+len(d.Databases.Deleted)+
 		len(d.Mcps.Created)+len(d.Mcps.Updated)+len(d.Mcps.Deleted)+
 		len(d.Jobs.Created)+len(d.Jobs.Updated)+len(d.Jobs.Deleted) > 0
@@ -90,7 +92,7 @@ func diffResourceMap[T any](
 	live map[string]T,
 	fieldDiffs func(a, b T) []fieldChange,
 ) ResourceTypeDiff {
-	var d ResourceTypeDiff
+	d := ResourceTypeDiff{Deferred: plan.Deferred}
 
 	for name := range plan.Desired {
 		if _, ok := live[name]; !ok {
@@ -178,6 +180,16 @@ func printSection(
 	}
 	for _, name := range d.Deleted {
 		fmt.Fprintf(out, "\n  - %s %s (delete)\n", kind, name)
+	}
+
+	var deferred []string
+	for name := range d.Deferred {
+		deferred = append(deferred, name)
+	}
+	sort.Strings(deferred)
+	for _, name := range deferred {
+		fmt.Fprintf(out, "\n  ? %s %s (plan deferred; changing mcps: %s)\n",
+			kind, name, strings.Join(d.Deferred[name], ", "))
 	}
 }
 

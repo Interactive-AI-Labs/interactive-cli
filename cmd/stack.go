@@ -72,14 +72,13 @@ on the platform.
 
 Updates replace the whole live spec of each resource. For every service, agent,
 mcp, or job that changes, the live revision being replaced is printed to stderr
-so a sync from a stale config file is visible. Jobs can only be updated or
-deleted when all their runs have finished.
+so a sync from a stale config file is visible. Changed jobs and deletions
+require all runs to be finished; unchanged jobs keep their revision.
 
 Script jobs reference their files with scriptFile and pyprojectFile, resolved
 relative to the config file.
 
-Use --dry-run to print the full plan — creates, updates, deletes, and
-refused deletions — without applying anything.
+Use --dry-run to preview changes without applying anything.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.`,
 	Example: `  iai stacks sync --file stack.yaml
@@ -298,8 +297,9 @@ The organization and project are read from the config file, flags, or resolved v
 			}
 		}
 
+		var changingMcps []string
 		if len(mcpBodies) > 0 || len(remoteMcps) > 0 || hasMcps {
-			_, err := runPhase(
+			mcpResult, err := runPhase(
 				"mcps",
 				func(opts sync.Options) (*sync.Result, error) {
 					return sync.Mcps(
@@ -319,10 +319,10 @@ The organization and project are read from the config file, flags, or resolved v
 			if err != nil {
 				return err
 			}
+			changingMcps = slices.Concat(mcpResult.Created, mcpResult.Updated, mcpResult.Deleted)
 		}
 
-		// Agents attach to the self-hosted mcps in the config, so every one of them must be ready
-		// first; remote ones are registered on the platform with nothing to wait for.
+		// Confirm every declared self-hosted MCP is ready, including stacks without agents.
 		selfHostedMcps := slices.Sorted(maps.Keys(mcpBodies))
 		if len(selfHostedMcps) > 0 && !stackSyncDryRun && !stackSyncNoWait {
 			fmt.Fprint(out, "Waiting for mcps to be ready")
@@ -368,6 +368,7 @@ The organization and project are read from the config file, flags, or resolved v
 			_, err := runPhase(
 				"agents",
 				func(opts sync.Options) (*sync.Result, error) {
+					opts.PendingMcps = changingMcps
 					return sync.Agents(
 						cmd.Context(),
 						cmd.ErrOrStderr(),
@@ -437,8 +438,10 @@ var stackGetCmd = &cobra.Command{
 write them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making
-changes. MCP credentials are never exported; include auth.credential before
-syncing credentialed MCPs.
+changes. MCP credentials are never exported. Existing self-hosted MCPs keep
+omitted credentials when their authentication settings are unchanged.
+Supply required credentials when creating MCPs or changing authentication.
+Remote custom-auth updates also require a credential.
 
 With --file, each script job's files are written to jobs/<name>/main.py and
 jobs/<name>/pyproject.toml next to the config file, overwriting existing
@@ -529,6 +532,10 @@ stack and show creates, updates, deletes, and field-level changes.
 
 The local file is read from --file or --cfg-file. The live state is fetched
 from the deployment API using --stack-id.
+
+Existing resources are validated as replacements; rejected replacements
+fail the diff. Agent plans depending on changing MCPs are deferred until
+those changes are applied.
 
 Use --json for machine-readable output in CI pipelines.`,
 	Example: `  iai stacks diff --file stack.yaml --stack-id my-stack
@@ -675,11 +682,11 @@ func init() {
 	stackSyncCmd.Flags().
 		StringSliceVar(&stackSyncAllowDelete, "allow-delete", nil, "Resource types the sync may delete when the config omits them (services, agents, databases, mcps, jobs, or all); deletions are refused otherwise")
 	stackSyncCmd.Flags().
-		BoolVar(&stackSyncDryRun, "dry-run", false, "Print the full plan (creates, updates, deletes, refused deletions) without applying anything")
+		BoolVar(&stackSyncDryRun, "dry-run", false, "Preview creates, updates, deletes, and refused deletions without applying; agent validation and update decisions are deferred when referenced mcps are changing")
 	stackSyncCmd.Flags().
-		BoolVar(&stackSyncNoWait, "no-wait", false, "Sync agents without waiting for the self-hosted mcps to be ready")
+		BoolVar(&stackSyncNoWait, "no-wait", false, "Skip checking every self-hosted mcp is ready; this check also runs for unchanged mcps and stacks without agents")
 	stackSyncCmd.Flags().
-		DurationVar(&stackSyncWaitTimeout, "wait-timeout", 5*time.Minute, "How long to wait for every self-hosted mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged")
+		DurationVar(&stackSyncWaitTimeout, "wait-timeout", 5*time.Minute, "How long to wait for every self-hosted mcp in the config to be ready (tools verified), even without agents; a timeout stops the remaining sync phases")
 	stackSyncCmd.MarkFlagsMutuallyExclusive("no-wait", "wait-timeout")
 
 	stackGetCmd.Flags().
@@ -705,7 +712,7 @@ func init() {
 	stackDiffCmd.Flags().
 		StringVarP(&stackDiffProject, "project", "p", "", "Project name")
 	stackDiffCmd.Flags().
-		BoolVar(&stackDiffJSON, "json", false, "Output diff as JSON")
+		BoolVar(&stackDiffJSON, "json", false, "Output diff as JSON; agents.deferred maps unplanned agents to their changing mcp dependencies")
 
 	stackListCmd.Flags().
 		BoolVar(&stackListJSON, "json", false, "Output as JSON")

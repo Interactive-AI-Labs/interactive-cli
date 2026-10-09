@@ -13,6 +13,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/preflight"
 )
@@ -30,12 +31,14 @@ type Result struct {
 	Created   []string
 	Updated   []string
 	Deleted   []string
-	Protected []string // would be deleted but deletion was not allowed
+	Protected []string            // would be deleted but deletion was not allowed
+	Deferred  map[string][]string // Agent names and changing MCP dependencies; their plans need a later check.
 }
 
 type Options struct {
 	AllowDelete bool
 	DryRun      bool
+	PendingMcps []string
 }
 
 func HasServices(
@@ -178,8 +181,24 @@ func PrintPlan(out io.Writer, label string, result *Result) {
 			label,
 		)
 	}
+
+	var deferred []string
+	for name := range result.Deferred {
+		deferred = append(deferred, name)
+	}
+	sort.Strings(deferred)
+	for _, name := range deferred {
+		fmt.Fprintf(
+			out,
+			"Plan deferred for %s %s: changing mcps: %s; check again after those changes.\n",
+			label,
+			name,
+			strings.Join(result.Deferred[name], ", "),
+		)
+	}
+
 	if len(result.Created) == 0 && len(result.Updated) == 0 &&
-		len(result.Deleted) == 0 && len(result.Protected) == 0 {
+		len(result.Deleted) == 0 && len(result.Protected) == 0 && len(result.Deferred) == 0 {
 		fmt.Fprintf(out, "No changes required; %s already match config.\n", label)
 	}
 }
@@ -261,12 +280,31 @@ func Agents(
 		existingByName[a.Name] = a
 	}
 
+	var deferred map[string][]string
+	if opts.DryRun {
+		deferred = make(map[string][]string)
+		for name, body := range desired {
+			if _, exists := existingByName[name]; !exists {
+				continue
+			}
+			if pending := inputs.PendingMcpRefs(
+				body.AgentConfig,
+				opts.PendingMcps,
+			); len(
+				pending,
+			) > 0 {
+				deferred[name] = pending
+			}
+		}
+	}
+
 	return syncResources(
 		warnW,
 		existingByName,
 		desired,
 		opts,
 		resourceOps[deployment.AgentOutput, deployment.CreateAgentBody]{
+			deferred:  deferred,
 			resource:  "agent",
 			allowFlag: "agents",
 			create: func(name string, body deployment.CreateAgentBody) error {
@@ -767,9 +805,10 @@ type resourceOps[E, B any] struct {
 	// update replaces the live resource and reports whether the server changed it.
 	update func(name string, body B) (bool, error)
 	// plan reports whether update would change the live resource, without applying it.
-	plan   func(name string, body B) (bool, error)
-	delete func(name string) error
-	banner func(w io.Writer, existing E)
+	plan     func(name string, body B) (bool, error)
+	delete   func(name string) error
+	banner   func(w io.Writer, existing E)
+	deferred map[string][]string
 }
 
 func syncResources[E, B any](
@@ -779,7 +818,7 @@ func syncResources[E, B any](
 	opts Options,
 	ops resourceOps[E, B],
 ) (*Result, error) {
-	result := &Result{}
+	result := &Result{Deferred: ops.deferred}
 
 	var toDelete []string
 	for name := range existingByName {
@@ -816,13 +855,17 @@ func syncResources[E, B any](
 			result.Created = append(result.Created, name)
 			continue
 		}
-		update := ops.update
+		if len(result.Deferred[name]) > 0 {
+			continue
+		}
+
+		update, action := ops.update, "update"
 		if opts.DryRun {
-			update = ops.plan
+			update, action = ops.plan, "plan update for"
 		}
 		changed, err := update(name, body)
 		if err != nil {
-			return result, fmt.Errorf("failed to update %s %q: %w", ops.resource, name, err)
+			return result, fmt.Errorf("failed to %s %s %q: %w", action, ops.resource, name, err)
 		}
 		if !changed {
 			continue

@@ -8,8 +8,10 @@ Fetch the live services, agents, databases, mcps, and jobs for a stack and
 write them as a stack configuration file.
 
 Use this to rebase your local stack config on the live state before making
-changes. MCP credentials are never exported; include auth.credential before
-syncing credentialed MCPs.
+changes. MCP credentials are never exported. Existing self-hosted MCPs keep
+omitted credentials when their authentication settings are unchanged.
+Supply required credentials when creating MCPs or changing authentication.
+Remote custom-auth updates also require a credential.
 
 With --file, each script job's files are written to jobs/<name>/main.py and
 jobs/<name>/pyproject.toml next to the config file, overwriting existing

@@ -3,12 +3,15 @@ package files
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 )
 
-// StackPlan is the stack as the server would store it, with the resources whose replacement would change them.
+// StackPlan holds server predictions and agent plans deferred by changing MCPs.
 type StackPlan struct {
 	StackId   string
 	Services  ResourcePlan[ServiceConfig]
@@ -18,10 +21,11 @@ type StackPlan struct {
 	Jobs      ResourcePlan[JobConfig]
 }
 
-// ResourcePlan is one resource type as the server would store it and the names it would change.
+// ResourcePlan holds planned configurations, changed names, and dependencies that defer a plan.
 type ResourcePlan[T any] struct {
-	Desired map[string]T
-	Changed map[string]bool
+	Desired  map[string]T
+	Changed  map[string]bool
+	Deferred map[string][]string // Deferred resources keep their local config, not a server prediction.
 }
 
 // PlanStack asks the server what replacing each live resource with the local config would do.
@@ -54,23 +58,7 @@ func PlanStack(
 	if err != nil {
 		return nil, err
 	}
-	plan.Agents, err = planResources(local.Agents, live.Agents,
-		func(name string, cfg AgentConfig) (AgentConfig, bool, error) {
-			p, err := deployClient.PlanAgent(
-				ctx,
-				orgId,
-				projectId,
-				name,
-				cfg.ToCreateRequest(stackId),
-			)
-			if err != nil {
-				return AgentConfig{}, false, fmt.Errorf("failed to plan agent %q: %w", name, err)
-			}
-			return AgentConfigFromDescribe(&p.Config), p.Changed, nil
-		})
-	if err != nil {
-		return nil, err
-	}
+
 	plan.Databases, err = planResources(local.Databases, live.Databases,
 		func(name string, cfg DatabaseConfig) (DatabaseConfig, bool, error) {
 			p, err := deployClient.PlanDatabase(
@@ -92,13 +80,13 @@ func PlanStack(
 	if err != nil {
 		return nil, err
 	}
+
 	plan.Mcps, err = planResources(local.Mcps, live.Mcps,
 		func(name string, cfg McpConfig) (McpConfig, bool, error) {
 			liveMcp := live.Mcps[name]
 			// The platform owns remote mcps and has no dry run: the file is compared with what it
 			// reports, which never includes the credential.
-			if !selfHostedMcp(cfg.Type) || !selfHostedMcp(liveMcp.Type) {
-				cfg.Type = deployment.McpTypeName(cfg.Type)
+			if cfg.Type == deployment.McpTypeRemote || liveMcp.Type == deployment.McpTypeRemote {
 				cfg.Auth.Credential = ""
 				return cfg, len(diffFields(liveMcp, cfg)) > 0, nil
 			}
@@ -117,6 +105,44 @@ func PlanStack(
 	if err != nil {
 		return nil, err
 	}
+
+	changingMcps := slices.Collect(maps.Keys(plan.Mcps.Changed))
+	for name := range local.Mcps {
+		if _, exists := live.Mcps[name]; !exists {
+			changingMcps = append(changingMcps, name)
+		}
+	}
+	for name := range live.Mcps {
+		if _, exists := local.Mcps[name]; !exists {
+			changingMcps = append(changingMcps, name)
+		}
+	}
+
+	deferredAgents := make(map[string][]string)
+	plan.Agents, err = planResources(local.Agents, live.Agents,
+		func(name string, cfg AgentConfig) (AgentConfig, bool, error) {
+			if pending := inputs.PendingMcpRefs(cfg.AgentConfig, changingMcps); len(pending) > 0 {
+				deferredAgents[name] = pending
+				return cfg, false, nil
+			}
+
+			p, err := deployClient.PlanAgent(
+				ctx,
+				orgId,
+				projectId,
+				name,
+				cfg.ToCreateRequest(stackId),
+			)
+			if err != nil {
+				return AgentConfig{}, false, fmt.Errorf("failed to plan agent %q: %w", name, err)
+			}
+			return AgentConfigFromDescribe(&p.Config), p.Changed, nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	plan.Agents.Deferred = deferredAgents
+
 	plan.Jobs, err = planResources(local.Jobs, live.Jobs,
 		func(name string, cfg JobConfig) (JobConfig, bool, error) {
 			p, err := deployClient.PlanJob(
@@ -135,12 +161,6 @@ func PlanStack(
 		return nil, err
 	}
 	return plan, nil
-}
-
-// selfHostedMcp reports whether a stack file type names a self-hosted mcp; an omitted type does.
-func selfHostedMcp(mcpType string) bool {
-	name := deployment.McpTypeName(mcpType)
-	return name == "" || name == deployment.McpTypeSelfHosted
 }
 
 // planResources plans each local resource that exists live and keeps the others as written.

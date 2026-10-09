@@ -20,14 +20,13 @@ on the platform.
 
 Updates replace the whole live spec of each resource. For every service, agent,
 mcp, or job that changes, the live revision being replaced is printed to stderr
-so a sync from a stale config file is visible. Jobs can only be updated or
-deleted when all their runs have finished.
+so a sync from a stale config file is visible. Changed jobs and deletions
+require all runs to be finished; unchanged jobs keep their revision.
 
 Script jobs reference their files with scriptFile and pyprojectFile, resolved
 relative to the config file.
 
-Use --dry-run to print the full plan — creates, updates, deletes, and
-refused deletions — without applying anything.
+Use --dry-run to preview changes without applying anything.
 
 The organization and project are read from the config file, flags, or resolved via 'iai organizations select' / 'iai projects select'.
 
@@ -118,13 +117,13 @@ mcps:
 
 ```
       --allow-delete strings    Resource types the sync may delete when the config omits them (services, agents, databases, mcps, jobs, or all); deletions are refused otherwise
-      --dry-run                 Print the full plan (creates, updates, deletes, refused deletions) without applying anything
+      --dry-run                 Preview creates, updates, deletes, and refused deletions without applying; agent validation and update decisions are deferred when referenced mcps are changing
   -f, --file string             Path to stack configuration file
   -h, --help                    help for sync
-      --no-wait                 Sync agents without waiting for the self-hosted mcps to be ready
+      --no-wait                 Skip checking every self-hosted mcp is ready; this check also runs for unchanged mcps and stacks without agents
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name to sync resources in
-      --wait-timeout duration   How long to wait for every self-hosted mcp in the config to be ready (tools verified) before syncing agents; if one is not ready in time the sync fails and agents are left unchanged (default 5m0s)
+      --wait-timeout duration   How long to wait for every self-hosted mcp in the config to be ready (tools verified), even without agents; a timeout stops the remaining sync phases (default 5m0s)
 ```
 
 ### Options inherited from parent commands
