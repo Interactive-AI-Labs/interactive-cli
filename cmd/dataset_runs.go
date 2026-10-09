@@ -204,6 +204,7 @@ func init() {
 	datasetRunsListCmd.Flags().
 		IntVar(&datasetRunsListPage, "page", 1, "Page number (starts at 1)")
 	datasetRunsListCmd.Flags().IntVar(&datasetRunsListLimit, "limit", 0, "Items per page (max 100)")
+	indexLimit(datasetRunsListCmd, "limit", "max 100")
 	datasetRunsListCmd.Flags().
 		StringSliceVar(&datasetRunsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	datasetRunsListCmd.Flags().

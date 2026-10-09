@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -27,8 +26,6 @@ var indexSkipFlags = map[string]bool{
 	"yaml":         true,
 }
 
-var usageNote = regexp.MustCompile(`\((max [^,;)]+)|default: (\d+ days ago)`)
-
 func indexCommand(c *cobra.Command, note string) {
 	if c.Annotations == nil {
 		c.Annotations = map[string]string{}
@@ -44,11 +41,23 @@ func indexFlag(c *cobra.Command, name, note string) {
 	}
 }
 
+func indexLimit(c *cobra.Command, name, limit string) {
+	if f := c.Flags().Lookup(name); f != nil && !strings.Contains(f.Usage, limit) {
+		indexFlagErrs = append(
+			indexFlagErrs,
+			fmt.Errorf("%s --%s: help text lacks %q", c.CommandPath(), name, limit),
+		)
+		return
+	}
+	indexFlag(c, name, limit)
+}
+
 func commandIndex(root *cobra.Command, version string) string {
 	var b strings.Builder
 	fmt.Fprintf(
 		&b,
-		"%s v%s: `%s <group> <subcommand> [flags]`. Commands not listed do not exist.\n",
+		"%s v%s: `%s <group> <subcommand> [flags]`. Commands and flags not listed do not exist; "+
+			"--organization, --project and --columns are left out.\n",
 		root.Name(), version, root.Name(),
 	)
 	b.WriteString(
@@ -177,13 +186,5 @@ func flagNote(f *pflag.Flag) string {
 	if note := f.Annotations[flagNoteAnnotation]; len(note) > 0 {
 		return note[0]
 	}
-	m := usageNote.FindStringSubmatch(f.Usage)
-	switch {
-	case m == nil:
-		return ""
-	case m[1] != "":
-		return m[1]
-	default:
-		return "default " + m[2]
-	}
+	return ""
 }

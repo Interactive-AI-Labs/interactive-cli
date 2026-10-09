@@ -433,11 +433,13 @@ func init() {
 	// traces list flags
 	tracesListCmd.Flags().IntVar(&tracesPage, "page", 1, "Page number (starts at 1)")
 	tracesListCmd.Flags().IntVar(&tracesLimit, "limit", 0, "Items per page (max 100)")
+	indexLimit(tracesListCmd, "limit", "max 100")
 	tracesListCmd.Flags().StringVar(&tracesUserID, "user-id", "", "Filter by user ID")
 	tracesListCmd.Flags().StringVar(&tracesName, "name", "", "Filter by trace name")
 	tracesListCmd.Flags().StringVar(&tracesSessionID, "session-id", "", "Filter by session ID")
 	tracesListCmd.Flags().
 		StringVar(&tracesFromTimestamp, "from-timestamp", "", "Filter traces from this timestamp (ISO 8601, default: 7 days ago)")
+	indexLimit(tracesListCmd, "from-timestamp", "default: 7 days ago")
 	tracesListCmd.Flags().
 		StringVar(&tracesToTimestamp, "to-timestamp", "", "Filter traces to this timestamp (ISO 8601)")
 	tracesListCmd.Flags().
@@ -465,6 +467,7 @@ func init() {
 		StringVar(&tracesLevel, "level", "", "Filter by aggregated level: DEBUG, DEFAULT, WARNING, ERROR")
 	tracesListCmd.Flags().
 		StringVar(&tracesSearch, "search", "", "Search in trace name (max 200 characters)")
+	indexLimit(tracesListCmd, "search", "max 200 characters")
 	tracesListCmd.Flags().
 		StringVar(&tracesFields, "fields", "core,metrics", "Field groups to include: core, io, metrics (comma-separated)")
 	indexFlag(tracesListCmd, "fields", "groups: core, io, metrics")
@@ -491,11 +494,11 @@ func init() {
 	// traces get flags
 	tracesGetCmd.Flags().
 		StringVar(&tracesGetFields, "fields", "core,io,metrics", "Field groups to include: core, io, metrics (comma-separated)")
+	indexFlag(tracesGetCmd, "fields", "groups: core, io, metrics")
 	tracesGetCmd.Flags().BoolVar(&tracesGetJSON, "json", false, "Output raw API response as JSON")
 	tracesGetCmd.Flags().BoolVar(&tracesGetYAML, "yaml", false, "Output raw API response as YAML")
 	tracesGetCmd.Flags().BoolVar(&tracesGetSummary, "summary", false,
 		"Render a compact, LLM-readable summary of the turn (conditions, tools, iterations)")
-	indexFlag(tracesGetCmd, "summary", "")
 	// --summary is a view, not a format, so it composes with --json/--yaml; --fields can't.
 	tracesGetCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	tracesGetCmd.MarkFlagsMutuallyExclusive("summary", "fields")

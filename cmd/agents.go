@@ -1068,9 +1068,9 @@ func init() {
 	agentUpdateCmd.Flags().
 		BoolVar(&agentEndpoint, "endpoint", false, "Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai")
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentEnvVars, "env", nil, "Environment variable (NAME=VALUE); can be repeated")
+		StringArrayVar(&agentEnvVars, "env", nil, "Replace environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force")
 	agentUpdateCmd.Flags().
-		StringArrayVar(&agentSecretRefs, "secret", nil, "Secret to inject as environment variables; can be repeated")
+		StringArrayVar(&agentSecretRefs, "secret", nil, "Replace secret references; repeat for every entry to keep; dropping entries requires --force")
 	agentUpdateCmd.Flags().
 		StringVar(&agentScheduleUptime, "schedule-uptime", "", "When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'")
 	agentUpdateCmd.Flags().
@@ -1170,7 +1170,7 @@ func init() {
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsSince, "since", "", logsSinceUsage)
 	agentLogsCmd.Flags().
-		StringVar(&agentLogsStartTime, "start-time", "", "Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window")
+		StringVar(&agentLogsStartTime, "start-time", "", logsStartTimeUsage)
 	agentLogsCmd.Flags().
 		StringVar(&agentLogsEndTime, "end-time", "", "Absolute RFC3339 end timestamp (e.g. 2026-02-24T12:00:00Z); requires --start-time; mutually exclusive with --since and --follow")
 	agentLogsCmd.Flags().
@@ -1185,6 +1185,7 @@ func init() {
 		BoolVar(&agentLogsTimestamps, "timestamps", false, "Include platform log timestamps")
 	agentLogsCmd.Flags().
 		IntVar(&agentLogsLimit, "limit", 0, logsLimitUsage)
+	indexLogsLimits(agentLogsCmd)
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

@@ -314,6 +314,7 @@ func init() {
 		IntVar(&scoreConfigsListPage, "page", 1, "Page number (starts at 1)")
 	scoreConfigsListCmd.Flags().
 		IntVar(&scoreConfigsListLimit, "limit", 0, "Items per page (max 100)")
+	indexLimit(scoreConfigsListCmd, "limit", "max 100")
 	scoreConfigsListCmd.Flags().
 		StringSliceVar(&scoreConfigsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	scoreConfigsListCmd.Flags().

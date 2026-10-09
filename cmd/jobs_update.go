@@ -202,6 +202,7 @@ func init() {
 		0,
 		"Run time budget in seconds (1-21600, max 6h), including startup, dependency installation, and all retries; unchanged when omitted",
 	)
+	indexLimit(jobUpdateCmd, "timeout", "1-21600, max 6h")
 	flags.Int32Var(
 		&jobUpdateRetries,
 		"retries",
