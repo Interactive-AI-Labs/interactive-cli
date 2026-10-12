@@ -69,7 +69,8 @@ func commandIndex(root *cobra.Command, version string) string {
 	)
 	b.WriteString(
 		"`<command> --help` explains each flag. `*` = --json or --yaml (not with --columns); " +
-			"commands without `*` or --json print text only. --follow and --watch stream until stopped.\n",
+			"only commands marked `*` or --json accept those output flags. " +
+			"--follow and --watch stream until stopped.\n",
 	)
 	for _, group := range indexableChildren(root) {
 		if !group.HasAvailableSubCommands() {
