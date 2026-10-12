@@ -61,11 +61,7 @@ func TestCommandIndex(t *testing.T) {
 		}, "get [--env (replaces) --force]"},
 	}
 	for _, tt := range tests {
-		root := &cobra.Command{Use: "iai"}
-		group := &cobra.Command{Use: "things", Short: "Manage things (tables)"}
-		leaf := &cobra.Command{Use: tt.leaf, Run: func(*cobra.Command, []string) {}}
-		root.AddCommand(group)
-		group.AddCommand(leaf)
+		root, leaf := indexFixture(tt.leaf)
 		tt.setup(leaf)
 
 		lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
@@ -75,8 +71,47 @@ func TestCommandIndex(t *testing.T) {
 	}
 }
 
+// A note the help doesn't say must be dropped, not printed.
+func TestIndexNotesRejectUnquoted(t *testing.T) {
+	tests := []struct {
+		name     string
+		annotate func(c *cobra.Command)
+	}{
+		{"unknown flag", func(c *cobra.Command) { indexFlag(c, "nope", "max 100") }},
+		{"flag note not in help", func(c *cobra.Command) { indexFlag(c, "limit", "max 100") }},
+		{"command note not in help", func(c *cobra.Command) { indexCommand(c, "no --x") }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func(errs []error) { indexFlagErrs = errs }(indexFlagErrs)
+			indexFlagErrs = nil
+
+			root, leaf := indexFixture("get")
+			leaf.Flags().Int("limit", 0, "Items per page")
+			tt.annotate(leaf)
+
+			if len(indexFlagErrs) != 1 {
+				t.Fatalf("recorded %d errors, want 1", len(indexFlagErrs))
+			}
+			lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
+			if got, want := lines[2], "things (Manage things): get [--limit]"; got != want {
+				t.Errorf("rejected note reached the index\ngot  %q\nwant %q", got, want)
+			}
+		})
+	}
+}
+
 func TestIndexAnnotationsMatchFlags(t *testing.T) {
 	if err := errors.Join(indexFlagErrs...); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func indexFixture(use string) (root, leaf *cobra.Command) {
+	root = &cobra.Command{Use: "iai"}
+	group := &cobra.Command{Use: "things", Short: "Manage things (tables)"}
+	leaf = &cobra.Command{Use: use, Run: func(*cobra.Command, []string) {}}
+	root.AddCommand(group)
+	group.AddCommand(leaf)
+	return root, leaf
 }
