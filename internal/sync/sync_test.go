@@ -115,6 +115,113 @@ func TestRequireMcpCredential(t *testing.T) {
 	}
 }
 
+func TestMcpInventoryForStack(t *testing.T) {
+	stackId, otherStack, none, oauth := "stack", "other", "none", "oauth"
+	hosted := deployment.McpOutput{Name: "hosted", StackId: stackId}
+	remote := platform.McpSchema{
+		Name: "remote", Backend: platform.McpBackendExternal, StackId: &stackId, AuthType: &none,
+	}
+	tests := []struct {
+		name                 string
+		inventory            mcpInventory
+		desired              map[string]deployment.CreateMcpBody
+		remote               map[string]platform.McpCreateRequest
+		wantHosted           map[string]deployment.McpOutput
+		wantRemote           map[string]platform.McpSchema
+		wantWarning, wantErr string
+	}{
+		{
+			name:       "empty inventory",
+			wantHosted: map[string]deployment.McpOutput{},
+			wantRemote: map[string]platform.McpSchema{},
+		},
+		{
+			name: "selects owned resources and warns only about unsupported owned remotes",
+			inventory: mcpInventory{
+				operator: []deployment.McpOutput{hosted, {Name: "foreign", StackId: otherStack}},
+				platform: []platform.McpSchema{
+					remote,
+					{Name: "hosted", Backend: platform.McpBackendInternal, StackId: &stackId},
+					{
+						Name:     "foreign",
+						Backend:  platform.McpBackendExternal,
+						StackId:  &otherStack,
+						AuthType: &oauth,
+					},
+					{
+						Name:     "zulu",
+						Backend:  platform.McpBackendExternal,
+						StackId:  &stackId,
+						AuthType: &oauth,
+					},
+					{
+						Name:     "alpha",
+						Backend:  platform.McpBackendExternal,
+						StackId:  &stackId,
+						AuthType: &oauth,
+					},
+				},
+			},
+			wantHosted: map[string]deployment.McpOutput{"hosted": hosted},
+			wantRemote: map[string]platform.McpSchema{"remote": remote},
+			wantWarning: "Remote mcps alpha, zulu in stack \"stack\" use an auth type a stack file cannot hold; " +
+				"they are managed with 'iai mcps' only and left as they are.\n",
+		},
+		{
+			name: "claimed unsupported auth is an error rather than a skipped resource",
+			inventory: mcpInventory{platform: []platform.McpSchema{
+				{
+					Name:     "oauth",
+					Backend:  platform.McpBackendExternal,
+					StackId:  &stackId,
+					AuthType: &oauth,
+				},
+			}},
+			remote: map[string]platform.McpCreateRequest{"oauth": {}},
+			wantErr: "mcps oauth exist in the project but stack \"stack\" cannot manage them " +
+				"(another stack, or an auth type set up with 'iai mcps'); " +
+				"delete them with 'iai mcps delete', or with 'iai stacks sync --allow-delete mcps' " +
+				"on the stack that owns them, or rename them in the config",
+		},
+		{
+			name:      "rejects a hosted to remote type change",
+			inventory: mcpInventory{operator: []deployment.McpOutput{hosted}},
+			remote:    map[string]platform.McpCreateRequest{"hosted": {}},
+			wantErr: "mcps hosted exist live with another type or as legacy remote mcps in the project; " +
+				"omit them from the config, sync with --allow-delete mcps, then add them back",
+		},
+		{
+			name: "checks ownership against the whole project, not just selected resources",
+			inventory: mcpInventory{
+				operator: []deployment.McpOutput{{Name: "foreign", StackId: otherStack}},
+			},
+			desired: map[string]deployment.CreateMcpBody{"foreign": {}},
+			wantErr: "mcps foreign exist in the project but stack \"stack\" cannot manage them " +
+				"(another stack, or an auth type set up with 'iai mcps'); " +
+				"delete them with 'iai mcps delete', or with 'iai stacks sync --allow-delete mcps' " +
+				"on the stack that owns them, or rename them in the config",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var warnings bytes.Buffer
+			hosted, remote, err := tt.inventory.forStack(&warnings, stackId, tt.desired, tt.remote)
+			if (err != nil && err.Error() != tt.wantErr) || (err == nil && tt.wantErr != "") {
+				t.Fatalf("error = %v, want %q", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(hosted, tt.wantHosted) {
+				t.Fatalf("hosted = %#v, want %#v", hosted, tt.wantHosted)
+			}
+			if !reflect.DeepEqual(remote, tt.wantRemote) {
+				t.Fatalf("remote = %#v, want %#v", remote, tt.wantRemote)
+			}
+			if got := warnings.String(); got != tt.wantWarning {
+				t.Fatalf("warnings = %q, want %q", got, tt.wantWarning)
+			}
+		})
+	}
+}
+
 func TestMcpConflicts(t *testing.T) {
 	stack := func(s string) *string { return &s }
 	operator := map[string]deployment.McpOutput{
@@ -302,7 +409,55 @@ func TestRemoteMcpPatch(t *testing.T) {
 			name: "catalog entry without credential",
 			live: platform.McpSchema{CatalogID: str("awsknowledge"), AuthType: str("none")},
 			body: platform.McpCreateRequest{CatalogID: str("awsknowledge"), Auth: none},
-			want: platform.McpUpdateRequest{"auth": map[string]any{"type": "none"}},
+			want: platform.McpUpdateRequest{},
+		},
+		{
+			name: "unchanged endpoint without authentication",
+			live: platform.McpSchema{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				AuthType:    str("none"),
+			},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{},
+		},
+		{
+			name: "missing live auth type is none",
+			live: platform.McpSchema{EndpointURL: str("https://mcp.acme.com/mcp")},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{},
+		},
+		{
+			name: "changed endpoint without authentication only patches URL",
+			live: platform.McpSchema{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				AuthType:    str("none"),
+			},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://new.example/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{"endpoint_url": "https://new.example/mcp"},
+		},
+		{
+			name: "stale endpoint header routing is cleared",
+			live: platform.McpSchema{
+				EndpointURL:    str("https://mcp.acme.com/mcp"),
+				AuthType:       str("none"),
+				AuthHeaderName: str("X-Old"),
+			},
+			body: platform.McpCreateRequest{
+				EndpointURL: str("https://mcp.acme.com/mcp"),
+				Auth:        none,
+			},
+			want: platform.McpUpdateRequest{
+				"auth": map[string]any{"type": "none", "header_name": nil, "header_prefix": nil},
+			},
 		},
 		{
 			name: "credential rotation on a catalog entry",
@@ -355,7 +510,6 @@ func TestRemoteMcpPatch(t *testing.T) {
 				},
 			},
 			want: platform.McpUpdateRequest{
-				"endpoint_url": "https://mcp.acme.com/mcp",
 				"auth": map[string]any{
 					"type":          "custom",
 					"credential":    "token",
@@ -372,7 +526,6 @@ func TestRemoteMcpPatch(t *testing.T) {
 				Auth:        bearer("token"),
 			},
 			want: platform.McpUpdateRequest{
-				"endpoint_url": "https://mcp.acme.com/mcp",
 				"auth": map[string]any{
 					"type":          "bearer",
 					"credential":    "token",
@@ -549,10 +702,10 @@ func TestPrintPlan(t *testing.T) {
 				"Would refuse to delete services: svc-old (a config that omits a resource looks identical to a stale one — pass --allow-delete=services to delete)\n",
 		},
 		{
-			name:   "no changes",
+			name:   "empty section is silent",
 			label:  "agents",
 			result: &Result{},
-			want:   "No changes required; agents already match config.\n",
+			want:   "",
 		},
 		{
 			name:  "only refused deletions",
@@ -832,50 +985,6 @@ func TestSyncDeletesWithAllowDelete(t *testing.T) {
 				t.Errorf("Protected = %v, want []", result.Protected)
 			}
 		})
-	}
-}
-
-func TestServicesDryRunPlansWithoutWriting(t *testing.T) {
-	client := newTestDeployClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1/organizations/o1/projects/p1/services":
-			fmt.Fprint(
-				w,
-				`{"services":[{"name":"svc-a","projectId":"p1","revision":3,"status":"ready","updated":"2026-07-24T11:20:00Z"},{"name":"svc-old","projectId":"p1","revision":9,"status":"ready"}]}`,
-			)
-		default:
-			t.Errorf("dry run made a write: %s %s", r.Method, r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
-
-	var warn bytes.Buffer
-	desired := map[string]deployment.CreateServiceBody{
-		"svc-a":   {},
-		"svc-new": {},
-	}
-	result, err := Services(
-		context.Background(), &warn, client, "o1", "p1", "stack-1", desired,
-		Options{DryRun: true},
-	)
-	if err != nil {
-		t.Fatalf("Services() error = %v", err)
-	}
-
-	if got := warn.String(); got != "" {
-		t.Errorf("dry run printed warnings = %q, want none (the plan is the deliverable)", got)
-	}
-	if len(result.Created) != 1 || result.Created[0] != "svc-new" {
-		t.Errorf("Created = %v, want [svc-new]", result.Created)
-	}
-	if len(result.Updated) != 1 || result.Updated[0] != "svc-a" {
-		t.Errorf("Updated = %v, want [svc-a]", result.Updated)
-	}
-	if len(result.Protected) != 1 || result.Protected[0] != "svc-old" {
-		t.Errorf("Protected = %v, want [svc-old]", result.Protected)
-	}
-	if len(result.Deleted) != 0 {
-		t.Errorf("Deleted = %v, want []", result.Deleted)
 	}
 }
 

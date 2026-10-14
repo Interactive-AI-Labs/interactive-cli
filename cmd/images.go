@@ -353,10 +353,10 @@ open when the existing tags cannot be listed.`,
 
 		fmt.Fprintln(out)
 		fmt.Fprint(out, "Uploading image")
-		done := output.PrintLoadingDots(out)
+		stop := output.PrintLoadingDots(out)
 
 		resp, err := httpClient.Do(req)
-		close(done)
+		stop()
 		fmt.Fprintln(out)
 		if err != nil {
 			return fmt.Errorf("request failed: %w", err)

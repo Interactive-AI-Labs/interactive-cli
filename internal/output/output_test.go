@@ -2,7 +2,6 @@ package output
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 	"time"
 )
@@ -124,45 +123,28 @@ func TestLocalTime(t *testing.T) {
 	}
 }
 
-func TestPrintLoadingDots(t *testing.T) {
-	t.Run("prints dots periodically", func(t *testing.T) {
-		var buf bytes.Buffer
-		done := PrintLoadingDots(&buf)
-
-		time.Sleep(2500 * time.Millisecond)
-		close(done)
-
-		time.Sleep(100 * time.Millisecond)
-
-		output := buf.String()
-		dotCount := strings.Count(output, ".")
-		if dotCount < 2 {
-			t.Errorf("expected at least 2 dots, got %d. Output: %q", dotCount, output)
-		}
-		if dotCount > 3 {
-			t.Errorf("expected at most 3 dots, got %d. Output: %q", dotCount, output)
-		}
-	})
-
-	t.Run("stops when done channel is closed", func(t *testing.T) {
-		var buf bytes.Buffer
-		done := PrintLoadingDots(&buf)
-
-		time.Sleep(500 * time.Millisecond)
-		close(done)
-
-		time.Sleep(500 * time.Millisecond)
-		lenBefore := buf.Len()
-
-		time.Sleep(1500 * time.Millisecond)
-		lenAfter := buf.Len()
-
-		if lenAfter != lenBefore {
-			t.Errorf(
-				"expected no more output after done, but buffer grew from %d to %d bytes",
-				lenBefore,
-				lenAfter,
-			)
-		}
-	})
+func TestLoadingDots(t *testing.T) {
+	tests := []struct {
+		name  string
+		ticks int
+		want  string
+	}{
+		{name: "stop before any ticks", want: ""},
+		{name: "stop waits for the first write", ticks: 1, want: "."},
+		{name: "one dot per tick", ticks: 3, want: "..."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			ticks := make(chan time.Time)
+			stop := startLoadingDots(&buf, ticks)
+			for range tt.ticks {
+				ticks <- time.Time{}
+			}
+			stop()
+			if got := buf.String(); got != tt.want {
+				t.Fatalf("output = %q, want %q", got, tt.want)
+			}
+		})
+	}
 }
