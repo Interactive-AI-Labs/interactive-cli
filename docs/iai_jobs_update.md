@@ -5,7 +5,8 @@ Update a job in a project
 ### Synopsis
 
 Update supplied fields of a saved job; omitted fields keep their values.
-Preserves activation state and run history. All runs must be finished.
+Preserves activation state and run history. Configuration changes require all
+runs to finish; unchanged updates are allowed during a run.
 
 ```
 iai jobs update <job_name> [flags]

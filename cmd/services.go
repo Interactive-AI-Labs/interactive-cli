@@ -977,7 +977,7 @@ The project is selected with --project or via 'iai projects select', and the con
 
 		fmt.Fprintln(out)
 		fmt.Fprint(out, "Syncing services")
-		done := output.PrintLoadingDots(out)
+		stop := output.PrintLoadingDots(out)
 
 		result, err := sync.Services(
 			cmd.Context(),
@@ -991,7 +991,7 @@ The project is selected with --project or via 'iai projects select', and the con
 				AllowDelete: sync.AllowDeleteResource(syncAllowDelete, "services"),
 			},
 		)
-		close(done)
+		stop()
 		fmt.Fprintln(out)
 
 		return sync.PrintResult(out, "services", result, err)

@@ -7,8 +7,13 @@ Show differences between local config and live stack
 Compare a local stack configuration file against the live state of a
 stack and show creates, updates, deletes, and field-level changes.
 
-The local file is read from --file or --cfg-file. The live state is fetched
-from the deployment API using --stack-id.
+Use --file or --cfg-file for the local configuration. --stack-id overrides
+the stack ID in that file.
+
+Existing resources are validated as replacements; rejected replacements
+fail the diff. Agent plans depending on changing MCPs are deferred until
+those changes are applied. Supplied remote MCP credentials count as updates
+but are never displayed.
 
 Use --json for machine-readable output in CI pipelines.
 
@@ -29,7 +34,7 @@ iai stacks diff [flags]
 ```
   -f, --file string           Path to local stack configuration file
   -h, --help                  help for diff
-      --json                  Output diff as JSON
+      --json                  Output diff as JSON; agents.deferred maps unplanned agents to their changing mcp dependencies
   -o, --organization string   Organization name
   -p, --project string        Project name
       --stack-id string       Stack ID to compare against live

@@ -30,12 +30,12 @@ type Result struct {
 	Created   []string
 	Updated   []string
 	Deleted   []string
-	Protected []string // would be deleted but deletion was not allowed
+	Protected []string            // would be deleted but deletion was not allowed
+	Deferred  map[string][]string // Agent names and changing MCP dependencies; their plans need a later check.
 }
 
 type Options struct {
 	AllowDelete bool
-	DryRun      bool
 }
 
 func HasServices(
@@ -178,9 +178,20 @@ func PrintPlan(out io.Writer, label string, result *Result) {
 			label,
 		)
 	}
-	if len(result.Created) == 0 && len(result.Updated) == 0 &&
-		len(result.Deleted) == 0 && len(result.Protected) == 0 {
-		fmt.Fprintf(out, "No changes required; %s already match config.\n", label)
+
+	var deferred []string
+	for name := range result.Deferred {
+		deferred = append(deferred, name)
+	}
+	sort.Strings(deferred)
+	for _, name := range deferred {
+		fmt.Fprintf(
+			out,
+			"Plan deferred for %s %s: changing mcps: %s; check again after those changes.\n",
+			label,
+			name,
+			strings.Join(result.Deferred[name], ", "),
+		)
 	}
 }
 
@@ -218,9 +229,8 @@ func Services(
 				_, err := deployClient.CreateService(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateServiceBody) error {
-				_, err := deployClient.PutService(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateServiceBody) (bool, error) {
+				return deployClient.PutService(ctx, orgId, projectId, name, body)
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteService(ctx, orgId, projectId, name)
@@ -267,9 +277,8 @@ func Agents(
 				_, err := deployClient.CreateAgent(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateAgentBody) error {
-				_, err := deployClient.PutAgent(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateAgentBody) (bool, error) {
+				return deployClient.PutAgent(ctx, orgId, projectId, name, body)
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteAgent(ctx, orgId, projectId, name)
@@ -316,9 +325,8 @@ func Databases(
 				_, err := deployClient.CreateDatabase(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateDatabaseBody) error {
-				_, err := deployClient.PutDatabase(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateDatabaseBody) (bool, error) {
+				return deployClient.PutDatabase(ctx, orgId, projectId, name, body)
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteDatabase(ctx, orgId, projectId, name)
@@ -328,44 +336,52 @@ func Databases(
 	)
 }
 
-// Mcps syncs self-hosted MCPs on the deployment operator and remote MCPs on the platform, which owns them.
-func Mcps(
+type mcpInventory struct {
+	operator []deployment.McpOutput
+	platform []platform.McpSchema
+}
+
+// loadMcps reads both registries project-wide so ownership and type conflicts can be checked.
+func loadMcps(
 	ctx context.Context,
-	warnW io.Writer,
 	deployClient *deployment.DeploymentClient,
 	apiClient *platform.APIClient,
-	orgId,
-	projectId,
+	orgId, projectId string,
+) (mcpInventory, error) {
+	operatorList, err := deployClient.ListMcps(ctx, orgId, projectId, "")
+	if err != nil {
+		return mcpInventory{}, fmt.Errorf("failed to list mcps: %w", err)
+	}
+	platformList, _, err := apiClient.ListMcps(ctx, orgId, projectId)
+	if err != nil {
+		return mcpInventory{}, fmt.Errorf("failed to list platform mcps: %w", err)
+	}
+	return mcpInventory{operator: operatorList, platform: platformList.Mcps}, nil
+}
+
+// forStack selects manageable MCPs and rejects conflicting names before any writes.
+func (inventory mcpInventory) forStack(
+	warnW io.Writer,
 	stackId string,
 	desired map[string]deployment.CreateMcpBody,
 	remote map[string]platform.McpCreateRequest,
-	opts Options,
-) (*Result, error) {
-	// Listed project-wide on both sides: names are unique per project, so a clash must fail before any write.
-	operatorList, err := deployClient.ListMcps(ctx, orgId, projectId, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to list mcps: %w", err)
-	}
+) (map[string]deployment.McpOutput, map[string]platform.McpSchema, error) {
 	operatorByName := make(map[string]deployment.McpOutput)
 	existingByName := make(map[string]deployment.McpOutput)
-	for _, mcp := range operatorList {
+	for _, mcp := range inventory.operator {
 		operatorByName[mcp.Name] = mcp
 		if mcp.StackId == stackId {
 			existingByName[mcp.Name] = mcp
 		}
 	}
 
-	platformList, _, err := apiClient.ListMcps(ctx, orgId, projectId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list platform mcps: %w", err)
-	}
 	platformByName := make(map[string]platform.McpSchema)
-	for _, mcp := range platformList.Mcps {
+	for _, mcp := range inventory.platform {
 		platformByName[mcp.Name] = mcp
 	}
 	remoteByName := make(map[string]platform.McpSchema)
 	var skipped []string
-	for _, mcp := range platform.RemoteStackMcps(platformList.Mcps, stackId) {
+	for _, mcp := range platform.RemoteStackMcps(inventory.platform, stackId) {
 		if files.StackManagedRemote(mcp) {
 			remoteByName[mcp.Name] = mcp
 			continue
@@ -393,14 +409,14 @@ func Mcps(
 		remote,
 	)
 	if len(typeChanged) > 0 {
-		return nil, fmt.Errorf(
-			"mcps %s exist live with another type or as legacy remote mcps on the deployment operator; "+
+		return nil, nil, fmt.Errorf(
+			"mcps %s exist live with another type or as legacy remote mcps in the project; "+
 				"omit them from the config, sync with --allow-delete mcps, then add them back",
 			strings.Join(typeChanged, ", "),
 		)
 	}
 	if len(unmanaged) > 0 {
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"mcps %s exist in the project but stack %q cannot manage them "+
 				"(another stack, or an auth type set up with 'iai mcps'); "+
 				"delete them with 'iai mcps delete', or with 'iai stacks sync --allow-delete mcps' "+
@@ -409,6 +425,28 @@ func Mcps(
 		)
 	}
 
+	return existingByName, remoteByName, nil
+}
+
+// Mcps syncs self-hosted MCPs and remote MCPs, which the platform owns.
+func Mcps(
+	ctx context.Context,
+	warnW io.Writer,
+	deployClient *deployment.DeploymentClient,
+	apiClient *platform.APIClient,
+	orgId, projectId, stackId string,
+	desired map[string]deployment.CreateMcpBody,
+	remote map[string]platform.McpCreateRequest,
+	opts Options,
+) (*Result, error) {
+	inventory, err := loadMcps(ctx, deployClient, apiClient, orgId, projectId)
+	if err != nil {
+		return nil, err
+	}
+	existingByName, remoteByName, err := inventory.forStack(warnW, stackId, desired, remote)
+	if err != nil {
+		return nil, err
+	}
 	result, err := syncResources(
 		warnW,
 		existingByName,
@@ -421,16 +459,8 @@ func Mcps(
 				_, err := deployClient.CreateMcp(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateMcpBody) error {
-				authType := body.Auth.Type
-				if authType == "" {
-					authType = existingByName[name].Auth.Type
-				}
-				if err := requireMcpCredential(name, authType, body.Auth.Credential); err != nil {
-					return err
-				}
-				_, err := deployClient.PutMcp(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateMcpBody) (bool, error) {
+				return deployClient.PutMcp(ctx, orgId, projectId, name, body)
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteMcp(ctx, orgId, projectId, name, false)
@@ -485,13 +515,13 @@ func Mcps(
 					name,
 				)
 			},
-			update: func(name string, body platform.McpCreateRequest) error {
+			update: func(name string, body platform.McpCreateRequest) (bool, error) {
 				patch, err := remoteMcpPatch(name, remoteByName[name], body)
 				if err != nil || len(patch) == 0 {
-					return err
+					return false, err
 				}
 				_, _, err = apiClient.UpdateMcp(ctx, orgId, projectId, name, patch)
-				return err
+				return err == nil, err
 			},
 			delete: func(name string) error {
 				_, _, err := apiClient.DeleteMcp(ctx, orgId, projectId, name)
@@ -587,7 +617,7 @@ func remoteMcpPatch(
 		)
 	}
 	patch := platform.McpUpdateRequest{}
-	if body.EndpointURL != nil {
+	if body.EndpointURL != nil && *body.EndpointURL != str(live.EndpointURL) {
 		patch["endpoint_url"] = *body.EndpointURL
 	}
 	authType, credential := string(body.Auth.Type), str(body.Auth.Credential)
@@ -598,6 +628,12 @@ func remoteMcpPatch(
 			return patch, nil
 		}
 		return nil, requireMcpCredential(name, authType, credential)
+	}
+	if credential == "" && !live.HasCredential &&
+		authType == cmp.Or(str(live.AuthType), string(platform.McpAuthNone)) &&
+		(body.CatalogID != nil || (str(body.Auth.HeaderName) == str(live.AuthHeaderName) &&
+			str(body.Auth.HeaderPrefix) == str(live.AuthHeaderPrefix))) {
+		return patch, nil
 	}
 	auth := map[string]any{"type": authType}
 	if credential != "" {
@@ -712,9 +748,8 @@ func Jobs(
 				_, err := deployClient.CreateJob(ctx, orgId, projectId, name, body)
 				return err
 			},
-			update: func(name string, body deployment.CreateJobBody) error {
-				_, err := deployClient.PutJob(ctx, orgId, projectId, name, body)
-				return err
+			update: func(name string, body deployment.CreateJobBody) (bool, error) {
+				return deployClient.PutJob(ctx, orgId, projectId, name, body)
 			},
 			delete: func(name string) error {
 				_, err := deployClient.DeleteJob(ctx, orgId, projectId, name)
@@ -731,9 +766,10 @@ type resourceOps[E, B any] struct {
 	resource  string
 	allowFlag string
 	create    func(name string, body B) error
-	update    func(name string, body B) error
-	delete    func(name string) error
-	banner    func(w io.Writer, existing E)
+	// update replaces the live resource and reports whether the server changed it.
+	update func(name string, body B) (bool, error)
+	delete func(name string) error
+	banner func(w io.Writer, existing E)
 }
 
 func syncResources[E, B any](
@@ -752,9 +788,7 @@ func syncResources[E, B any](
 		}
 	}
 	sort.Strings(toDelete)
-	if !opts.DryRun {
-		preflight.PrintSyncDeletions(warnW, ops.resource, ops.allowFlag, toDelete, opts.AllowDelete)
-	}
+	preflight.PrintSyncDeletions(warnW, ops.resource, ops.allowFlag, toDelete, opts.AllowDelete)
 	if !opts.AllowDelete {
 		result.Protected = toDelete
 		toDelete = nil
@@ -768,37 +802,31 @@ func syncResources[E, B any](
 
 	for _, name := range desiredNames {
 		body := desired[name]
-		if existing, exists := existingByName[name]; !exists {
-			if !opts.DryRun {
-				if err := ops.create(name, body); err != nil {
-					return result, fmt.Errorf(
-						"failed to create %s %q: %w", ops.resource, name, err,
-					)
-				}
+		existing, exists := existingByName[name]
+		if !exists {
+			if err := ops.create(name, body); err != nil {
+				return result, fmt.Errorf("failed to create %s %q: %w", ops.resource, name, err)
 			}
 			result.Created = append(result.Created, name)
-		} else {
-			if !opts.DryRun {
-				if ops.banner != nil {
-					ops.banner(warnW, existing)
-				}
-				if err := ops.update(name, body); err != nil {
-					return result, fmt.Errorf(
-						"failed to update %s %q: %w", ops.resource, name, err,
-					)
-				}
-			}
-			result.Updated = append(result.Updated, name)
+			continue
 		}
+
+		changed, err := ops.update(name, body)
+		if err != nil {
+			return result, fmt.Errorf("failed to update %s %q: %w", ops.resource, name, err)
+		}
+		if !changed {
+			continue
+		}
+		if ops.banner != nil {
+			ops.banner(warnW, existing)
+		}
+		result.Updated = append(result.Updated, name)
 	}
 
 	for _, name := range toDelete {
-		if !opts.DryRun {
-			if err := ops.delete(name); err != nil {
-				return result, fmt.Errorf(
-					"failed to delete %s %q: %w", ops.resource, name, err,
-				)
-			}
+		if err := ops.delete(name); err != nil {
+			return result, fmt.Errorf("failed to delete %s %q: %w", ops.resource, name, err)
 		}
 		result.Deleted = append(result.Deleted, name)
 	}

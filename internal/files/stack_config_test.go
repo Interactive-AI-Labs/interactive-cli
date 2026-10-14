@@ -647,6 +647,72 @@ func TestDatabaseConfigToCreateRequest(t *testing.T) {
 	}
 }
 
+func TestMcpRequests(t *testing.T) {
+	stackId, endpoint, credential := "target-stack", "https://example.com/mcp", "remote-credential"
+	tests := []struct {
+		name       string
+		mcps       map[string]McpConfig
+		wantHosted map[string]deployment.CreateMcpBody
+		wantRemote map[string]platform.McpCreateRequest
+	}{
+		{
+			name:       "empty configuration",
+			wantHosted: map[string]deployment.CreateMcpBody{},
+			wantRemote: map[string]platform.McpCreateRequest{},
+		},
+		{
+			name: "routes both types and preserves credentials and target stack",
+			mcps: map[string]McpConfig{
+				"tools": {
+					Type: "self-hosted",
+					Port: 8080,
+					Auth: deployment.McpAuthBody{Type: "bearer", Credential: "hosted-credential"},
+				},
+				"docs": {
+					Type:        "remote",
+					EndpointURL: endpoint,
+					Auth:        deployment.McpAuthBody{Type: "bearer", Credential: credential},
+				},
+			},
+			wantHosted: map[string]deployment.CreateMcpBody{
+				"tools": {
+					Type:    "internal",
+					Port:    8080,
+					StackId: stackId,
+					Auth: deployment.McpAuthBody{
+						Type:       "bearer",
+						Credential: "hosted-credential",
+					},
+				},
+			},
+			wantRemote: map[string]platform.McpCreateRequest{
+				"docs": {
+					Name:        "docs",
+					Backend:     platform.McpBackendExternal,
+					EndpointURL: &endpoint,
+					Transport:   "streamable_http",
+					StackID:     &stackId,
+					Auth: platform.McpAuth{
+						Type:       platform.McpAuthBearer,
+						Credential: &credential,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hosted, remote := McpRequests(tt.mcps, stackId)
+			if diff := cmp.Diff(tt.wantHosted, hosted); diff != "" {
+				t.Fatalf("hosted mismatch (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantRemote, remote); diff != "" {
+				t.Fatalf("remote mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestMcpConfigToCreateRequest(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -1075,6 +1141,41 @@ func TestMcpConfigFromDescribe(t *testing.T) {
 				Type:        "remote",
 				EndpointURL: "https://example.com/mcp",
 				Auth:        deployment.McpAuthBody{Type: "bearer"},
+			},
+		},
+		{
+			name: "self-hosted bearer does not export implied headers as custom overrides",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type: "self-hosted",
+					Auth: deployment.McpAuthInfo{
+						Type:         "bearer",
+						Header:       "Authorization",
+						HeaderPrefix: "Bearer ",
+					},
+				},
+			},
+			want: McpConfig{Type: "self-hosted", Auth: deployment.McpAuthBody{Type: "bearer"}},
+		},
+		{
+			name: "self-hosted custom auth keeps its routing",
+			desc: &deployment.DescribeMcpResponse{
+				McpOutput: deployment.McpOutput{
+					Type: "self-hosted",
+					Auth: deployment.McpAuthInfo{
+						Type:         "custom",
+						Header:       "X-Token",
+						HeaderPrefix: "Token ",
+					},
+				},
+			},
+			want: McpConfig{
+				Type: "self-hosted",
+				Auth: deployment.McpAuthBody{
+					Type:         "custom",
+					Header:       "X-Token",
+					HeaderPrefix: "Token ",
+				},
 			},
 		},
 		{

@@ -76,20 +76,33 @@ func PrintPageMeta(out io.Writer, page, totalPages, totalItems int) {
 	fmt.Fprintf(out, "\nPage %d of %d (%d total items)\n", page, totalPages, totalItems)
 }
 
-func PrintLoadingDots(out io.Writer) chan struct{} {
+// PrintLoadingDots returns a stop function that waits until the writer is no longer in use.
+func PrintLoadingDots(out io.Writer) func() {
+	ticker := time.NewTicker(time.Second)
+	stop := startLoadingDots(out, ticker.C)
+	return func() {
+		ticker.Stop()
+		stop()
+	}
+}
+
+func startLoadingDots(out io.Writer, ticks <-chan time.Time) func() {
 	done := make(chan struct{})
+	stopped := make(chan struct{})
 	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
+		defer close(stopped)
 		for {
 			select {
 			case <-done:
 				return
-			case <-ticker.C:
+			case <-ticks:
 				fmt.Fprint(out, ".")
 			}
 		}
 	}()
 
-	return done
+	return func() {
+		close(done)
+		<-stopped
+	}
 }

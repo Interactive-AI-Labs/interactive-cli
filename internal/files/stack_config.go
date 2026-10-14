@@ -220,6 +220,23 @@ func (d DatabaseConfig) ToCreateRequest(stackId string) deployment.CreateDatabas
 	}
 }
 
+// McpRequests maps loaded MCP configs to the API that manages each type.
+func McpRequests(
+	mcps map[string]McpConfig,
+	stackId string,
+) (map[string]deployment.CreateMcpBody, map[string]platform.McpCreateRequest) {
+	hosted := make(map[string]deployment.CreateMcpBody)
+	remote := make(map[string]platform.McpCreateRequest)
+	for name, cfg := range mcps {
+		if cfg.Type == deployment.McpTypeRemote {
+			remote[name] = cfg.ToPlatformCreateRequest(name, stackId)
+		} else {
+			hosted[name] = cfg.ToCreateRequest(stackId)
+		}
+	}
+	return hosted, remote
+}
+
 func (m McpConfig) ToCreateRequest(stackId string) deployment.CreateMcpBody {
 	return deployment.CreateMcpBody{
 		Type:        deployment.McpTypeValue(m.Type),
@@ -335,7 +352,7 @@ func (j JobConfig) ToCreateRequest(stackId string) deployment.CreateJobBody {
 	}
 }
 
-func JobConfigFromDescribe(job *deployment.DescribeJobResponse) JobConfig {
+func JobConfigFromRequest(job deployment.CreateJobBody) JobConfig {
 	return JobConfig{
 		Type:       job.Type,
 		Image:      job.Image,
@@ -405,10 +422,13 @@ func McpConfigFromDescribe(mcp *deployment.DescribeMcpResponse) McpConfig {
 		Header:       mcp.Auth.Header,
 		HeaderPrefix: mcp.Auth.HeaderPrefix,
 	}
+	if auth.Type != string(platform.McpAuthCustom) {
+		auth.Header, auth.HeaderPrefix = "", ""
+	}
 	if mcpType == deployment.McpTypeRemote {
 		// Only what a remote mcp may declare, so the export loads back: a missing auth type reads as none and header routing belongs to a custom credential.
 		auth.Type = cmp.Or(mcp.Auth.Type, string(platform.McpAuthNone))
-		if mcp.CatalogID != "" || auth.Type != string(platform.McpAuthCustom) {
+		if mcp.CatalogID != "" {
 			auth.Header, auth.HeaderPrefix = "", ""
 		}
 		if mcp.CatalogID != "" {
@@ -571,7 +591,7 @@ func FetchLiveStack(
 		if err != nil {
 			return nil, fmt.Errorf("failed to describe job %q: %w", job.Name, err)
 		}
-		cfg.Jobs[job.Name] = JobConfigFromDescribe(desc)
+		cfg.Jobs[job.Name] = JobConfigFromRequest(desc.CreateJobBody)
 	}
 
 	return cfg, nil
