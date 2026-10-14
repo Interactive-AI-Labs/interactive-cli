@@ -129,14 +129,20 @@ var genDocsCmd = &cobra.Command{
 			}
 		}
 
+		return nil
+	},
+}
+
+var genIndexCmd = &cobra.Command{
+	Use:    "gen-index",
+	Short:  "Print the command index the copilot reads",
+	Hidden: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := errors.Join(indexFlagErrs...); err != nil {
 			return err
 		}
-		return os.WriteFile(
-			filepath.Join(outDir, "cli-index.md"),
-			[]byte(commandIndex(rootCmd, version)),
-			0o644,
-		)
+		_, err := fmt.Fprint(cmd.OutOrStdout(), commandIndex(rootCmd, version))
+		return err
 	},
 }
 
@@ -195,5 +201,5 @@ func injectSchemaDoc(outDir, filename, schemaDoc string) error {
 func init() {
 	genDocsCmd.Flags().
 		String("out-dir", defaultDocsOutDir, "Output directory for generated Markdown docs")
-	rootCmd.AddCommand(genDocsCmd)
+	rootCmd.AddCommand(genDocsCmd, genIndexCmd)
 }
