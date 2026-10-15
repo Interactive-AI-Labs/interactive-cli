@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -462,60 +461,10 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		Example: ptCfg.DeleteExample,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			out := cmd.OutOrStdout()
-			name := strings.TrimSpace(args[0])
-
-			// Deleting all versions is destructive; require confirmation.
-			if version == 0 && label == "" && !force {
-				fmt.Fprintf(
-					out,
-					"This will delete %s %q and all its versions. Continue? [y/N] ",
-					ptCfg.TypeName,
-					name,
-				)
-				reader := bufio.NewReader(cmd.InOrStdin())
-				answer, err := reader.ReadString('\n')
-				if err != nil {
-					return fmt.Errorf("failed to read confirmation: %w", err)
-				}
-				if strings.ToLower(strings.TrimSpace(answer)) != "y" {
-					fmt.Fprintln(out, "Aborted.")
-					return nil
-				}
-			}
-
-			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintln(out)
-			fmt.Fprintf(out, "Deleting %s %q...\n", ptCfg.TypeName, name)
-
-			if version > 0 || label != "" {
-				err = apiClient.DeletePrompt(
-					cmd.Context(),
-					pCtx.projectId,
-					ptCfg.RouteSegment,
-					name,
-					version,
-					label,
-				)
-			} else {
-				err = apiClient.DeletePromptByName(
-					cmd.Context(),
-					pCtx.projectId,
-					ptCfg.RouteSegment,
-					name,
-				)
-			}
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintf(out, "Successfully deleted %s %q.\n", ptCfg.TypeName, name)
-
-			return nil
+			return runPromptDelete(
+				cmd, ptCfg.TypeName, ptCfg.RouteSegment, strings.TrimSpace(args[0]),
+				version, label, force, org, project,
+			)
 		},
 	}
 
@@ -524,8 +473,94 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation prompt")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+	cmd.MarkFlagsMutuallyExclusive("version", "label")
 
 	return cmd
+}
+
+// runPromptDelete deletes one version (--version), the versions carrying a label
+// (--label), or the whole prompt, after confirmation unless force is set.
+func runPromptDelete(
+	cmd *cobra.Command,
+	typeName, routeSegment, name string,
+	version int,
+	label string,
+	force bool,
+	org, project string,
+) error {
+	out := cmd.OutOrStdout()
+	byVersion, byLabel := cmd.Flags().Changed("version"), cmd.Flags().Changed("label")
+	label = strings.TrimSpace(label)
+
+	target := fmt.Sprintf("%s %q and all its versions", typeName, name)
+	switch {
+	case byVersion && version < 1:
+		return errors.New("--version must be 1 or greater")
+	case byLabel && label == "":
+		return errors.New("--label must not be empty")
+	case byVersion:
+		target = fmt.Sprintf("version %d of %s %q", version, typeName, name)
+	case byLabel:
+		target = fmt.Sprintf("versions labelled %q of %s %q", label, typeName, name)
+	}
+
+	scoped := byVersion || byLabel
+	if scoped {
+		if err := checkScopedPromptName(name); err != nil {
+			return err
+		}
+	}
+
+	if !force {
+		confirmed, err := confirmDeletion(cmd.InOrStdin(), out, target)
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			fmt.Fprintln(out, "Aborted.")
+			return nil
+		}
+	}
+
+	pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+	if err != nil {
+		return err
+	}
+
+	if scoped {
+		err = apiClient.DeletePrompt(
+			cmd.Context(),
+			pCtx.projectId,
+			routeSegment,
+			name,
+			version,
+			label,
+		)
+	} else {
+		err = apiClient.DeletePromptByName(cmd.Context(), pCtx.projectId, routeSegment, name)
+	}
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(out, "Deleted %s.\n", target)
+	return nil
+}
+
+// checkScopedPromptName refuses names the server would route to a wider delete:
+// it decodes %2F, so these path segments match other delete routes.
+func checkScopedPromptName(name string) error {
+	for _, segment := range strings.Split(name, "/") {
+		switch segment {
+		case "folders", "by-name", "versions":
+			return fmt.Errorf(
+				"cannot delete by --version or --label: %q contains the path segment %q, "+
+					"which the server would treat as a wider delete",
+				name, segment,
+			)
+		}
+	}
+	return nil
 }
 
 func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {

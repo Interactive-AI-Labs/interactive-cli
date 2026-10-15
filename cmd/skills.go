@@ -92,9 +92,9 @@ Pass --intents once per intent (the flag is repeatable).`,
   iai skills update summarize-trace --file ./skill.md -m "handle traces with no observations"`,
 		DeleteLong: `Delete a Copilot skill and all its versions, or delete specific versions.
 
-Without flags, deletes the skill and all its versions (requires confirmation).
-Use --version to delete a specific version, or --label to delete versions
-with a specific label. Use -f to skip the confirmation prompt.`,
+Without flags, deletes the skill and all its versions. Use --version to delete a
+specific version, or --label to delete the versions with a label. Every delete
+asks for confirmation unless -f is given.`,
 		DeleteExample: `  iai skills delete summarize-trace
   iai skills delete summarize-trace -f
   iai skills delete summarize-trace --version 3

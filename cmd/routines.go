@@ -89,9 +89,9 @@ Example (routine.yaml):
   iai routines update onboarding-flow --file routine.yaml --labels staging,qa`,
 		DeleteLong: `Delete a routine and all its versions, or delete specific versions.
 
-Without flags, deletes the routine and all its versions (requires confirmation).
-Use --version to delete a specific version, or --label to delete versions with a
-specific label. Use -f to skip the confirmation prompt.`,
+Without flags, deletes the routine and all its versions. Use --version to delete
+a specific version, or --label to delete the versions with a label. Every delete
+asks for confirmation unless -f is given.`,
 		DeleteExample: `  iai routines delete onboarding-flow
   iai routines delete onboarding-flow -f
   iai routines delete onboarding-flow --version 3
