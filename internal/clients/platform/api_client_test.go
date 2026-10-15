@@ -952,3 +952,60 @@ func TestAPIClientListPromptVersionsAPIKeyModeScanCap(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIClientDeletePromptSendsExplicitValues(t *testing.T) {
+	zero, three, empty, prod := 0, 3, "", "prod"
+	tests := []struct {
+		name    string
+		prompt  string
+		version *int
+		label   *string
+		want    string
+	}{
+		{"version", "x", &three, nil, "/prompts/routines/by-name/x?version=3"},
+		{"label", "x", nil, &prod, "/prompts/routines/by-name/x?label=prod"},
+		{"version 0 is sent", "x", &zero, nil, "/prompts/routines/by-name/x?version=0"},
+		{"empty label is sent", "x", nil, &empty, "/prompts/routines/by-name/x?label="},
+		{
+			"slashed name stays one segment",
+			"folders/x",
+			&three,
+			nil,
+			"/prompts/routines/by-name/folders%2Fx?version=3",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got string
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					got = strings.TrimPrefix(
+						r.URL.EscapedPath(),
+						"/api/platform/v1/projects/proj-1",
+					) + "?" + r.URL.RawQuery
+					_, _ = io.WriteString(w, `{"success":true}`)
+				}),
+			)
+			defer server.Close()
+			client, err := NewAPIClient(server.URL, 5*time.Second, "token", "", nil)
+			if err != nil {
+				t.Fatalf("NewAPIClient() error = %v", err)
+			}
+
+			if err := client.DeletePrompt(
+				context.Background(),
+				"proj-1",
+				"routines",
+				tt.prompt,
+				tt.version,
+				tt.label,
+			); err != nil {
+				t.Fatalf("DeletePrompt() error = %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("request = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
