@@ -6,9 +6,9 @@ Delete a variable
 
 Delete a variable definition and all its versions, or delete specific versions.
 
-Without flags, deletes the variable and all its versions. Use --version to
-delete a specific version, or --label to delete the versions with a label. Every
-delete asks for confirmation unless -f is given.
+Without flags, deletes the variable and all its versions (requires confirmation).
+Use --version to delete a specific version, or --label to delete versions with a
+specific label. Use -f to skip the confirmation prompt.
 
 ```
 iai variables delete <name> [flags]

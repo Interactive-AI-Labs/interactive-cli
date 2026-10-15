@@ -2,11 +2,8 @@ package cmd
 
 import "testing"
 
-func TestPromptDeleteTarget(t *testing.T) {
-	refusal := func(name, segment string) string {
-		return `cannot delete by --version or --label: "` + name + `" contains the path segment "` +
-			segment + `", which the server may treat as a wider delete`
-	}
+func TestValidatePromptDelete(t *testing.T) {
+	const wider = "which the server may treat as a wider delete"
 
 	tests := []struct {
 		name      string
@@ -15,29 +12,13 @@ func TestPromptDeleteTarget(t *testing.T) {
 		label     string
 		byVersion bool
 		byLabel   bool
-		want      string
 		wantErr   string
 	}{
-		{name: "whole prompt", prompt: "x", want: `routine "x" and all its versions`},
-		{
-			name:   "whole prompt ignores reserved segments",
-			prompt: "folders/x",
-			want:   `routine "folders/x" and all its versions`,
-		},
-		{
-			name:      "version",
-			prompt:    "x",
-			version:   3,
-			byVersion: true,
-			want:      `version 3 of routine "x"`,
-		},
-		{
-			name:    "label",
-			prompt:  "x",
-			label:   "prod",
-			byLabel: true,
-			want:    `versions labelled "prod" of routine "x"`,
-		},
+		{name: "whole prompt", prompt: "x"},
+		{name: "whole prompt with reserved segment", prompt: "folders/x"},
+		{name: "version", prompt: "x", version: 3, byVersion: true},
+		{name: "label", prompt: "x", label: "prod", byLabel: true},
+		{name: "segment-like name", prompt: "folders-x", version: 1, byVersion: true},
 		{
 			name:      "version 0",
 			prompt:    "x",
@@ -53,68 +34,66 @@ func TestPromptDeleteTarget(t *testing.T) {
 		},
 		{name: "empty label", prompt: "x", byLabel: true, wantErr: "--label must not be empty"},
 		{
+			name:    "blank label",
+			prompt:  "x",
+			label:   " ",
+			byLabel: true,
+			wantErr: "--label must not be empty",
+		},
+		{
 			name:      "folders segment",
 			prompt:    "folders/x",
 			version:   2,
 			byVersion: true,
-			wantErr:   refusal("folders/x", "folders"),
+			wantErr:   `cannot delete by --version or --label: "folders/x" contains the path segment "folders", ` + wider,
 		},
 		{
 			name:    "by-name segment",
 			prompt:  "a/by-name",
 			label:   "prod",
 			byLabel: true,
-			wantErr: refusal("a/by-name", "by-name"),
+			wantErr: `cannot delete by --version or --label: "a/by-name" contains the path segment "by-name", ` + wider,
 		},
 		{
 			name:      "versions segment",
 			prompt:    "a/versions/b",
 			version:   1,
 			byVersion: true,
-			wantErr:   refusal("a/versions/b", "versions"),
-		},
-		{
-			name:      "segment-like name",
-			prompt:    "folders-x",
-			version:   1,
-			byVersion: true,
-			want:      `version 1 of routine "folders-x"`,
+			wantErr:   `cannot delete by --version or --label: "a/versions/b" contains the path segment "versions", ` + wider,
 		},
 		{
 			name:    "empty name",
 			prompt:  "",
-			wantErr: `invalid routine name "": empty or relative path segment`,
+			wantErr: `invalid name "": empty or relative path segment`,
 		},
 		{
 			name:    "dot-dot name",
 			prompt:  "..",
-			wantErr: `invalid routine name "..": empty or relative path segment`,
+			wantErr: `invalid name "..": empty or relative path segment`,
 		},
 		{
-			name:      "double slash scoped",
+			name:      "double slash",
 			prompt:    "a//b",
 			version:   1,
 			byVersion: true,
-			wantErr:   `invalid routine name "a//b": empty or relative path segment`,
+			wantErr:   `invalid name "a//b": empty or relative path segment`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := promptDeleteTarget(
-				"routine",
+			gotErr := ""
+			if err := validatePromptDelete(
 				tt.prompt,
 				tt.version,
 				tt.label,
 				tt.byVersion,
 				tt.byLabel,
-			)
-			gotErr := ""
-			if err != nil {
+			); err != nil {
 				gotErr = err.Error()
 			}
-			if got != tt.want || gotErr != tt.wantErr {
-				t.Errorf("got (%q, %q), want (%q, %q)", got, gotErr, tt.want, tt.wantErr)
+			if gotErr != tt.wantErr {
+				t.Errorf("error = %q, want %q", gotErr, tt.wantErr)
 			}
 		})
 	}

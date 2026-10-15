@@ -259,13 +259,7 @@ single version never asks, since the target is already specific.`,
 		out := cmd.OutOrStdout()
 		fileRef := args[0]
 
-		versionScoped := cmd.Flags().Changed("version")
-		version := strings.TrimSpace(filesDeleteVersion)
-		if versionScoped && version == "" {
-			return errors.New("--version must not be empty")
-		}
-
-		if !versionScoped && !filesDeleteForce {
+		if filesDeleteVersion == "" && !filesDeleteForce {
 			confirmed, err := confirmDeletion(cmd.InOrStdin(), out, fmt.Sprintf("file %q", fileRef))
 			if err != nil {
 				return err
@@ -281,14 +275,14 @@ single version never asks, since the target is already specific.`,
 			return err
 		}
 
-		if versionScoped {
+		if filesDeleteVersion != "" {
 			id, err := apiClient.DeleteFileVersion(
-				cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, version,
+				cmd.Context(), pCtx.orgId, pCtx.projectId, fileRef, filesDeleteVersion,
 			)
 			if err != nil {
 				return reportFileRefAmbiguous(cmd, err)
 			}
-			fmt.Fprintf(out, "Deleted version %s of file %s\n", version, id)
+			fmt.Fprintf(out, "Deleted version %s of file %s\n", filesDeleteVersion, id)
 			return nil
 		}
 

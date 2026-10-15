@@ -47,29 +47,18 @@ func TestFilesDelete_Modes(t *testing.T) {
 	tests := []struct {
 		name        string
 		stdin       string
-		flags       []string
-		wantErr     string
+		version     string
+		force       bool
 		wantRequest string
 	}{
 		{
 			name:        "version with closed stdin",
-			flags:       []string{"--version", "v-1"},
+			version:     "v-1",
 			wantRequest: "DELETE " + filesPath + "/versions/v-1",
-		},
-		{
-			name:    "empty version",
-			flags:   []string{"--version", ""},
-			wantErr: "--version must not be empty",
-		},
-		{
-			name:    "blank version is not a whole-file delete",
-			stdin:   "y\n",
-			flags:   []string{"--version", "  ", "-f"},
-			wantErr: "--version must not be empty",
 		},
 		{name: "whole file declined", stdin: "n\n"},
 		{name: "whole file confirmed", stdin: "y\n", wantRequest: "DELETE " + filesPath},
-		{name: "whole file forced", flags: []string{"-f"}, wantRequest: "DELETE " + filesPath},
+		{name: "whole file forced", force: true, wantRequest: "DELETE " + filesPath},
 	}
 
 	for _, tt := range tests {
@@ -78,21 +67,33 @@ func TestFilesDelete_Modes(t *testing.T) {
 			server := filesDeleteTestServer(t, requests)
 			setupFilesDeleteTest(t, server, tt.stdin)
 
-			if err := filesDeleteCmd.ParseFlags(tt.flags); err != nil {
-				t.Fatalf("parse flags: %v", err)
+			if tt.version != "" {
+				if err := filesDeleteCmd.Flags().Set("version", tt.version); err != nil {
+					t.Fatalf("set --version: %v", err)
+				}
+			}
+			if tt.force {
+				if err := filesDeleteCmd.Flags().Set("force", "true"); err != nil {
+					t.Fatalf("set --force: %v", err)
+				}
 			}
 
-			gotErr := ""
 			if err := filesDeleteCmd.RunE(filesDeleteCmd, []string{"f-1"}); err != nil {
-				gotErr = err.Error()
-			}
-			if gotErr != tt.wantErr {
-				t.Fatalf("error = %q, want %q", gotErr, tt.wantErr)
+				t.Fatalf("files delete: %v", err)
 			}
 
-			got := strings.Join(requests.all(), ", ")
-			if got != tt.wantRequest {
-				t.Errorf("requests = %q, want %q", got, tt.wantRequest)
+			got := requests.all()
+			if tt.wantRequest == "" {
+				if len(got) != 0 {
+					t.Fatalf("requests = %v, want none", got)
+				}
+				return
+			}
+			if len(got) != 1 {
+				t.Fatalf("requests = %v, want exactly 1", got)
+			}
+			if got[0] != tt.wantRequest {
+				t.Errorf("request = %q, want %q", got[0], tt.wantRequest)
 			}
 		})
 	}
