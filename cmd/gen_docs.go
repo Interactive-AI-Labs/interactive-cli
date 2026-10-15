@@ -160,7 +160,7 @@ func injectSchemaDoc(outDir, filename, schemaDoc string) error {
 	// Find the start of the schema section. The marker text may appear
 	// mid-line (e.g. "...follow the routine schema. Run 'iai ..."), so we
 	// search for the containing line and use its start.
-	markers := []string{"Run 'iai", "Content must be"}
+	markers := []string{"Run 'iai", "No schema"}
 	schemaStart := -1
 	for _, m := range markers {
 		idx := strings.Index(text, m)

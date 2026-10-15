@@ -8,7 +8,7 @@ Create a new macro in an InteractiveAI project.
 
 Content is provided via a YAML file using the --file flag.
 
-Content must be a YAML mapping with a required `text` string (`id` optional).
+Run `iai macros schema` to see the current field definitions.
 
 ### Example
 
@@ -23,6 +23,7 @@ text: |
 ```
   iai macros create disclaimer --file disclaimer.yaml
   iai macros create disclaimer --file disclaimer.yaml -m "initial legal disclaimer"
+  iai macros create disclaimer --file disclaimer.yaml --schema-version 2.1.0
   iai macros create disclaimer --file disclaimer.yaml --labels staging
   iai macros create disclaimer --file disclaimer.yaml --tags legal
 ```

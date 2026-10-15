@@ -8,13 +8,18 @@ func init() {
 		Short:    "Pre-approved response templates used in routines",
 		Long: `Manage macros in InteractiveAI projects.
 
-Macros are reusable template replies and text snippets (YAML format).
-Content must be a YAML mapping with a required 'text' string ('id' optional).`,
+Macros are reusable template replies and text snippets (YAML format).`,
 		RouteSegment: "macros",
+		HasSchema:    true,
 		CreateLong: `Create a new macro in an InteractiveAI project.
 
 Content is provided via a YAML file using the --file flag.
-Content must be a YAML mapping with a required 'text' string ('id' optional).
+Run 'iai macros schema' to see the current field definitions.
+
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this macro (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
 
 Example (disclaimer.yaml):
   text: |
@@ -24,6 +29,7 @@ The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
 		CreateExample: `  iai macros create disclaimer --file disclaimer.yaml
   iai macros create disclaimer --file disclaimer.yaml -m "initial legal disclaimer"
+  iai macros create disclaimer --file disclaimer.yaml --schema-version 2.1.0
   iai macros create disclaimer --file disclaimer.yaml --labels staging
   iai macros create disclaimer --file disclaimer.yaml --tags legal`,
 		ListLong: `List macros in a specific project.
@@ -48,13 +54,19 @@ specific label.`,
 This creates a new version of the macro using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-Content must be a YAML mapping with a required 'text' string ('id' optional).
+Run 'iai macros schema' to see the current field definitions.
+
+Use --schema-version to validate against a specific schema version. This should
+match the schema version of the agent that will use this macro (run
+'iai agents compatibility-matrix' to find it). Defaults to the latest stable
+schema version when omitted.
 
 Example (disclaimer.yaml):
   text: |
     **Disclaimer:** This is not financial advice. Consult a professional.`,
 		UpdateExample: `  iai macros update disclaimer --file disclaimer.yaml
   iai macros update disclaimer --file disclaimer.yaml -m "update disclaimer wording for EU"
+  iai macros update disclaimer --file disclaimer.yaml --schema-version 2.1.0
   iai macros update disclaimer --file disclaimer.yaml --labels staging,qa`,
 		DeleteLong: `Delete a macro and all its versions, or delete specific versions.
 

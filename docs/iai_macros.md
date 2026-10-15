@@ -7,7 +7,6 @@ Pre-approved response templates used in routines
 Manage macros in InteractiveAI projects.
 
 Macros are reusable template replies and text snippets (YAML format).
-Content must be a YAML mapping with a required 'text' string ('id' optional).
 
 ### Options
 
@@ -32,6 +31,7 @@ Content must be a YAML mapping with a required 'text' string ('id' optional).
 * [iai macros diff](iai_macros_diff.md)	 - Compare two versions of a macro
 * [iai macros get](iai_macros_get.md)	 - Describe a macro in detail
 * [iai macros list](iai_macros_list.md)	 - List macros in a project
+* [iai macros schema](iai_macros_schema.md)	 - Display the JSON Schema for macros
 * [iai macros update](iai_macros_update.md)	 - Update a macro (creates a new version)
 * [iai macros versions](iai_macros_versions.md)	 - List versions of a macro
 

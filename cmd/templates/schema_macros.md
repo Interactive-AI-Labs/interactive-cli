@@ -1,4 +1,4 @@
-Content must be a YAML mapping with a required `text` string (`id` optional).
+Run `iai macros schema` to see the current field definitions.
 
 ### Example
 
