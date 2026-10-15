@@ -190,3 +190,53 @@ func TestPromptDelete(t *testing.T) {
 		})
 	}
 }
+
+func TestDatabasesDelete(t *testing.T) {
+	const prompt = `This will delete database "db" and all its backups. Continue? [y/N] `
+	const request = "DELETE /v1/organizations/org-1/projects/proj-1/databases/db"
+
+	tests := []struct {
+		name  string
+		stdin string
+		args  []string
+		want  deleteRun
+	}{
+		{
+			name:  "declined",
+			stdin: "n\n",
+			args:  []string{"db"},
+			want:  deleteRun{out: prompt + "Aborted.\n"},
+		},
+		{
+			name:  "confirmed",
+			stdin: "y\n",
+			args:  []string{"db"},
+			want: deleteRun{
+				requests: request,
+				out:      prompt + "\nSubmitting database deletion request...\ndeleted\n",
+			},
+		},
+		{
+			name: "forced",
+			args: []string{"db", "-f"},
+			want: deleteRun{
+				requests: request,
+				out:      "\nSubmitting database deletion request...\ndeleted\n",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(func() {
+				dbDeleteForce, dbOrganization, dbProject = false, "", ""
+				for _, name := range []string{"force", "organization", "project"} {
+					dbDeleteCmd.Flags().Lookup(name).Changed = false
+				}
+			})
+			if got := runDeleteCommand(t, dbDeleteCmd, tt.stdin, tt.args...); got != tt.want {
+				t.Errorf("got  %+v\nwant %+v", got, tt.want)
+			}
+		})
+	}
+}
