@@ -10,7 +10,7 @@ This creates a new version of the macro using the content from the provided file
 The previous versions are preserved and can still be accessed by version number.
 
 
-Content must be a YAML mapping with a required `text` string (`id` optional).
+Run `iai macros schema` to see the current field definitions.
 
 ### Example
 
@@ -25,6 +25,7 @@ text: |
 ```
   iai macros update disclaimer --file disclaimer.yaml
   iai macros update disclaimer --file disclaimer.yaml -m "update disclaimer wording for EU"
+  iai macros update disclaimer --file disclaimer.yaml --schema-version 2.1.0
   iai macros update disclaimer --file disclaimer.yaml --labels staging,qa
 ```
 
