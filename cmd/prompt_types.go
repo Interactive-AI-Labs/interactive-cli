@@ -464,25 +464,18 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			name := strings.TrimSpace(args[0])
 			out := cmd.OutOrStdout()
 			byVersion, byLabel := cmd.Flags().Changed("version"), cmd.Flags().Changed("label")
-			label = strings.TrimSpace(label)
-
-			target := fmt.Sprintf("%s %q and all its versions", ptCfg.TypeName, name)
-			switch {
-			case byVersion && version < 1:
-				return errors.New("--version must be 1 or greater")
-			case byLabel && label == "":
-				return errors.New("--label must not be empty")
-			case byVersion:
-				target = fmt.Sprintf("version %d of %s %q", version, ptCfg.TypeName, name)
-			case byLabel:
-				target = fmt.Sprintf("versions labelled %q of %s %q", label, ptCfg.TypeName, name)
-			}
-
 			scoped := byVersion || byLabel
-			if scoped {
-				if err := checkScopedPromptName(name); err != nil {
-					return err
-				}
+			label = strings.TrimSpace(label)
+			target, err := promptDeleteTarget(
+				ptCfg.TypeName,
+				name,
+				version,
+				label,
+				byVersion,
+				byLabel,
+			)
+			if err != nil {
+				return err
 			}
 
 			if !force {
@@ -537,20 +530,33 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	return cmd
 }
 
-// checkScopedPromptName refuses names the server may route to a wider delete:
-// it decodes %2F, so these path segments match other delete routes.
-func checkScopedPromptName(name string) error {
+// promptDeleteTarget validates the delete flags and names what will be deleted.
+func promptDeleteTarget(
+	typeName, name string, version int, label string, byVersion, byLabel bool,
+) (string, error) {
+	switch {
+	case byVersion && version < 1:
+		return "", errors.New("--version must be 1 or greater")
+	case byLabel && label == "":
+		return "", errors.New("--label must not be empty")
+	case !byVersion && !byLabel:
+		return fmt.Sprintf("%s %q and all its versions", typeName, name), nil
+	}
+	// The server decodes %2F, so these segments match wider delete routes.
 	for _, segment := range strings.Split(name, "/") {
 		switch segment {
 		case "folders", "by-name", "versions":
-			return fmt.Errorf(
+			return "", fmt.Errorf(
 				"cannot delete by --version or --label: %q contains the path segment %q, "+
 					"which the server may treat as a wider delete",
 				name, segment,
 			)
 		}
 	}
-	return nil
+	if byVersion {
+		return fmt.Sprintf("version %d of %s %q", version, typeName, name), nil
+	}
+	return fmt.Sprintf("versions labelled %q of %s %q", label, typeName, name), nil
 }
 
 func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
