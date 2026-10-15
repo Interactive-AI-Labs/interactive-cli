@@ -270,13 +270,13 @@ func init() {
 		&jobCreateInput.ImageType,
 		"image-type",
 		"",
-		"Image type: 'internal' (project's private registry), 'external' (any public registry), or 'platform' (Interactive AI registries)",
+		"Image type: 'internal' (project's private registry) or 'external' (any public registry)",
 	)
 	flags.StringVar(
 		&jobCreateInput.ImageRepository,
 		"image-repository",
 		"",
-		"Image repository; required for external and platform images",
+		"Image repository; required for external images",
 	)
 	flags.StringVar(&jobCreateInput.ImageName, "image-name", "", "Container image name")
 	flags.StringVar(&jobCreateInput.ImageTag, "image-tag", "", "Container image tag")

@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/auth"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
@@ -26,6 +28,7 @@ var (
 	mcpType              string
 	mcpPort              int
 	mcpPath              string
+	mcpImageType         string
 	mcpImageName         string
 	mcpImageTag          string
 	mcpMemory            string
@@ -83,13 +86,19 @@ Attach an mcp to an agent with '--mcp <name>' on 'iai agents create'/'update'.`,
 }
 
 var mcpCatalogCmd = &cobra.Command{
-	Use:   "catalog",
-	Short: "Browse the curated MCP catalog",
-	Long: `List curated MCP providers available to create an mcp from (see 'iai mcps create
---catalog-id'), showing each entry's id, category, and supported auth methods.`,
+	Use:   "catalog [id]",
+	Short: "Browse the MCP catalog",
+	Long: `List the MCPs available to create: self-hosted images from the platform's
+registry (deploy with 'iai mcps create --image-type platform --image-name <id>')
+and remote providers (see 'iai mcps create --catalog-id'), with each entry's
+type and, for remote ones, its category and supported auth methods.
+
+With an id argument, lists the available versions of a self-hosted image, or
+shows the remote entry.`,
 	Example: `  iai mcps catalog
+  iai mcps catalog gdrive
   iai mcps catalog --json`,
-	Args: cobra.NoArgs,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
@@ -97,19 +106,57 @@ var mcpCatalogCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		data, raw, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
+		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
+		if err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+		deployClient, err := deployment.NewDeploymentClient(
+			deploymentHostname,
+			defaultHTTPTimeout,
+			token,
+			apiKey,
+			cookies,
+		)
 		if err != nil {
 			return err
 		}
 
+		images, err := deployClient.ListCatalogMcpImages(cmd.Context())
+		if err != nil {
+			return err
+		}
+		remote, _, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
+		if err != nil {
+			return err
+		}
+
+		if len(args) == 1 {
+			id := strings.TrimSpace(args[0])
+			if slices.ContainsFunc(
+				images,
+				func(i deployment.CatalogMcpImage) bool { return i.Id == id },
+			) {
+				versions, err := deployClient.ListCatalogMcpImageVersions(cmd.Context(), id)
+				if err != nil {
+					return err
+				}
+				return output.PrintMcpCatalogVersions(out, id, versions)
+			}
+			entry, err := platform.FindMcpCatalogEntry(remote.Entries, id)
+			if err != nil {
+				return err
+			}
+			return output.PrintMcpCatalog(out, nil, []platform.McpCatalogEntry{*entry})
+		}
+
+		catalog := output.McpCatalog{Images: images, Entries: remote.Entries}
 		if mcpCatalogJSON {
-			return output.PrintRawJSON(out, raw)
+			return output.PrintStructuredJSON(out, catalog)
 		}
 		if mcpCatalogYAML {
-			return output.PrintRawYAML(out, raw)
+			return output.PrintStructuredYAML(out, catalog)
 		}
-		return output.PrintMcpCatalog(out, data.Entries)
+		return output.PrintMcpCatalog(out, images, remote.Entries)
 	},
 }
 
@@ -118,6 +165,7 @@ var mcpCreateCmd = &cobra.Command{
 	Short: "Create an mcp in a project",
 	Long: `Create an MCP server:
   Self-hosted: hosted by the platform; requires --image-name and --image-tag.
+  --image-type platform deploys a self-hosted image from 'iai mcps catalog'.
   Remote: hosted elsewhere; requires --remote-url, including the endpoint path.
   Catalog: a predefined remote provider; --catalog-id supplies its endpoint and auth settings.
 
@@ -163,6 +211,7 @@ Machine authentication (--auth-type client_credentials):
     stop working. 'iai mcps connect' and 'disconnect' apply only to user
     sign-in.`,
 	Example: `  iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m
+  iai mcps create gdrive --image-type platform --image-name gdrive --image-tag 1.0.0 --port 8080 --memory 512M --cpu 250m
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --port 8080 --memory 512M --cpu 250m --path /api/mcp --endpoint
   iai mcps create my-tool --image-name my-mcp-server --image-tag v1 --env ENV=dev --env SILENT_MODE=true --secret platform-dev
   iai mcps create acme --remote-url https://mcp.acme.com/mcp --credential "$ACME_TOKEN"
@@ -256,7 +305,7 @@ Machine authentication (--auth-type client_credentials):
 				return refErr
 			}
 			workload = &platform.McpCreateWorkload{
-				Image:      mcpImageName + ":" + mcpImageTag,
+				Image:      inputs.McpCreateImage(mcpImageType, mcpImageName, mcpImageTag),
 				Port:       port,
 				Endpoint:   mcpEndpoint,
 				Path:       path,
@@ -384,6 +433,7 @@ self-hosted mcp created without one (e.g. --auth-type bearer). Changing the
 credential restarts the mcp and every agent attached to it, so a self-hosted
 mcp's server reads the new value from MCP_API_KEY.`,
 	Example: `  iai mcps update my-tool --image-tag v2
+  iai mcps update my-tool --image-type platform --image-name gdrive --image-tag 1.0.0
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update my-tool --endpoint
   iai mcps update my-tool --endpoint=false
@@ -427,7 +477,7 @@ mcp's server reads the new value from MCP_API_KEY.`,
 		}
 
 		patch, err := inputs.BuildMcpUpdatePatch(inputs.McpUpdateInput{
-			ImageName: mcpImageName, ImageTag: mcpImageTag,
+			ImageType: mcpImageType, ImageName: mcpImageName, ImageTag: mcpImageTag,
 			Port: mcpPort, Path: mcpPath, Memory: mcpMemory, CPU: mcpCPU,
 			Endpoint: mcpEndpoint, StackId: mcpStackId, SecretRefs: mcpSecretRefs,
 			Auth: auth, Description: mcpDescription, EnvVars: mcpEnvVars,
@@ -724,7 +774,8 @@ func validateMcpBackendFlags(cmd *cobra.Command, backend platform.McpBackend) er
 	appliesTo := "a remote"
 	if backend == platform.McpBackendExternal {
 		flags = []string{
-			"image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id", "endpoint",
+			"image-type", "image-name", "image-tag", "port", "path", "memory", "cpu", "stack-id",
+			"endpoint",
 			"env", "secret", "clear-env", "clear-secret", "clear-stack-id",
 		}
 		appliesTo = "a self-hosted"
@@ -1009,6 +1060,8 @@ func init() {
 		c.Flags().
 			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")`)
 		c.Flags().
+			StringVar(&mcpImageType, "image-type", "", `Image type: "internal" (the project's registry, default) or "platform" (a self-hosted image from 'iai mcps catalog') (self-hosted)`)
+		c.Flags().
 			StringVar(&mcpImageName, "image-name", "", "Container image name (self-hosted)")
 		c.Flags().
 			StringVar(&mcpImageTag, "image-tag", "", "Container image tag (self-hosted)")
@@ -1089,8 +1142,8 @@ func init() {
 	mcpDescribeCmd.Flags().
 		BoolVar(&mcpDescribeYAML, "yaml", false, "Output raw API response as YAML")
 	mcpDescribeCmd.MarkFlagsMutuallyExclusive("json", "yaml")
-	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogJSON, "json", false, "Output raw API response as JSON")
-	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogYAML, "yaml", false, "Output raw API response as YAML")
+	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogJSON, "json", false, "Output the catalog as JSON")
+	mcpCatalogCmd.Flags().BoolVar(&mcpCatalogYAML, "yaml", false, "Output the catalog as YAML")
 	mcpCatalogCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 	mcpConnectCmd.Flags().BoolVar(&mcpConnectNoBrowser, "no-browser", false,
 		"Print the sign-in URL instead of opening it")

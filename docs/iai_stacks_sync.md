@@ -79,6 +79,8 @@ services:
       timezone: "Europe/Berlin"
 ```
 
+> **Note:** `image.type` is `internal` (the project's registry) or `external` (`repository` required) for services and jobs; self-hosted mcps also accept `platform`, a self-hosted image from `iai mcps catalog` with no `repository`.
+
 > **Note:** `replicas` and `autoscaling` are mutually exclusive for services. To use autoscaling instead:
 
 ```yaml

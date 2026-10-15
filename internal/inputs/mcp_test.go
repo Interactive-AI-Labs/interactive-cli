@@ -245,3 +245,32 @@ func TestResolveMcpSecretRefs(t *testing.T) {
 		})
 	}
 }
+
+func TestMcpCreateImage(t *testing.T) {
+	tests := []struct {
+		name                string
+		imageType, img, tag string
+		want                any
+	}{
+		{
+			name:      "internal keeps the string form",
+			imageType: "internal",
+			img:       "tools",
+			tag:       "1",
+			want:      "tools:1",
+		},
+		{name: "omitted type is internal", img: "tools", tag: "1", want: "tools:1"},
+		{
+			name: "platform sends the object", imageType: "platform", img: "gdrive", tag: "1.0.0",
+			want: platform.McpImage{Type: "platform", Name: "gdrive", Tag: "1.0.0"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := McpCreateImage(tt.imageType, tt.img, tt.tag)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}

@@ -1961,6 +1961,14 @@ type catalogVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
 
+type CatalogMcpImage struct {
+	Id string `json:"id"`
+}
+
+type catalogMcpImagesResponse struct {
+	Mcps []CatalogMcpImage `json:"mcps"`
+}
+
 func (c *DeploymentClient) ListCatalogAgents(
 	ctx context.Context,
 ) ([]CatalogAgent, error) {
@@ -2032,6 +2040,58 @@ func (c *DeploymentClient) ListCatalogAgentVersions(
 	}
 
 	return result.Versions, nil
+}
+
+func (c *DeploymentClient) ListCatalogMcpImages(
+	ctx context.Context,
+) ([]CatalogMcpImage, error) {
+	var result catalogMcpImagesResponse
+	if err := c.getCatalog(ctx, "/v1/catalog/mcps", &result); err != nil {
+		return nil, err
+	}
+	return result.Mcps, nil
+}
+
+func (c *DeploymentClient) ListCatalogMcpImageVersions(
+	ctx context.Context,
+	imageId string,
+) ([]string, error) {
+	var result catalogVersionsResponse
+	path := fmt.Sprintf("/v1/catalog/mcps/%s", url.PathEscape(imageId))
+	if err := c.getCatalog(ctx, path, &result); err != nil {
+		return nil, err
+	}
+	return result.Versions, nil
+}
+
+// getCatalog performs an unscoped catalog GET and decodes the response into out.
+func (c *DeploymentClient) getCatalog(ctx context.Context, path string, out any) error {
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.do(req)
+	if err != nil {
+		return fmt.Errorf("catalog request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read error response: %w", err)
+		}
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			return fmt.Errorf("%s", msg)
+		}
+		return fmt.Errorf("catalog request failed with status %s", resp.Status)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		return fmt.Errorf("failed to decode catalog response: %w", err)
+	}
+	return nil
 }
 
 func (c *DeploymentClient) ListAgentRevisions(

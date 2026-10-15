@@ -1,20 +1,26 @@
 ## iai mcps catalog
 
-Browse the curated MCP catalog
+Browse the MCP catalog
 
 ### Synopsis
 
-List curated MCP providers available to create an mcp from (see 'iai mcps create
---catalog-id'), showing each entry's id, category, and supported auth methods.
+List the MCPs available to create: self-hosted images from the platform's
+registry (deploy with 'iai mcps create --image-type platform --image-name <id>')
+and remote providers (see 'iai mcps create --catalog-id'), with each entry's
+type and, for remote ones, its category and supported auth methods.
+
+With an id argument, lists the available versions of a self-hosted image, or
+shows the remote entry.
 
 ```
-iai mcps catalog [flags]
+iai mcps catalog [id] [flags]
 ```
 
 ### Examples
 
 ```
   iai mcps catalog
+  iai mcps catalog gdrive
   iai mcps catalog --json
 ```
 
@@ -22,8 +28,8 @@ iai mcps catalog [flags]
 
 ```
   -h, --help   help for catalog
-      --json   Output raw API response as JSON
-      --yaml   Output raw API response as YAML
+      --json   Output the catalog as JSON
+      --yaml   Output the catalog as YAML
 ```
 
 ### Options inherited from parent commands

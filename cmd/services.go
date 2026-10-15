@@ -1006,7 +1006,7 @@ func init() {
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servCCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servCCmd.Flags().
-		StringVar(&serviceImageType, "image-type", "", "Image type: 'internal' (project's private registry), 'external' (any public registry), or 'platform' (Interactive AI registries)")
+		StringVar(&serviceImageType, "image-type", "", "Image type: 'internal' (project's private registry) or 'external' (any public registry)")
 	servCCmd.Flags().
 		StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
@@ -1061,7 +1061,7 @@ func init() {
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servUCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
 	servUCmd.Flags().
-		StringVar(&serviceImageType, "image-type", "", "Image type: 'external' (Docker Hub, ghcr.io) or 'internal' (InteractiveAI private registry)")
+		StringVar(&serviceImageType, "image-type", "", "Image type: 'internal' (project's private registry) or 'external' (any public registry)")
 	servUCmd.Flags().
 		StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
