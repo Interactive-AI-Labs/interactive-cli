@@ -80,6 +80,23 @@ func TestPromptDeleteTarget(t *testing.T) {
 			byVersion: true,
 			want:      `version 1 of routine "folders-x"`,
 		},
+		{
+			name:    "empty name",
+			prompt:  "",
+			wantErr: `invalid routine name "": empty or relative path segment`,
+		},
+		{
+			name:    "dot-dot name",
+			prompt:  "..",
+			wantErr: `invalid routine name "..": empty or relative path segment`,
+		},
+		{
+			name:      "double slash scoped",
+			prompt:    "a//b",
+			version:   1,
+			byVersion: true,
+			wantErr:   `invalid routine name "a//b": empty or relative path segment`,
+		},
 	}
 
 	for _, tt := range tests {
