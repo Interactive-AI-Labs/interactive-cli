@@ -5,12 +5,10 @@ Browse the MCP catalog
 ### Synopsis
 
 List the MCPs available to create: self-hosted images from the platform's
-registry (deploy with 'iai mcps create --image-type platform --image-name <id>')
-and remote providers (see 'iai mcps create --catalog-id'), with each entry's
-type and, for remote ones, its category and supported auth methods.
+registry and remote providers.
 
-With an id argument, lists the available versions of a self-hosted image, or
-shows the remote entry.
+Without arguments, lists both. With an id argument, lists the available
+versions of a self-hosted image, or shows the remote entry.
 
 ```
 iai mcps catalog [id] [flags]

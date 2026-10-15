@@ -6,7 +6,6 @@ Create an mcp in a project
 
 Create an MCP server:
   Self-hosted: hosted by the platform; requires --image-name and --image-tag.
-  --image-type platform deploys a self-hosted image from 'iai mcps catalog'.
   Remote: hosted elsewhere; requires --remote-url, including the endpoint path.
   Catalog: a predefined remote provider; --catalog-id supplies its endpoint and auth settings.
 
@@ -90,9 +89,9 @@ iai mcps create <mcp_name> [flags]
       --endpoint                    Expose the mcp publicly at <mcp-name>-<project-hash>.interactive.ai (self-hosted)
       --env stringArray             Environment variable (NAME=VALUE); can be repeated (self-hosted)
   -h, --help                        help for create
-      --image-name string           Container image name (self-hosted)
+      --image-name string           Container image name; a catalog id for --image-type platform (self-hosted)
       --image-tag string            Container image tag (self-hosted)
-      --image-type string           Image type: "internal" (the project's registry, default) or "platform" (a self-hosted image from 'iai mcps catalog') (self-hosted)
+      --image-type string           Image type: 'internal' (the project's registry, default) or 'platform' (a self-hosted image from 'iai mcps catalog') (self-hosted)
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
       --port int                    Port the mcp's own server listens on (self-hosted, default 3000)
