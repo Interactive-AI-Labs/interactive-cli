@@ -35,6 +35,12 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			flag:    "image-name",
 			wantErr: "--image-name only applies to a self-hosted mcp",
 		},
+		{
+			name:    "external image type",
+			backend: platform.McpBackendExternal,
+			flag:    "image-type",
+			wantErr: "--image-type only applies to a self-hosted mcp",
+		},
 		{name: "external auth header", backend: platform.McpBackendExternal, flag: "auth-header"},
 		{name: "internal env", backend: platform.McpBackendInternal, flag: "env"},
 		{
@@ -86,7 +92,7 @@ func TestValidateMcpBackendFlags(t *testing.T) {
 			cmd := &cobra.Command{Use: "mcp"}
 			var value string
 			for _, name := range []string{
-				"image-name", "image-tag", "port", "path", "memory", "cpu",
+				"image-name", "image-tag", "image-type", "port", "path", "memory", "cpu",
 				"stack-id", "auth-header", "auth-header-prefix", "client-id", "client-secret",
 			} {
 				cmd.Flags().StringVar(&value, name, "", "")

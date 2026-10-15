@@ -1972,34 +1972,10 @@ type catalogMcpImagesResponse struct {
 func (c *DeploymentClient) ListCatalogAgents(
 	ctx context.Context,
 ) ([]CatalogAgent, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, "/v1/catalog/agents")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.do(req)
-	if err != nil {
-		return nil, fmt.Errorf("catalog request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read error response: %w", err)
-		}
-		msg := clients.ExtractServerMessage(respBody)
-		if msg != "" {
-			return nil, fmt.Errorf("%s", msg)
-		}
-		return nil, fmt.Errorf("catalog request failed with status %s", resp.Status)
-	}
-
 	var result catalogAgentsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode catalog response: %w", err)
+	if err := c.getCatalog(ctx, "/v1/catalog/agents", &result); err != nil {
+		return nil, err
 	}
-
 	return result.Agents, nil
 }
 
@@ -2007,38 +1983,11 @@ func (c *DeploymentClient) ListCatalogAgentVersions(
 	ctx context.Context,
 	agentId string,
 ) ([]string, error) {
-	path := fmt.Sprintf(
-		"/v1/catalog/agents/%s",
-		url.PathEscape(agentId),
-	)
-	req, err := c.newRequest(ctx, http.MethodGet, path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.do(req)
-	if err != nil {
-		return nil, fmt.Errorf("catalog versions request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read error response: %w", err)
-		}
-		msg := clients.ExtractServerMessage(respBody)
-		if msg != "" {
-			return nil, fmt.Errorf("%s", msg)
-		}
-		return nil, fmt.Errorf("catalog versions request failed with status %s", resp.Status)
-	}
-
 	var result catalogVersionsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode catalog versions response: %w", err)
+	path := fmt.Sprintf("/v1/catalog/agents/%s", url.PathEscape(agentId))
+	if err := c.getCatalog(ctx, path, &result); err != nil {
+		return nil, err
 	}
-
 	return result.Versions, nil
 }
 

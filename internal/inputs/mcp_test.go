@@ -264,6 +264,13 @@ func TestMcpCreateImage(t *testing.T) {
 			name: "platform sends the object", imageType: "platform", img: "gdrive", tag: "1.0.0",
 			want: platform.McpImage{Type: "platform", Name: "gdrive", Tag: "1.0.0"},
 		},
+		{
+			name:      "unknown type reaches the API as an object",
+			imageType: "bogus",
+			img:       "gdrive",
+			tag:       "1",
+			want:      platform.McpImage{Type: "bogus", Name: "gdrive", Tag: "1"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
