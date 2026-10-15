@@ -6,6 +6,7 @@ Create a macro
 
 Create a new macro in an InteractiveAI project.
 
+Each macro is a YAML mapping with the reply text under 'text'.
 Content is provided via a YAML file using the --file flag.
 
 Run `iai macros schema` to see the current field definitions.

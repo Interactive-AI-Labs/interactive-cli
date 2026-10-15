@@ -9,6 +9,7 @@ Update a macro by creating a new version with updated content.
 This creates a new version of the macro using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
+Each macro is a YAML mapping with the reply text under 'text'.
 
 Run `iai macros schema` to see the current field definitions.
 
