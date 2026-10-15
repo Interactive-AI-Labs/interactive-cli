@@ -1331,21 +1331,22 @@ func (c *APIClient) DeletePrompt(
 	projectId string,
 	routeSegment string,
 	name string,
-	version int,
-	label string,
+	version *int,
+	label *string,
 ) error {
-	path := promptBasePath(projectId, routeSegment) + "/" + url.PathEscape(name)
+	path := promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name)
 	req, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
+	// Send explicit values as given; the server validates them.
 	q := req.URL.Query()
-	if version > 0 {
-		q.Set("version", fmt.Sprintf("%d", version))
+	if version != nil {
+		q.Set("version", fmt.Sprintf("%d", *version))
 	}
-	if label != "" {
-		q.Set("label", label)
+	if label != nil {
+		q.Set("label", *label)
 	}
 	req.URL.RawQuery = q.Encode()
 

@@ -464,17 +464,15 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
-			byVersion, byLabel := cmd.Flags().Changed("version"), cmd.Flags().Changed("label")
-			if err := inputs.ValidatePromptDelete(
-				name,
-				version,
-				label,
-				byVersion,
-				byLabel,
-			); err != nil {
-				return err
+			var versionArg *int
+			if cmd.Flags().Changed("version") {
+				versionArg = &version
 			}
-			scoped := byVersion || byLabel
+			var labelArg *string
+			if cmd.Flags().Changed("label") {
+				labelArg = &label
+			}
+			scoped := versionArg != nil || labelArg != nil
 
 			// Deleting all versions is destructive; require confirmation.
 			if !scoped && !force {
@@ -509,8 +507,8 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 					pCtx.projectId,
 					ptCfg.RouteSegment,
 					name,
-					version,
-					label,
+					versionArg,
+					labelArg,
 				)
 			} else {
 				err = apiClient.DeletePromptByName(
@@ -535,7 +533,6 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation prompt")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-	cmd.MarkFlagsMutuallyExclusive("version", "label")
 
 	return cmd
 }
