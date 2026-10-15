@@ -67,7 +67,7 @@ func TestPromptDelete(t *testing.T) {
 	scopedRefusal := func(name, segment string) string {
 		return fmt.Sprintf(
 			"cannot delete by --version or --label: %q contains the path segment %q, "+
-				"which the server would treat as a wider delete", name, segment,
+				"which the server may treat as a wider delete", name, segment,
 		)
 	}
 
@@ -182,7 +182,7 @@ func TestPromptDelete(t *testing.T) {
 				PromptTypeConfig{TypeName: "routine", RouteSegment: "routines"},
 			)
 			if tt.generic {
-				command = makeGenericDeleteCmd()
+				command = makeDeleteCmd(PromptTypeConfig{TypeName: "prompt"})
 			}
 			if got := runDeleteCommand(t, command, tt.stdin, tt.args...); got != tt.want {
 				t.Errorf("got  %+v\nwant %+v", got, tt.want)
