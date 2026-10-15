@@ -1628,36 +1628,3 @@ func (c *APIClient) listPromptVersionNumbers(
 
 	return nil, nil
 }
-
-func (c *APIClient) DeletePromptByName(
-	ctx context.Context,
-	projectId string,
-	routeSegment string,
-	name string,
-) error {
-	path := promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name)
-	req, err := c.newRequest(ctx, http.MethodDelete, path)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.do(req)
-	if err != nil {
-		return fmt.Errorf("prompt deletion request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := clients.ExtractServerMessage(respBody); msg != "" {
-			return fmt.Errorf("%s", msg)
-		}
-		return fmt.Errorf("prompt deletion failed with status %s", resp.Status)
-	}
-
-	return nil
-}

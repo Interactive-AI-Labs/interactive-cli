@@ -962,6 +962,7 @@ func TestAPIClientDeletePromptSendsExplicitValues(t *testing.T) {
 		label   *string
 		want    string
 	}{
+		{"whole prompt", "x", nil, nil, "/prompts/routines/by-name/x?"},
 		{"version", "x", &three, nil, "/prompts/routines/by-name/x?version=3"},
 		{"label", "x", nil, &prod, "/prompts/routines/by-name/x?label=prod"},
 		{"version 0 is sent", "x", &zero, nil, "/prompts/routines/by-name/x?version=0"},
