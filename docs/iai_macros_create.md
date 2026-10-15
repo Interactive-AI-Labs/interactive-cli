@@ -6,23 +6,25 @@ Create a macro
 
 Create a new macro in an InteractiveAI project.
 
-Content is provided via a text or markdown file using the --file flag.
+Content is provided via a YAML file using the --file flag.
 
-No schema validation is applied — any text content is accepted.
+Content must be a YAML mapping with a required `text` string (`id` optional).
 
 ### Example
 
-```markdown
-**Disclaimer:** This is not financial advice. Consult a professional.
+```yaml
+# disclaimer.yaml
+text: |
+  **Disclaimer:** This is not financial advice. Consult a professional.
 ```
 
 ### Examples
 
 ```
-  iai macros create disclaimer --file disclaimer.md
-  iai macros create disclaimer --file disclaimer.md -m "initial legal disclaimer"
-  iai macros create disclaimer --file disclaimer.md --labels staging
-  iai macros create disclaimer --file disclaimer.md --tags legal
+  iai macros create disclaimer --file disclaimer.yaml
+  iai macros create disclaimer --file disclaimer.yaml -m "initial legal disclaimer"
+  iai macros create disclaimer --file disclaimer.yaml --labels staging
+  iai macros create disclaimer --file disclaimer.yaml --tags legal
 ```
 
 ### Options

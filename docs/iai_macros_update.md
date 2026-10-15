@@ -10,20 +10,22 @@ This creates a new version of the macro using the content from the provided file
 The previous versions are preserved and can still be accessed by version number.
 
 
-No schema validation is applied — any text content is accepted.
+Content must be a YAML mapping with a required `text` string (`id` optional).
 
 ### Example
 
-```markdown
-**Disclaimer:** This is not financial advice. Consult a professional.
+```yaml
+# disclaimer.yaml
+text: |
+  **Disclaimer:** This is not financial advice. Consult a professional.
 ```
 
 ### Examples
 
 ```
-  iai macros update disclaimer --file disclaimer.md
-  iai macros update disclaimer --file disclaimer.md -m "update disclaimer wording for EU"
-  iai macros update disclaimer --file disclaimer.md --labels staging,qa
+  iai macros update disclaimer --file disclaimer.yaml
+  iai macros update disclaimer --file disclaimer.yaml -m "update disclaimer wording for EU"
+  iai macros update disclaimer --file disclaimer.yaml --labels staging,qa
 ```
 
 ### Options

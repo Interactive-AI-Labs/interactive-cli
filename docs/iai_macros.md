@@ -6,8 +6,8 @@ Pre-approved response templates used in routines
 
 Manage macros in InteractiveAI projects.
 
-Macros are reusable template replies and text snippets (Markdown/text format).
-No schema validation is applied — any text content is accepted.
+Macros are reusable template replies and text snippets (YAML format).
+Content must be a YAML mapping with a required 'text' string ('id' optional).
 
 ### Options
 

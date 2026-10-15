@@ -8,23 +8,24 @@ func init() {
 		Short:    "Pre-approved response templates used in routines",
 		Long: `Manage macros in InteractiveAI projects.
 
-Macros are reusable template replies and text snippets (Markdown/text format).
-No schema validation is applied — any text content is accepted.`,
+Macros are reusable template replies and text snippets (YAML format).
+Content must be a YAML mapping with a required 'text' string ('id' optional).`,
 		RouteSegment: "macros",
 		CreateLong: `Create a new macro in an InteractiveAI project.
 
-Content is provided via a text or markdown file using the --file flag.
-No schema validation is applied — any text content is accepted.
+Content is provided via a YAML file using the --file flag.
+Content must be a YAML mapping with a required 'text' string ('id' optional).
 
-Example (disclaimer.md):
-  **Disclaimer:** This is not financial advice. Consult a professional.
+Example (disclaimer.yaml):
+  text: |
+    **Disclaimer:** This is not financial advice. Consult a professional.
 
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
-		CreateExample: `  iai macros create disclaimer --file disclaimer.md
-  iai macros create disclaimer --file disclaimer.md -m "initial legal disclaimer"
-  iai macros create disclaimer --file disclaimer.md --labels staging
-  iai macros create disclaimer --file disclaimer.md --tags legal`,
+		CreateExample: `  iai macros create disclaimer --file disclaimer.yaml
+  iai macros create disclaimer --file disclaimer.yaml -m "initial legal disclaimer"
+  iai macros create disclaimer --file disclaimer.yaml --labels staging
+  iai macros create disclaimer --file disclaimer.yaml --tags legal`,
 		ListLong: `List macros in a specific project.
 
 Returns all macros with their name, labels, tags, and last update time.
@@ -47,13 +48,14 @@ specific label.`,
 This creates a new version of the macro using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
-No schema validation is applied — any text content is accepted.
+Content must be a YAML mapping with a required 'text' string ('id' optional).
 
-Example (disclaimer.md):
-  **Disclaimer:** This is not financial advice. Consult a professional.`,
-		UpdateExample: `  iai macros update disclaimer --file disclaimer.md
-  iai macros update disclaimer --file disclaimer.md -m "update disclaimer wording for EU"
-  iai macros update disclaimer --file disclaimer.md --labels staging,qa`,
+Example (disclaimer.yaml):
+  text: |
+    **Disclaimer:** This is not financial advice. Consult a professional.`,
+		UpdateExample: `  iai macros update disclaimer --file disclaimer.yaml
+  iai macros update disclaimer --file disclaimer.yaml -m "update disclaimer wording for EU"
+  iai macros update disclaimer --file disclaimer.yaml --labels staging,qa`,
 		DeleteLong: `Delete a macro and all its versions, or delete specific versions.
 
 Without flags, deletes the macro and all its versions (requires confirmation).
