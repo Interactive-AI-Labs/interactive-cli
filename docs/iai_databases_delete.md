@@ -4,8 +4,7 @@ Delete a database from a project
 
 ### Synopsis
 
-Delete a database and all associated resources from a project, including its
-backups. Asks for confirmation unless -f is given.
+Delete a database and all associated resources from a project.
 
 ```
 iai databases delete <database_name> [flags]
@@ -15,14 +14,12 @@ iai databases delete <database_name> [flags]
 
 ```
   iai databases delete my-db
-  iai databases delete my-db -f
   iai databases delete my-db -p my-project
 ```
 
 ### Options
 
 ```
-  -f, --force                 Skip the confirmation prompt
   -h, --help                  help for delete
   -o, --organization string   Organization name
   -p, --project string        Project name

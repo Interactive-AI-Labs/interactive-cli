@@ -37,7 +37,6 @@ var (
 
 	dbClearBackup  bool
 	dbClearStackId bool
-	dbDeleteForce  bool
 
 	dbStackId string
 
@@ -280,28 +279,13 @@ var dbDeleteCmd = &cobra.Command{
 	Use:     "delete <database_name>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a database from a project",
-	Long: `Delete a database and all associated resources from a project, including its
-backups. Asks for confirmation unless -f is given.`,
+	Long:    `Delete a database and all associated resources from a project.`,
 	Example: `  iai databases delete my-db
-  iai databases delete my-db -f
   iai databases delete my-db -p my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		databaseName := strings.TrimSpace(args[0])
-
-		if !dbDeleteForce {
-			confirmed, err := confirmDeletion(
-				cmd.InOrStdin(), out, fmt.Sprintf("database %q and all its backups", databaseName),
-			)
-			if err != nil {
-				return err
-			}
-			if !confirmed {
-				fmt.Fprintln(out, "Aborted.")
-				return nil
-			}
-		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
 		if err != nil {
@@ -779,7 +763,6 @@ func init() {
 	dbUpdateCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
 	addDatabaseResourceFlags(dbUpdateCmd)
-	dbUpdateCmd.Flags().Lookup("extensions").Usage = "PostgreSQL extension to keep installed (can be repeated); the full desired list, so extensions not listed are uninstalled"
 	dbUpdateCmd.Flags().
 		BoolVar(&dbClearBackup, "clear-backup", false, "Remove backup configuration from the database")
 	dbUpdateCmd.Flags().
@@ -792,8 +775,6 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbDeleteCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
-	dbDeleteCmd.Flags().
-		BoolVarP(&dbDeleteForce, "force", "f", false, "Skip the confirmation prompt")
 
 	// databases deactivate
 	dbDeactivateCmd.Flags().

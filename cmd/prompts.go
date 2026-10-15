@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -32,19 +33,7 @@ types: "text" (default) and "chat".`,
 		makeGenericListCmd(),
 		makeGenericGetCmd(),
 		makeGenericUpdateCmd(),
-		makeDeleteCmd(PromptTypeConfig{
-			TypeName:     "prompt",
-			RouteSegment: "", // generic /prompts endpoint, no type segment
-			DeleteLong: `Delete a prompt and all its versions, or delete specific versions.
-
-Without flags, deletes the prompt and all its versions. Use --version to delete
-a specific version, or --label to delete the versions with a label. Every delete
-asks for confirmation unless -f is given.`,
-			DeleteExample: `  iai prompts delete greeting
-  iai prompts delete greeting -f
-  iai prompts delete greeting --version 3
-  iai prompts delete greeting --label staging`,
-		}),
+		makeGenericDeleteCmd(),
 		makeGenericVersionsCmd(),
 		makeGenericDiffCmd(),
 	)
@@ -381,6 +370,103 @@ Exactly one of --file or --content must be specified.`,
 	cmd.MarkFlagsOneRequired("file", "content")
 	cmd.MarkFlagsMutuallyExclusive("file", "content")
 
+	return cmd
+}
+
+func makeGenericDeleteCmd() *cobra.Command {
+	var (
+		version int
+		label   string
+		force   bool
+		project string
+		org     string
+	)
+
+	cmd := &cobra.Command{
+		Use:     "delete <name>",
+		Aliases: []string{"rm"},
+		Short:   "Delete a prompt",
+		Long: `Delete a prompt and all its versions, or delete specific versions.
+
+Without flags, deletes the prompt and all its versions (requires confirmation).
+Use --version to delete a specific version, or --label to delete versions with a
+specific label. Use -f to skip the confirmation prompt.`,
+		Example: `  iai prompts delete greeting
+  iai prompts delete greeting -f
+  iai prompts delete greeting --version 3
+  iai prompts delete greeting --label staging`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			name := strings.TrimSpace(args[0])
+			byVersion, byLabel := cmd.Flags().Changed("version"), cmd.Flags().Changed("label")
+			if err := validatePromptDelete(name, version, label, byVersion, byLabel); err != nil {
+				return err
+			}
+			scoped := byVersion || byLabel
+
+			// Deleting all versions is destructive; require confirmation.
+			if !scoped && !force {
+				fmt.Fprintf(
+					out,
+					"This will delete prompt %q and all its versions. Continue? [y/N] ",
+					name,
+				)
+				reader := bufio.NewReader(cmd.InOrStdin())
+				answer, err := reader.ReadString('\n')
+				if err != nil {
+					return fmt.Errorf("failed to read confirmation: %w", err)
+				}
+				if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+					fmt.Fprintln(out, "Aborted.")
+					return nil
+				}
+			}
+
+			pCtx, apiClient, _, err := resolveProject(cmd.Context(), org, project)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintln(out)
+			fmt.Fprintf(out, "Deleting prompt %q...\n", name)
+
+			if scoped {
+				err = apiClient.DeletePrompt(
+					cmd.Context(),
+					pCtx.projectId,
+					"", // empty route segment → generic /prompts endpoint
+					name,
+					version,
+					label,
+				)
+			} else {
+				err = apiClient.DeletePromptByName(
+					cmd.Context(),
+					pCtx.projectId,
+					"", // empty route segment → generic /prompts endpoint
+					name,
+				)
+			}
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(out, "Successfully deleted prompt %q.\n", name)
+
+			return nil
+		},
+	}
+
+	cmd.Flags().IntVar(&version, "version", 0, "Delete a specific version only")
+	cmd.Flags().StringVar(&label, "label", "", "Delete versions with this label only")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation prompt")
+	cmd.Flags().
+		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
+	cmd.Flags().
+		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
+
+	cmd.MarkFlagsMutuallyExclusive("version", "label")
 	return cmd
 }
 

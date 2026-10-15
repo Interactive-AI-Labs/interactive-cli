@@ -674,7 +674,7 @@ type DeleteMessageResponse struct {
 }
 
 type BulkTraceDeleteBody struct {
-	IDs []string `json:"trace_ids"`
+	IDs []string `json:"ids"`
 }
 
 // ListTraces calls the platform trace exploration API.
