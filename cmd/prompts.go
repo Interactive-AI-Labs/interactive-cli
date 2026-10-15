@@ -400,7 +400,13 @@ specific label. Use -f to skip the confirmation prompt.`,
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 			byVersion, byLabel := cmd.Flags().Changed("version"), cmd.Flags().Changed("label")
-			if err := validatePromptDelete(name, version, label, byVersion, byLabel); err != nil {
+			if err := inputs.ValidatePromptDelete(
+				name,
+				version,
+				label,
+				byVersion,
+				byLabel,
+			); err != nil {
 				return err
 			}
 			scoped := byVersion || byLabel
@@ -465,8 +471,8 @@ specific label. Use -f to skip the confirmation prompt.`,
 		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().
 		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-
 	cmd.MarkFlagsMutuallyExclusive("version", "label")
+
 	return cmd
 }
 

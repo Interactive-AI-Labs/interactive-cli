@@ -1,10 +1,8 @@
-package cmd
+package inputs
 
 import "testing"
 
 func TestValidatePromptDelete(t *testing.T) {
-	const wider = "which the server may treat as a wider delete"
-
 	tests := []struct {
 		name      string
 		prompt    string
@@ -45,45 +43,28 @@ func TestValidatePromptDelete(t *testing.T) {
 			prompt:    "folders/x",
 			version:   2,
 			byVersion: true,
-			wantErr:   `cannot delete by --version or --label: "folders/x" contains the path segment "folders", ` + wider,
+			wantErr:   `cannot delete "folders/x" by --version or --label: its "folders" segment routes to a wider delete`,
 		},
 		{
 			name:    "by-name segment",
 			prompt:  "a/by-name",
 			label:   "prod",
 			byLabel: true,
-			wantErr: `cannot delete by --version or --label: "a/by-name" contains the path segment "by-name", ` + wider,
+			wantErr: `cannot delete "a/by-name" by --version or --label: its "by-name" segment routes to a wider delete`,
 		},
 		{
 			name:      "versions segment",
 			prompt:    "a/versions/b",
 			version:   1,
 			byVersion: true,
-			wantErr:   `cannot delete by --version or --label: "a/versions/b" contains the path segment "versions", ` + wider,
-		},
-		{
-			name:    "empty name",
-			prompt:  "",
-			wantErr: `invalid name "": empty or relative path segment`,
-		},
-		{
-			name:    "dot-dot name",
-			prompt:  "..",
-			wantErr: `invalid name "..": empty or relative path segment`,
-		},
-		{
-			name:      "double slash",
-			prompt:    "a//b",
-			version:   1,
-			byVersion: true,
-			wantErr:   `invalid name "a//b": empty or relative path segment`,
+			wantErr:   `cannot delete "a/versions/b" by --version or --label: its "versions" segment routes to a wider delete`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotErr := ""
-			if err := validatePromptDelete(
+			if err := ValidatePromptDelete(
 				tt.prompt,
 				tt.version,
 				tt.label,

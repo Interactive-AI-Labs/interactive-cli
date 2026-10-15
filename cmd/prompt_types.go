@@ -465,7 +465,13 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 			byVersion, byLabel := cmd.Flags().Changed("version"), cmd.Flags().Changed("label")
-			if err := validatePromptDelete(name, version, label, byVersion, byLabel); err != nil {
+			if err := inputs.ValidatePromptDelete(
+				name,
+				version,
+				label,
+				byVersion,
+				byLabel,
+			); err != nil {
 				return err
 			}
 			scoped := byVersion || byLabel
@@ -529,35 +535,9 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation prompt")
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
 	cmd.Flags().StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-
 	cmd.MarkFlagsMutuallyExclusive("version", "label")
-	return cmd
-}
 
-// validatePromptDelete rejects names and flags that would widen a delete.
-// The server decodes %2F, so these segments route to other delete handlers.
-func validatePromptDelete(name string, version int, label string, byVersion, byLabel bool) error {
-	for _, segment := range strings.Split(name, "/") {
-		switch segment {
-		case "", ".", "..":
-			return fmt.Errorf("invalid name %q: empty or relative path segment", name)
-		case "folders", "by-name", "versions":
-			if byVersion || byLabel {
-				return fmt.Errorf(
-					"cannot delete by --version or --label: %q contains the path segment %q, "+
-						"which the server may treat as a wider delete",
-					name, segment,
-				)
-			}
-		}
-	}
-	switch {
-	case byVersion && version < 1:
-		return errors.New("--version must be 1 or greater")
-	case byLabel && strings.TrimSpace(label) == "":
-		return errors.New("--label must not be empty")
-	}
-	return nil
+	return cmd
 }
 
 func makeVersionsCmd(ptCfg PromptTypeConfig) *cobra.Command {
