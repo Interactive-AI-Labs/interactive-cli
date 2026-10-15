@@ -51,17 +51,31 @@ func PrintMcpList(out io.Writer, mcps []platform.McpSchema) error {
 	return PrintTable(out, headers, rows)
 }
 
-func PrintMcpCatalog(out io.Writer, entries []platform.McpCatalogEntry) error {
-	if len(entries) == 0 {
+// McpCatalog is the structured catalog output: self-hosted images and remote entries.
+type McpCatalog struct {
+	Images  []deployment.CatalogMcpImage `json:"images"  yaml:"images"`
+	Entries []platform.McpCatalogEntry   `json:"entries" yaml:"entries"`
+}
+
+// PrintMcpCatalog lists self-hosted images and remote entries in one table.
+func PrintMcpCatalog(
+	out io.Writer,
+	images []deployment.CatalogMcpImage,
+	entries []platform.McpCatalogEntry,
+) error {
+	if len(images) == 0 && len(entries) == 0 {
 		fmt.Fprintln(out, "No catalog entries found.")
 		return nil
 	}
-	headers := []string{"ID", "NAME", "CATEGORY", "SIGN-IN", "PERMISSIONS"}
-	rows := make([][]string, len(entries))
-	for i, e := range entries {
-		rows[i] = []string{
-			e.ID, e.Name, e.Category, mcpSignIn(e), mcpPermissions(e),
-		}
+	headers := []string{"ID", "TYPE", "NAME", "CATEGORY", "SIGN-IN", "PERMISSIONS"}
+	rows := make([][]string, 0, len(images)+len(entries))
+	for _, image := range images {
+		rows = append(rows, []string{image.Id, "self-hosted", "—", "—", "—", "—"})
+	}
+	for _, e := range entries {
+		rows = append(rows, []string{
+			e.ID, e.Type, e.Name, e.Category, mcpSignIn(e), mcpPermissions(e),
+		})
 	}
 	return PrintTable(out, headers, rows)
 }
@@ -212,4 +226,19 @@ func PrintMcpTools(
 		}
 	}
 	return nil
+}
+
+func PrintMcpCatalogVersions(out io.Writer, imageId string, versions []string) error {
+	if len(versions) == 0 {
+		fmt.Fprintf(out, "No versions found for MCP image %q.\n", imageId)
+		return nil
+	}
+
+	headers := []string{"VERSION"}
+	rows := make([][]string, len(versions))
+	for i, v := range versions {
+		rows[i] = []string{v}
+	}
+
+	return PrintTable(out, headers, rows)
 }

@@ -135,7 +135,7 @@ type McpImage struct {
 }
 
 type McpCreateWorkload struct {
-	Image    string      `json:"image"`
+	Image    any         `json:"image"` // McpImage, or the deprecated "name:tag" string for an internal image
 	Port     int         `json:"port"`
 	Endpoint bool        `json:"endpoint"`
 	Path     string      `json:"path"`

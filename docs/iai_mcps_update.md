@@ -32,6 +32,7 @@ iai mcps update <mcp_name> [flags]
 
 ```
   iai mcps update my-tool --image-tag v2
+  iai mcps update my-tool --image-type platform --image-name gdrive --image-tag 1.0.0
   iai mcps update my-tool --memory 1G --cpu 500m
   iai mcps update my-tool --endpoint
   iai mcps update my-tool --endpoint=false
@@ -66,6 +67,7 @@ iai mcps update <mcp_name> [flags]
   -h, --help                        help for update
       --image-name string           Container image name (self-hosted)
       --image-tag string            Container image tag (self-hosted)
+      --image-type string           Image type: "internal" (the project's registry, default) or "platform" (a self-hosted image from 'iai mcps catalog') (self-hosted)
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
       --port int                    Port the mcp's own server listens on (self-hosted, default 3000)

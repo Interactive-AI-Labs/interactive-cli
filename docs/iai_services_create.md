@@ -35,7 +35,7 @@ iai services create <service_name> [flags]
       --image-name string                   Container image name
       --image-repository string             Container image repository (external images only)
       --image-tag string                    Container image tag
-      --image-type string                   Image type: 'internal' (project's private registry), 'external' (any public registry), or 'platform' (Interactive AI registries)
+      --image-type string                   Image type: 'internal' (project's private registry) or 'external' (any public registry)
       --memory string                       Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)
   -o, --organization string                 Organization name that owns the project
       --port int                            Service port to expose

@@ -26,6 +26,8 @@ func TestBuildMcpUpdatePatch(t *testing.T) {
 		{name: "image tag only", input: McpUpdateInput{ImageTag: "2"}, flags: []string{"image-tag"}, want: `{"workload":{"image":{"tag":"2"}}}`},
 		{name: "image name only", input: McpUpdateInput{ImageName: "tools"}, flags: []string{"image-name"}, want: `{"workload":{"image":{"name":"tools"}}}`},
 		{name: "image name and tag", input: McpUpdateInput{ImageName: "tools", ImageTag: "2"}, flags: []string{"image-name", "image-tag"}, want: `{"workload":{"image":{"name":"tools","tag":"2"}}}`},
+		{name: "image type only", input: McpUpdateInput{ImageType: "platform"}, flags: []string{"image-type"}, want: `{"workload":{"image":{"type":"platform"}}}`},
+		{name: "platform image", input: McpUpdateInput{ImageType: "platform", ImageName: "gdrive", ImageTag: "1.0.0"}, flags: []string{"image-type", "image-name", "image-tag"}, want: `{"workload":{"image":{"name":"gdrive","tag":"1.0.0","type":"platform"}}}`},
 		{name: "image unchanged", input: McpUpdateInput{ImageName: "tools", ImageTag: "2"}, want: `{}`},
 		{name: "assign stack", input: McpUpdateInput{StackId: "tools"}, flags: []string{"stack-id"}, want: `{"workload":{"stack_id":"tools"}}`},
 		{name: "clear stack", input: McpUpdateInput{ClearStackID: true}, want: `{"workload":{"stack_id":null}}`},

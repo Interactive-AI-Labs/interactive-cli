@@ -42,9 +42,9 @@ iai jobs update <job_name> [flags]
       --force                             Allow --env/--secret to drop live entries; --clear-env/--clear-secret need no override. Drop checks are skipped if live state cannot be fetched
   -h, --help                              help for update
       --image-name string                 Container image name
-      --image-repository string           Image repository; required for external and platform images
+      --image-repository string           Image repository; required for external images
       --image-tag string                  Container image tag
-      --image-type string                 Image type: 'internal' (project's private registry), 'external' (any public registry), or 'platform' (Interactive AI registries)
+      --image-type string                 Image type: 'internal' (project's private registry) or 'external' (any public registry)
       --memory string                     Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)
       --pyproject string                  Replace pyproject.toml from a local file; combined with the new or retained script, maximum 350,000 bytes
       --retention-failed-runs int32       Failed, timed-out, or stopped runs to retain (0-20); unchanged when omitted

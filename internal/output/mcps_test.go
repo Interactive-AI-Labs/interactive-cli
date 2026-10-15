@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"github.com/google/go-cmp/cmp"
@@ -13,6 +14,7 @@ import (
 func TestPrintMcpCatalog(t *testing.T) {
 	tests := []struct {
 		name    string
+		images  []deployment.CatalogMcpImage
 		entries []platform.McpCatalogEntry
 		want    string
 	}{
@@ -23,12 +25,12 @@ func TestPrintMcpCatalog(t *testing.T) {
 					ID:          "e1",
 					Name:        "GitHub",
 					Category:    "dev",
-					Type:        "platform",
+					Type:        "remote",
 					AuthMethods: []string{"api_key"},
 				},
 			},
-			want: "ID   NAME     CATEGORY   SIGN-IN   PERMISSIONS\n" +
-				"e1   GitHub   dev        api_key   —\n",
+			want: "ID   TYPE     NAME     CATEGORY   SIGN-IN   PERMISSIONS\n" +
+				"e1   remote   GitHub   dev        api_key   —\n",
 		},
 		{
 			name: "self-registering provider whose permissions are all-or-nothing",
@@ -37,7 +39,7 @@ func TestPrintMcpCatalog(t *testing.T) {
 					ID:               "dropbox",
 					Name:             "Dropbox",
 					Category:         "Productivity",
-					Type:             "platform",
+					Type:             "remote",
 					AuthMethods:      []string{"oauth"},
 					GrantsAllowed:    []string{"pkce"},
 					ScopesSupported:  []string{"files.metadata.read", "files.content.read"},
@@ -45,8 +47,8 @@ func TestPrintMcpCatalog(t *testing.T) {
 					SelfRegisters:    map[string]bool{"pkce": true},
 				},
 			},
-			want: "ID        NAME      CATEGORY       SIGN-IN   PERMISSIONS\n" +
-				"dropbox   Dropbox   Productivity   oauth     files.metadata.read, files.content.read (all required)\n",
+			want: "ID        TYPE     NAME      CATEGORY       SIGN-IN   PERMISSIONS\n" +
+				"dropbox   remote   Dropbox   Productivity   oauth     files.metadata.read, files.content.read (all required)\n",
 		},
 		{
 			name: "provider publishes a grant the entry does not accept",
@@ -55,13 +57,13 @@ func TestPrintMcpCatalog(t *testing.T) {
 					ID:            "hf",
 					Name:          "Hugging Face",
 					Category:      "dev",
-					Type:          "platform",
+					Type:          "remote",
 					AuthMethods:   []string{"bearer", "api_key"},
 					GrantsAllowed: []string{"pkce"},
 				},
 			},
-			want: "ID   NAME           CATEGORY   SIGN-IN           PERMISSIONS\n" +
-				"hf   Hugging Face   dev        bearer, api_key   —\n",
+			want: "ID   TYPE     NAME           CATEGORY   SIGN-IN           PERMISSIONS\n" +
+				"hf   remote   Hugging Face   dev        bearer, api_key   —\n",
 		},
 		{
 			name: "provider needing our app, that also takes a plain token",
@@ -70,15 +72,15 @@ func TestPrintMcpCatalog(t *testing.T) {
 					ID:              "github",
 					Name:            "GitHub",
 					Category:        "Development",
-					Type:            "platform",
+					Type:            "remote",
 					AuthMethods:     []string{"oauth", "bearer"},
 					GrantsAllowed:   []string{"pkce"},
 					ScopesSupported: []string{"repo", "read:org"},
 					SelfRegisters:   map[string]bool{"pkce": false},
 				},
 			},
-			want: "ID       NAME     CATEGORY      SIGN-IN                             PERMISSIONS\n" +
-				"github   GitHub   Development   oauth, bearer · needs admin setup   repo, read:org\n",
+			want: "ID       TYPE     NAME     CATEGORY      SIGN-IN                             PERMISSIONS\n" +
+				"github   remote   GitHub   Development   oauth, bearer · needs admin setup   repo, read:org\n",
 		},
 		{
 			name: "provider that publishes a grant but not whether it registers us",
@@ -87,20 +89,43 @@ func TestPrintMcpCatalog(t *testing.T) {
 					ID:            "gorgias",
 					Name:          "Gorgias",
 					Category:      "Customer Support",
-					Type:          "platform",
+					Type:          "remote",
 					AuthMethods:   []string{"oauth"},
 					GrantsAllowed: []string{"pkce"},
 				},
 			},
-			want: "ID        NAME      CATEGORY           SIGN-IN   PERMISSIONS\n" +
-				"gorgias   Gorgias   Customer Support   oauth     —\n",
+			want: "ID        TYPE     NAME      CATEGORY           SIGN-IN   PERMISSIONS\n" +
+				"gorgias   remote   Gorgias   Customer Support   oauth     —\n",
 		},
+		{
+			name:   "self-hosted images list before remote entries",
+			images: []deployment.CatalogMcpImage{{Id: "gdrive"}},
+			entries: []platform.McpCatalogEntry{
+				{
+					ID:          "github",
+					Name:        "GitHub",
+					Category:    "dev",
+					Type:        "remote",
+					AuthMethods: []string{"api_key"},
+				},
+			},
+			want: "ID       TYPE          NAME     CATEGORY   SIGN-IN   PERMISSIONS\n" +
+				"gdrive   self-hosted   —        —          —         —\n" +
+				"github   remote        GitHub   dev        api_key   —\n",
+		},
+		{
+			name:   "images only",
+			images: []deployment.CatalogMcpImage{{Id: "gdrive"}},
+			want: "ID       TYPE          NAME   CATEGORY   SIGN-IN   PERMISSIONS\n" +
+				"gdrive   self-hosted   —      —          —         —\n",
+		},
+		{name: "empty catalog prints message", want: "No catalog entries found.\n"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := PrintMcpCatalog(&buf, tt.entries); err != nil {
+			if err := PrintMcpCatalog(&buf, tt.images, tt.entries); err != nil {
 				t.Fatalf("PrintMcpCatalog() error = %v", err)
 			}
 			if got := buf.String(); got != tt.want {
@@ -536,6 +561,36 @@ func TestPrintMcpDetailRendersEnvAndSecrets(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.want, buf.String()); diff != "" {
 				t.Errorf("PrintMcpDetail() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestPrintMcpCatalogVersions(t *testing.T) {
+	tests := []struct {
+		name     string
+		versions []string
+		want     string
+	}{
+		{
+			name:     "empty versions prints message",
+			versions: []string{},
+			want:     "No versions found for MCP image \"gdrive\".\n",
+		},
+		{
+			name:     "versions",
+			versions: []string{"latest", "1.1.0", "1.0.0"},
+			want:     "VERSION\n" + "latest\n" + "1.1.0\n" + "1.0.0\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := PrintMcpCatalogVersions(&buf, "gdrive", tt.versions); err != nil {
+				t.Fatalf("PrintMcpCatalogVersions() error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, buf.String()); diff != "" {
+				t.Fatal(diff)
 			}
 		})
 	}
