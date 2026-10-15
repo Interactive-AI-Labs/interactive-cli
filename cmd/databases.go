@@ -37,6 +37,7 @@ var (
 
 	dbClearBackup  bool
 	dbClearStackId bool
+	dbDeleteForce  bool
 
 	dbStackId string
 
@@ -279,13 +280,28 @@ var dbDeleteCmd = &cobra.Command{
 	Use:     "delete <database_name>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a database from a project",
-	Long:    `Delete a database and all associated resources from a project.`,
+	Long: `Delete a database and all associated resources from a project, including its
+backups. Asks for confirmation unless -f is given.`,
 	Example: `  iai databases delete my-db
+  iai databases delete my-db -f
   iai databases delete my-db -p my-project`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		databaseName := strings.TrimSpace(args[0])
+
+		if !dbDeleteForce {
+			confirmed, err := confirmDeletion(
+				cmd.InOrStdin(), out, fmt.Sprintf("database %q and all its backups", databaseName),
+			)
+			if err != nil {
+				return err
+			}
+			if !confirmed {
+				fmt.Fprintln(out, "Aborted.")
+				return nil
+			}
+		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
 		if err != nil {
@@ -696,7 +712,9 @@ localhost:<local-port>.`,
 	},
 }
 
-func addDatabaseResourceFlags(cmd *cobra.Command) {
+const dbCreateExtensionsHelp = "PostgreSQL extension to install (can be repeated); replaces the default list, so include \"vector\" explicitly if needed; defaults to [vector] if omitted"
+
+func addDatabaseResourceFlags(cmd *cobra.Command, extensionsHelp string) {
 	cmd.Flags().
 		IntVar(&dbInstances, "instances", 0, "Number of PostgreSQL instances (minimum 1); values above 1 enable high availability")
 	cmd.Flags().
@@ -710,7 +728,7 @@ func addDatabaseResourceFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		StringVar(&dbStorageSize, "storage-size", "", "Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased")
 	cmd.Flags().
-		StringArrayVar(&dbExtensions, "extensions", nil, "PostgreSQL extension to install (can be repeated); replaces the default list, so include \"vector\" explicitly if needed; defaults to [vector] if omitted")
+		StringArrayVar(&dbExtensions, "extensions", nil, extensionsHelp)
 	cmd.Flags().
 		StringVar(&dbBackupSchedule, "backup-schedule", "", "Backup schedule as a 6-field cron expression (second minute hour day month weekday, e.g. \"0 0 2 * * *\" for daily at 02:00)")
 	cmd.Flags().
@@ -749,7 +767,7 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbCreateCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
-	addDatabaseResourceFlags(dbCreateCmd)
+	addDatabaseResourceFlags(dbCreateCmd, dbCreateExtensionsHelp)
 	dbCreateCmd.Flags().
 		StringVar(&dbStackId, "stack-id", "", "Stack ID to assign the database to")
 	_ = dbCreateCmd.MarkFlagRequired("instances")
@@ -762,7 +780,10 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbUpdateCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
-	addDatabaseResourceFlags(dbUpdateCmd)
+	addDatabaseResourceFlags(
+		dbUpdateCmd,
+		"PostgreSQL extension to keep installed (can be repeated); the full desired list, so extensions not listed are uninstalled",
+	)
 	dbUpdateCmd.Flags().
 		BoolVar(&dbClearBackup, "clear-backup", false, "Remove backup configuration from the database")
 	dbUpdateCmd.Flags().
@@ -775,6 +796,8 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbDeleteCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+	dbDeleteCmd.Flags().
+		BoolVarP(&dbDeleteForce, "force", "f", false, "Skip the confirmation prompt")
 
 	// databases deactivate
 	dbDeactivateCmd.Flags().
@@ -837,7 +860,7 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbRestoreCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
-	addDatabaseResourceFlags(dbRestoreCmd)
+	addDatabaseResourceFlags(dbRestoreCmd, dbCreateExtensionsHelp)
 	_ = dbRestoreCmd.MarkFlagRequired("instances")
 	_ = dbRestoreCmd.MarkFlagRequired("cpu")
 	_ = dbRestoreCmd.MarkFlagRequired("memory")

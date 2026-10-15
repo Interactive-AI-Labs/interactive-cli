@@ -37,7 +37,7 @@ iai databases update <database_name> [flags]
       --clear-backup              Remove backup configuration from the database
       --clear-stack-id            Remove the database from its stack
       --cpu string                CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m); max 7 vCPU (7000m)
-      --extensions stringArray    PostgreSQL extension to install (can be repeated); replaces the default list, so include "vector" explicitly if needed; defaults to [vector] if omitted
+      --extensions stringArray    PostgreSQL extension to keep installed (can be repeated); the full desired list, so extensions not listed are uninstalled
   -h, --help                      help for update
       --instances int             Number of PostgreSQL instances (minimum 1); values above 1 enable high availability
       --memory string             Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G); max 15G
