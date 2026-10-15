@@ -26,10 +26,10 @@ func ResolveCredential(in io.Reader, credential string, fromStdin bool) (string,
 // McpCreateImage builds the create workload image; internal images keep the
 // "name:tag" string until every backend accepts the object form.
 func McpCreateImage(imageType, name, tag string) any {
-	if imageType == "platform" {
-		return platform.McpImage{Type: imageType, Name: name, Tag: tag}
+	if imageType == "" || imageType == "internal" {
+		return name + ":" + tag
 	}
-	return name + ":" + tag
+	return platform.McpImage{Type: imageType, Name: name, Tag: tag}
 }
 
 type McpUpdateInput struct {
