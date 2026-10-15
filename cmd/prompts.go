@@ -435,23 +435,14 @@ specific label. Use -f to skip the confirmation prompt.`,
 			fmt.Fprintln(out)
 			fmt.Fprintf(out, "Deleting prompt %q...\n", name)
 
-			if scoped {
-				err = apiClient.DeletePrompt(
-					cmd.Context(),
-					pCtx.projectId,
-					"", // empty route segment → generic /prompts endpoint
-					name,
-					versionArg,
-					labelArg,
-				)
-			} else {
-				err = apiClient.DeletePromptByName(
-					cmd.Context(),
-					pCtx.projectId,
-					"", // empty route segment → generic /prompts endpoint
-					name,
-				)
-			}
+			err = apiClient.DeletePrompt(
+				cmd.Context(),
+				pCtx.projectId,
+				"", // empty route segment → generic /prompts endpoint
+				name,
+				versionArg,
+				labelArg,
+			)
 			if err != nil {
 				return err
 			}
