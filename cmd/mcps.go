@@ -89,12 +89,10 @@ var mcpCatalogCmd = &cobra.Command{
 	Use:   "catalog [id]",
 	Short: "Browse the MCP catalog",
 	Long: `List the MCPs available to create: self-hosted images from the platform's
-registry (deploy with 'iai mcps create --image-type platform --image-name <id>')
-and remote providers (see 'iai mcps create --catalog-id'), with each entry's
-type and, for remote ones, its category and supported auth methods.
+registry and remote providers.
 
-With an id argument, lists the available versions of a self-hosted image, or
-shows the remote entry.`,
+Without arguments, lists both. With an id argument, lists the available
+versions of a self-hosted image, or shows the remote entry.`,
 	Example: `  iai mcps catalog
   iai mcps catalog gdrive
   iai mcps catalog --json`,
@@ -165,7 +163,6 @@ var mcpCreateCmd = &cobra.Command{
 	Short: "Create an mcp in a project",
 	Long: `Create an MCP server:
   Self-hosted: hosted by the platform; requires --image-name and --image-tag.
-  --image-type platform deploys a self-hosted image from 'iai mcps catalog'.
   Remote: hosted elsewhere; requires --remote-url, including the endpoint path.
   Catalog: a predefined remote provider; --catalog-id supplies its endpoint and auth settings.
 
@@ -1060,9 +1057,9 @@ func init() {
 		c.Flags().
 			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")`)
 		c.Flags().
-			StringVar(&mcpImageType, "image-type", "", `Image type: "internal" (the project's registry, default) or "platform" (a self-hosted image from 'iai mcps catalog') (self-hosted)`)
+			StringVar(&mcpImageType, "image-type", "", "Image type: 'internal' (the project's registry, default) or 'platform' (a self-hosted image from 'iai mcps catalog') (self-hosted)")
 		c.Flags().
-			StringVar(&mcpImageName, "image-name", "", "Container image name (self-hosted)")
+			StringVar(&mcpImageName, "image-name", "", "Container image name; a catalog id for --image-type platform (self-hosted)")
 		c.Flags().
 			StringVar(&mcpImageTag, "image-tag", "", "Container image tag (self-hosted)")
 		c.Flags().
