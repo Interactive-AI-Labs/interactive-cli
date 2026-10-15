@@ -32,7 +32,18 @@ types: "text" (default) and "chat".`,
 		makeGenericListCmd(),
 		makeGenericGetCmd(),
 		makeGenericUpdateCmd(),
-		makeGenericDeleteCmd(),
+		makeDeleteCmd(PromptTypeConfig{
+			TypeName: "prompt",
+			DeleteLong: `Delete a prompt and all its versions, or delete specific versions.
+
+Without flags, deletes the prompt and all its versions. Use --version to delete
+a specific version, or --label to delete the versions with a label. Every delete
+asks for confirmation unless -f is given.`,
+			DeleteExample: `  iai prompts delete greeting
+  iai prompts delete greeting -f
+  iai prompts delete greeting --version 3
+  iai prompts delete greeting --label staging`,
+		}),
 		makeGenericVersionsCmd(),
 		makeGenericDiffCmd(),
 	)
@@ -368,49 +379,6 @@ Exactly one of --file or --content must be specified.`,
 		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
 	cmd.MarkFlagsOneRequired("file", "content")
 	cmd.MarkFlagsMutuallyExclusive("file", "content")
-
-	return cmd
-}
-
-func makeGenericDeleteCmd() *cobra.Command {
-	var (
-		version int
-		label   string
-		force   bool
-		project string
-		org     string
-	)
-
-	cmd := &cobra.Command{
-		Use:     "delete <name>",
-		Aliases: []string{"rm"},
-		Short:   "Delete a prompt",
-		Long: `Delete a prompt and all its versions, or delete specific versions.
-
-Without flags, deletes the prompt and all its versions. Use --version to delete
-a specific version, or --label to delete the versions with a label. Every delete
-asks for confirmation unless -f is given.`,
-		Example: `  iai prompts delete greeting
-  iai prompts delete greeting -f
-  iai prompts delete greeting --version 3
-  iai prompts delete greeting --label staging`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// An empty route segment targets the generic /prompts endpoint.
-			return runPromptDelete(
-				cmd, "prompt", "", strings.TrimSpace(args[0]), version, label, force, org, project,
-			)
-		},
-	}
-
-	cmd.Flags().IntVar(&version, "version", 0, "Delete a specific version only")
-	cmd.Flags().StringVar(&label, "label", "", "Delete versions with this label only")
-	cmd.Flags().BoolVarP(&force, "force", "f", false, "Skip confirmation prompt")
-	cmd.Flags().
-		StringVarP(&project, "project", "p", "", "Project name that owns the prompts")
-	cmd.Flags().
-		StringVarP(&org, "organization", "o", "", "Organization name that owns the project")
-	cmd.MarkFlagsMutuallyExclusive("version", "label")
 
 	return cmd
 }

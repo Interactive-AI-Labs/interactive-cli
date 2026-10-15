@@ -712,9 +712,7 @@ localhost:<local-port>.`,
 	},
 }
 
-const dbCreateExtensionsHelp = "PostgreSQL extension to install (can be repeated); replaces the default list, so include \"vector\" explicitly if needed; defaults to [vector] if omitted"
-
-func addDatabaseResourceFlags(cmd *cobra.Command, extensionsHelp string) {
+func addDatabaseResourceFlags(cmd *cobra.Command) {
 	cmd.Flags().
 		IntVar(&dbInstances, "instances", 0, "Number of PostgreSQL instances (minimum 1); values above 1 enable high availability")
 	cmd.Flags().
@@ -728,7 +726,7 @@ func addDatabaseResourceFlags(cmd *cobra.Command, extensionsHelp string) {
 	cmd.Flags().
 		StringVar(&dbStorageSize, "storage-size", "", "Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased")
 	cmd.Flags().
-		StringArrayVar(&dbExtensions, "extensions", nil, extensionsHelp)
+		StringArrayVar(&dbExtensions, "extensions", nil, "PostgreSQL extension to install (can be repeated); replaces the default list, so include \"vector\" explicitly if needed; defaults to [vector] if omitted")
 	cmd.Flags().
 		StringVar(&dbBackupSchedule, "backup-schedule", "", "Backup schedule as a 6-field cron expression (second minute hour day month weekday, e.g. \"0 0 2 * * *\" for daily at 02:00)")
 	cmd.Flags().
@@ -767,7 +765,7 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbCreateCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
-	addDatabaseResourceFlags(dbCreateCmd, dbCreateExtensionsHelp)
+	addDatabaseResourceFlags(dbCreateCmd)
 	dbCreateCmd.Flags().
 		StringVar(&dbStackId, "stack-id", "", "Stack ID to assign the database to")
 	_ = dbCreateCmd.MarkFlagRequired("instances")
@@ -780,10 +778,8 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbUpdateCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
-	addDatabaseResourceFlags(
-		dbUpdateCmd,
-		"PostgreSQL extension to keep installed (can be repeated); the full desired list, so extensions not listed are uninstalled",
-	)
+	addDatabaseResourceFlags(dbUpdateCmd)
+	dbUpdateCmd.Flags().Lookup("extensions").Usage = "PostgreSQL extension to keep installed (can be repeated); the full desired list, so extensions not listed are uninstalled"
 	dbUpdateCmd.Flags().
 		BoolVar(&dbClearBackup, "clear-backup", false, "Remove backup configuration from the database")
 	dbUpdateCmd.Flags().
@@ -860,7 +856,7 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbRestoreCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
-	addDatabaseResourceFlags(dbRestoreCmd, dbCreateExtensionsHelp)
+	addDatabaseResourceFlags(dbRestoreCmd)
 	_ = dbRestoreCmd.MarkFlagRequired("instances")
 	_ = dbRestoreCmd.MarkFlagRequired("cpu")
 	_ = dbRestoreCmd.MarkFlagRequired("memory")
