@@ -8,11 +8,13 @@ func init() {
 		Short:    "Pre-approved response templates used in routines",
 		Long: `Manage macros in InteractiveAI projects.
 
-Macros are reusable template replies and text snippets (YAML format).`,
+Macros are reusable template replies, written as YAML with the reply text under
+'text'.`,
 		RouteSegment: "macros",
 		HasSchema:    true,
 		CreateLong: `Create a new macro in an InteractiveAI project.
 
+Each macro is a YAML mapping with the reply text under 'text'.
 Content is provided via a YAML file using the --file flag.
 Run 'iai macros schema' to see the current field definitions.
 
@@ -54,6 +56,7 @@ specific label.`,
 This creates a new version of the macro using the content from the provided file.
 The previous versions are preserved and can still be accessed by version number.
 
+Each macro is a YAML mapping with the reply text under 'text'.
 Run 'iai macros schema' to see the current field definitions.
 
 Use --schema-version to validate against a specific schema version. This should

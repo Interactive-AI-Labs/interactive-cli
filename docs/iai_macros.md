@@ -6,7 +6,8 @@ Pre-approved response templates used in routines
 
 Manage macros in InteractiveAI projects.
 
-Macros are reusable template replies and text snippets (YAML format).
+Macros are reusable template replies, written as YAML with the reply text under
+'text'.
 
 ### Options
 
