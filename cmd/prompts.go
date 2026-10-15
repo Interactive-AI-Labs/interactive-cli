@@ -33,7 +33,8 @@ types: "text" (default) and "chat".`,
 		makeGenericGetCmd(),
 		makeGenericUpdateCmd(),
 		makeDeleteCmd(PromptTypeConfig{
-			TypeName: "prompt",
+			TypeName:     "prompt",
+			RouteSegment: "", // generic /prompts endpoint, no type segment
 			DeleteLong: `Delete a prompt and all its versions, or delete specific versions.
 
 Without flags, deletes the prompt and all its versions. Use --version to delete

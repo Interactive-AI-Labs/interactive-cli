@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"strings"
@@ -377,17 +376,13 @@ This command currently requires API key authentication.`,
 		}
 
 		if traceID == "" && !tracesDeleteForce {
-			fmt.Fprintf(
-				out,
-				"This will delete %d traces. Continue? [y/N] ",
-				len(deleteIDs),
+			confirmed, err := confirmDeletion(
+				cmd.InOrStdin(), out, fmt.Sprintf("%d traces", len(deleteIDs)),
 			)
-			reader := bufio.NewReader(cmd.InOrStdin())
-			answer, err := reader.ReadString('\n')
 			if err != nil {
-				return fmt.Errorf("failed to read confirmation: %w", err)
+				return err
 			}
-			if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+			if !confirmed {
 				fmt.Fprintln(out, "Aborted.")
 				return nil
 			}

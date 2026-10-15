@@ -534,6 +534,16 @@ func makeDeleteCmd(ptCfg PromptTypeConfig) *cobra.Command {
 func promptDeleteTarget(
 	typeName, name string, version int, label string, byVersion, byLabel bool,
 ) (string, error) {
+	// Empty and dot segments collapse the request path into a wider route.
+	for _, segment := range strings.Split(name, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return "", fmt.Errorf(
+				"invalid %s name %q: empty or relative path segment",
+				typeName,
+				name,
+			)
+		}
+	}
 	switch {
 	case byVersion && version < 1:
 		return "", errors.New("--version must be 1 or greater")
