@@ -79,9 +79,9 @@ Example (policy.yaml):
   iai policies update safety-rules --file policy.yaml --labels staging,qa`,
 		DeleteLong: `Delete a policy and all its versions, or delete specific versions.
 
-Without flags, deletes the policy and all its versions (requires confirmation).
-Use --version to delete a specific version, or --label to delete versions with a
-specific label. Use -f to skip the confirmation prompt.`,
+Without flags, deletes the policy and all its versions. Use --version to delete
+a specific version, or --label to delete the versions with a label. Every delete
+asks for confirmation unless -f is given.`,
 		DeleteExample: `  iai policies delete safety-rules
   iai policies delete safety-rules -f
   iai policies delete safety-rules --version 3

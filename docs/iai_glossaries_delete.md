@@ -6,9 +6,9 @@ Delete a glossary
 
 Delete a glossary definition and all its versions, or delete specific versions.
 
-Without flags, deletes the glossary entry and all its versions (requires
-confirmation). Use --version to delete a specific version, or --label to delete
-versions with a specific label. Use -f to skip the confirmation prompt.
+Without flags, deletes the glossary entry and all its versions. Use --version to
+delete a specific version, or --label to delete the versions with a label. Every
+delete asks for confirmation unless -f is given.
 
 ```
 iai glossaries delete <name> [flags]
