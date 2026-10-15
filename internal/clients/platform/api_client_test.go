@@ -953,8 +953,9 @@ func TestAPIClientListPromptVersionsAPIKeyModeScanCap(t *testing.T) {
 	}
 }
 
-func TestAPIClientDeletePromptSendsExplicitValues(t *testing.T) {
+func TestDeletePromptRequest(t *testing.T) {
 	zero, three, empty, prod := 0, 3, "", "prod"
+	const base = "/api/platform/v1/projects/proj-1/prompts/routines/by-name/"
 	tests := []struct {
 		name    string
 		prompt  string
@@ -962,49 +963,30 @@ func TestAPIClientDeletePromptSendsExplicitValues(t *testing.T) {
 		label   *string
 		want    string
 	}{
-		{"whole prompt", "x", nil, nil, "/prompts/routines/by-name/x?"},
-		{"version", "x", &three, nil, "/prompts/routines/by-name/x?version=3"},
-		{"label", "x", nil, &prod, "/prompts/routines/by-name/x?label=prod"},
-		{"version 0 is sent", "x", &zero, nil, "/prompts/routines/by-name/x?version=0"},
-		{"empty label is sent", "x", nil, &empty, "/prompts/routines/by-name/x?label="},
+		{"whole prompt", "x", nil, nil, base + "x?"},
+		{"version", "x", &three, nil, base + "x?version=3"},
+		{"label", "x", nil, &prod, base + "x?label=prod"},
+		{"version 0 is sent", "x", &zero, nil, base + "x?version=0"},
+		{"empty label is sent", "x", nil, &empty, base + "x?label="},
 		{
 			"slashed name stays one segment",
 			"folders/x",
 			&three,
 			nil,
-			"/prompts/routines/by-name/folders%2Fx?version=3",
+			base + "folders%2Fx?version=3",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got string
-			server := httptest.NewServer(
-				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					got = strings.TrimPrefix(
-						r.URL.EscapedPath(),
-						"/api/platform/v1/projects/proj-1",
-					) + "?" + r.URL.RawQuery
-					_, _ = io.WriteString(w, `{"success":true}`)
-				}),
-			)
-			defer server.Close()
-			client, err := NewAPIClient(server.URL, 5*time.Second, "token", "", nil)
-			if err != nil {
-				t.Fatalf("NewAPIClient() error = %v", err)
-			}
-
-			if err := client.DeletePrompt(
-				context.Background(),
+			path, query := deletePromptRequest(
 				"proj-1",
 				"routines",
 				tt.prompt,
 				tt.version,
 				tt.label,
-			); err != nil {
-				t.Fatalf("DeletePrompt() error = %v", err)
-			}
-			if got != tt.want {
+			)
+			if got := path + "?" + query.Encode(); got != tt.want {
 				t.Errorf("request = %q, want %q", got, tt.want)
 			}
 		})

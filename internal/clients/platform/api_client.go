@@ -1326,6 +1326,22 @@ func (c *APIClient) GetPrompt(
 	return &result, nil
 }
 
+// deletePromptRequest sends explicit version and label values as given; the server validates them.
+func deletePromptRequest(
+	projectId, routeSegment, name string,
+	version *int,
+	label *string,
+) (string, url.Values) {
+	query := url.Values{}
+	if version != nil {
+		query.Set("version", fmt.Sprintf("%d", *version))
+	}
+	if label != nil {
+		query.Set("label", *label)
+	}
+	return promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name), query
+}
+
 func (c *APIClient) DeletePrompt(
 	ctx context.Context,
 	projectId string,
@@ -1334,21 +1350,12 @@ func (c *APIClient) DeletePrompt(
 	version *int,
 	label *string,
 ) error {
-	path := promptBasePath(projectId, routeSegment) + "/by-name/" + url.PathEscape(name)
+	path, query := deletePromptRequest(projectId, routeSegment, name, version, label)
 	req, err := c.newRequest(ctx, http.MethodDelete, path)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-
-	// Send explicit values as given; the server validates them.
-	q := req.URL.Query()
-	if version != nil {
-		q.Set("version", fmt.Sprintf("%d", *version))
-	}
-	if label != nil {
-		q.Set("label", *label)
-	}
-	req.URL.RawQuery = q.Encode()
+	req.URL.RawQuery = query.Encode()
 
 	resp, err := c.do(req)
 	if err != nil {
