@@ -225,8 +225,8 @@ func (c *APIClient) ListMcpCatalog(
 func (c *APIClient) ListMcpImageVersions(
 	ctx context.Context, orgID, projectID, imageID string,
 ) ([]string, error) {
-	path := evalBasePath(orgID, projectID) + "/mcp-catalog"
-	path += "/images/" + url.PathEscape(imageID) + "/versions"
+	path := evalBasePath(orgID, projectID) +
+		"/mcp-catalog/images/" + url.PathEscape(imageID) + "/versions"
 	data, _, err := doGet[mcpImageVersionsData](c, ctx, path, "list mcp image versions")
 	if err != nil {
 		return nil, err
