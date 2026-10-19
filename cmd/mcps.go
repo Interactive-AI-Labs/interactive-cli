@@ -107,6 +107,12 @@ versions of a self-hosted image, or shows the remote entry.`,
 		if err != nil {
 			return err
 		}
+		if !catalog.ImagesAvailable && (len(args) > 0 || (!mcpCatalogJSON && !mcpCatalogYAML)) {
+			fmt.Fprintln(
+				cmd.ErrOrStderr(),
+				"Warning: self-hosted MCP images are unavailable; showing remote providers only.",
+			)
+		}
 
 		if len(args) == 1 {
 			id := strings.TrimSpace(args[0])
@@ -125,7 +131,7 @@ versions of a self-hosted image, or shows the remote entry.`,
 				}
 				return output.PrintMcpCatalogVersions(out, id, versions)
 			}
-			entry, err := platform.FindMcpCatalogEntry(catalog.Entries, id)
+			entry, err := mcpCatalogRemoteEntry(catalog, id)
 			if err != nil {
 				return err
 			}
@@ -735,6 +741,20 @@ connection stops working if your access does.`,
 		fmt.Fprintf(out, "Connected %s — %d tool(s) available.\n", mcpName, res.ToolCount)
 		return nil
 	},
+}
+
+func mcpCatalogRemoteEntry(
+	catalog *platform.McpCatalogListData,
+	id string,
+) (*platform.McpCatalogEntry, error) {
+	entry, err := platform.FindMcpCatalogEntry(catalog.Entries, id)
+	if err != nil && !catalog.ImagesAvailable {
+		return nil, fmt.Errorf(
+			"cannot resolve catalog id %q: self-hosted MCP images are unavailable",
+			id,
+		)
+	}
+	return entry, err
 }
 
 func catalogAuthType(entry *platform.McpCatalogEntry, explicit string) (string, error) {

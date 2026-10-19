@@ -5,8 +5,65 @@ import (
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cobra"
 )
+
+func TestMcpCatalogRemoteEntry(t *testing.T) {
+	tests := []struct {
+		name    string
+		catalog platform.McpCatalogListData
+		id      string
+		want    *platform.McpCatalogEntry
+		wantErr string
+	}{
+		{
+			name: "remote provider with available images",
+			catalog: platform.McpCatalogListData{
+				ImagesAvailable: true,
+				Entries:         []platform.McpCatalogEntry{{ID: "github", Type: "remote"}},
+			},
+			id:   "github",
+			want: &platform.McpCatalogEntry{ID: "github", Type: "remote"},
+		},
+		{
+			name: "remote provider remains usable during image outage",
+			catalog: platform.McpCatalogListData{
+				ImagesAvailable: false,
+				Entries:         []platform.McpCatalogEntry{{ID: "github", Type: "remote"}},
+			},
+			id:   "github",
+			want: &platform.McpCatalogEntry{ID: "github", Type: "remote"},
+		},
+		{
+			name:    "missing id with healthy image catalog",
+			catalog: platform.McpCatalogListData{ImagesAvailable: true},
+			id:      "missing",
+			wantErr: "no catalog entry \"missing\" — see 'iai mcps catalog'",
+		},
+		{
+			name:    "missing id during image outage is not reported as nonexistent",
+			catalog: platform.McpCatalogListData{ImagesAvailable: false},
+			id:      "filestore",
+			wantErr: "cannot resolve catalog id \"filestore\": self-hosted MCP images are unavailable",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entry, err := mcpCatalogRemoteEntry(&tt.catalog, tt.id)
+			gotErr := ""
+			if err != nil {
+				gotErr = err.Error()
+			}
+			if gotErr != tt.wantErr {
+				t.Fatalf("error = %q, want %q", gotErr, tt.wantErr)
+			}
+			if diff := cmp.Diff(tt.want, entry); diff != "" {
+				t.Fatalf("entry mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestValidateMcpBackendFlags(t *testing.T) {
 	tests := []struct {
