@@ -1961,14 +1961,6 @@ type catalogVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
 
-type CatalogMcpImage struct {
-	Id string `json:"id"`
-}
-
-type catalogMcpImagesResponse struct {
-	Mcps []CatalogMcpImage `json:"mcps"`
-}
-
 func (c *DeploymentClient) ListCatalogAgents(
 	ctx context.Context,
 ) ([]CatalogAgent, error) {
@@ -1985,28 +1977,6 @@ func (c *DeploymentClient) ListCatalogAgentVersions(
 ) ([]string, error) {
 	var result catalogVersionsResponse
 	path := fmt.Sprintf("/v1/catalog/agents/%s", url.PathEscape(agentId))
-	if err := c.getCatalog(ctx, path, &result); err != nil {
-		return nil, err
-	}
-	return result.Versions, nil
-}
-
-func (c *DeploymentClient) ListCatalogMcpImages(
-	ctx context.Context,
-) ([]CatalogMcpImage, error) {
-	var result catalogMcpImagesResponse
-	if err := c.getCatalog(ctx, "/v1/catalog/mcps", &result); err != nil {
-		return nil, err
-	}
-	return result.Mcps, nil
-}
-
-func (c *DeploymentClient) ListCatalogMcpImageVersions(
-	ctx context.Context,
-	imageId string,
-) ([]string, error) {
-	var result catalogVersionsResponse
-	path := fmt.Sprintf("/v1/catalog/mcps/%s", url.PathEscape(imageId))
 	if err := c.getCatalog(ctx, path, &result); err != nil {
 		return nil, err
 	}

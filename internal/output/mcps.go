@@ -51,16 +51,10 @@ func PrintMcpList(out io.Writer, mcps []platform.McpSchema) error {
 	return PrintTable(out, headers, rows)
 }
 
-// McpCatalog is the structured catalog output: self-hosted images and remote entries.
-type McpCatalog struct {
-	Images  []deployment.CatalogMcpImage `json:"images"  yaml:"images"`
-	Entries []platform.McpCatalogEntry   `json:"entries" yaml:"entries"`
-}
-
 // PrintMcpCatalog lists self-hosted images and remote entries in one table.
 func PrintMcpCatalog(
 	out io.Writer,
-	images []deployment.CatalogMcpImage,
+	images []platform.McpCatalogImage,
 	entries []platform.McpCatalogEntry,
 ) error {
 	if len(images) == 0 && len(entries) == 0 {
@@ -70,7 +64,7 @@ func PrintMcpCatalog(
 	headers := []string{"ID", "TYPE", "NAME", "CATEGORY", "SIGN-IN", "PERMISSIONS"}
 	rows := make([][]string, 0, len(images)+len(entries))
 	for _, image := range images {
-		rows = append(rows, []string{image.Id, "self-hosted", "—", "—", "—", "—"})
+		rows = append(rows, []string{image.ID, "self-hosted", "—", "—", "—", "—"})
 	}
 	for _, e := range entries {
 		rows = append(rows, []string{

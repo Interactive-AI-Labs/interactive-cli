@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
 	"github.com/google/go-cmp/cmp"
@@ -14,7 +13,7 @@ import (
 func TestPrintMcpCatalog(t *testing.T) {
 	tests := []struct {
 		name    string
-		images  []deployment.CatalogMcpImage
+		images  []platform.McpCatalogImage
 		entries []platform.McpCatalogEntry
 		want    string
 	}{
@@ -99,7 +98,7 @@ func TestPrintMcpCatalog(t *testing.T) {
 		},
 		{
 			name:   "self-hosted images list before remote entries",
-			images: []deployment.CatalogMcpImage{{Id: "gdrive"}},
+			images: []platform.McpCatalogImage{{ID: "gdrive"}},
 			entries: []platform.McpCatalogEntry{
 				{
 					ID:          "github",
@@ -115,7 +114,7 @@ func TestPrintMcpCatalog(t *testing.T) {
 		},
 		{
 			name:   "images only",
-			images: []deployment.CatalogMcpImage{{Id: "gdrive"}},
+			images: []platform.McpCatalogImage{{ID: "gdrive"}},
 			want: "ID       TYPE          NAME   CATEGORY   SIGN-IN   PERMISSIONS\n" +
 				"gdrive   self-hosted   —      —          —         —\n",
 		},
