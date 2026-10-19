@@ -111,13 +111,37 @@ func TestDecodeMcpCatalog(t *testing.T) {
 	tests := []struct {
 		name    string
 		body    string
-		wantID  string
+		want    McpCatalogListData
 		wantErr bool
 	}{
 		{
-			name:   "valid catalog",
-			body:   `{"success":true,"data":{"entries":[{"id":"e1","name":"GitHub","category":"dev","type":"platform","auth_methods":["api_key"]}]}}`,
-			wantID: "e1",
+			name: "images and remote providers preserve their order",
+			body: `{"success":true,"data":{"images":[{"id":"gdrive"},{"id":"github"}],"entries":[{"id":"github","name":"GitHub","category":"dev","type":"remote","auth_methods":["api_key"]}]}}`,
+			want: McpCatalogListData{
+				Images: []McpCatalogImage{{ID: "gdrive"}, {ID: "github"}},
+				Entries: []McpCatalogEntry{{
+					ID: "github", Name: "GitHub", Category: "dev", Type: "remote",
+					AuthMethods: []string{"api_key"},
+				}},
+			},
+		},
+		{
+			name: "empty catalog",
+			body: `{"success":true,"data":{"images":[],"entries":[]}}`,
+			want: McpCatalogListData{Images: []McpCatalogImage{}, Entries: []McpCatalogEntry{}},
+		},
+		{
+			name: "images only",
+			body: `{"success":true,"data":{"images":[{"id":"filestore"}],"entries":[]}}`,
+			want: McpCatalogListData{
+				Images:  []McpCatalogImage{{ID: "filestore"}},
+				Entries: []McpCatalogEntry{},
+			},
+		},
+		{
+			name:    "invalid image id type",
+			body:    `{"success":true,"data":{"images":[{"id":42}],"entries":[]}}`,
+			wantErr: true,
 		},
 		{name: "unsuccessful envelope", body: `{"success":false}`, wantErr: true},
 	}
@@ -130,8 +154,51 @@ func TestDecodeMcpCatalog(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-			if len(data.Entries) != 1 || data.Entries[0].ID != tt.wantID {
-				t.Fatalf("entries = %#v, want ID %q", data.Entries, tt.wantID)
+			if diff := cmp.Diff(tt.want, data); diff != "" {
+				t.Fatalf("catalog mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestDecodeMcpImageVersions(t *testing.T) {
+	tests := []struct {
+		name    string
+		body    string
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "version order",
+			body: `{"success":true,"data":{"versions":["latest","1.2.0","1.1.0"]}}`,
+			want: []string{"latest", "1.2.0", "1.1.0"},
+		},
+		{
+			name: "empty versions",
+			body: `{"success":true,"data":{"versions":[]}}`,
+			want: []string{},
+		},
+		{
+			name:    "invalid version type",
+			body:    `{"success":true,"data":{"versions":[1]}}`,
+			wantErr: true,
+		},
+		{name: "unsuccessful envelope", body: `{"success":false}`, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := decodeSuccess[mcpImageVersionsData](
+				[]byte(tt.body),
+				"list mcp image versions",
+			)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("decodeSuccess() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if diff := cmp.Diff(tt.want, data.Versions); diff != "" {
+				t.Fatalf("versions mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/auth"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/utils"
@@ -104,26 +103,7 @@ versions of a self-hosted image, or shows the remote entry.`,
 		if err != nil {
 			return err
 		}
-		cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-		if err != nil {
-			return fmt.Errorf("failed to load session: %w", err)
-		}
-		deployClient, err := deployment.NewDeploymentClient(
-			deploymentHostname,
-			defaultHTTPTimeout,
-			token,
-			apiKey,
-			cookies,
-		)
-		if err != nil {
-			return err
-		}
-
-		images, err := deployClient.ListCatalogMcpImages(cmd.Context())
-		if err != nil {
-			return err
-		}
-		remote, _, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
+		catalog, _, err := apiClient.ListMcpCatalog(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
 		}
@@ -131,30 +111,34 @@ versions of a self-hosted image, or shows the remote entry.`,
 		if len(args) == 1 {
 			id := strings.TrimSpace(args[0])
 			if slices.ContainsFunc(
-				images,
-				func(i deployment.CatalogMcpImage) bool { return i.Id == id },
+				catalog.Images,
+				func(i platform.McpCatalogImage) bool { return i.ID == id },
 			) {
-				versions, err := deployClient.ListCatalogMcpImageVersions(cmd.Context(), id)
+				versions, err := apiClient.ListMcpImageVersions(
+					cmd.Context(),
+					pCtx.orgId,
+					pCtx.projectId,
+					id,
+				)
 				if err != nil {
 					return err
 				}
 				return output.PrintMcpCatalogVersions(out, id, versions)
 			}
-			entry, err := platform.FindMcpCatalogEntry(remote.Entries, id)
+			entry, err := platform.FindMcpCatalogEntry(catalog.Entries, id)
 			if err != nil {
 				return err
 			}
 			return output.PrintMcpCatalog(out, nil, []platform.McpCatalogEntry{*entry})
 		}
 
-		catalog := output.McpCatalog{Images: images, Entries: remote.Entries}
 		if mcpCatalogJSON {
 			return output.PrintStructuredJSON(out, catalog)
 		}
 		if mcpCatalogYAML {
 			return output.PrintStructuredYAML(out, catalog)
 		}
-		return output.PrintMcpCatalog(out, images, remote.Entries)
+		return output.PrintMcpCatalog(out, catalog.Images, catalog.Entries)
 	},
 }
 

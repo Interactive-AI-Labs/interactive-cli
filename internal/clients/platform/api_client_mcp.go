@@ -180,8 +180,17 @@ type McpCatalogEntry struct {
 	TokenRenewal        string          `json:"token_renewal,omitempty"`
 }
 
+type McpCatalogImage struct {
+	ID string `json:"id"`
+}
+
 type McpCatalogListData struct {
+	Images  []McpCatalogImage `json:"images"`
 	Entries []McpCatalogEntry `json:"entries"`
+}
+
+type mcpImageVersionsData struct {
+	Versions []string `json:"versions"`
 }
 
 type McpSignInData struct {
@@ -210,6 +219,18 @@ func (c *APIClient) ListMcpCatalog(
 		return nil, nil, err
 	}
 	return &data, raw, nil
+}
+
+func (c *APIClient) ListMcpImageVersions(
+	ctx context.Context, orgID, projectID, imageID string,
+) ([]string, error) {
+	path := evalBasePath(orgID, projectID) + "/mcp-catalog"
+	path += "/images/" + url.PathEscape(imageID) + "/versions"
+	data, _, err := doGet[mcpImageVersionsData](c, ctx, path, "list mcp image versions")
+	if err != nil {
+		return nil, err
+	}
+	return data.Versions, nil
 }
 
 func (c *APIClient) McpCatalogEntry(
