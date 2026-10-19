@@ -116,9 +116,10 @@ func TestDecodeMcpCatalog(t *testing.T) {
 	}{
 		{
 			name: "images and remote providers preserve their order",
-			body: `{"success":true,"data":{"images":[{"id":"gdrive"},{"id":"github"}],"entries":[{"id":"github","name":"GitHub","category":"dev","type":"remote","auth_methods":["api_key"]}]}}`,
+			body: `{"success":true,"data":{"images":[{"id":"gdrive"},{"id":"github"}],"images_available":true,"entries":[{"id":"github","name":"GitHub","category":"dev","type":"remote","auth_methods":["api_key"]}]}}`,
 			want: McpCatalogListData{
-				Images: []McpCatalogImage{{ID: "gdrive"}, {ID: "github"}},
+				ImagesAvailable: true,
+				Images:          []McpCatalogImage{{ID: "gdrive"}, {ID: "github"}},
 				Entries: []McpCatalogEntry{{
 					ID: "github", Name: "GitHub", Category: "dev", Type: "remote",
 					AuthMethods: []string{"api_key"},
@@ -127,16 +128,34 @@ func TestDecodeMcpCatalog(t *testing.T) {
 		},
 		{
 			name: "empty catalog",
-			body: `{"success":true,"data":{"images":[],"entries":[]}}`,
-			want: McpCatalogListData{Images: []McpCatalogImage{}, Entries: []McpCatalogEntry{}},
+			body: `{"success":true,"data":{"images":[],"images_available":true,"entries":[]}}`,
+			want: McpCatalogListData{
+				ImagesAvailable: true,
+				Images:          []McpCatalogImage{},
+				Entries:         []McpCatalogEntry{},
+			},
 		},
 		{
 			name: "images only",
-			body: `{"success":true,"data":{"images":[{"id":"filestore"}],"entries":[]}}`,
+			body: `{"success":true,"data":{"images":[{"id":"filestore"}],"images_available":true,"entries":[]}}`,
 			want: McpCatalogListData{
-				Images:  []McpCatalogImage{{ID: "filestore"}},
-				Entries: []McpCatalogEntry{},
+				ImagesAvailable: true,
+				Images:          []McpCatalogImage{{ID: "filestore"}},
+				Entries:         []McpCatalogEntry{},
 			},
+		},
+		{
+			name: "operator outage is not an empty catalog",
+			body: `{"success":true,"data":{"images":[],"images_available":false,"entries":[{"id":"github","type":"remote"}]}}`,
+			want: McpCatalogListData{
+				Images:  []McpCatalogImage{},
+				Entries: []McpCatalogEntry{{ID: "github", Type: "remote"}},
+			},
+		},
+		{
+			name: "older platform without images cannot claim availability",
+			body: `{"success":true,"data":{"entries":[]}}`,
+			want: McpCatalogListData{Entries: []McpCatalogEntry{}},
 		},
 		{
 			name:    "invalid image id type",

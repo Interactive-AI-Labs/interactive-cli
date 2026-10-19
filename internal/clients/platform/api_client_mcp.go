@@ -185,8 +185,9 @@ type McpCatalogImage struct {
 }
 
 type McpCatalogListData struct {
-	Images  []McpCatalogImage `json:"images"`
-	Entries []McpCatalogEntry `json:"entries"`
+	Images          []McpCatalogImage `json:"images"`
+	Entries         []McpCatalogEntry `json:"entries"`
+	ImagesAvailable bool              `json:"images_available"`
 }
 
 type mcpImageVersionsData struct {
