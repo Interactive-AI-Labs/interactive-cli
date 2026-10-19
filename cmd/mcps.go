@@ -107,7 +107,7 @@ versions of a self-hosted image, or shows the remote entry.`,
 		if err != nil {
 			return err
 		}
-		if !catalog.ImagesAvailable && (len(args) > 0 || (!mcpCatalogJSON && !mcpCatalogYAML)) {
+		if !catalog.ImagesAvailable {
 			fmt.Fprintln(
 				cmd.ErrOrStderr(),
 				"Warning: self-hosted MCP images are unavailable; showing remote providers only.",
