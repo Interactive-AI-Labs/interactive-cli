@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"sort"
 	"strings"
 	"testing"
 
@@ -137,26 +136,37 @@ var headerOutputConflicts = [][2]string{{"json", "yaml"}, {"columns", "json"}, {
 
 // Both ways: every stated conflict holds, and every conflict the index drops is stated.
 func TestIndexHeaderConflictsHold(t *testing.T) {
+	sorted := func(p [2]string) [2]string {
+		if p[0] > p[1] {
+			p[0], p[1] = p[1], p[0]
+		}
+		return p
+	}
 	stated := map[[2]string]bool{}
 	for _, pair := range append(headerConflicts, headerOutputConflicts...) {
-		stated[pair] = true
+		stated[sorted(pair)] = true
 	}
 	var walk func(c *cobra.Command)
 	walk = func(c *cobra.Command) {
 		exclusive := map[[2]string]bool{}
 		c.Flags().VisitAll(func(f *pflag.Flag) {
 			for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
-				names := strings.Fields(group)
-				sort.Strings(names)
+				raw := strings.Fields(group)
+				for i, a := range raw {
+					for _, b := range raw[i+1:] {
+						exclusive[sorted([2]string{a, b})] = true
+					}
+				}
+				names := conflictNames(c.Flags(), group)
+				if len(names) < 2 || !allHeaderFlags(names) {
+					continue
+				}
 				for i, a := range names {
 					for _, b := range names[i+1:] {
-						exclusive[[2]string{a, b}] = true
-						if allHeaderFlags(names) && !stated[[2]string{a, b}] {
+						if !stated[[2]string{a, b}] {
 							t.Errorf(
 								"%s: the index drops --%s/--%s but the header doesn't state it",
-								c.CommandPath(),
-								a,
-								b,
+								c.CommandPath(), a, b,
 							)
 						}
 					}
@@ -165,7 +175,7 @@ func TestIndexHeaderConflictsHold(t *testing.T) {
 		})
 		for _, pair := range headerConflicts {
 			if c.Flags().Lookup(pair[0]) != nil && c.Flags().Lookup(pair[1]) != nil &&
-				!exclusive[pair] {
+				!exclusive[sorted(pair)] {
 				t.Errorf(
 					"%s: header says --%s and --%s conflict, but they don't",
 					c.CommandPath(),
@@ -235,6 +245,15 @@ var bareJSONGroups = map[string]bool{
 
 // Shapes can't be quoted from help, so each group's shape is a decision this test forces.
 func TestIndexJSONShapeCoversEveryGroup(t *testing.T) {
+	jsonGroups := map[string]bool{}
+	for _, group := range indexableChildren(rootCmd) {
+		jsonGroups[group.Name()] = hasJSONLeaf(group)
+	}
+	for name := range bareJSONGroups {
+		if !jsonGroups[name] {
+			t.Errorf("bareJSONGroups lists %s, which has no --json command", name)
+		}
+	}
 	for _, group := range indexableChildren(rootCmd) {
 		shaped := group.Annotations[jsonShapeAnnotation] != ""
 		if hasJSONLeaf(group) && shaped == bareJSONGroups[group.Name()] {
