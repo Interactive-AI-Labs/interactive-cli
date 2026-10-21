@@ -50,6 +50,10 @@ var (
 
 	agentStackId string
 
+	agentDescription string
+	agentIcon        string
+	agentColor       string
+
 	agentListJSON      bool
 	agentListYAML      bool
 	agentListWatch     bool
@@ -184,6 +188,9 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
+--description, --icon and --color set the agent's identity, as Edit Agent →
+Identity does in the platform.
+
 Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces; the names of any env vars or secret refs that
 --env/--secret would drop from the live agent (the flags replace the entire
@@ -206,6 +213,8 @@ config diff.`,
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
   iai agents update chat-agent --clear-stack-id
+  iai agents update chat-agent --description "Answers order and returns questions"
+  iai agents update chat-agent --icon boxy --color lagoon
   iai agents update chat-agent --mcp github
   iai agents update chat-agent --mcp tools-dev --mcp-id tools
   iai agents update chat-agent --mcp tools-dev --mcp-endpoint public
@@ -243,6 +252,9 @@ config diff.`,
 			ScheduleDowntime: agentScheduleDowntime,
 			ScheduleTimezone: agentScheduleTimezone,
 			StackId:          agentStackId,
+			Description:      agentDescription,
+			Icon:             agentIcon,
+			Color:            agentColor,
 			McpRefs:          mcpRefs,
 			DetachMcpNames:   agentDetachMcpNames,
 		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
@@ -1087,6 +1099,12 @@ func init() {
 		StringVar(&agentStackId, "stack-id", "", "Stack ID to assign the agent to")
 	agentUpdateCmd.Flags().
 		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
+	agentUpdateCmd.Flags().
+		StringVar(&agentDescription, "description", "", "Description shown for the agent in the platform; pass an empty value to clear it")
+	agentUpdateCmd.Flags().
+		StringVar(&agentIcon, "icon", "", "Avatar icon: "+strings.Join(inputs.AgentIcons, ", ")+"; keeps the current color, and an agent without an avatar needs --color too")
+	agentUpdateCmd.Flags().
+		StringVar(&agentColor, "color", "", "Avatar color: "+strings.Join(inputs.AgentColors, ", ")+"; keeps the current icon, and an agent without an avatar needs --icon too")
 	// StringArrayVar, not StringVar, so a second --mcp is seen and rejected rather than silently winning.
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them")
