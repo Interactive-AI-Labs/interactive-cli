@@ -184,36 +184,50 @@ func indexFlags(c *cobra.Command) []string {
 		}
 	})
 
-	groups := map[string]bool{}
+	exclusiveGroups := map[string]bool{}
+	all.VisitAll(func(f *pflag.Flag) {
+		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
+			exclusiveGroups[groupKey(strings.Fields(group))] = true
+		}
+	})
+
+	requiredGroups := map[string]bool{}
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[oneRequiredAnnotation] {
 			names := strings.Fields(group)
-			sort.Strings(names)
-			text := "(one of --" + strings.Join(names, ", --") + ")"
-			if groups[text] {
+			key := groupKey(names)
+			if requiredGroups[key] {
 				continue
 			}
-			groups[text] = true
+			requiredGroups[key] = true
 			for _, n := range names {
 				shown[n] = true
 			}
-			out = append(out, text)
+			label := "one of"
+			if exclusiveGroups[key] {
+				label = "exactly one of"
+			}
+			out = append(out, "("+label+" --"+key+")")
 		}
 	})
 
 	var exclusive []string
 	var pairs [][2]string
+	seen := map[string]bool{}
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
+			if requiredGroups[groupKey(strings.Fields(group))] {
+				continue
+			}
 			names := conflictNames(all, group)
 			if len(names) < 2 || allHeaderFlags(names) {
 				continue
 			}
 			joined := strings.Join(names, ", --")
-			if groups["(one of --"+joined+")"] || groups[joined] {
+			if seen[joined] {
 				continue
 			}
-			groups[joined] = true
+			seen[joined] = true
 			if len(names) == 2 {
 				pairs = append(pairs, [2]string{names[0], names[1]})
 			} else {
@@ -258,6 +272,13 @@ func conflictNames(flags *pflag.FlagSet, group string) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// groupKey sorts a Cobra flag group so the same group matches across annotations.
+func groupKey(names []string) string {
+	names = append([]string(nil), names...)
+	sort.Strings(names)
+	return strings.Join(names, ", --")
 }
 
 // exclusivePairs folds pairs that share a flag into "(--x excludes --a, --b)".
