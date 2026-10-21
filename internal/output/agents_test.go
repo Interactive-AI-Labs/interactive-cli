@@ -187,6 +187,24 @@ func TestPrintAgentRevision(t *testing.T) {
 				"Version:    1.0.0\n",
 		},
 		{
+			name: "revision with identity",
+			rev: &deployment.AgentRevisionResponse{
+				RevisionMeta: deployment.RevisionMeta{Revision: 4, Status: "deployed"},
+				Id:           "interactive-agent",
+				Version:      "1.0.0",
+				Description:  "Answers order questions",
+				Appearance:   &deployment.AgentAppearance{Icon: "boxy", Color: "sunset"},
+			},
+			want: "Revision:      4\n" +
+				"Status:        deployed\n" +
+				"By:            —\n" +
+				"Source:        —\n" +
+				"Description:   Answers order questions\n" +
+				"Avatar:        boxy, sunset\n" +
+				"Id:            interactive-agent\n" +
+				"Version:       1.0.0\n",
+		},
+		{
 			name: "revision with endpoint and env",
 			rev: &deployment.AgentRevisionResponse{
 				RevisionMeta: deployment.RevisionMeta{

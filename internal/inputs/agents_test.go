@@ -232,6 +232,7 @@ func TestBuildAgentUpdatePatchIdentity(t *testing.T) {
 		{name: "color merges onto stored icon", input: AgentInput{Color: "lagoon"}, flags: []string{"color"}, want: `{"appearance":{"color":"lagoon"}}`},
 		{name: "icon and color", input: AgentInput{Icon: "rounded", Color: "tropicana"}, flags: []string{"icon", "color"}, want: `{"appearance":{"color":"tropicana","icon":"rounded"}}`},
 		{name: "identity with other fields", input: AgentInput{Version: "0.0.3", Description: "d", Color: "sky"}, flags: []string{"version", "description", "color"}, want: `{"appearance":{"color":"sky"},"description":"d","version":"0.0.3"}`},
+		{name: "icon and color are trimmed", input: AgentInput{Icon: " boxy ", Color: "lagoon\n"}, flags: []string{"icon", "color"}, want: `{"appearance":{"color":"lagoon","icon":"boxy"}}`},
 		{name: "unknown icon", input: AgentInput{Icon: "robot"}, flags: []string{"icon"}, wantErr: `invalid --icon "robot"; valid icons: rounded, boxy`},
 		{name: "empty icon", flags: []string{"icon"}, wantErr: `invalid --icon ""; valid icons: rounded, boxy`},
 		{name: "unknown color", input: AgentInput{Color: "Lagoon"}, flags: []string{"color"}, wantErr: `invalid --color "Lagoon"; valid colors: slate, ember, honey, zest, lagoon, sky, twilight, sunny, moonrise, sunset, tropicana`},

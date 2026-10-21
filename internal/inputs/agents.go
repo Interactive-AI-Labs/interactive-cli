@@ -448,6 +448,7 @@ func setAppearancePatch(
 	icon string, iconChanged bool,
 	color string, colorChanged bool,
 ) error {
+	icon, color = strings.TrimSpace(icon), strings.TrimSpace(color)
 	appearance := map[string]string{}
 	if iconChanged {
 		if !slices.Contains(AgentIcons, icon) {
