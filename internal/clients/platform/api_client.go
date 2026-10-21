@@ -673,7 +673,7 @@ type DeleteMessageResponse struct {
 	Message string `json:"message"`
 }
 
-// The platform rejects "ids"; the field must be "trace_ids".
+// The platform rejects "ids".
 type BulkTraceDeleteBody struct {
 	TraceIDs []string `json:"trace_ids"`
 }
