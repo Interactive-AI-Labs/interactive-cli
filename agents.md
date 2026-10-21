@@ -181,6 +181,11 @@ prompt. It lists every command, its args and flags. A note in the index must be
 text the help already says: `indexFlag(cmd, name, "max 100")` quotes the flag's
 help, `indexCommand(cmd, note)` quotes the command's Long or Short, and
 generation fails when the text isn't there. Fix the help first, then quote it.
+The one exception is `indexJSONShape(group, "env")`, which names a group's
+`--json` payload: `env` groups print the API envelope (`output.PrintRawJSON`),
+`prompts` groups print `{prompts, totalCount}` lists, anything else is bare.
+`TestIndexJSONShapeCoversEveryGroup` fails until a new `--json` group gets a
+shape or joins `bareJSONGroups`; check it against a real `--json` call.
 
 **Pagination (pick one per command, never both):**
 - Page-based: `--page` (default 1), `--limit`

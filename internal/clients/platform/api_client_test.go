@@ -442,7 +442,7 @@ func TestAPIClientCreateScoreAndDeleteTraces(t *testing.T) {
 		"org-1",
 		"proj-1",
 		BulkTraceDeleteBody{
-			IDs: []string{"trace-1", "trace-2"},
+			TraceIDs: []string{"trace-1", "trace-2"},
 		},
 	)
 	if err != nil {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"sort"
 	"strings"
 	"testing"
 
@@ -87,6 +88,14 @@ func TestCommandIndex(t *testing.T) {
 			c.MarkFlagsMutuallyExclusive("a", "b")
 			c.MarkFlagsMutuallyExclusive("d", "e")
 		}, "get [--a --b --c --d --e (--a excludes --b, --c) (only one of --d, --e)]"},
+		{"get", func(c *cobra.Command) {
+			for _, name := range []string{"a", "old", "summary", "columns"} {
+				c.Flags().String(name, "", "")
+			}
+			_ = c.Flags().MarkDeprecated("old", "use --a")
+			c.MarkFlagsMutuallyExclusive("a", "old")
+			c.MarkFlagsMutuallyExclusive("summary", "columns")
+		}, "get [--a --summary]"},
 	}
 	for _, tt := range tests {
 		root, leaf := indexFixture(tt.leaf)
@@ -123,16 +132,33 @@ var headerConflicts = [][2]string{
 	{"all-fields", "decode"},
 }
 
+// Conflicts the header covers without the walk below: `*` = --json or --yaml (not with --columns).
+var headerOutputConflicts = [][2]string{{"json", "yaml"}, {"columns", "json"}, {"columns", "yaml"}}
+
+// Both ways: every stated conflict holds, and every conflict the index drops is stated.
 func TestIndexHeaderConflictsHold(t *testing.T) {
+	stated := map[[2]string]bool{}
+	for _, pair := range append(headerConflicts, headerOutputConflicts...) {
+		stated[pair] = true
+	}
 	var walk func(c *cobra.Command)
 	walk = func(c *cobra.Command) {
 		exclusive := map[[2]string]bool{}
 		c.Flags().VisitAll(func(f *pflag.Flag) {
 			for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
 				names := strings.Fields(group)
-				for _, a := range names {
-					for _, b := range names {
+				sort.Strings(names)
+				for i, a := range names {
+					for _, b := range names[i+1:] {
 						exclusive[[2]string{a, b}] = true
+						if allHeaderFlags(names) && !stated[[2]string{a, b}] {
+							t.Errorf(
+								"%s: the index drops --%s/--%s but the header doesn't state it",
+								c.CommandPath(),
+								a,
+								b,
+							)
+						}
 					}
 				}
 			}
@@ -198,4 +224,36 @@ func indexFixture(use string) (root, leaf *cobra.Command) {
 	root.AddCommand(group)
 	group.AddCommand(leaf)
 	return root, leaf
+}
+
+// Groups whose --json output has no envelope; every other group with --json needs indexJSONShape.
+var bareJSONGroups = map[string]bool{
+	"agents": true, "api-keys": true, "collections": true, "databases": true, "images": true,
+	"jobs": true, "organizations": true, "projects": true, "replicas": true, "router": true,
+	"secrets": true, "services": true, "stacks": true,
+}
+
+// Shapes can't be quoted from help, so each group's shape is a decision this test forces.
+func TestIndexJSONShapeCoversEveryGroup(t *testing.T) {
+	for _, group := range indexableChildren(rootCmd) {
+		shaped := group.Annotations[jsonShapeAnnotation] != ""
+		if hasJSONLeaf(group) && shaped == bareJSONGroups[group.Name()] {
+			t.Errorf(
+				"%s: call indexJSONShape or list it in bareJSONGroups, not both or neither",
+				group.Name(),
+			)
+		}
+	}
+}
+
+func hasJSONLeaf(c *cobra.Command) bool {
+	if c.Runnable() && c.LocalFlags().Lookup("json") != nil {
+		return true
+	}
+	for _, child := range c.Commands() {
+		if hasJSONLeaf(child) {
+			return true
+		}
+	}
+	return false
 }

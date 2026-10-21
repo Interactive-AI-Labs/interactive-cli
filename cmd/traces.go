@@ -419,7 +419,7 @@ This command currently requires API key authentication.`,
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
-			platform.BulkTraceDeleteBody{IDs: deleteIDs},
+			platform.BulkTraceDeleteBody{TraceIDs: deleteIDs},
 		)
 		if err != nil {
 			return err
