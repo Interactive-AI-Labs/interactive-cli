@@ -78,7 +78,7 @@ func TestCommandIndex(t *testing.T) {
 			c.Flags().String("b", "", "")
 			c.MarkFlagsOneRequired("a", "b")
 			c.MarkFlagsMutuallyExclusive("a", "b")
-		}, "get [(one of --a, --b)]"},
+		}, "get [(exactly one of --a, --b)]"},
 		{"get", func(c *cobra.Command) {
 			for _, name := range []string{"a", "b", "c", "d", "e"} {
 				c.Flags().String(name, "", "")
@@ -121,10 +121,7 @@ func TestIndexJSONShape(t *testing.T) {
 var headerConflicts = [][2]string{
 	{"json", "watch"},
 	{"watch", "yaml"},
-	{
-		"fields",
-		"raw",
-	},
+	{"fields", "raw"},
 	{"all-fields", "raw"},
 	{"all-fields", "fields"},
 	{"decode", "fields"},
