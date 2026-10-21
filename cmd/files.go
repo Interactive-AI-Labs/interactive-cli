@@ -432,6 +432,7 @@ reduced to a safe local filename; --output - streams to stdout instead.`,
 }
 
 func init() {
+	indexJSONShape(filesCmd, "env")
 	filesUploadCmd.Flags().
 		StringVar(&filesUploadName, "name", "", "Name to store the file under (default: the local file's name)")
 	filesUploadCmd.Flags().

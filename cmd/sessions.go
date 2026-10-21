@@ -203,6 +203,7 @@ Uses the platform API with dual authentication (API key or session).`,
 }
 
 func init() {
+	indexJSONShape(sessionsCmd, "env; --summary is bare")
 	sessionsListCmd.Flags().StringVar(
 		&sessionsFromTimestamp,
 		"from-timestamp",

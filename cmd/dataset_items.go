@@ -263,6 +263,7 @@ var datasetItemsDeleteCmd = &cobra.Command{
 }
 
 func init() {
+	indexJSONShape(datasetItemsCmd, "env")
 	datasetItemsListCmd.Flags().
 		StringVar(&datasetItemsListDatasetName, "dataset-name", "", "Dataset name (required)")
 	_ = datasetItemsListCmd.MarkFlagRequired("dataset-name")

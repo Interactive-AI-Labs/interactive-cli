@@ -164,6 +164,7 @@ This command requires API key authentication.`,
 }
 
 func init() {
+	indexJSONShape(runItemsCmd, "env")
 	runItemsListCmd.Flags().
 		StringVar(&runItemsListRunName, "run-name", "", "Filter by run name")
 	runItemsListCmd.Flags().

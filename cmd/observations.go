@@ -220,6 +220,7 @@ Uses the platform API with dual authentication (API key or session).`,
 }
 
 func init() {
+	indexJSONShape(observationsCmd, "env")
 	// observations list flags
 	obsListCmd.Flags().
 		StringVar(&obsTraceID, "trace-id", "", "Trace ID to list observations for (scopes to a single trace)")

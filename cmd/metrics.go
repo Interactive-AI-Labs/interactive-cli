@@ -118,6 +118,7 @@ Use --daily to get metrics aggregated by day (default).`,
 }
 
 func init() {
+	indexJSONShape(metricsCmd, "env")
 	metricsListCmd.Flags().
 		BoolVar(&metricsListDaily, "daily", true, "Aggregate metrics by day")
 	metricsListCmd.Flags().StringVar(
