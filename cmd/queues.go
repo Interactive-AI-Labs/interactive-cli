@@ -329,6 +329,7 @@ This command requires Cookie or Bearer authentication; API keys are rejected by 
 }
 
 func init() {
+	indexJSONShape(queuesCmd, "env")
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(queuesListCmd, "limit", "max 100")

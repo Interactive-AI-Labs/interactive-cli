@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func TestCommandIndex(t *testing.T) {
@@ -59,16 +60,99 @@ func TestCommandIndex(t *testing.T) {
 			c.Flags().String("env", "", "Replaces the env")
 			indexFlag(c, "env", "replaces")
 		}, "get [--env (replaces) --force]"},
+		{"get", func(c *cobra.Command) {
+			c.Flags().Bool("script", false, "")
+			c.Flags().Bool("json", false, "")
+			c.Flags().Bool("yaml", false, "")
+			c.MarkFlagsMutuallyExclusive("json", "yaml", "script")
+		}, "get [--script (only one of --json, --script, --yaml) *]"},
+		{"get", func(c *cobra.Command) {
+			c.Flags().Bool("watch", false, "")
+			c.Flags().Bool("json", false, "")
+			c.Flags().Bool("yaml", false, "")
+			c.MarkFlagsMutuallyExclusive("json", "yaml")
+			c.MarkFlagsMutuallyExclusive("watch", "json")
+		}, "get [--watch *]"},
+		{"get", func(c *cobra.Command) {
+			c.Flags().String("a", "", "")
+			c.Flags().String("b", "", "")
+			c.MarkFlagsOneRequired("a", "b")
+			c.MarkFlagsMutuallyExclusive("a", "b")
+		}, "get [(one of --a, --b)]"},
+		{"get", func(c *cobra.Command) {
+			for _, name := range []string{"a", "b", "c", "d", "e"} {
+				c.Flags().String(name, "", "")
+			}
+			c.MarkFlagsMutuallyExclusive("c", "a")
+			c.MarkFlagsMutuallyExclusive("a", "b")
+			c.MarkFlagsMutuallyExclusive("d", "e")
+		}, "get [--a --b --c --d --e (--a excludes --b, --c) (only one of --d, --e)]"},
 	}
 	for _, tt := range tests {
 		root, leaf := indexFixture(tt.leaf)
 		tt.setup(leaf)
 
 		lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
-		if got, want := lines[2], "things (Manage things): "+tt.want; got != want {
+		if got, want := lines[3], "things (Manage things): "+tt.want; got != want {
 			t.Errorf("got  %q\nwant %q", got, want)
 		}
 	}
+}
+
+func TestIndexJSONShape(t *testing.T) {
+	root, leaf := indexFixture("get")
+	indexJSONShape(leaf.Parent(), "env")
+
+	lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
+	if got, want := lines[3], "things (Manage things; --json env): get"; got != want {
+		t.Errorf("got  %q\nwant %q", got, want)
+	}
+}
+
+// The header states these conflicts once, so they must hold on every command that has both flags.
+var headerConflicts = [][2]string{
+	{"json", "watch"},
+	{"watch", "yaml"},
+	{
+		"fields",
+		"raw",
+	},
+	{"all-fields", "raw"},
+	{"all-fields", "fields"},
+	{"decode", "fields"},
+	{"all-fields", "decode"},
+}
+
+func TestIndexHeaderConflictsHold(t *testing.T) {
+	var walk func(c *cobra.Command)
+	walk = func(c *cobra.Command) {
+		exclusive := map[[2]string]bool{}
+		c.Flags().VisitAll(func(f *pflag.Flag) {
+			for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
+				names := strings.Fields(group)
+				for _, a := range names {
+					for _, b := range names {
+						exclusive[[2]string{a, b}] = true
+					}
+				}
+			}
+		})
+		for _, pair := range headerConflicts {
+			if c.Flags().Lookup(pair[0]) != nil && c.Flags().Lookup(pair[1]) != nil &&
+				!exclusive[pair] {
+				t.Errorf(
+					"%s: header says --%s and --%s conflict, but they don't",
+					c.CommandPath(),
+					pair[0],
+					pair[1],
+				)
+			}
+		}
+		for _, child := range c.Commands() {
+			walk(child)
+		}
+	}
+	walk(rootCmd)
 }
 
 // A note the help doesn't say must be dropped, not printed.
@@ -94,7 +178,7 @@ func TestIndexNotesRejectUnquoted(t *testing.T) {
 				t.Fatalf("recorded %d errors, want 1", len(indexFlagErrs))
 			}
 			lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
-			if got, want := lines[2], "things (Manage things): get [--limit]"; got != want {
+			if got, want := lines[3], "things (Manage things): get [--limit]"; got != want {
 				t.Errorf("rejected note reached the index\ngot  %q\nwant %q", got, want)
 			}
 		})

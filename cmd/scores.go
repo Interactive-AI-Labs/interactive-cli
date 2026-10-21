@@ -250,6 +250,7 @@ This command currently requires API key authentication.`,
 }
 
 func init() {
+	indexJSONShape(scoresCmd, "env")
 	scoresListCmd.Flags().StringVar(
 		&scoresFromTimestamp,
 		"from-timestamp",

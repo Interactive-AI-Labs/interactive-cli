@@ -326,6 +326,7 @@ var queueItemsDeleteCmd = &cobra.Command{
 }
 
 func init() {
+	indexJSONShape(queueItemsCmd, "env")
 	queueItemsListCmd.Flags().
 		StringVar(&queueItemsListQueueID, "queue-id", "", "Queue ID (required)")
 	_ = queueItemsListCmd.MarkFlagRequired("queue-id")

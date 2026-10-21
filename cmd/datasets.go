@@ -199,6 +199,7 @@ var datasetsCreateCmd = &cobra.Command{
 }
 
 func init() {
+	indexJSONShape(datasetsCmd, "env")
 	datasetsListCmd.Flags().IntVar(&datasetsListPage, "page", 1, "Page number (starts at 1)")
 	datasetsListCmd.Flags().IntVar(&datasetsListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(datasetsListCmd, "limit", "max 100")

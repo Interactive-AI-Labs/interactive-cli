@@ -71,6 +71,7 @@ func registerPromptType(ptCfg PromptTypeConfig) {
 		parentCmd.AddCommand(schemaCmd)
 	}
 
+	indexJSONShape(parentCmd, "prompts")
 	rootCmd.AddCommand(parentCmd)
 }
 
