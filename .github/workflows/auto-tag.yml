@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   auto-tag:
-    runs-on: [gke-default]
+    runs-on: [gke-arm]
     outputs:
       version: ${{ steps.extract_version.outputs.version }}
       tag_name: ${{ steps.check_tag.outputs.tag_name }}
