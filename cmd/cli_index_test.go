@@ -80,6 +80,14 @@ func TestCommandIndex(t *testing.T) {
 			c.MarkFlagsMutuallyExclusive("a", "b")
 		}, "get [(exactly one of --a, --b)]"},
 		{"get", func(c *cobra.Command) {
+			for _, name := range []string{"a", "b", "old", "columns"} {
+				c.Flags().String(name, "", "")
+			}
+			_ = c.Flags().MarkDeprecated("old", "use --a")
+			c.MarkFlagsOneRequired("a", "b", "old")
+			c.MarkFlagsMutuallyExclusive("a", "b", "columns")
+		}, "get [(exactly one of --a, --b)]"},
+		{"get", func(c *cobra.Command) {
 			for _, name := range []string{"a", "b", "c", "d", "e"} {
 				c.Flags().String(name, "", "")
 			}

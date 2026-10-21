@@ -182,7 +182,8 @@ text the help already says: `indexFlag(cmd, name, "max 100")` quotes the flag's
 help, `indexCommand(cmd, note)` quotes the command's Long or Short, and
 generation fails when the text isn't there. Fix the help first, then quote it.
 The exception is `indexJSONShape(group, "env"|"prompts")` for a group's `--json`
-payload; a new `--json` group needs one or a `bareJSONGroups` entry.
+payload; a new `--json` group needs one or a `bareJSONGroups` entry, confirmed
+against a real `--json` call.
 
 **Pagination (pick one per command, never both):**
 - Page-based: `--page` (default 1), `--limit`

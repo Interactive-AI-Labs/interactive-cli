@@ -187,19 +187,19 @@ func indexFlags(c *cobra.Command) []string {
 	exclusiveGroups := map[string]bool{}
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
-			exclusiveGroups[groupKey(strings.Fields(group))] = true
+			exclusiveGroups[strings.Join(conflictNames(all, group), ", --")] = true
 		}
 	})
 
-	requiredGroups := map[string]bool{}
+	groups := map[string]bool{}
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[oneRequiredAnnotation] {
-			names := strings.Fields(group)
-			key := groupKey(names)
-			if requiredGroups[key] {
+			names := conflictNames(all, group)
+			key := strings.Join(names, ", --")
+			if len(names) == 0 || groups[key] {
 				continue
 			}
-			requiredGroups[key] = true
+			groups[key] = true
 			for _, n := range names {
 				shown[n] = true
 			}
@@ -213,21 +213,17 @@ func indexFlags(c *cobra.Command) []string {
 
 	var exclusive []string
 	var pairs [][2]string
-	seen := map[string]bool{}
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
-			if requiredGroups[groupKey(strings.Fields(group))] {
-				continue
-			}
 			names := conflictNames(all, group)
 			if len(names) < 2 || allHeaderFlags(names) {
 				continue
 			}
 			joined := strings.Join(names, ", --")
-			if seen[joined] {
+			if groups[joined] {
 				continue
 			}
-			seen[joined] = true
+			groups[joined] = true
 			if len(names) == 2 {
 				pairs = append(pairs, [2]string{names[0], names[1]})
 			} else {
@@ -271,12 +267,6 @@ func conflictNames(flags *pflag.FlagSet, group string) []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func groupKey(names []string) string {
-	names = append([]string(nil), names...)
-	sort.Strings(names)
-	return strings.Join(names, ", --")
 }
 
 // exclusivePairs folds pairs that share a flag into "(--x excludes --a, --b)".
