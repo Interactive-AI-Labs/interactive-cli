@@ -36,12 +36,7 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 	if agent.StackId != "" {
 		fmt.Fprintf(w, "Stack Id:\t%s\n", agent.StackId)
 	}
-	if agent.Description != "" {
-		fmt.Fprintf(w, "Description:\t%s\n", agent.Description)
-	}
-	if agent.Appearance != nil {
-		fmt.Fprintf(w, "Avatar:\t%s, %s\n", agent.Appearance.Icon, agent.Appearance.Color)
-	}
+	printAgentIdentity(w, agent.Description, agent.Appearance)
 	fmt.Fprintf(w, "Id:\t%s\n", agent.Id)
 	fmt.Fprintf(w, "Version:\t%s\n", agent.Version)
 	fmt.Fprintf(w, "Revision:\t%d\n", agent.Revision)
@@ -99,6 +94,15 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 	return w.Flush()
 }
 
+func printAgentIdentity(w io.Writer, description string, appearance *deployment.AgentAppearance) {
+	if description != "" {
+		fmt.Fprintf(w, "Description:\t%s\n", description)
+	}
+	if appearance != nil {
+		fmt.Fprintf(w, "Avatar:\t%s, %s\n", appearance.Icon, appearance.Color)
+	}
+}
+
 func PrintAgentRevision(out io.Writer, rev *deployment.AgentRevisionResponse) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Revision:\t%d\n", rev.Revision)
@@ -111,6 +115,7 @@ func PrintAgentRevision(out io.Writer, rev *deployment.AgentRevisionResponse) er
 	}
 	printRevisionAttribution(w, rev.RevisionMeta)
 
+	printAgentIdentity(w, rev.Description, rev.Appearance)
 	fmt.Fprintf(w, "Id:\t%s\n", rev.Id)
 	fmt.Fprintf(w, "Version:\t%s\n", rev.Version)
 

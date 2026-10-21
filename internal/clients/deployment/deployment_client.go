@@ -1348,14 +1348,16 @@ type revisionsResponse struct {
 
 type AgentRevisionResponse struct {
 	RevisionMeta
-	Id          string      `json:"id"`
-	Version     string      `json:"version"`
-	AgentConfig any         `json:"agentConfig"`
-	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
-	Endpoint    *Endpoint   `json:"endpoint,omitempty"`
-	Schedule    *Schedule   `json:"schedule,omitempty"`
-	Env         []EnvVar    `json:"env,omitempty"`
-	StackId     string      `json:"stackId,omitempty"`
+	Id          string           `json:"id"`
+	Version     string           `json:"version"`
+	Description string           `json:"description,omitempty"`
+	Appearance  *AgentAppearance `json:"appearance,omitempty"`
+	AgentConfig any              `json:"agentConfig"`
+	SecretRefs  []SecretRef      `json:"secretRefs,omitempty"`
+	Endpoint    *Endpoint        `json:"endpoint,omitempty"`
+	Schedule    *Schedule        `json:"schedule,omitempty"`
+	Env         []EnvVar         `json:"env,omitempty"`
+	StackId     string           `json:"stackId,omitempty"`
 }
 
 type ServiceRevisionResponse struct {
