@@ -205,8 +205,14 @@ func indexFlags(c *cobra.Command) []string {
 	var pairs [][2]string
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
-			names := strings.Fields(group)
-			if allHeaderFlags(names) {
+			// Hidden (deprecated) flags and --columns are left out of the index, so out of its notes too.
+			var names []string
+			for _, n := range strings.Fields(group) {
+				if g := all.Lookup(n); g != nil && !g.Hidden && n != "columns" {
+					names = append(names, n)
+				}
+			}
+			if len(names) < 2 || allHeaderFlags(names) {
 				continue
 			}
 			sort.Strings(names)

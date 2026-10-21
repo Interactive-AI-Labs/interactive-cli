@@ -673,8 +673,9 @@ type DeleteMessageResponse struct {
 	Message string `json:"message"`
 }
 
+// The platform rejects "ids"; the field must be "trace_ids".
 type BulkTraceDeleteBody struct {
-	IDs []string `json:"trace_ids"`
+	TraceIDs []string `json:"trace_ids"`
 }
 
 // ListTraces calls the platform trace exploration API.
