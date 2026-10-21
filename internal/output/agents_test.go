@@ -30,6 +30,25 @@ func TestPrintAgentDescribe(t *testing.T) {
 				"Status:     deployed\n",
 		},
 		{
+			name: "agent with identity",
+			agent: &deployment.DescribeAgentResponse{
+				Name:        "chat-agent",
+				Description: "Answers order questions",
+				Appearance:  &deployment.AgentAppearance{Icon: "boxy", Color: "lagoon"},
+				Id:          "interactive-agent",
+				Version:     "0.1.0",
+				Revision:    1,
+				Status:      "deployed",
+			},
+			want: "Name:          chat-agent\n" +
+				"Description:   Answers order questions\n" +
+				"Avatar:        boxy, lagoon\n" +
+				"Id:            interactive-agent\n" +
+				"Version:       0.1.0\n" +
+				"Revision:      1\n" +
+				"Status:        deployed\n",
+		},
+		{
 			name: "private endpoint only",
 			agent: &deployment.DescribeAgentResponse{
 				Name:     "minimal-agent",

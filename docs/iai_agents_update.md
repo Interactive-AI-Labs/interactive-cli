@@ -30,6 +30,9 @@ alongside either to change the timezone.
 Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
 remove those configurations entirely.
 
+--description, --icon and --color set the agent's identity, as Edit Agent →
+Identity does in the platform.
+
 Before applying, the CLI prints deploy-awareness output to stderr: the live
 revision this update replaces; the names of any env vars or secret refs that
 --env/--secret would drop from the live agent (the flags replace the entire
@@ -60,6 +63,8 @@ iai agents update <agent_name> [flags]
   iai agents update chat-agent --clear-schedule
   iai agents update chat-agent --stack-id my-stack
   iai agents update chat-agent --clear-stack-id
+  iai agents update chat-agent --description "Answers order and returns questions"
+  iai agents update chat-agent --icon boxy --color lagoon
   iai agents update chat-agent --mcp github
   iai agents update chat-agent --mcp tools-dev --mcp-id tools
   iai agents update chat-agent --mcp tools-dev --mcp-endpoint public
@@ -73,6 +78,8 @@ iai agents update <agent_name> [flags]
       --clear-schedule             Remove the schedule configuration from the agent
       --clear-secret               Remove all secret references from the agent
       --clear-stack-id             Remove the agent from its stack
+      --color string               Avatar color: slate, ember, honey, zest, lagoon, sky, twilight, sunny, moonrise, sunset, tropicana; keeps the current icon, and an agent without an avatar needs --icon too
+      --description string         Description shown for the agent in the platform; pass an empty value to clear it
       --detach-mcp stringArray     Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it
       --endpoint                   Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
       --env stringArray            Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
@@ -80,6 +87,7 @@ iai agents update <agent_name> [flags]
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
       --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
   -h, --help                       help for update
+      --icon string                Avatar icon: rounded, boxy; keeps the current color, and an agent without an avatar needs --color too
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
       --mcp stringArray            Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them
       --mcp-endpoint string        Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp

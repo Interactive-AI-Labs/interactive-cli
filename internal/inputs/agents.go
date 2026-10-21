@@ -25,6 +25,10 @@ type AgentInput struct {
 
 	StackId string
 
+	Description string
+	Icon        string
+	Color       string
+
 	McpRefs        []McpRef // the one attachment --mcp asks for, resolved from the mcp's release at deploy time
 	DetachMcpNames []string // removed before McpRefs are (re-)injected
 }
@@ -322,6 +326,9 @@ var AgentUpdateFlags = struct {
 	ScheduleDowntime string
 	ScheduleTimezone string
 	StackId          string
+	Description      string
+	Icon             string
+	Color            string
 }{
 	Id:               "id",
 	Version:          "version",
@@ -333,7 +340,21 @@ var AgentUpdateFlags = struct {
 	ScheduleDowntime: "schedule-downtime",
 	ScheduleTimezone: "schedule-timezone",
 	StackId:          "stack-id",
+	Description:      "description",
+	Icon:             "icon",
+	Color:            "color",
 }
+
+// AgentIcons and AgentColors mirror the avatar palette the platform offers
+// under Edit Agent → Identity. The operator only checks the key shape, so the
+// CLI checks the palette to keep agents renderable in the platform.
+var (
+	AgentIcons  = []string{"rounded", "boxy"}
+	AgentColors = []string{
+		"slate", "ember", "honey", "zest", "lagoon", "sky",
+		"twilight", "sunny", "moonrise", "sunset", "tropicana",
+	}
+)
 
 // BuildAgentUpdatePatch produces a partial-update body containing only the
 // fields whose flags the user explicitly set. `changed` reports whether a flag
@@ -406,5 +427,46 @@ func BuildAgentUpdatePatch(
 		return nil, err
 	}
 
+	if changed(f.Description) {
+		if err := setJSON(patch, "description", strings.TrimSpace(in.Description)); err != nil {
+			return nil, err
+		}
+	}
+	if err := setAppearancePatch(
+		patch, in.Icon, changed(f.Icon), in.Color, changed(f.Color),
+	); err != nil {
+		return nil, err
+	}
+
 	return patch, nil
+}
+
+// setAppearancePatch sends only the keys given; the operator merges them onto
+// the stored avatar.
+func setAppearancePatch(
+	patch deployment.UpdatePatch,
+	icon string, iconChanged bool,
+	color string, colorChanged bool,
+) error {
+	appearance := map[string]string{}
+	if iconChanged {
+		if !slices.Contains(AgentIcons, icon) {
+			return fmt.Errorf(
+				"invalid --icon %q; valid icons: %s", icon, strings.Join(AgentIcons, ", "),
+			)
+		}
+		appearance["icon"] = icon
+	}
+	if colorChanged {
+		if !slices.Contains(AgentColors, color) {
+			return fmt.Errorf(
+				"invalid --color %q; valid colors: %s", color, strings.Join(AgentColors, ", "),
+			)
+		}
+		appearance["color"] = color
+	}
+	if len(appearance) == 0 {
+		return nil
+	}
+	return setJSON(patch, "appearance", appearance)
 }

@@ -36,6 +36,12 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 	if agent.StackId != "" {
 		fmt.Fprintf(w, "Stack Id:\t%s\n", agent.StackId)
 	}
+	if agent.Description != "" {
+		fmt.Fprintf(w, "Description:\t%s\n", agent.Description)
+	}
+	if agent.Appearance != nil {
+		fmt.Fprintf(w, "Avatar:\t%s, %s\n", agent.Appearance.Icon, agent.Appearance.Color)
+	}
 	fmt.Fprintf(w, "Id:\t%s\n", agent.Id)
 	fmt.Fprintf(w, "Version:\t%s\n", agent.Version)
 	fmt.Fprintf(w, "Revision:\t%d\n", agent.Revision)

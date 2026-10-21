@@ -1,9 +1,11 @@
 package inputs
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -211,6 +213,46 @@ func TestBuildAgentRequestBody(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("BuildAgentRequestBody() =\n  %+v\nwant:\n  %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBuildAgentUpdatePatchIdentity(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		input         AgentInput
+		flags         []string
+		want, wantErr string
+	}{
+		{name: "no identity flags", input: AgentInput{Description: "unused", Icon: "boxy"}, want: `{}`},
+		{name: "description only", input: AgentInput{Description: "  Answers orders  "}, flags: []string{"description"}, want: `{"description":"Answers orders"}`},
+		{name: "empty description clears", flags: []string{"description"}, want: `{"description":""}`},
+		{name: "icon merges onto stored color", input: AgentInput{Icon: "boxy"}, flags: []string{"icon"}, want: `{"appearance":{"icon":"boxy"}}`},
+		{name: "color merges onto stored icon", input: AgentInput{Color: "lagoon"}, flags: []string{"color"}, want: `{"appearance":{"color":"lagoon"}}`},
+		{name: "icon and color", input: AgentInput{Icon: "rounded", Color: "tropicana"}, flags: []string{"icon", "color"}, want: `{"appearance":{"color":"tropicana","icon":"rounded"}}`},
+		{name: "identity with other fields", input: AgentInput{Version: "0.0.3", Description: "d", Color: "sky"}, flags: []string{"version", "description", "color"}, want: `{"appearance":{"color":"sky"},"description":"d","version":"0.0.3"}`},
+		{name: "unknown icon", input: AgentInput{Icon: "robot"}, flags: []string{"icon"}, wantErr: `invalid --icon "robot"; valid icons: rounded, boxy`},
+		{name: "empty icon", flags: []string{"icon"}, wantErr: `invalid --icon ""; valid icons: rounded, boxy`},
+		{name: "unknown color", input: AgentInput{Color: "Lagoon"}, flags: []string{"color"}, wantErr: `invalid --color "Lagoon"; valid colors: slate, ember, honey, zest, lagoon, sky, twilight, sunny, moonrise, sunset, tropicana`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			patch, err := BuildAgentUpdatePatch(
+				tt.input, false, false, false, false,
+				func(flag string) bool { return slices.Contains(tt.flags, flag) },
+			)
+			message, got := "", ""
+			if err != nil {
+				message = err.Error()
+			} else {
+				encoded, err := json.Marshal(patch)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got = string(encoded)
+			}
+			if diff := cmp.Diff([]string{tt.want, tt.wantErr}, []string{got, message}); diff != "" {
+				t.Fatal(diff)
 			}
 		})
 	}

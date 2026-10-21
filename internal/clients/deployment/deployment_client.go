@@ -1393,20 +1393,28 @@ type AgentOutput struct {
 }
 
 type DescribeAgentResponse struct {
-	Name        string      `json:"name"`
-	ProjectId   string      `json:"projectId"`
-	Revision    int         `json:"revision"`
-	Status      string      `json:"status"`
-	Message     string      `json:"message,omitempty"`
-	Updated     string      `json:"updated,omitempty"`
-	Id          string      `json:"id"`
-	Version     string      `json:"version"`
-	AgentConfig any         `json:"agentConfig"`
-	SecretRefs  []SecretRef `json:"secretRefs,omitempty"`
-	Endpoint    *Endpoint   `json:"endpoint,omitempty"`
-	Schedule    *Schedule   `json:"schedule,omitempty"`
-	Env         []EnvVar    `json:"env,omitempty"`
-	StackId     string      `json:"stackId,omitempty"`
+	Name        string           `json:"name"`
+	ProjectId   string           `json:"projectId"`
+	Revision    int              `json:"revision"`
+	Status      string           `json:"status"`
+	Message     string           `json:"message,omitempty"`
+	Updated     string           `json:"updated,omitempty"`
+	Id          string           `json:"id"`
+	Version     string           `json:"version"`
+	Description string           `json:"description,omitempty"`
+	Appearance  *AgentAppearance `json:"appearance,omitempty"`
+	AgentConfig any              `json:"agentConfig"`
+	SecretRefs  []SecretRef      `json:"secretRefs,omitempty"`
+	Endpoint    *Endpoint        `json:"endpoint,omitempty"`
+	Schedule    *Schedule        `json:"schedule,omitempty"`
+	Env         []EnvVar         `json:"env,omitempty"`
+	StackId     string           `json:"stackId,omitempty"`
+}
+
+// AgentAppearance is the agent's avatar: icon and colour keys from the platform palette.
+type AgentAppearance struct {
+	Icon  string `json:"icon"`
+	Color string `json:"color"`
 }
 
 type agentsResponse struct {
