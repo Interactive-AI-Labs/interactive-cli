@@ -117,7 +117,7 @@ func TestIndexJSONShape(t *testing.T) {
 	}
 }
 
-// The header states these conflicts once, so they must hold on every command that has both flags.
+// Stated once in the header, so each must hold wherever both flags exist.
 var headerConflicts = [][2]string{
 	{"json", "watch"},
 	{"watch", "yaml"},
@@ -128,10 +128,10 @@ var headerConflicts = [][2]string{
 	{"all-fields", "decode"},
 }
 
-// Conflicts the header covers without the walk below: `*` = --json or --yaml (not with --columns).
+// Covered by the header's `*` legend.
 var headerOutputConflicts = [][2]string{{"json", "yaml"}, {"columns", "json"}, {"columns", "yaml"}}
 
-// Both ways: every stated conflict holds, and every conflict the index drops is stated.
+// Every stated conflict holds, and every dropped conflict is stated.
 func TestIndexHeaderConflictsHold(t *testing.T) {
 	sorted := func(p [2]string) [2]string {
 		if p[0] > p[1] {
@@ -233,14 +233,14 @@ func indexFixture(use string) (root, leaf *cobra.Command) {
 	return root, leaf
 }
 
-// Groups whose --json output has no envelope; every other group with --json needs indexJSONShape.
+// Groups whose --json output is bare.
 var bareJSONGroups = map[string]bool{
 	"agents": true, "api-keys": true, "collections": true, "databases": true, "images": true,
 	"jobs": true, "organizations": true, "projects": true, "replicas": true, "router": true,
 	"secrets": true, "services": true, "stacks": true,
 }
 
-// Shapes can't be quoted from help, so each group's shape is a decision this test forces.
+// Shapes can't be quoted from help, so every --json group must pick one.
 func TestIndexJSONShapeCoversEveryGroup(t *testing.T) {
 	jsonGroups := map[string]bool{}
 	for _, group := range indexableChildren(rootCmd) {

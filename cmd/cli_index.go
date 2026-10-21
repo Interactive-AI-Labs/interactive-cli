@@ -21,7 +21,7 @@ const (
 	mutuallyExclusiveAnnotation = "cobra_annotation_mutually_exclusive"
 )
 
-// The header states the conflicts among these once, so commands skip them.
+// The header states these flags' conflicts once.
 var indexHeaderFlags = map[string]bool{
 	"json": true, "yaml": true, "columns": true, "watch": true,
 	"raw": true, "decode": true, "fields": true, "all-fields": true,
@@ -57,7 +57,7 @@ func indexCommand(c *cobra.Command, note string) {
 	c.Annotations[commandNoteAnnotation] = note
 }
 
-// indexJSONShape names a group's --json payload; the header spells out each shape.
+// indexJSONShape names a group's --json payload, as spelled out in the header.
 func indexJSONShape(c *cobra.Command, shape string) {
 	if c.Annotations == nil {
 		c.Annotations = map[string]string{}
@@ -259,8 +259,7 @@ func indexFlags(c *cobra.Command) []string {
 	return out
 }
 
-// conflictNames returns a group's flags the index can name, sorted: no hidden (deprecated)
-// flags and none the header says are left out. --json/--yaml stay; the index shows them.
+// conflictNames returns the group's sorted flags minus hidden and skipped ones; --json/--yaml stay.
 func conflictNames(flags *pflag.FlagSet, group string) []string {
 	var names []string
 	for _, n := range strings.Fields(group) {
@@ -274,7 +273,6 @@ func conflictNames(flags *pflag.FlagSet, group string) []string {
 	return names
 }
 
-// groupKey sorts a Cobra flag group so the same group matches across annotations.
 func groupKey(names []string) string {
 	names = append([]string(nil), names...)
 	sort.Strings(names)
