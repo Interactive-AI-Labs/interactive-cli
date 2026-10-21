@@ -205,17 +205,10 @@ func indexFlags(c *cobra.Command) []string {
 	var pairs [][2]string
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
-			// Hidden (deprecated) flags and --columns are left out of the index, so out of its notes too.
-			var names []string
-			for _, n := range strings.Fields(group) {
-				if g := all.Lookup(n); g != nil && !g.Hidden && n != "columns" {
-					names = append(names, n)
-				}
-			}
+			names := conflictNames(all, group)
 			if len(names) < 2 || allHeaderFlags(names) {
 				continue
 			}
-			sort.Strings(names)
 			joined := strings.Join(names, ", --")
 			if groups["(one of --"+joined+")"] || groups[joined] {
 				continue
@@ -250,6 +243,21 @@ func indexFlags(c *cobra.Command) []string {
 		out = append(out, "--json")
 	}
 	return out
+}
+
+// conflictNames returns a group's flags the index can name, sorted: no hidden (deprecated)
+// flags and none the header says are left out. --json/--yaml stay; the index shows them.
+func conflictNames(flags *pflag.FlagSet, group string) []string {
+	var names []string
+	for _, n := range strings.Fields(group) {
+		f := flags.Lookup(n)
+		if f == nil || f.Hidden || (indexSkipFlags[n] && n != "json" && n != "yaml") {
+			continue
+		}
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // exclusivePairs folds pairs that share a flag into "(--x excludes --a, --b)".
