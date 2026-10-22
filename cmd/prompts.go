@@ -38,6 +38,7 @@ types: "text" (default) and "chat".`,
 		makeGenericDiffCmd(),
 	)
 
+	indexJSONShape(parentCmd, "prompts")
 	rootCmd.AddCommand(parentCmd)
 }
 

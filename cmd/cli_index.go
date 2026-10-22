@@ -12,10 +12,20 @@ import (
 const (
 	commandNoteAnnotation = "index_command_note"
 	flagNoteAnnotation    = "index_flag_note"
+	jsonShapeAnnotation   = "index_json_shape"
 )
 
-// Cobra keeps this annotation key unexported.
-const oneRequiredAnnotation = "cobra_annotation_one_required"
+// Cobra keeps these annotation keys unexported.
+const (
+	oneRequiredAnnotation       = "cobra_annotation_one_required"
+	mutuallyExclusiveAnnotation = "cobra_annotation_mutually_exclusive"
+)
+
+// The header states these flags' conflicts once.
+var indexHeaderFlags = map[string]bool{
+	"json": true, "yaml": true, "columns": true, "watch": true,
+	"raw": true, "decode": true, "fields": true, "all-fields": true,
+}
 
 var indexSkipFlags = map[string]bool{
 	"organization": true,
@@ -47,6 +57,14 @@ func indexCommand(c *cobra.Command, note string) {
 	c.Annotations[commandNoteAnnotation] = note
 }
 
+// indexJSONShape names a group's --json payload, as spelled out in the header.
+func indexJSONShape(c *cobra.Command, shape string) {
+	if c.Annotations == nil {
+		c.Annotations = map[string]string{}
+	}
+	c.Annotations[jsonShapeAnnotation] = shape
+}
+
 func indexFlag(c *cobra.Command, name, note string) {
 	where := c.CommandPath() + " --" + name
 	f := c.Flags().Lookup(name)
@@ -70,7 +88,13 @@ func commandIndex(root *cobra.Command, version string) string {
 	b.WriteString(
 		"`<command> --help` explains each flag. `*` = --json or --yaml (not with --columns); " +
 			"only commands marked `*` or --json accept those output flags. " +
-			"--follow and --watch stream until stopped.\n",
+			"--follow and --watch stream until stopped; --watch takes neither --json nor --yaml. " +
+			"In logs, --raw, --fields and --all-fields exclude each other and --decode takes neither field flag.\n",
+	)
+	b.WriteString(
+		"--json: `env` groups wrap lists as `{success,data:{<items>:[…],meta}}` and single items as " +
+			"`{success,data:{<item>:{…}}}`; `prompts` lists are `{prompts:[…],totalCount}`; the rest is bare. " +
+			"Trace and observation input/output are JSON strings (jq `fromjson`).\n",
 	)
 	for _, group := range indexableChildren(root) {
 		if !group.HasAvailableSubCommands() {
@@ -106,6 +130,9 @@ func useArgs(c *cobra.Command) string {
 
 func shortOf(c *cobra.Command) string {
 	short, _, _ := strings.Cut(c.Short, " (")
+	if shape := c.Annotations[jsonShapeAnnotation]; shape != "" {
+		short += "; --json " + shape
+	}
 	return short
 }
 
@@ -157,22 +184,54 @@ func indexFlags(c *cobra.Command) []string {
 		}
 	})
 
+	exclusiveGroups := map[string]bool{}
+	all.VisitAll(func(f *pflag.Flag) {
+		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
+			exclusiveGroups[strings.Join(conflictNames(all, group), ", --")] = true
+		}
+	})
+
 	groups := map[string]bool{}
 	all.VisitAll(func(f *pflag.Flag) {
 		for _, group := range f.Annotations[oneRequiredAnnotation] {
-			names := strings.Fields(group)
-			sort.Strings(names)
-			text := "(one of --" + strings.Join(names, ", --") + ")"
-			if groups[text] {
+			names := conflictNames(all, group)
+			key := strings.Join(names, ", --")
+			if len(names) == 0 || groups[key] {
 				continue
 			}
-			groups[text] = true
+			groups[key] = true
 			for _, n := range names {
 				shown[n] = true
 			}
-			out = append(out, text)
+			label := "one of"
+			if exclusiveGroups[key] {
+				label = "exactly one of"
+			}
+			out = append(out, "("+label+" --"+key+")")
 		}
 	})
+
+	var exclusive []string
+	var pairs [][2]string
+	all.VisitAll(func(f *pflag.Flag) {
+		for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
+			names := conflictNames(all, group)
+			if len(names) < 2 || allHeaderFlags(names) {
+				continue
+			}
+			joined := strings.Join(names, ", --")
+			if groups[joined] {
+				continue
+			}
+			groups[joined] = true
+			if len(names) == 2 {
+				pairs = append(pairs, [2]string{names[0], names[1]})
+			} else {
+				exclusive = append(exclusive, "(only one of --"+joined+")")
+			}
+		}
+	})
+	exclusive = append(exclusive, exclusivePairs(pairs)...)
 
 	local.VisitAll(func(f *pflag.Flag) {
 		if f.Hidden || shown[f.Name] || indexSkipFlags[f.Name] {
@@ -185,6 +244,8 @@ func indexFlags(c *cobra.Command) []string {
 		out = append(out, "--"+f.Name+note)
 	})
 
+	out = append(out, exclusive...)
+
 	switch {
 	case local.Lookup("json") != nil && local.Lookup("yaml") != nil:
 		out = append(out, "*")
@@ -192,6 +253,69 @@ func indexFlags(c *cobra.Command) []string {
 		out = append(out, "--json")
 	}
 	return out
+}
+
+// conflictNames returns the group's sorted flags minus hidden and skipped ones; --json/--yaml stay.
+func conflictNames(flags *pflag.FlagSet, group string) []string {
+	var names []string
+	for _, n := range strings.Fields(group) {
+		f := flags.Lookup(n)
+		if f == nil || f.Hidden || (indexSkipFlags[n] && n != "json" && n != "yaml") {
+			continue
+		}
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// exclusivePairs folds pairs that share a flag into "(--x excludes --a, --b)".
+func exclusivePairs(pairs [][2]string) []string {
+	var out []string
+	for len(pairs) > 0 {
+		count := map[string]int{}
+		for _, p := range pairs {
+			count[p[0]]++
+			count[p[1]]++
+		}
+		hub := pairs[0][0]
+		for name, n := range count {
+			if n > count[hub] || (n == count[hub] && name < hub) {
+				hub = name
+			}
+		}
+		if count[hub] < 2 {
+			for _, p := range pairs {
+				out = append(out, "(only one of --"+p[0]+", --"+p[1]+")")
+			}
+			return out
+		}
+		var others []string
+		var rest [][2]string
+		for _, p := range pairs {
+			switch hub {
+			case p[0]:
+				others = append(others, p[1])
+			case p[1]:
+				others = append(others, p[0])
+			default:
+				rest = append(rest, p)
+			}
+		}
+		sort.Strings(others)
+		out = append(out, "(--"+hub+" excludes --"+strings.Join(others, ", --")+")")
+		pairs = rest
+	}
+	return out
+}
+
+func allHeaderFlags(names []string) bool {
+	for _, n := range names {
+		if !indexHeaderFlags[n] {
+			return false
+		}
+	}
+	return true
 }
 
 func flagNote(f *pflag.Flag) string {

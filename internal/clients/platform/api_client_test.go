@@ -388,7 +388,7 @@ func TestAPIClientCreateScoreRequiresAPIKey(t *testing.T) {
 
 func TestAPIClientCreateScoreAndDeleteTraces(t *testing.T) {
 	var capturedCreateBody ScoreCreateBody
-	var capturedDeleteBody BulkTraceDeleteBody
+	var capturedDeleteBody string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -409,9 +409,7 @@ func TestAPIClientCreateScoreAndDeleteTraces(t *testing.T) {
 			)
 		case r.Method == http.MethodDelete && r.URL.Path == "/api/platform/v1/organizations/org-1/projects/proj-1/traces":
 			body, _ := io.ReadAll(r.Body)
-			if err := json.Unmarshal(body, &capturedDeleteBody); err != nil {
-				t.Fatalf("failed to decode delete body: %v", err)
-			}
+			capturedDeleteBody = strings.TrimSpace(string(body))
 			_, _ = io.WriteString(w, `{"success":true,"message":"Deleted 2 traces."}`)
 		default:
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
@@ -444,7 +442,7 @@ func TestAPIClientCreateScoreAndDeleteTraces(t *testing.T) {
 		"org-1",
 		"proj-1",
 		BulkTraceDeleteBody{
-			IDs: []string{"trace-1", "trace-2"},
+			TraceIDs: []string{"trace-1", "trace-2"},
 		},
 	)
 	if err != nil {
@@ -453,8 +451,8 @@ func TestAPIClientCreateScoreAndDeleteTraces(t *testing.T) {
 	if message != "Deleted 2 traces." {
 		t.Fatalf("message = %q", message)
 	}
-	if len(capturedDeleteBody.IDs) != 2 {
-		t.Fatalf("captured delete body = %#v", capturedDeleteBody)
+	if want := `{"trace_ids":["trace-1","trace-2"]}`; capturedDeleteBody != want {
+		t.Fatalf("delete body = %s, want %s", capturedDeleteBody, want)
 	}
 }
 

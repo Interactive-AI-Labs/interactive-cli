@@ -419,7 +419,7 @@ This command currently requires API key authentication.`,
 			cmd.Context(),
 			pCtx.orgId,
 			pCtx.projectId,
-			platform.BulkTraceDeleteBody{IDs: deleteIDs},
+			platform.BulkTraceDeleteBody{TraceIDs: deleteIDs},
 		)
 		if err != nil {
 			return err
@@ -430,6 +430,7 @@ This command currently requires API key authentication.`,
 }
 
 func init() {
+	indexJSONShape(tracesCmd, "env; --summary and diff are bare")
 	// traces list flags
 	tracesListCmd.Flags().IntVar(&tracesPage, "page", 1, "Page number (starts at 1)")
 	tracesListCmd.Flags().IntVar(&tracesLimit, "limit", 0, "Items per page (max 100)")

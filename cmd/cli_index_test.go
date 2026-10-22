@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func TestCommandIndex(t *testing.T) {
@@ -59,16 +60,140 @@ func TestCommandIndex(t *testing.T) {
 			c.Flags().String("env", "", "Replaces the env")
 			indexFlag(c, "env", "replaces")
 		}, "get [--env (replaces) --force]"},
+		{"get", func(c *cobra.Command) {
+			c.Flags().Bool("script", false, "")
+			c.Flags().Bool("json", false, "")
+			c.Flags().Bool("yaml", false, "")
+			c.MarkFlagsMutuallyExclusive("json", "yaml", "script")
+		}, "get [--script (only one of --json, --script, --yaml) *]"},
+		{"get", func(c *cobra.Command) {
+			c.Flags().Bool("watch", false, "")
+			c.Flags().Bool("json", false, "")
+			c.Flags().Bool("yaml", false, "")
+			c.MarkFlagsMutuallyExclusive("json", "yaml")
+			c.MarkFlagsMutuallyExclusive("watch", "json")
+		}, "get [--watch *]"},
+		{"get", func(c *cobra.Command) {
+			c.Flags().String("a", "", "")
+			c.Flags().String("b", "", "")
+			c.MarkFlagsOneRequired("a", "b")
+			c.MarkFlagsMutuallyExclusive("a", "b")
+		}, "get [(exactly one of --a, --b)]"},
+		{"get", func(c *cobra.Command) {
+			for _, name := range []string{"a", "b", "old", "columns"} {
+				c.Flags().String(name, "", "")
+			}
+			_ = c.Flags().MarkDeprecated("old", "use --a")
+			c.MarkFlagsOneRequired("a", "b", "old")
+			c.MarkFlagsMutuallyExclusive("a", "b", "columns")
+		}, "get [(exactly one of --a, --b)]"},
+		{"get", func(c *cobra.Command) {
+			for _, name := range []string{"a", "b", "c", "d", "e"} {
+				c.Flags().String(name, "", "")
+			}
+			c.MarkFlagsMutuallyExclusive("c", "a")
+			c.MarkFlagsMutuallyExclusive("a", "b")
+			c.MarkFlagsMutuallyExclusive("d", "e")
+		}, "get [--a --b --c --d --e (--a excludes --b, --c) (only one of --d, --e)]"},
+		{"get", func(c *cobra.Command) {
+			for _, name := range []string{"a", "old", "summary", "columns"} {
+				c.Flags().String(name, "", "")
+			}
+			_ = c.Flags().MarkDeprecated("old", "use --a")
+			c.MarkFlagsMutuallyExclusive("a", "old")
+			c.MarkFlagsMutuallyExclusive("summary", "columns")
+		}, "get [--a --summary]"},
 	}
 	for _, tt := range tests {
 		root, leaf := indexFixture(tt.leaf)
 		tt.setup(leaf)
 
 		lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
-		if got, want := lines[2], "things (Manage things): "+tt.want; got != want {
+		if got, want := lines[3], "things (Manage things): "+tt.want; got != want {
 			t.Errorf("got  %q\nwant %q", got, want)
 		}
 	}
+}
+
+func TestIndexJSONShape(t *testing.T) {
+	root, leaf := indexFixture("get")
+	indexJSONShape(leaf.Parent(), "env")
+
+	lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
+	if got, want := lines[3], "things (Manage things; --json env): get"; got != want {
+		t.Errorf("got  %q\nwant %q", got, want)
+	}
+}
+
+// Stated once in the header, so each must hold wherever both flags exist.
+var headerConflicts = [][2]string{
+	{"json", "watch"},
+	{"watch", "yaml"},
+	{"fields", "raw"},
+	{"all-fields", "raw"},
+	{"all-fields", "fields"},
+	{"decode", "fields"},
+	{"all-fields", "decode"},
+}
+
+// Covered by the header's `*` legend.
+var headerOutputConflicts = [][2]string{{"json", "yaml"}, {"columns", "json"}, {"columns", "yaml"}}
+
+// Every stated conflict holds, and every dropped conflict is stated.
+func TestIndexHeaderConflictsHold(t *testing.T) {
+	sorted := func(p [2]string) [2]string {
+		if p[0] > p[1] {
+			p[0], p[1] = p[1], p[0]
+		}
+		return p
+	}
+	stated := map[[2]string]bool{}
+	for _, pair := range append(headerConflicts, headerOutputConflicts...) {
+		stated[sorted(pair)] = true
+	}
+	var walk func(c *cobra.Command)
+	walk = func(c *cobra.Command) {
+		exclusive := map[[2]string]bool{}
+		c.Flags().VisitAll(func(f *pflag.Flag) {
+			for _, group := range f.Annotations[mutuallyExclusiveAnnotation] {
+				raw := strings.Fields(group)
+				for i, a := range raw {
+					for _, b := range raw[i+1:] {
+						exclusive[sorted([2]string{a, b})] = true
+					}
+				}
+				names := conflictNames(c.Flags(), group)
+				if len(names) < 2 || !allHeaderFlags(names) {
+					continue
+				}
+				for i, a := range names {
+					for _, b := range names[i+1:] {
+						if !stated[[2]string{a, b}] {
+							t.Errorf(
+								"%s: the index drops --%s/--%s but the header doesn't state it",
+								c.CommandPath(), a, b,
+							)
+						}
+					}
+				}
+			}
+		})
+		for _, pair := range headerConflicts {
+			if c.Flags().Lookup(pair[0]) != nil && c.Flags().Lookup(pair[1]) != nil &&
+				!exclusive[sorted(pair)] {
+				t.Errorf(
+					"%s: header says --%s and --%s conflict, but they don't",
+					c.CommandPath(),
+					pair[0],
+					pair[1],
+				)
+			}
+		}
+		for _, child := range c.Commands() {
+			walk(child)
+		}
+	}
+	walk(rootCmd)
 }
 
 // A note the help doesn't say must be dropped, not printed.
@@ -94,7 +219,7 @@ func TestIndexNotesRejectUnquoted(t *testing.T) {
 				t.Fatalf("recorded %d errors, want 1", len(indexFlagErrs))
 			}
 			lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
-			if got, want := lines[2], "things (Manage things): get [--limit]"; got != want {
+			if got, want := lines[3], "things (Manage things): get [--limit]"; got != want {
 				t.Errorf("rejected note reached the index\ngot  %q\nwant %q", got, want)
 			}
 		})
@@ -114,4 +239,45 @@ func indexFixture(use string) (root, leaf *cobra.Command) {
 	root.AddCommand(group)
 	group.AddCommand(leaf)
 	return root, leaf
+}
+
+// Groups whose --json output is bare.
+var bareJSONGroups = map[string]bool{
+	"agents": true, "api-keys": true, "collections": true, "databases": true, "images": true,
+	"jobs": true, "organizations": true, "projects": true, "replicas": true, "router": true,
+	"secrets": true, "services": true, "stacks": true,
+}
+
+// Shapes can't be quoted from help, so every --json group must pick one.
+func TestIndexJSONShapeCoversEveryGroup(t *testing.T) {
+	jsonGroups := map[string]bool{}
+	for _, group := range indexableChildren(rootCmd) {
+		jsonGroups[group.Name()] = hasJSONLeaf(group)
+	}
+	for name := range bareJSONGroups {
+		if !jsonGroups[name] {
+			t.Errorf("bareJSONGroups lists %s, which has no --json command", name)
+		}
+	}
+	for _, group := range indexableChildren(rootCmd) {
+		shaped := group.Annotations[jsonShapeAnnotation] != ""
+		if hasJSONLeaf(group) && shaped == bareJSONGroups[group.Name()] {
+			t.Errorf(
+				"%s: call indexJSONShape or list it in bareJSONGroups, not both or neither",
+				group.Name(),
+			)
+		}
+	}
+}
+
+func hasJSONLeaf(c *cobra.Command) bool {
+	if c.Runnable() && c.LocalFlags().Lookup("json") != nil {
+		return true
+	}
+	for _, child := range c.Commands() {
+		if hasJSONLeaf(child) {
+			return true
+		}
+	}
+	return false
 }

@@ -1039,6 +1039,7 @@ provider. Revoke it in your account there if you want it withdrawn.`,
 }
 
 func init() {
+	indexJSONShape(mcpsCmd, "env; catalog and run-tool are bare")
 	mcpsCmd.PersistentFlags().
 		StringVarP(&mcpProject, "project", "p", "", "Project name that owns the mcps")
 	mcpsCmd.PersistentFlags().

@@ -206,6 +206,7 @@ This command requires API key authentication.`,
 }
 
 func init() {
+	indexJSONShape(commentsCmd, "env")
 	commentsListCmd.Flags().
 		StringVar(
 			&commentsListObjectType, "object-type", "",

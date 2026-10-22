@@ -310,6 +310,7 @@ This command requires API key authentication.`,
 }
 
 func init() {
+	indexJSONShape(scoreConfigsCmd, "env")
 	scoreConfigsListCmd.Flags().
 		IntVar(&scoreConfigsListPage, "page", 1, "Page number (starts at 1)")
 	scoreConfigsListCmd.Flags().
