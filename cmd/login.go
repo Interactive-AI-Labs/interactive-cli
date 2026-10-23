@@ -169,6 +169,7 @@ func runInteractiveLogin(cmd *cobra.Command) error {
 }
 
 func saveCookiesAndPrint(out io.Writer, cookies []*http.Cookie, email string) error {
+	cookies = files.LiveCookies(cookies)
 	if len(cookies) == 0 {
 		fmt.Fprintln(out,
 			"Warning: login succeeded but no cookies were returned by the server.")
