@@ -6,6 +6,9 @@ Push an image for a project
 
 Create a Docker image tarball and push it to the deployment images endpoint for a specific project.
 
+The image must be linux/amd64 or linux/arm64. A multi-platform image (for example
+linux/amd64 and linux/arm64) is pushed with all its platforms under one tag.
+
 Pushing to a tag that already exists upstream replaces the previous image:
 the old bytes are unrecoverable and nothing records that the code changed.
 The push is refused when the tag already exists — prefer a fresh tag (or

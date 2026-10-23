@@ -175,3 +175,28 @@ func TestRefuseTagOverwrite(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckArchitecture(t *testing.T) {
+	tests := []struct {
+		arch    string
+		wantErr bool
+	}{
+		{arch: "amd64"},
+		{arch: "x86_64"},
+		{arch: "arm64"},
+		{arch: "aarch64"},
+		{arch: "arm", wantErr: true},
+		{arch: "386", wantErr: true},
+		{arch: "ppc64le", wantErr: true},
+		{arch: "ARM64", wantErr: true},
+		{arch: "", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.arch, func(t *testing.T) {
+			err := checkArchitecture(tt.arch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("checkArchitecture(%q) error = %v, wantErr %v", tt.arch, err, tt.wantErr)
+			}
+		})
+	}
+}

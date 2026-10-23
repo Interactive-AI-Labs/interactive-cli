@@ -201,6 +201,9 @@ var imagePushCmd = &cobra.Command{
 	Short:   "Push an image for a project",
 	Long: `Create a Docker image tarball and push it to the deployment images endpoint for a specific project.
 
+The image must be linux/amd64 or linux/arm64. A multi-platform image (for example
+linux/amd64 and linux/arm64) is pushed with all its platforms under one tag.
+
 Pushing to a tag that already exists upstream replaces the previous image:
 the old bytes are unrecoverable and nothing records that the code changed.
 The push is refused when the tag already exists — prefer a fresh tag (or
@@ -430,15 +433,17 @@ func validateImageArchitecture(imageRef string) error {
 		return fmt.Errorf("failed to inspect image architecture: %w", err)
 	}
 
-	arch := strings.TrimSpace(string(output))
-	if arch != "amd64" && arch != "x86_64" {
-		return fmt.Errorf(
-			"unsupported architecture %q detected in image; only amd64 images are supported on this platform",
-			arch,
-		)
-	}
+	return checkArchitecture(strings.TrimSpace(string(output)))
+}
 
-	return nil
+func checkArchitecture(arch string) error {
+	if slices.Contains([]string{"amd64", "x86_64", "arm64", "aarch64"}, arch) {
+		return nil
+	}
+	return fmt.Errorf(
+		"unsupported architecture %q detected in image; images must be linux/amd64 or linux/arm64",
+		arch,
+	)
 }
 
 func init() {
@@ -449,7 +454,7 @@ func init() {
 	imageBuildCmd.Flags().
 		StringVarP(&imageBuildContext, "context", "c", ".", "Build context directory (default: current directory)")
 	imageBuildCmd.Flags().
-		StringVar(&imageBuildPlatform, "platform", "linux/amd64", "Target platform for the build (currently only linux/amd64 is supported)")
+		StringVar(&imageBuildPlatform, "platform", "linux/arm64", "Target platforms for the build, e.g. linux/amd64 or linux/amd64,linux/arm64")
 
 	_ = imageBuildCmd.MarkFlagRequired("tag")
 
