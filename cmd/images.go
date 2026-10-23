@@ -147,7 +147,8 @@ This is a thin wrapper around 'docker build' that requires an explicit tag,
 Dockerfile, and build context.`,
 	Example: `  iai images build my-service --tag 1.2.3
   iai images build my-service --tag 1.2.3 --file docker/Dockerfile --context .
-  iai images build my-service --tag 1.2.3 --platform linux/amd64`,
+  iai images build my-service --tag 1.2.3 --platform linux/amd64
+  iai images build my-service --tag 1.2.3 --platform linux/amd64,linux/arm64`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -436,15 +437,17 @@ func validateImageArchitecture(imageRef string) error {
 		return fmt.Errorf("failed to inspect image architecture: %w", err)
 	}
 
-	arch := strings.TrimSpace(string(output))
-	if arch != "amd64" && arch != "x86_64" {
-		return fmt.Errorf(
-			"unsupported architecture %q detected in image; only amd64 images are supported on this platform",
-			arch,
-		)
-	}
+	return checkArchitecture(strings.TrimSpace(string(output)))
+}
 
-	return nil
+func checkArchitecture(arch string) error {
+	if slices.Contains([]string{"amd64", "x86_64", "arm64", "aarch64"}, arch) {
+		return nil
+	}
+	return fmt.Errorf(
+		"unsupported architecture %q detected in image; images must be linux/amd64 or linux/arm64",
+		arch,
+	)
 }
 
 func init() {
@@ -455,7 +458,7 @@ func init() {
 	imageBuildCmd.Flags().
 		StringVarP(&imageBuildContext, "context", "c", ".", "Build context directory (default: current directory)")
 	imageBuildCmd.Flags().
-		StringVar(&imageBuildPlatform, "platform", "linux/amd64", "Target platform for the build (currently only linux/amd64 is supported)")
+		StringVar(&imageBuildPlatform, "platform", "linux/arm64", "Target platforms for the build, e.g. linux/amd64 or linux/amd64,linux/arm64")
 
 	_ = imageBuildCmd.MarkFlagRequired("tag")
 

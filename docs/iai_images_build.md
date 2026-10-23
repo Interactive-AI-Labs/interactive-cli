@@ -19,6 +19,7 @@ iai images build [image_name] [flags]
   iai images build my-service --tag 1.2.3
   iai images build my-service --tag 1.2.3 --file docker/Dockerfile --context .
   iai images build my-service --tag 1.2.3 --platform linux/amd64
+  iai images build my-service --tag 1.2.3 --platform linux/amd64,linux/arm64
 ```
 
 ### Options
@@ -27,7 +28,7 @@ iai images build [image_name] [flags]
   -c, --context string    Build context directory (default: current directory) (default ".")
   -f, --file string       Path to the Dockerfile (default: ./Dockerfile) (default "Dockerfile")
   -h, --help              help for build
-      --platform string   Target platform for the build (currently only linux/amd64 is supported) (default "linux/amd64")
+      --platform string   Target platforms for the build, e.g. linux/amd64 or linux/amd64,linux/arm64 (default "linux/arm64")
   -t, --tag string        Tag suffix to append to the fixed registry (e.g. 1.2.3)
 ```
 
