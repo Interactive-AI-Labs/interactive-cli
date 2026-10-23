@@ -24,6 +24,17 @@ type sessionCookieFile struct {
 	SavedAt time.Time       `json:"saved_at"`
 }
 
+// LiveCookies drops the cookies a response deletes (Max-Age=0), which must not be stored and resent.
+func LiveCookies(cookies []*http.Cookie) []*http.Cookie {
+	live := make([]*http.Cookie, 0, len(cookies))
+	for _, c := range cookies {
+		if c.MaxAge >= 0 {
+			live = append(live, c)
+		}
+	}
+	return live
+}
+
 func SaveSessionCookies(cookies []*http.Cookie, cfgDirName, sessionFileName string) error {
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {

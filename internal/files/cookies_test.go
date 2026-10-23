@@ -4,9 +4,61 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 )
+
+func TestLiveCookies(t *testing.T) {
+	tests := []struct {
+		name       string
+		setCookies []string
+		want       []string
+	}{
+		{
+			name: "login replaces legacy cookies under the same name",
+			setCookies: []string{
+				"__Secure-next-auth.session-token=; Max-Age=0; Path=/; Secure",
+				"next-auth.session-token=; Max-Age=0; Path=/",
+				"__Secure-next-auth.session-token=123:abc; Path=/; Secure; HttpOnly",
+			},
+			want: []string{"__Secure-next-auth.session-token=123:abc; Path=/; Secure; HttpOnly"},
+		},
+		{
+			name:       "only deletions",
+			setCookies: []string{"next-auth.csrf-token=; Max-Age=0; Path=/"},
+			want:       []string{},
+		},
+		{
+			name:       "cookie without Max-Age",
+			setCookies: []string{"session=abc; Path=/"},
+			want:       []string{"session=abc; Path=/"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := LiveCookies(parseSetCookies(t, tt.setCookies))
+
+			if want := parseSetCookies(t, tt.want); !reflect.DeepEqual(got, want) {
+				t.Errorf("LiveCookies() = %+v, want %+v", got, want)
+			}
+		})
+	}
+}
+
+func parseSetCookies(t *testing.T, lines []string) []*http.Cookie {
+	t.Helper()
+	cookies := make([]*http.Cookie, 0, len(lines))
+	for _, line := range lines {
+		c, err := http.ParseSetCookie(line)
+		if err != nil {
+			t.Fatalf("ParseSetCookie(%q) error = %v", line, err)
+		}
+		cookies = append(cookies, c)
+	}
+	return cookies
+}
 
 func TestSaveSessionCookies(t *testing.T) {
 	t.Run("saves cookies successfully", func(t *testing.T) {
