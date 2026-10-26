@@ -1,14 +1,14 @@
 package deployment
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 )
 
 // Chunk is a single stored chunk (a row in a collection).
@@ -75,8 +75,7 @@ func (c *DeploymentClient) UpsertChunks(
 	if dryRun {
 		req.URL.RawQuery = "dry_run=true"
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(bytes.NewReader(body))
+	clients.SetJSONBody(req, body)
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -187,8 +186,7 @@ func (c *DeploymentClient) CountChunks(
 	if err != nil {
 		return 0, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(bytes.NewReader(body))
+	clients.SetJSONBody(req, body)
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -220,8 +218,7 @@ func (c *DeploymentClient) PatchChunk(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(bytes.NewReader(body))
+	clients.SetJSONBody(req, body)
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -273,11 +270,10 @@ func (c *DeploymentClient) BulkDeleteChunks(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
 	if confirmAll {
 		req.Header.Set("X-Confirm-Delete", "yes")
 	}
-	req.Body = io.NopCloser(bytes.NewReader(body))
+	clients.SetJSONBody(req, body)
 
 	resp, err := c.do(req)
 	if err != nil {

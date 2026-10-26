@@ -336,10 +336,16 @@ open when the existing tags cannot be listed.`,
 		q.Set("tag", imagePushTag)
 		u.RawQuery = q.Encode()
 
+		info, err := file.Stat()
+		if err != nil {
+			return fmt.Errorf("failed to stat image tarball: %w", err)
+		}
+
 		req, err := http.NewRequestWithContext(cmd.Context(), http.MethodPost, u.String(), file)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
+		req.ContentLength = info.Size()
 
 		if err := clients.ApplyRequestHeaders(req, token, apiKey, cookies); err != nil {
 			return err

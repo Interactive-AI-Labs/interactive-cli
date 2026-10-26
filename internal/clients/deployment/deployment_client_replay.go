@@ -144,8 +144,7 @@ func (c *DeploymentClient) StartReplay(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	reqHTTP.Header.Set("Content-Type", "application/json")
-	reqHTTP.Body = io.NopCloser(strings.NewReader(string(body)))
+	clients.SetJSONBody(reqHTTP, body)
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {

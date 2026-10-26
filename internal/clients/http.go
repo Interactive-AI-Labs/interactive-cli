@@ -1,9 +1,11 @@
 package clients
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -193,4 +195,20 @@ func ApplyRequestHeaders(
 	}
 
 	return fmt.Errorf("no authentication method available: provide a token, API key, or log in")
+}
+
+// SetJSONBody attaches a JSON body with its length, so the request carries Content-Length instead of a chunked body.
+// Assigning req.Body directly leaves ContentLength at 0, which the platform WAF treats as an unbounded body.
+func SetJSONBody(req *http.Request, body []byte) {
+	// net/http reads ContentLength 0 with a non-nil Body as unknown, so an empty body must be NoBody.
+	reader := func() io.ReadCloser {
+		if len(body) == 0 {
+			return http.NoBody
+		}
+		return io.NopCloser(bytes.NewReader(body))
+	}
+	req.Body = reader()
+	req.ContentLength = int64(len(body))
+	req.GetBody = func() (io.ReadCloser, error) { return reader(), nil }
+	req.Header.Set("Content-Type", "application/json")
 }

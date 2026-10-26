@@ -1,7 +1,6 @@
 package deployment
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -166,8 +165,7 @@ func (c *DeploymentClient) sendJSONRequest(
 		}
 		reqHTTP, err = c.newRequest(ctx, method, path)
 		if err == nil {
-			reqHTTP.Header.Set("Content-Type", "application/json")
-			reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+			clients.SetJSONBody(reqHTTP, bodyBytes)
 		}
 	} else {
 		reqHTTP, err = c.newRequest(ctx, method, path)
@@ -209,8 +207,7 @@ func (c *DeploymentClient) sendJSONInto(
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-		req.Body = io.NopCloser(bytes.NewReader(body))
+		clients.SetJSONBody(req, body)
 	}
 
 	resp, err := c.do(req)
@@ -344,8 +341,7 @@ func (c *DeploymentClient) CreateService(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	reqHTTP.Header.Set("Content-Type", "application/json")
-	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(reqHTTP, bodyBytes)
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {
@@ -741,8 +737,7 @@ func (c *DeploymentClient) CreateSecret(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(req, bodyBytes)
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -796,8 +791,7 @@ func (c *DeploymentClient) ReplaceSecret(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(req, bodyBytes)
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -939,8 +933,7 @@ func (c *DeploymentClient) UpdateSecretKey(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(req, bodyBytes)
 
 	resp, err := c.do(req)
 	if err != nil {
@@ -1562,8 +1555,7 @@ func (c *DeploymentClient) CreateAgent(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	reqHTTP.Header.Set("Content-Type", "application/json")
-	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(reqHTTP, bodyBytes)
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {
@@ -1664,8 +1656,7 @@ func (c *DeploymentClient) sendAgentUpdate(
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	reqHTTP.Header.Set("Content-Type", "application/json")
-	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(reqHTTP, bodyBytes)
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {
@@ -2273,8 +2264,7 @@ func (c *DeploymentClient) CreateDatabase(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	reqHTTP.Header.Set("Content-Type", "application/json")
-	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(reqHTTP, bodyBytes)
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {
@@ -2691,8 +2681,7 @@ func (c *DeploymentClient) RestoreDatabase(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	reqHTTP.Header.Set("Content-Type", "application/json")
-	reqHTTP.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	clients.SetJSONBody(reqHTTP, bodyBytes)
 
 	resp, err := c.do(reqHTTP)
 	if err != nil {

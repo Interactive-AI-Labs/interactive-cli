@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -111,8 +110,7 @@ func (c *APIClient) newJSONRequest(
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode request body: %w", err)
 		}
-		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-		req.Header.Set("Content-Type", "application/json")
+		clients.SetJSONBody(req, bodyBytes)
 	}
 
 	return req, nil
@@ -1142,8 +1140,7 @@ func (c *APIClient) CreatePrompt(
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	clients.SetJSONBody(req, bodyBytes)
 
 	resp, err := c.do(req)
 	if err != nil {
