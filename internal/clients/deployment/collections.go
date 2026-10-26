@@ -1,7 +1,6 @@
 package deployment
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -245,8 +244,7 @@ func (c *DeploymentClient) SendCollectionBody(
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.URL.RawQuery = rawQuery
-	req.Header.Set("Content-Type", "application/json")
-	req.Body = io.NopCloser(bytes.NewReader(body))
+	clients.SetJSONBody(req, body)
 
 	resp, err := c.do(req)
 	if err != nil {

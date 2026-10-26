@@ -1,7 +1,9 @@
 package clients
 
 import (
+	"bytes"
 	"encoding/base64"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -295,4 +297,61 @@ func TestApplyRequestHeaders(t *testing.T) {
 
 func newTestRequest() (*http.Request, error) {
 	return http.NewRequest(http.MethodGet, "http://example.com", nil)
+}
+
+func TestSetJSONBody(t *testing.T) {
+	const head = "POST /items HTTP/1.1\r\nHost: example.com\r\nUser-Agent: iai-test\r\n"
+
+	tests := []struct {
+		name string
+		body []byte
+		want string
+	}{
+		{
+			name: "empty object",
+			body: []byte(`{}`),
+			want: head + "Content-Length: 2\r\nContent-Type: application/json\r\n\r\n{}",
+		},
+		{
+			name: "payload",
+			body: []byte(`{"user_id":"u1"}`),
+			want: head + "Content-Length: 16\r\nContent-Type: application/json\r\n\r\n{\"user_id\":\"u1\"}",
+		},
+		{
+			name: "empty body",
+			body: []byte{},
+			want: head + "Content-Length: 0\r\nContent-Type: application/json\r\n\r\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, "https://example.com/items", nil)
+			if err != nil {
+				t.Fatalf("NewRequest() error = %v", err)
+			}
+
+			req.Header.Set("User-Agent", "iai-test")
+
+			SetJSONBody(req, tt.body)
+
+			for _, body := range []func() (io.ReadCloser, error){
+				func() (io.ReadCloser, error) { return req.Body, nil },
+				req.GetBody,
+			} {
+				rc, err := body()
+				if err != nil {
+					t.Fatalf("GetBody() error = %v", err)
+				}
+				req.Body = rc
+				var buf bytes.Buffer
+				if err := req.Write(&buf); err != nil {
+					t.Fatalf("Write() error = %v", err)
+				}
+				if buf.String() != tt.want {
+					t.Errorf("request = %q, want %q", buf.String(), tt.want)
+				}
+			}
+		})
+	}
 }
