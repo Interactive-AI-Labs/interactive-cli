@@ -15,13 +15,12 @@ type CallbackResult struct {
 	Err   error
 }
 
-// CallbackServer is an ephemeral HTTP server that listens on 127.0.0.1 for
-// the OAuth callback redirect from the browser.
+// CallbackServer receives the OAuth callback on 127.0.0.1, and on ::1 when available.
 type CallbackServer struct {
-	listener net.Listener
-	server   *http.Server
-	result   chan CallbackResult
-	once     sync.Once
+	listeners []net.Listener
+	server    *http.Server
+	result    chan CallbackResult
+	once      sync.Once
 }
 
 // NewCallbackServer creates a callback server on a random available port on 127.0.0.1.
@@ -32,8 +31,13 @@ func NewCallbackServer() (*CallbackServer, error) {
 	}
 
 	cs := &CallbackServer{
-		listener: ln,
-		result:   make(chan CallbackResult, 1),
+		listeners: []net.Listener{ln},
+		result:    make(chan CallbackResult, 1),
+	}
+	// localhost may resolve to ::1 first, so hold the same port there when IPv6 is available.
+	port := ln.Addr().(*net.TCPAddr).Port
+	if ln6, err := net.Listen("tcp", fmt.Sprintf("[::1]:%d", port)); err == nil {
+		cs.listeners = append(cs.listeners, ln6)
 	}
 
 	mux := http.NewServeMux()
@@ -46,23 +50,25 @@ func NewCallbackServer() (*CallbackServer, error) {
 
 // Port returns the port the server is listening on.
 func (cs *CallbackServer) Port() int {
-	return cs.listener.Addr().(*net.TCPAddr).Port
+	return cs.listeners[0].Addr().(*net.TCPAddr).Port
 }
 
-// RedirectURI returns the full redirect URI for the callback.
+// RedirectURI uses localhost since request filters can reject a redirect_uri holding an IP.
 func (cs *CallbackServer) RedirectURI() string {
-	return fmt.Sprintf("http://127.0.0.1:%d/callback", cs.Port())
+	return fmt.Sprintf("http://localhost:%d/callback", cs.Port())
 }
 
-// Start begins serving in a goroutine.
+// Start begins serving each listener in a goroutine.
 func (cs *CallbackServer) Start() {
-	go func() {
-		if err := cs.server.Serve(cs.listener); err != nil && err != http.ErrServerClosed {
-			cs.once.Do(func() {
-				cs.result <- CallbackResult{Err: fmt.Errorf("callback server error: %w", err)}
-			})
-		}
-	}()
+	for _, ln := range cs.listeners {
+		go func() {
+			if err := cs.server.Serve(ln); err != nil && err != http.ErrServerClosed {
+				cs.once.Do(func() {
+					cs.result <- CallbackResult{Err: fmt.Errorf("callback server error: %w", err)}
+				})
+			}
+		}()
+	}
 }
 
 // Wait blocks until a callback is received or the context is cancelled.
