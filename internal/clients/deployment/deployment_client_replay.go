@@ -107,16 +107,8 @@ const (
 
 // ReplayError is a refusal: the agent's own detail relayed by the platform, or the platform's message.
 type ReplayError struct {
-	Status  int
-	Detail  string
+	AgentError
 	Skipped []ReplaySkipped
-}
-
-func (e *ReplayError) Error() string {
-	if e.Detail == "" {
-		return fmt.Sprintf("agent returned %d", e.Status)
-	}
-	return fmt.Sprintf("agent returned %d: %s", e.Status, e.Detail)
 }
 
 // ErrReplayStreamEnded is a followed run whose stream closed before a verdict; following again picks it back up.
@@ -265,17 +257,25 @@ func DecodeReplayRun(raw []byte) (*ReplayRun, error) {
 
 // DecodeReplayError reads the agent's error bodies ({"detail": text | 422 list}) or the platform's ({"message": text}).
 func DecodeReplayError(status int, body []byte) *ReplayError {
-	e := &ReplayError{Status: status}
+	e := &ReplayError{AgentError: *DecodeAgentError(status, body)}
 	var env struct {
-		Detail  json.RawMessage `json:"detail"`
 		Skipped []ReplaySkipped `json:"skipped"`
 	}
-	if json.Unmarshal(body, &env) == nil && len(env.Detail) > 0 {
+	if json.Unmarshal(body, &env) == nil {
 		e.Skipped = env.Skipped
+	}
+	return e
+}
+
+// agentErrorDetail reads the agent's error bodies ({"detail": text | 422 list}) or the platform's ({"message": text}).
+func agentErrorDetail(body []byte) string {
+	var env struct {
+		Detail json.RawMessage `json:"detail"`
+	}
+	if json.Unmarshal(body, &env) == nil && len(env.Detail) > 0 {
 		var text string
 		if json.Unmarshal(env.Detail, &text) == nil {
-			e.Detail = text
-			return e
+			return text
 		}
 		var items []struct {
 			Loc []any  `json:"loc"`
@@ -290,14 +290,11 @@ func DecodeReplayError(status int, body []byte) *ReplayError {
 					msgs = append(msgs, it.Msg)
 				}
 			}
-			e.Detail = strings.Join(msgs, "; ")
-			return e
+			return strings.Join(msgs, "; ")
 		}
 	}
 	if msg := clients.ExtractServerMessage(body); msg != "" {
-		e.Detail = msg
-		return e
+		return msg
 	}
-	e.Detail = strings.TrimSpace(string(body))
-	return e
+	return strings.TrimSpace(string(body))
 }

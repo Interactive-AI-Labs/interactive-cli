@@ -22,8 +22,10 @@ func TestDecodeReplayError(t *testing.T) {
 				`"skipped":[{"id":"probe-1","reason":"messages: Field required"},` +
 				`{"id":"probe-2","reason":"archived"}]}`,
 			want: &ReplayError{
-				Status: 400,
-				Detail: "dataset 'x' holds no replayable scenario",
+				AgentError: AgentError{
+					Status: 400,
+					Detail: "dataset 'x' holds no replayable scenario",
+				},
 				Skipped: []ReplaySkipped{
 					{ID: "probe-1", Reason: "messages: Field required"},
 					{ID: "probe-2", Reason: "archived"},
@@ -36,8 +38,10 @@ func TestDecodeReplayError(t *testing.T) {
 			body: `{"detail":[{"loc":["body","repeat"],` +
 				`"msg":"Input should be less than or equal to 20","type":"x"}]}`,
 			want: &ReplayError{
-				Status: 422,
-				Detail: "repeat: Input should be less than or equal to 20",
+				AgentError: AgentError{
+					Status: 422,
+					Detail: "repeat: Input should be less than or equal to 20",
+				},
 			},
 		},
 		{
@@ -45,27 +49,41 @@ func TestDecodeReplayError(t *testing.T) {
 			status: 422,
 			body: `{"detail":[{"loc":["body","repeat"],"msg":"too high"},` +
 				`{"loc":["body","concurrency"],"msg":"too low"}]}`,
-			want: &ReplayError{Status: 422, Detail: "repeat: too high; concurrency: too low"},
+			want: &ReplayError{
+				AgentError: AgentError{
+					Status: 422,
+					Detail: "repeat: too high; concurrency: too low",
+				},
+			},
 		},
 		{
 			name:   "the platform's own refusal carries message",
 			status: 403,
 			body:   `{"code":403,"message":"Not allowed to replay this agent"}`,
-			want:   &ReplayError{Status: 403, Detail: "Not allowed to replay this agent"},
+			want: &ReplayError{
+				AgentError: AgentError{Status: 403, Detail: "Not allowed to replay this agent"},
+			},
 		},
 		{
 			name:   "plain text",
 			status: 401,
 			body:   "Unauthorized",
-			want:   &ReplayError{Status: 401, Detail: "Unauthorized"},
+			want:   &ReplayError{AgentError: AgentError{Status: 401, Detail: "Unauthorized"}},
 		},
 		{
 			name:   "non-JSON html",
 			status: 403,
 			body:   "<html>blocked</html>",
-			want:   &ReplayError{Status: 403, Detail: "<html>blocked</html>"},
+			want: &ReplayError{
+				AgentError: AgentError{Status: 403, Detail: "<html>blocked</html>"},
+			},
 		},
-		{name: "empty body", status: 502, body: "", want: &ReplayError{Status: 502}},
+		{
+			name:   "empty body",
+			status: 502,
+			body:   "",
+			want:   &ReplayError{AgentError: AgentError{Status: 502}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

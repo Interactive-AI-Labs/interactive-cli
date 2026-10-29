@@ -19,18 +19,24 @@ func TestRefusalError(t *testing.T) {
 	}{
 		{
 			name: "401 blames the login",
-			err:  &deployment.ReplayError{Status: 401, Detail: "Unauthorized"},
+			err: &deployment.ReplayError{
+				AgentError: deployment.AgentError{Status: 401, Detail: "Unauthorized"},
+			},
 			want: []string{"not authorized to replay agent-chat-dev", "logged in"},
 		},
 		{
-			name:     "401 on a local agent blames the key, not the login",
-			err:      &deployment.ReplayError{Status: 401, Detail: "Unauthorized"},
+			name: "401 on a local agent blames the key, not the login",
+			err: &deployment.ReplayError{
+				AgentError: deployment.AgentError{Status: 401, Detail: "Unauthorized"},
+			},
 			agentURL: "http://127.0.0.1:8080",
 			want:     []string{"the agent at http://127.0.0.1:8080 rejected --agent-api-key"},
 		},
 		{
 			name: "404 names the agent version",
-			err:  &deployment.ReplayError{Status: 404, Detail: "Not Found"},
+			err: &deployment.ReplayError{
+				AgentError: deployment.AgentError{Status: 404, Detail: "Not Found"},
+			},
 			want: []string{
 				"agent agent-chat-dev (0.15.1) does not support replay",
 				"0.15.0 or later",
@@ -39,8 +45,10 @@ func TestRefusalError(t *testing.T) {
 		{
 			name: "400 keeps the agent's wording and lists skipped items",
 			err: &deployment.ReplayError{
-				Status: 400,
-				Detail: "dataset 'x' holds no replayable scenario",
+				AgentError: deployment.AgentError{
+					Status: 400,
+					Detail: "dataset 'x' holds no replayable scenario",
+				},
 				Skipped: []deployment.ReplaySkipped{
 					{ID: "probe-1", Reason: "messages: Field required"},
 				},
@@ -53,8 +61,10 @@ func TestRefusalError(t *testing.T) {
 		{
 			name: "503 passes through verbatim",
 			err: &deployment.ReplayError{
-				Status: 503,
-				Detail: "Replay is not available — missing: platform client.",
+				AgentError: deployment.AgentError{
+					Status: 503,
+					Detail: "Replay is not available — missing: platform client.",
+				},
 			},
 			want: []string{
 				"agent returned 503: Replay is not available — missing: platform client.",
@@ -185,19 +195,25 @@ func TestWaitError(t *testing.T) {
 			wantHint: true,
 		},
 		{
-			name:     "a gateway failure in front of the agent may leave the run going",
-			waitErr:  &deployment.ReplayError{Status: 503, Detail: "Service Unavailable"},
+			name: "a gateway failure in front of the agent may leave the run going",
+			waitErr: &deployment.ReplayError{
+				AgentError: deployment.AgentError{Status: 503, Detail: "Service Unavailable"},
+			},
 			wantErr:  "Service Unavailable",
 			wantHint: true,
 		},
 		{
-			name:    "a run the agent does not know is not worth following",
-			waitErr: &deployment.ReplayError{Status: 404, Detail: "Run not found"},
+			name: "a run the agent does not know is not worth following",
+			waitErr: &deployment.ReplayError{
+				AgentError: deployment.AgentError{Status: 404, Detail: "Run not found"},
+			},
 			wantErr: "Run not found",
 		},
 		{
-			name:     "a rejected key is not worth following, and names the flag",
-			waitErr:  &deployment.ReplayError{Status: 401, Detail: "Unauthorized"},
+			name: "a rejected key is not worth following, and names the flag",
+			waitErr: &deployment.ReplayError{
+				AgentError: deployment.AgentError{Status: 401, Detail: "Unauthorized"},
+			},
 			agentURL: "http://127.0.0.1:8080",
 			wantErr:  "rejected --agent-api-key",
 		},
