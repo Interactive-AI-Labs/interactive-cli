@@ -213,11 +213,12 @@ func init() {
 			"Filter by object type (TRACE/OBSERVATION/SESSION/PROMPT)",
 		)
 	commentsListCmd.Flags().
-		StringVar(&commentsListObjectID, "object-id", "", "Filter by object ID")
+		StringVar(&commentsListObjectID, "object-id", "", "Filter by object ID; requires --object-type")
 	commentsListCmd.Flags().
 		StringVar(&commentsListAuthorUserID, "author-user-id", "", "Filter by author user ID")
 	commentsListCmd.Flags().IntVar(&commentsListPage, "page", 1, "Page number (starts at 1)")
 	commentsListCmd.Flags().IntVar(&commentsListLimit, "limit", 0, "Items per page (max 100)")
+	indexFlag(commentsListCmd, "object-id", "requires --object-type")
 	indexFlag(commentsListCmd, "limit", "max 100")
 	commentsListCmd.Flags().
 		StringSliceVar(&commentsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")

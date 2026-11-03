@@ -27,7 +27,7 @@ iai comments list [flags]
   -h, --help                    help for list
       --json                    Output raw API response as JSON
       --limit int               Items per page (max 100)
-      --object-id string        Filter by object ID
+      --object-id string        Filter by object ID; requires --object-type
       --object-type string      Filter by object type (TRACE/OBSERVATION/SESSION/PROMPT)
   -o, --organization string     Organization name that owns the project
       --page int                Page number (starts at 1) (default 1)
