@@ -210,7 +210,7 @@ func init() {
 	commentsListCmd.Flags().
 		StringVar(
 			&commentsListObjectType, "object-type", "",
-			"Filter by object type (TRACE/OBSERVATION/SESSION/PROMPT)",
+			"Filter by object type: TRACE|OBSERVATION|SESSION|PROMPT",
 		)
 	commentsListCmd.Flags().
 		StringVar(&commentsListObjectID, "object-id", "", "Filter by object ID; requires --object-type")
@@ -218,6 +218,7 @@ func init() {
 		StringVar(&commentsListAuthorUserID, "author-user-id", "", "Filter by author user ID")
 	commentsListCmd.Flags().IntVar(&commentsListPage, "page", 1, "Page number (starts at 1)")
 	commentsListCmd.Flags().IntVar(&commentsListLimit, "limit", 0, "Items per page (max 100)")
+	indexFlag(commentsListCmd, "object-type", "TRACE|OBSERVATION|SESSION|PROMPT")
 	indexFlag(commentsListCmd, "object-id", "requires --object-type")
 	indexFlag(commentsListCmd, "limit", "max 100")
 	commentsListCmd.Flags().
@@ -245,13 +246,14 @@ func init() {
 	commentsCreateCmd.Flags().
 		StringVar(
 			&commentsCreateObjectType, "object-type", "",
-			"Object type: TRACE, OBSERVATION, SESSION, or PROMPT (required)",
+			"Object type: TRACE|OBSERVATION|SESSION|PROMPT (required)",
 		)
 	commentsCreateCmd.Flags().
 		StringVar(&commentsCreateObjectID, "object-id", "", "Object ID (required)")
 	commentsCreateCmd.Flags().
 		StringVar(&commentsCreateContent, "content", "", "Comment content (required)")
 	_ = commentsCreateCmd.MarkFlagRequired("object-type")
+	indexFlag(commentsCreateCmd, "object-type", "TRACE|OBSERVATION|SESSION|PROMPT")
 	_ = commentsCreateCmd.MarkFlagRequired("object-id")
 	_ = commentsCreateCmd.MarkFlagRequired("content")
 	commentsCreateCmd.Flags().

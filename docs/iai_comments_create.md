@@ -28,7 +28,7 @@ iai comments create [flags]
   -h, --help                    help for create
       --json                    Output raw API response as JSON
       --object-id string        Object ID (required)
-      --object-type string      Object type: TRACE, OBSERVATION, SESSION, or PROMPT (required)
+      --object-type string      Object type: TRACE|OBSERVATION|SESSION|PROMPT (required)
   -o, --organization string     Organization name that owns the project
   -p, --project string          Project name
       --yaml                    Output raw API response as YAML
