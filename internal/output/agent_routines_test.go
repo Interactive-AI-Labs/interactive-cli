@@ -8,6 +8,7 @@ import (
 )
 
 func TestPrintAgentRoutineRun(t *testing.T) {
+	t.Setenv("TZ", "Europe/Madrid")
 	tests := []struct {
 		name string
 		run  deployment.AgentRoutineRun
@@ -22,7 +23,7 @@ func TestPrintAgentRoutineRun(t *testing.T) {
 				SessionID: "s1",
 				CreatedAt: "2026-11-09T10:00:00Z",
 			},
-			want: "Run:       run_1\nRoutine:   refund\nStatus:    accepted\nSession:   s1\nCreated:   2026-11-09T10:00:00Z\n",
+			want: "Run:       run_1\nRoutine:   refund\nStatus:    accepted\nSession:   s1\nCreated:   2026-11-09 11:00:00 CET\n",
 		},
 	}
 	for _, tt := range tests {
