@@ -34,15 +34,8 @@ var agentRoutineRunCmd = &cobra.Command{
 	Use:   "run <agent_name> <routine_id>",
 	Short: "Launch an existing autonomous routine",
 	Long: `Launch an existing autonomous routine and return its receipt without waiting
-for completion. The input is data for the routine, not a routine definition.
-
-The session is retained so you can inspect tool activity and output with
-'iai agents events list'. Session events do not report every final failure;
-the completion callback remains the authoritative outcome.
-
-A duplicate idempotency key prints the original receipt and exits with an error.
-No requests are automatically retried. Any session created before a failed or
-duplicate trigger remains available; its ID is printed to stderr.`,
+for completion. Inspect tool activity and output with 'iai agents events list'.
+Requests are not automatically retried.`,
 	Example: `  iai agents routines run my-agent billing/refund --input-file input.json --callback-url https://trusted.example/results
   iai agents routines run my-agent billing/refund --input-file input.json --callback-url https://trusted.example/results --session-id sess_123
   cat input.json | iai agents routines run my-agent billing/refund --input-file - --callback-url https://trusted.example/results --idempotency-key refund-order-123 --json`,
@@ -115,10 +108,14 @@ func init() {
 		&agentRoutineCallbackURL,
 		"callback-url",
 		"",
-		"Trusted HTTP(S) URL for the completion result; required by the agent, allowed by the routine, and receives the agent's bearer credential",
+		"Trusted HTTP(S) URL for the authoritative completion result; session events may omit final failures. Required by the agent, allowed by the routine, and receives the agent's bearer credential",
 	)
-	f.StringVar(&agentRoutineSessionID, "session-id", "",
-		"Use this existing session; when omitted, create a new retained session without a greeting")
+	f.StringVar(
+		&agentRoutineSessionID,
+		"session-id",
+		"",
+		"Use this existing session; when omitted, create a retained session without a greeting. Created sessions survive failed or duplicate triggers; their IDs go to stderr",
+	)
 	f.StringVar(
 		&agentRoutineIdempotencyKey,
 		"idempotency-key",

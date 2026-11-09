@@ -5,15 +5,8 @@ Launch an existing autonomous routine
 ### Synopsis
 
 Launch an existing autonomous routine and return its receipt without waiting
-for completion. The input is data for the routine, not a routine definition.
-
-The session is retained so you can inspect tool activity and output with
-'iai agents events list'. Session events do not report every final failure;
-the completion callback remains the authoritative outcome.
-
-A duplicate idempotency key prints the original receipt and exits with an error.
-No requests are automatically retried. Any session created before a failed or
-duplicate trigger remains available; its ID is printed to stderr.
+for completion. Inspect tool activity and output with 'iai agents events list'.
+Requests are not automatically retried.
 
 ```
 iai agents routines run <agent_name> <routine_id> [flags]
@@ -30,14 +23,14 @@ iai agents routines run <agent_name> <routine_id> [flags]
 ### Options
 
 ```
-      --callback-url string      Trusted HTTP(S) URL for the completion result; required by the agent, allowed by the routine, and receives the agent's bearer credential
+      --callback-url string      Trusted HTTP(S) URL for the authoritative completion result; session events may omit final failures. Required by the agent, allowed by the routine, and receives the agent's bearer credential
   -h, --help                     help for run
       --idempotency-key string   Key to prevent duplicate execution; duplicates print the existing run and exit with an error; deduplication does not survive agent restarts
       --input-file string        Routine input as a JSON object, from a file or stdin (-); not a routine definition
       --json                     Output raw receipt as JSON; session notices and follow instructions go to stderr
   -o, --organization string      Organization name
   -p, --project string           Project name
-      --session-id string        Use this existing session; when omitted, create a new retained session without a greeting
+      --session-id string        Use this existing session; when omitted, create a retained session without a greeting. Created sessions survive failed or duplicate triggers; their IDs go to stderr
       --yaml                     Output raw receipt as YAML; session notices and follow instructions go to stderr
 ```
 
