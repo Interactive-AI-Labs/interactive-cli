@@ -41,6 +41,7 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai agents replay](iai_agents_replay.md)	 - Test an agent by replaying recorded scenarios and report the verdict
 * [iai agents restart](iai_agents_restart.md)	 - Restart an agent in a project
 * [iai agents revisions](iai_agents_revisions.md)	 - List revisions of an agent
+* [iai agents routines](iai_agents_routines.md)	 - Execute autonomous routines on a deployed agent
 * [iai agents schema](iai_agents_schema.md)	 - Display the JSON Schema for agent configuration
 * [iai agents sessions](iai_agents_sessions.md)	 - Conversation sessions on an agent
 * [iai agents update](iai_agents_update.md)	 - Update an agent in a project
