@@ -86,6 +86,10 @@ Requests are not automatically retried.`,
 			output.RoutineFollowCommand(agentName, run.SessionID, pCtx.orgName, pCtx.projectName,
 				hostnameOverride(hostname, cmd.Flag("hostname").DefValue),
 				hostnameOverride(deploymentHostname, cmd.Flag("deployment-hostname").DefValue)))
+		fmt.Fprint(
+			cmd.ErrOrStderr(),
+			routineFollowAuthHint(apiKey, cmd.Flag("api-key").DefValue, token),
+		)
 		return triggerErr
 	},
 }
@@ -96,6 +100,13 @@ func hostnameOverride(value, defaultValue string) string {
 		return ""
 	}
 	return value
+}
+
+func routineFollowAuthHint(apiKey, defaultAPIKey, token string) string {
+	if token != "" || apiKey == defaultAPIKey {
+		return ""
+	}
+	return "Authentication: reuse your --api-key setting or set INTERACTIVE_API_KEY before following; the key is not included above.\n"
 }
 
 func init() {

@@ -2,6 +2,27 @@ package cmd
 
 import "testing"
 
+func TestRoutineFollowAuthHint(t *testing.T) {
+	const hint = "Authentication: reuse your --api-key setting or set INTERACTIVE_API_KEY before following; the key is not included above.\n"
+	tests := []struct {
+		name, apiKey, defaultAPIKey, token, want string
+	}{
+		{"login cookies", "", "", "", ""},
+		{"environment key", "environment-secret", "environment-secret", "", ""},
+		{"flag key", "flag-secret", "", "", hint},
+		{"override environment key", "flag-secret", "environment-secret", "", hint},
+		{"clear environment key", "", "environment-secret", "", hint},
+		{"bearer token takes precedence", "flag-secret", "environment-secret", "token-secret", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := routineFollowAuthHint(tt.apiKey, tt.defaultAPIKey, tt.token); got != tt.want {
+				t.Errorf("hint = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestHostnameOverride(t *testing.T) {
 	tests := []struct {
 		name, value, defaultValue, want string

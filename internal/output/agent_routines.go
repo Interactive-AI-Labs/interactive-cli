@@ -10,7 +10,7 @@ import (
 func PrintAgentRoutineRun(out io.Writer, run *deployment.AgentRoutineRun) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Run:\t%s\nRoutine:\t%s\nStatus:\t%s\nSession:\t%s\nCreated:\t%s\n",
-		run.RunID, run.RoutineID, run.Status, run.SessionID, run.CreatedAt)
+		run.RunID, run.RoutineID, run.Status, run.SessionID, LocalTime(run.CreatedAt))
 	return w.Flush()
 }
 
