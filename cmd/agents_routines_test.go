@@ -3,7 +3,7 @@ package cmd
 import "testing"
 
 func TestRoutineFollowAuthHint(t *testing.T) {
-	const hint = "Authentication: reuse your --api-key setting or set INTERACTIVE_API_KEY before following; the key is not included above.\n"
+	const hint = "Authentication: reuse the same --api-key argument when following; it is omitted above.\n"
 	tests := []struct {
 		name, apiKey, defaultAPIKey, token, want string
 	}{

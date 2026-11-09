@@ -106,7 +106,7 @@ func routineFollowAuthHint(apiKey, defaultAPIKey, token string) string {
 	if token != "" || apiKey == defaultAPIKey {
 		return ""
 	}
-	return "Authentication: reuse your --api-key setting or set INTERACTIVE_API_KEY before following; the key is not included above.\n"
+	return "Authentication: reuse the same --api-key argument when following; it is omitted above.\n"
 }
 
 func init() {
