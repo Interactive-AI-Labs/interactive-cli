@@ -39,10 +39,13 @@ var (
 	agentScheduleDowntime string
 	agentScheduleTimezone string
 
-	agentClearSchedule bool
-	agentClearEnv      bool
-	agentClearSecret   bool
-	agentClearStackId  bool
+	agentClearSchedule       bool
+	agentClearEnv            bool
+	agentClearSecret         bool
+	agentClearStackId        bool
+	agentClearAllowedDomains bool
+
+	agentAllowedDomains []string
 
 	agentExpectRevision int
 	agentShowDiff       bool
@@ -132,6 +135,7 @@ Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.`,
 			ScheduleTimezone: agentScheduleTimezone,
 			StackId:          agentStackId,
 			McpRefs:          mcpRefs,
+			AllowedDomains:   agentAllowedDomains,
 		})
 		if err != nil {
 			return err
@@ -185,8 +189,8 @@ For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
 alongside either to change the timezone.
 
-Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
-remove those configurations entirely.
+Use --clear-env, --clear-secret, --clear-schedule, --clear-stack-id, or
+--clear-allowed-domains to remove those configurations entirely.
 
 --description, --icon and --color set the agent's identity, as Edit Agent →
 Identity does in the platform.
@@ -257,7 +261,8 @@ config diff.`,
 			Color:            agentColor,
 			McpRefs:          mcpRefs,
 			DetachMcpNames:   agentDetachMcpNames,
-		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, cmd.Flags().Changed)
+			AllowedDomains:   agentAllowedDomains,
+		}, agentClearEnv, agentClearSecret, agentClearSchedule, agentClearStackId, agentClearAllowedDomains, cmd.Flags().Changed)
 		if err != nil {
 			return err
 		}
@@ -1062,6 +1067,8 @@ func init() {
 		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp")
 	agentCreateCmd.Flags().
 		StringVar(&agentMcpEndpoint, "mcp-endpoint", "", "Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp")
+	agentCreateCmd.Flags().
+		StringArrayVar(&agentAllowedDomains, "allowed-domain", nil, "Domain the agent can connect to (HTTPS only), e.g. github.com; repeat for each one. Subdomains are not included. Only a signed-in user can set it, not an API key")
 	_ = agentCreateCmd.MarkFlagRequired("id")
 	_ = agentCreateCmd.MarkFlagRequired("version")
 	_ = agentCreateCmd.MarkFlagRequired("file")
@@ -1100,6 +1107,10 @@ func init() {
 	agentUpdateCmd.Flags().
 		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
 	agentUpdateCmd.Flags().
+		StringArrayVar(&agentAllowedDomains, "allowed-domain", nil, "Replaces the domains the agent can connect to (HTTPS only), e.g. github.com; repeat for every domain to keep. Subdomains are not included. Only a signed-in user can change them, not an API key")
+	agentUpdateCmd.Flags().
+		BoolVar(&agentClearAllowedDomains, "clear-allowed-domains", false, "Go back to the default domains for this environment")
+	agentUpdateCmd.Flags().
 		StringVar(&agentDescription, "description", "", "Description shown for the agent in the platform; pass an empty value to clear it")
 	agentUpdateCmd.Flags().
 		StringVar(&agentIcon, "icon", "", "Avatar icon: "+strings.Join(inputs.AgentIcons, ", ")+"; keeps the current color, and an agent without an avatar needs --color too")
@@ -1122,6 +1133,7 @@ func init() {
 		BoolVar(&agentForce, "force", false, "Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs")
 	indexFlag(agentUpdateCmd, "env", "replaces")
 	indexFlag(agentUpdateCmd, "secret", "replaces")
+	indexFlag(agentUpdateCmd, "allowed-domain", "replaces")
 
 	// Flags for "agents list"
 	agentListCmd.Flags().

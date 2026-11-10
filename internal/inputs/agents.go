@@ -29,6 +29,8 @@ type AgentInput struct {
 	Icon        string
 	Color       string
 
+	AllowedDomains []string // domains the agent can connect to
+
 	McpRefs        []McpRef // the one attachment --mcp asks for, resolved from the mcp's release at deploy time
 	DetachMcpNames []string // removed before McpRefs are (re-)injected
 }
@@ -302,6 +304,10 @@ func BuildAgentRequestBody(in AgentInput) (deployment.CreateAgentBody, error) {
 		StackId:     in.StackId,
 	}
 
+	if in.AllowedDomains != nil {
+		reqBody.AllowedDomains = &in.AllowedDomains
+	}
+
 	if in.ScheduleUptime != "" || in.ScheduleDowntime != "" || in.ScheduleTimezone != "" {
 		reqBody.Schedule = &deployment.Schedule{
 			Uptime:   in.ScheduleUptime,
@@ -329,6 +335,7 @@ var AgentUpdateFlags = struct {
 	Description      string
 	Icon             string
 	Color            string
+	AllowedDomain    string
 }{
 	Id:               "id",
 	Version:          "version",
@@ -343,6 +350,7 @@ var AgentUpdateFlags = struct {
 	Description:      "description",
 	Icon:             "icon",
 	Color:            "color",
+	AllowedDomain:    "allowed-domain",
 }
 
 // AgentIcons and AgentColors mirror the avatar palette the platform offers
@@ -361,7 +369,7 @@ var (
 // name was provided on the command line (typically cmd.Flags().Changed).
 func BuildAgentUpdatePatch(
 	in AgentInput,
-	clearEnv, clearSecret, clearSchedule, clearStackId bool,
+	clearEnv, clearSecret, clearSchedule, clearStackId, clearAllowedDomains bool,
 	changed func(string) bool,
 ) (deployment.UpdatePatch, error) {
 	f := AgentUpdateFlags
@@ -434,6 +442,14 @@ func BuildAgentUpdatePatch(
 	}
 	if err := setAppearancePatch(
 		patch, in.Icon, changed(f.Icon), in.Color, changed(f.Color),
+	); err != nil {
+		return nil, err
+	}
+	if err := setAllowedDomainsPatch(
+		patch,
+		in.AllowedDomains,
+		changed(f.AllowedDomain),
+		clearAllowedDomains,
 	); err != nil {
 		return nil, err
 	}

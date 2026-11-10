@@ -27,8 +27,8 @@ For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
 alongside either to change the timezone.
 
-Use --clear-env, --clear-secret, --clear-schedule, or --clear-stack-id to
-remove those configurations entirely.
+Use --clear-env, --clear-secret, --clear-schedule, --clear-stack-id, or
+--clear-allowed-domains to remove those configurations entirely.
 
 --description, --icon and --color set the agent's identity, as Edit Agent →
 Identity does in the platform.
@@ -74,33 +74,35 @@ iai agents update <agent_name> [flags]
 ### Options
 
 ```
-      --clear-env                  Remove all environment variables from the agent
-      --clear-schedule             Remove the schedule configuration from the agent
-      --clear-secret               Remove all secret references from the agent
-      --clear-stack-id             Remove the agent from its stack
-      --color string               Avatar color: slate, ember, honey, zest, lagoon, sky, twilight, sunny, moonrise, sunset, tropicana; keeps the current icon, and an agent without an avatar needs --icon too
-      --description string         Description shown for the agent in the platform; pass an empty value to clear it
-      --detach-mcp stringArray     Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it
-      --endpoint                   Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
-      --env stringArray            Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
-      --expect-revision int        Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)
-      --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
-      --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
-  -h, --help                       help for update
-      --icon string                Avatar icon: rounded, boxy; keeps the current color, and an agent without an avatar needs --color too
-      --id string                  Agent type from the marketplace (e.g. interactive-agent)
-      --mcp stringArray            Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them
-      --mcp-endpoint string        Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
-      --mcp-id string              Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name; pass its name to go back to that), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
-  -o, --organization string        Organization name
-  -p, --project string             Project name
-      --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
-      --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
-      --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
-      --secret stringArray         Replaces the secret references; repeat for every entry to keep; dropping entries requires --force
-      --show-diff                  Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp
-      --stack-id string            Stack ID to assign the agent to
-      --version string             Agent image version to deploy (e.g. 0.0.1)
+      --allowed-domain stringArray   Replaces the domains the agent can connect to (HTTPS only), e.g. github.com; repeat for every domain to keep. Subdomains are not included. Only a signed-in user can change them, not an API key
+      --clear-allowed-domains        Go back to the default domains for this environment
+      --clear-env                    Remove all environment variables from the agent
+      --clear-schedule               Remove the schedule configuration from the agent
+      --clear-secret                 Remove all secret references from the agent
+      --clear-stack-id               Remove the agent from its stack
+      --color string                 Avatar color: slate, ember, honey, zest, lagoon, sky, twilight, sunny, moonrise, sunset, tropicana; keeps the current icon, and an agent without an avatar needs --icon too
+      --description string           Description shown for the agent in the platform; pass an empty value to clear it
+      --detach-mcp stringArray       Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it
+      --endpoint                     Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
+      --env stringArray              Replaces the environment variables (NAME=VALUE); repeat for every entry to keep; dropping entries requires --force
+      --expect-revision int          Fail without applying unless the live revision equals this value; 0 is valid and matches a never-updated agent (opt-in staleness guard)
+      --file string                  Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
+      --force                        Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
+  -h, --help                         help for update
+      --icon string                  Avatar icon: rounded, boxy; keeps the current color, and an agent without an avatar needs --color too
+      --id string                    Agent type from the marketplace (e.g. interactive-agent)
+      --mcp stringArray              Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them
+      --mcp-endpoint string          Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
+      --mcp-id string                Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name; pass its name to go back to that), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
+  -o, --organization string          Organization name
+  -p, --project string               Project name
+      --schedule-downtime string     When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
+      --schedule-timezone string     IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
+      --schedule-uptime string       When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
+      --secret stringArray           Replaces the secret references; repeat for every entry to keep; dropping entries requires --force
+      --show-diff                    Print a live-vs-incoming agent config diff to stderr before applying; requires --file, --mcp, or --detach-mcp
+      --stack-id string              Stack ID to assign the agent to
+      --version string               Agent image version to deploy (e.g. 0.0.1)
 ```
 
 ### Options inherited from parent commands

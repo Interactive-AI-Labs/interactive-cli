@@ -49,6 +49,7 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 		fmt.Fprintf(w, "Updated:\t%s\n", LocalTime(agent.Updated))
 	}
 	printEndpoint(w, agent.Endpoint)
+	printAllowedDomains(w, agent.AllowedDomains)
 	if len(agent.Env) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
@@ -94,6 +95,18 @@ func PrintAgentDescribe(out io.Writer, agent *deployment.DescribeAgentResponse) 
 	return w.Flush()
 }
 
+// printAllowedDomains prints the agent's own allowed domains; nothing when it uses the environment default.
+func printAllowedDomains(w io.Writer, hosts *[]string) {
+	if hosts == nil {
+		return
+	}
+	list := "platform only"
+	if len(*hosts) > 0 {
+		list = strings.Join(*hosts, ", ")
+	}
+	fmt.Fprintf(w, "Allowed domains:\t%s\n", list)
+}
+
 func printAgentIdentity(w io.Writer, description string, appearance *deployment.AgentAppearance) {
 	if description != "" {
 		fmt.Fprintf(w, "Description:\t%s\n", description)
@@ -120,6 +133,7 @@ func PrintAgentRevision(out io.Writer, rev *deployment.AgentRevisionResponse) er
 	fmt.Fprintf(w, "Version:\t%s\n", rev.Version)
 
 	printEndpoint(w, rev.Endpoint)
+	printAllowedDomains(w, rev.AllowedDomains)
 	if len(rev.Env) > 0 {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "Environment:")
