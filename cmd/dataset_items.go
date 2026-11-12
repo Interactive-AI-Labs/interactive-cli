@@ -175,7 +175,7 @@ var datasetItemsCreateCmd = &cobra.Command{
 	Long:  `Create or upsert an item in a dataset.`,
 	Example: `  iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}'
   iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}' --expected-output '{"answer":"4"}'
-  iai dataset-items create --dataset-name my-dataset --id item-123 --input '{"q":"hi"}' --metadata-json '{"source":"manual"}' --status ACTIVE
+  iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --metadata-json '{"source":"manual"}'
   iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --source-trace-id trace-123 --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -303,7 +303,7 @@ func init() {
 		StringVarP(&datasetItemsGetProject, "project", "p", "", "Project name")
 
 	datasetItemsCreateCmd.Flags().
-		StringVar(&datasetItemsCreateID, "id", "", "Explicit item ID (for upsert)")
+		StringVar(&datasetItemsCreateID, "id", "", "Explicit item ID (for upsert); API key only, a login session is refused")
 	datasetItemsCreateCmd.Flags().
 		StringVar(&datasetItemsCreateDatasetName, "dataset-name", "", "Dataset name (required)")
 	_ = datasetItemsCreateCmd.MarkFlagRequired("dataset-name")
@@ -324,7 +324,7 @@ func init() {
 			"Source observation ID",
 		)
 	datasetItemsCreateCmd.Flags().
-		StringVar(&datasetItemsCreateStatus, "status", "", "Item status (ACTIVE/ARCHIVED)")
+		StringVar(&datasetItemsCreateStatus, "status", "", "Item status (ACTIVE/ARCHIVED); API key only, a login session is refused")
 	datasetItemsCreateCmd.Flags().
 		BoolVar(&datasetItemsCreateJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsCreateCmd.Flags().
@@ -347,4 +347,6 @@ func init() {
 		datasetItemsDeleteCmd,
 	)
 	rootCmd.AddCommand(datasetItemsCmd)
+	indexFlag(datasetItemsCreateCmd, "id", "API key only")
+	indexFlag(datasetItemsCreateCmd, "status", "API key only")
 }

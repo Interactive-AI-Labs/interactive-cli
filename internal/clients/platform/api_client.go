@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -241,7 +242,11 @@ func (c *APIClient) GetOrgIdByName(ctx context.Context, name string) (string, er
 	}
 
 	if len(matched) == 0 {
-		return "", fmt.Errorf("organization %q not found", name)
+		names := make([]string, len(orgs))
+		for i, org := range orgs {
+			names[i] = org.Name
+		}
+		return "", notFound("organization", name, names)
 	}
 	if len(matched) > 1 {
 		return "", fmt.Errorf("organization name %q is ambiguous; please use a unique name", name)
@@ -346,7 +351,11 @@ func (c *APIClient) GetProjectByName(
 	}
 
 	if len(matched) == 0 {
-		return "", fmt.Errorf("project %q not found", projectName)
+		names := make([]string, len(projects))
+		for i, proj := range projects {
+			names[i] = proj.Name
+		}
+		return "", notFound("project", projectName, names)
 	}
 	if len(matched) > 1 {
 		return "", fmt.Errorf("project name %q is ambiguous; please use a unique name", projectName)
@@ -1632,4 +1641,14 @@ func (c *APIClient) listPromptVersionNumbers(
 	}
 
 	return nil, nil
+}
+
+// notFound lists the existing names so the caller can retry with a real one.
+func notFound(kind, name string, names []string) error {
+	sort.Strings(names)
+	// ponytail: first 20 alphabetically; rank by similarity if lists grow.
+	if len(names) > 20 {
+		names = append(names[:20], "…")
+	}
+	return fmt.Errorf("%s %q not found; existing: %s", kind, name, strings.Join(names, ", "))
 }

@@ -103,6 +103,12 @@ func TestCommandIndex(t *testing.T) {
 			c.MarkFlagsMutuallyExclusive("a", "old")
 			c.MarkFlagsMutuallyExclusive("summary", "columns")
 		}, "get [--a --summary]"},
+		{"get", func(c *cobra.Command) {
+			for _, name := range []string{"script", "pyproject", "env"} {
+				c.Flags().String(name, "", "")
+			}
+			c.MarkFlagsRequiredTogether("script", "pyproject")
+		}, "get [(--pyproject and --script together) --env]"},
 	}
 	for _, tt := range tests {
 		root, leaf := indexFixture(tt.leaf)
@@ -280,4 +286,20 @@ func hasJSONLeaf(c *cobra.Command) bool {
 		}
 	}
 	return false
+}
+
+// The header says --env and --data take NAME=VALUE; every such flag's help must agree.
+func TestIndexHeaderKeyValueFlagsHold(t *testing.T) {
+	var walk func(c *cobra.Command)
+	walk = func(c *cobra.Command) {
+		for _, name := range []string{"env", "data"} {
+			if f := c.LocalFlags().Lookup(name); f != nil && !strings.Contains(f.Usage, "=VALUE") {
+				t.Errorf("%s --%s: help doesn't say =VALUE: %q", c.CommandPath(), name, f.Usage)
+			}
+		}
+		for _, child := range c.Commands() {
+			walk(child)
+		}
+	}
+	walk(rootCmd)
 }
