@@ -138,7 +138,7 @@ agents:
     agentConfig:
       context:
         description:
-          prompt_id: camille-system-prompt
+          id: camille-system-prompt
           version: 1
 
         language: french
@@ -216,7 +216,7 @@ agents:
     agentConfig:
       context:
         description:
-          prompt_id: camille-email-system-prompt
+          id: camille-email-system-prompt
           version: 1
 
         language: french
