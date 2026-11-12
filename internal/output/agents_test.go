@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
@@ -412,5 +413,47 @@ func TestPrintAgentVersions(t *testing.T) {
 				t.Errorf("output mismatch\ngot:\n%q\nwant:\n%q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPrintAgentAllowedDomains(t *testing.T) {
+	tests := []struct {
+		name     string
+		hosts    *[]string
+		want     string
+		wantNone bool
+	}{
+		{name: "environment default prints nothing", hosts: nil, wantNone: true},
+		{
+			name:  "own list",
+			hosts: &[]string{"pypi.org", "github.com"},
+			want:  "pypi.org, github.com",
+		},
+		{name: "empty own list", hosts: &[]string{}, want: "platform only"},
+	}
+	for _, tt := range tests {
+		for view, print := range map[string]func(*bytes.Buffer) error{
+			"describe": func(buf *bytes.Buffer) error {
+				return PrintAgentDescribe(buf, &deployment.DescribeAgentResponse{Name: "a", Id: "interactive-agent", Version: "0.1.0", AllowedDomains: tt.hosts})
+			},
+			"revision": func(buf *bytes.Buffer) error {
+				return PrintAgentRevision(buf, &deployment.AgentRevisionResponse{Id: "interactive-agent", Version: "0.1.0", AllowedDomains: tt.hosts})
+			},
+		} {
+			t.Run(tt.name+"/"+view, func(t *testing.T) {
+				var buf bytes.Buffer
+				if err := print(&buf); err != nil {
+					t.Fatal(err)
+				}
+				out := buf.String()
+				if tt.wantNone && strings.Contains(out, "Allowed domains") {
+					t.Fatalf("unexpected Allowed domains line:\n%s", out)
+				}
+				if !tt.wantNone &&
+					(!strings.Contains(out, "Allowed domains:") || !strings.Contains(out, tt.want)) {
+					t.Fatalf("want %q in:\n%s", tt.want, out)
+				}
+			})
+		}
 	}
 }

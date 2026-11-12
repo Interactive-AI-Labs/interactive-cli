@@ -1341,16 +1341,17 @@ type revisionsResponse struct {
 
 type AgentRevisionResponse struct {
 	RevisionMeta
-	Id          string           `json:"id"`
-	Version     string           `json:"version"`
-	Description string           `json:"description,omitempty"`
-	Appearance  *AgentAppearance `json:"appearance,omitempty"`
-	AgentConfig any              `json:"agentConfig"`
-	SecretRefs  []SecretRef      `json:"secretRefs,omitempty"`
-	Endpoint    *Endpoint        `json:"endpoint,omitempty"`
-	Schedule    *Schedule        `json:"schedule,omitempty"`
-	Env         []EnvVar         `json:"env,omitempty"`
-	StackId     string           `json:"stackId,omitempty"`
+	Id             string           `json:"id"`
+	Version        string           `json:"version"`
+	Description    string           `json:"description,omitempty"`
+	Appearance     *AgentAppearance `json:"appearance,omitempty"`
+	AgentConfig    any              `json:"agentConfig"`
+	SecretRefs     []SecretRef      `json:"secretRefs,omitempty"`
+	Endpoint       *Endpoint        `json:"endpoint,omitempty"`
+	Schedule       *Schedule        `json:"schedule,omitempty"`
+	Env            []EnvVar         `json:"env,omitempty"`
+	StackId        string           `json:"stackId,omitempty"`
+	AllowedDomains *[]string        `json:"allowedDomains,omitempty"`
 }
 
 type ServiceRevisionResponse struct {
@@ -1377,6 +1378,8 @@ type CreateAgentBody struct {
 	Schedule    *Schedule   `json:"schedule,omitempty"`
 	Env         []EnvVar    `json:"env,omitempty"`
 	StackId     string      `json:"stackId,omitempty"`
+	// Domains the agent can connect to; omitted keeps the stored list on PUT.
+	AllowedDomains *[]string `json:"allowedDomains,omitempty"`
 }
 
 type AgentOutput struct {
@@ -1404,6 +1407,8 @@ type DescribeAgentResponse struct {
 	Schedule    *Schedule        `json:"schedule,omitempty"`
 	Env         []EnvVar         `json:"env,omitempty"`
 	StackId     string           `json:"stackId,omitempty"`
+	// The agent's own allowed domains; nil when it uses the environment default.
+	AllowedDomains *[]string `json:"allowedDomains,omitempty"`
 }
 
 // AgentAppearance is the agent's avatar: icon and colour keys from the platform palette.
