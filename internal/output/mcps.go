@@ -1,6 +1,8 @@
 package output
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -235,4 +237,44 @@ func PrintMcpCatalogVersions(out io.Writer, imageId string, versions []string) e
 	}
 
 	return PrintTable(out, headers, rows)
+}
+
+// McpToolFailure is run-tool's error. The tool's own text follows the class, which alone is
+// often just "unknown"; that text comes from the MCP server, so it is made safe to print.
+func McpToolFailure(mcpName, tool string, res platform.McpToolCallData) error {
+	reason := res.Status
+	if res.ErrorClass != nil {
+		reason = *res.ErrorClass
+	}
+	msg := fmt.Sprintf("mcp %q tool %q returned an error: %s", mcpName, tool, reason)
+	if text := toolResultText(res.Result); text != "" {
+		msg += ": " + text
+	}
+	return errors.New(msg)
+}
+
+// toolResultText keeps the lines of a CallToolResult's text blocks and no other control characters.
+func toolResultText(result json.RawMessage) string {
+	var parsed struct {
+		Content []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		} `json:"content"`
+	}
+	if json.Unmarshal(result, &parsed) != nil {
+		return ""
+	}
+	var lines []string
+	for _, block := range parsed.Content {
+		if block.Type != "text" {
+			continue
+		}
+		for _, line := range strings.Split(block.Text, "\n") {
+			line = Printable(strings.ReplaceAll(strings.TrimSpace(line), "\t", " "))
+			if line != "" {
+				lines = append(lines, line)
+			}
+		}
+	}
+	return strings.Join(lines, "\n")
 }

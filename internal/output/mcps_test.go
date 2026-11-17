@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -590,6 +591,73 @@ func TestPrintMcpCatalogVersions(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.want, buf.String()); diff != "" {
 				t.Fatal(diff)
+			}
+		})
+	}
+}
+
+func TestMcpToolFailure(t *testing.T) {
+	unknown := "unknown"
+	tests := []struct {
+		name   string
+		status string
+		class  *string
+		result string
+		want   string
+	}{
+		{
+			name:   "the tool's text follows the class, line by line",
+			status: "error",
+			class:  &unknown,
+			result: `{"content":[{"type":"text","text":"Error fetching balance: Something went wrong.\nRequest ID: b8ca"}],"isError":true}`,
+			want:   "mcp \"higgsfield\" tool \"balance\" returned an error: unknown: Error fetching balance: Something went wrong.\nRequest ID: b8ca",
+		},
+		{
+			name:   "text blocks are joined, other blocks and blank lines skipped",
+			status: "error",
+			class:  &unknown,
+			result: `{"content":[{"type":"text","text":" model is required \n\n"},{"type":"image","data":"AAAA"},{"type":"text","text":"count must be 1-4"},{"type":"text","text":"  "}]}`,
+			want:   "mcp \"higgsfield\" tool \"balance\" returned an error: unknown: model is required\ncount must be 1-4",
+		},
+		{
+			name:   "terminal control characters from the server are replaced",
+			status: "error",
+			class:  &unknown,
+			result: `{"content":[{"type":"text","text":"wipe\u001b[2J\u001b[Hscreen\r\nforge\rspoofed\tcolumn\u0085next"}]}`,
+			want:   "mcp \"higgsfield\" tool \"balance\" returned an error: unknown: wipe�[2J�[Hscreen\nforge�spoofed column�next",
+		},
+		{
+			name:   "no result keeps the bare class",
+			status: "error",
+			class:  &unknown,
+			want:   "mcp \"higgsfield\" tool \"balance\" returned an error: unknown",
+		},
+		{
+			name:   "a result that is not a tool result keeps the bare class",
+			status: "error",
+			class:  &unknown,
+			result: `"upstream said no"`,
+			want:   "mcp \"higgsfield\" tool \"balance\" returned an error: unknown",
+		},
+		{
+			name:   "no class falls back to the status",
+			status: "timeout",
+			result: `{"content":[]}`,
+			want:   "mcp \"higgsfield\" tool \"balance\" returned an error: timeout",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := platform.McpToolCallData{
+				Status:     tt.status,
+				ErrorClass: tt.class,
+				Result:     json.RawMessage(tt.result),
+			}
+			if diff := cmp.Diff(
+				tt.want,
+				McpToolFailure("higgsfield", "balance", res).Error(),
+			); diff != "" {
+				t.Errorf("failure mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

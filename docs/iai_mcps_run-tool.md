@@ -7,8 +7,8 @@ Run a tool on an mcp
 Call one of an mcp's tools and print the result.
 
 Pass arguments as a JSON object with --args or --args-file (mutually exclusive);
-omit both to send an empty object. If the tool itself returns an error, it is
-reported and the command exits non-zero.
+omit both to send an empty object. If the tool itself returns an error, its
+message is printed after the error class and the command exits non-zero.
 
 ```
 iai mcps run-tool <mcp_name> <tool_name> [flags]
