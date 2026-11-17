@@ -17,7 +17,7 @@ iai router models list [flags]
   iai router models list -o my-org -p my-project
   iai router models list --page 1 --limit 10
   iai router models list --search claude
-  iai router models list --region eu
+  iai router models list --region global
   iai router models list --json
   iai router models list --yaml
 ```
@@ -31,7 +31,7 @@ iai router models list [flags]
   -o, --organization string   Organization name that owns the project
       --page int              Page number (0-indexed)
   -p, --project string        Project name
-      --region string         Filter by region (us|eu)
+      --region string         Filter by region (global|eu)
       --search string         Search filter
       --yaml                  Output response as YAML
 ```
