@@ -43,21 +43,20 @@ var modelsListCmd = &cobra.Command{
   iai router models list -o my-org -p my-project
   iai router models list --page 1 --limit 10
   iai router models list --search claude
-  iai router models list --region eu
+  iai router models list --region global
   iai router models list --json
   iai router models list --yaml`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		opts := platform.RouterModelListOptions{
+		opts, err := inputs.PrepareRouterModelListOptions(platform.RouterModelListOptions{
 			Page:   modelsListPage,
 			Limit:  modelsListLimit,
 			Search: modelsListSearch,
 			Region: modelsListRegion,
-		}
-
-		if err := inputs.ValidateRouterModelListOptions(opts); err != nil {
+		})
+		if err != nil {
 			return err
 		}
 
@@ -134,7 +133,7 @@ func init() {
 	modelsListCmd.Flags().IntVar(&modelsListLimit, "limit", 50, "Items per page (max 100)")
 	indexFlag(modelsListCmd, "limit", "max 100")
 	modelsListCmd.Flags().StringVar(&modelsListSearch, "search", "", "Search filter")
-	modelsListCmd.Flags().StringVar(&modelsListRegion, "region", "", "Filter by region (us|eu)")
+	modelsListCmd.Flags().StringVar(&modelsListRegion, "region", "", "Filter by region (global|eu)")
 	modelsListCmd.Flags().
 		BoolVar(&modelsListJSON, "json", false, "Output response as JSON")
 	modelsListCmd.Flags().
