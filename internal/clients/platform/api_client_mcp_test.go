@@ -438,3 +438,51 @@ func TestDecodeMcpDetailEnvAndSecretRefs(t *testing.T) {
 		})
 	}
 }
+
+func TestMcpToolCallFailure(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want string
+	}{
+		{
+			name: "a tool's error text is quoted after its class",
+			data: `{"tool":"balance","status":"error","error_class":"unknown","result":{"content":[{"type":"text","text":"Error fetching balance: Something went wrong.\nRequest ID: b8ca"}],"isError":true}}`,
+			want: "mcp \"higgsfield\" tool \"balance\" returned an error: unknown: Error fetching balance: Something went wrong.\nRequest ID: b8ca",
+		},
+		{
+			name: "every text block is kept and other blocks are skipped",
+			data: `{"status":"error","error_class":"invalid_arguments","result":{"content":[{"type":"text","text":" model is required "},{"type":"image","data":"AAAA"},{"type":"text","text":"count must be 1-4"},{"type":"text","text":"  "}]}}`,
+			want: "mcp \"higgsfield\" tool \"balance\" returned an error: invalid_arguments: model is required\ncount must be 1-4",
+		},
+		{
+			name: "no result keeps the bare class",
+			data: `{"status":"error","error_class":"unreachable"}`,
+			want: "mcp \"higgsfield\" tool \"balance\" returned an error: unreachable",
+		},
+		{
+			name: "a result that is not a tool result keeps the bare class",
+			data: `{"status":"error","error_class":"unknown","result":"upstream said no"}`,
+			want: "mcp \"higgsfield\" tool \"balance\" returned an error: unknown",
+		},
+		{
+			name: "no class falls back to the status",
+			data: `{"status":"timeout","result":{"content":[]}}`,
+			want: "mcp \"higgsfield\" tool \"balance\" returned an error: timeout",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := decodeSuccess[McpToolCallData](
+				[]byte(`{"success":true,"data":`+tt.data+`}`),
+				"run mcp tool",
+			)
+			if err != nil {
+				t.Fatalf("decodeSuccess() error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, res.Failure("higgsfield", "balance").Error()); diff != "" {
+				t.Errorf("failure mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
