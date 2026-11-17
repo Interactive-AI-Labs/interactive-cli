@@ -22,13 +22,19 @@ func PrintRouterModelList(
 		return nil
 	}
 
-	headers := []string{"NAME", "CONTEXT", "REGION", "RECOMMENDED", "ID"}
+	headers := []string{"NAME", "DEVELOPER", "PROVIDERS", "CONTEXT", "REGION", "RECOMMENDED", "ID"}
 	rows := make([][]string, len(models))
 	for i, m := range models {
+		providers := "-"
+		if len(m.ProviderNames) > 0 {
+			providers = strconv.Itoa(len(m.ProviderNames))
+		}
 		rows[i] = []string{
 			m.ModelName,
+			cmp.Or(m.Developer, m.EndpointProvider, "-"),
+			providers,
 			formatInt(m.ContextLength),
-			m.Region,
+			routerModelRegionName(m.Region),
 			formatRecommendations(m.Recommendations),
 			m.ID,
 		}

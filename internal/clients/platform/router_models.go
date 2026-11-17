@@ -21,20 +21,20 @@ const (
 type RouterModel struct {
 	ID            string `json:"id"`
 	ModelName     string `json:"modelName"`
-	MarketingName string `json:"marketingName,omitempty"`
-	Developer     string `json:"developer,omitempty"`
-	// EndpointProvider is the deprecated name of Developer, still the only one older backends send.
-	EndpointProvider string             `json:"endpointProvider,omitempty"`
-	Description      string             `json:"description,omitempty"`
-	ContextLength    *int               `json:"contextLength,omitempty"`
+	MarketingName string `json:"marketingName"`
+	Developer     string `json:"developer"`
+	// Backends older than the developer field send the developer only here.
+	EndpointProvider string             `json:"endpointProvider"`
+	Description      string             `json:"description"`
+	ContextLength    *int               `json:"contextLength"`
 	Capabilities     []string           `json:"capabilities"`
 	Prices           map[string]float64 `json:"prices"`
-	TokenizerID      string             `json:"tokenizerId,omitempty"`
-	TokenizerConfig  json.RawMessage    `json:"tokenizerConfig,omitempty"`
-	CreatedAt        string             `json:"createdAt,omitempty"`
+	TokenizerID      string             `json:"tokenizerId"`
+	CreatedAt        string             `json:"createdAt"`
 	Region           string             `json:"region"`
 	HasOtherRegion   bool               `json:"hasOtherRegion"`
-	Recommendations  map[string]int     `json:"recommendations,omitempty"`
+	Recommendations  map[string]int     `json:"recommendations"`
+	ProviderNames    []string           `json:"providerNames"`
 }
 
 type RouterModelProvider struct {
@@ -68,52 +68,59 @@ type RouterModelListOptions struct {
 }
 
 type routerModelListData struct {
-	Models     []RouterModel `json:"models"`
-	TotalCount int           `json:"totalCount"`
+	Models     json.RawMessage `json:"models"`
+	TotalCount int             `json:"totalCount"`
 }
 
-// ListRouterModels lists router models for a project. This endpoint is
-// 0-indexed and returns only a totalCount, so we synthesize a PageMeta (with a
-// 1-indexed Page) to match the shape of the eval-scoped list endpoints.
 func (c *APIClient) ListRouterModels(
 	ctx context.Context,
 	projectID string,
 	opts RouterModelListOptions,
-) ([]RouterModel, PageMeta, error) {
+) ([]RouterModel, PageMeta, json.RawMessage, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, "/api/v1/models/router-models")
 	if err != nil {
-		return nil, PageMeta{}, fmt.Errorf("failed to create request: %w", err)
+		return nil, PageMeta{}, nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	q, err := query.Values(opts)
 	if err != nil {
-		return nil, PageMeta{}, fmt.Errorf("failed to encode query parameters: %w", err)
+		return nil, PageMeta{}, nil, fmt.Errorf("failed to encode query parameters: %w", err)
 	}
 	q.Set("projectId", projectID)
 	req.URL.RawQuery = q.Encode()
 
 	body, err := c.doAndRead(req, "list router models")
 	if err != nil {
-		return nil, PageMeta{}, err
+		return nil, PageMeta{}, nil, err
 	}
 
+	return decodeRouterModelList(body, opts)
+}
+
+func decodeRouterModelList(
+	body []byte,
+	opts RouterModelListOptions,
+) ([]RouterModel, PageMeta, json.RawMessage, error) {
 	var data routerModelListData
 	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, PageMeta{}, fmt.Errorf(
+		return nil, PageMeta{}, nil, fmt.Errorf(
+			"failed to decode list router models response: %w",
+			err,
+		)
+	}
+	var models []RouterModel
+	if err := json.Unmarshal(data.Models, &models); err != nil {
+		return nil, PageMeta{}, nil, fmt.Errorf(
 			"failed to decode list router models response: %w",
 			err,
 		)
 	}
 
-	meta := PageMeta{
-		Page:       opts.Page + 1,
-		Limit:      opts.Limit,
-		TotalItems: data.TotalCount,
-	}
+	meta := PageMeta{Page: opts.Page + 1, Limit: opts.Limit, TotalItems: data.TotalCount}
 	if opts.Limit > 0 {
 		meta.TotalPages = (data.TotalCount + opts.Limit - 1) / opts.Limit
 	}
-	return data.Models, meta, nil
+	return models, meta, data.Models, nil
 }
 
 // GetRouterModelByID retrieves a single router model by its local UUID.

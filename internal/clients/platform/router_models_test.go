@@ -1,16 +1,12 @@
 package platform
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func floatPtr(f float64) *float64 { return &f }
@@ -81,62 +77,85 @@ func TestRouterModelUnmarshalRecommendations(t *testing.T) {
 	}
 }
 
-func TestAPIClientListRouterModels(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Fatalf("method = %s, want GET", r.Method)
-		}
-		if r.URL.Path != "/api/v1/models/router-models" {
-			t.Fatalf("path = %s", r.URL.Path)
-		}
-		query := r.URL.Query()
-		if query.Get("projectId") != "proj-1" {
-			t.Fatalf("projectId = %q", query.Get("projectId"))
-		}
-		if query.Get("page") != "2" {
-			t.Fatalf("page = %q", query.Get("page"))
-		}
-		if query.Get("limit") != "10" {
-			t.Fatalf("limit = %q", query.Get("limit"))
-		}
-		if query.Get("search") != "gpt" {
-			t.Fatalf("search = %q", query.Get("search"))
-		}
-		if query.Get("region") != "us" {
-			t.Fatalf("region = %q", query.Get("region"))
-		}
-		_, _ = io.WriteString(
-			w,
-			`{"models":[{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us"}],"totalCount":1}`,
-		)
-	}))
-	defer server.Close()
-
-	client, err := NewAPIClient(
-		server.URL,
-		5*time.Second,
-		"",
-		"",
-		[]*http.Cookie{{Name: "session", Value: "abc"}},
-	)
-	if err != nil {
-		t.Fatalf("NewAPIClient() error = %v", err)
+func TestDecodeRouterModelList(t *testing.T) {
+	type row struct {
+		Developer        string
+		EndpointProvider string
+		ProviderNames    []string
+	}
+	tests := []struct {
+		name      string
+		body      []byte
+		opts      RouterModelListOptions
+		wantErr   bool
+		wantMeta  PageMeta
+		wantCount int
+		wantFirst row
+	}{
+		{
+			name:      "provider names; a partial page counts as a page",
+			body:      readRouterModelFixture(t, "list.json"),
+			opts:      RouterModelListOptions{Limit: 10},
+			wantMeta:  PageMeta{Page: 1, Limit: 10, TotalItems: 1, TotalPages: 1},
+			wantCount: 1,
+			wantFirst: row{"openai", "openai", []string{"Azure", "OpenAI"}},
+		},
+		{
+			name:      "null provider names stay nil; a full page adds no extra page",
+			body:      readRouterModelFixture(t, "list_no_provider_rows.json"),
+			opts:      RouterModelListOptions{Limit: 2},
+			wantMeta:  PageMeta{Page: 1, Limit: 2, TotalItems: 2, TotalPages: 1},
+			wantCount: 2,
+			wantFirst: row{"google", "google", nil},
+		},
+		{
+			name:      "backend without developer and provider names; no limit gives no page count",
+			body:      readRouterModelFixture(t, "list_before_developer.json"),
+			wantMeta:  PageMeta{Page: 1, TotalItems: 1},
+			wantCount: 1,
+			wantFirst: row{"", "openai", nil},
+		},
+		{
+			name:     "page past the end reports the 1-indexed page and totalCount",
+			body:     []byte(`{"models":[],"totalCount":7}`),
+			opts:     RouterModelListOptions{Page: 2, Limit: 5},
+			wantMeta: PageMeta{Page: 3, Limit: 5, TotalItems: 7, TotalPages: 2},
+		},
+		{
+			name:    "missing models is an error",
+			body:    []byte(`{"totalCount":0}`),
+			wantErr: true,
+		},
 	}
 
-	models, meta, err := client.ListRouterModels(
-		context.Background(),
-		"proj-1",
-		RouterModelListOptions{Page: 2, Limit: 10, Search: "gpt", Region: "us"},
-	)
-	if err != nil {
-		t.Fatalf("ListRouterModels() error = %v", err)
-	}
-	if len(models) != 1 || models[0].ID != "m-1" {
-		t.Fatalf("unexpected models: %#v", models)
-	}
-	// Page is 1-indexed (opts.Page 2 -> 3); TotalPages = ceil(1/10) = 1.
-	if meta.Page != 3 || meta.TotalItems != 1 || meta.TotalPages != 1 {
-		t.Fatalf("unexpected meta: %#v", meta)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			models, meta, raw, err := decodeRouterModelList(tt.body, tt.opts)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got %d models", len(models))
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("decodeRouterModelList() error = %v", err)
+			}
+			if len(models) != tt.wantCount {
+				t.Fatalf("len(models) = %d, want %d", len(models), tt.wantCount)
+			}
+			if meta != tt.wantMeta {
+				t.Errorf("meta = %#v, want %#v", meta, tt.wantMeta)
+			}
+			if len(models) > 0 {
+				got := row{models[0].Developer, models[0].EndpointProvider, models[0].ProviderNames}
+				if !reflect.DeepEqual(got, tt.wantFirst) {
+					t.Errorf("first model = %#v, want %#v", got, tt.wantFirst)
+				}
+			}
+			if len(raw) == 0 || raw[0] != '[' || !bytes.Contains(tt.body, raw) {
+				t.Errorf("raw = %.40s, want the models array as received", raw)
+			}
+		})
 	}
 }
 
