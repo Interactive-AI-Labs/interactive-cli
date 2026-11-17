@@ -66,7 +66,7 @@ var modelsListCmd = &cobra.Command{
 			return err
 		}
 
-		models, meta, err := apiClient.ListRouterModels(
+		models, meta, raw, err := apiClient.ListRouterModels(
 			cmd.Context(),
 			pCtx.projectId,
 			opts,
@@ -76,10 +76,10 @@ var modelsListCmd = &cobra.Command{
 		}
 
 		if modelsListJSON {
-			return output.PrintStructuredJSON(out, models)
+			return output.PrintRawJSON(out, raw)
 		}
 		if modelsListYAML {
-			return output.PrintStructuredYAML(out, models)
+			return output.PrintRawYAML(out, raw)
 		}
 
 		return output.PrintRouterModelList(out, models, meta)

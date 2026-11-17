@@ -27,31 +27,45 @@ func TestPrintRouterModelList(t *testing.T) {
 			name: "single model",
 			models: []platform.RouterModel{
 				{
-					ID:            "m-1",
-					ModelName:     "gpt-4o",
-					ContextLength: intPtr(128000),
-					Region:        "us",
+					ID:               "m-1",
+					ModelName:        "gpt-4o",
+					EndpointProvider: "openai",
+					ContextLength:    intPtr(128000),
+					Region:           "us",
 				},
 			},
 			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
-			want: "NAME     CONTEXT   REGION   RECOMMENDED   ID\n" +
-				"gpt-4o   128000    us       -             m-1\n" +
+			want: "NAME     DEVELOPER   PROVIDERS   CONTEXT   REGION   RECOMMENDED   ID\n" +
+				"gpt-4o   openai      -           128000    Global   -             m-1\n" +
+				"\nPage 1 of 1 (1 total items)\n",
+		},
+		{
+			name: "no developer under either name and empty provider names print dashes",
+			models: []platform.RouterModel{
+				{ID: "m-3", ModelName: "gpt-4o", Region: "us", ProviderNames: []string{}},
+			},
+			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
+			want: "NAME     DEVELOPER   PROVIDERS   CONTEXT   REGION   RECOMMENDED   ID\n" +
+				"gpt-4o   -           -           -         Global   -             m-3\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 		{
 			name: "recommendation ranks name their category, sorted",
 			models: []platform.RouterModel{
 				{
-					ID:              "m-2",
-					ModelName:       "claude-opus-5",
-					ContextLength:   intPtr(200000),
-					Region:          "eu",
-					Recommendations: map[string]int{"vision": 3, "chat": 1},
+					ID:               "m-2",
+					ModelName:        "claude-opus-5",
+					ContextLength:    intPtr(200000),
+					Developer:        "Anthropic",
+					EndpointProvider: "anthropic",
+					ProviderNames:    []string{"Amazon Bedrock", "Anthropic"},
+					Region:           "eu",
+					Recommendations:  map[string]int{"vision": 3, "chat": 1},
 				},
 			},
 			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
-			want: "NAME            CONTEXT   REGION   RECOMMENDED          ID\n" +
-				"claude-opus-5   200000    eu       chat #1, vision #3   m-2\n" +
+			want: "NAME            DEVELOPER   PROVIDERS   CONTEXT   REGION   RECOMMENDED          ID\n" +
+				"claude-opus-5   Anthropic   2           200000    EU       chat #1, vision #3   m-2\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 	}
