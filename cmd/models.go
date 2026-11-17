@@ -109,7 +109,7 @@ var modelsGetCmd = &cobra.Command{
 			return err
 		}
 
-		model, err := apiClient.GetRouterModelByID(
+		model, raw, err := apiClient.GetRouterModelByID(
 			cmd.Context(),
 			pCtx.projectId,
 			modelID,
@@ -119,10 +119,10 @@ var modelsGetCmd = &cobra.Command{
 		}
 
 		if modelsGetJSON {
-			return output.PrintStructuredJSON(out, model)
+			return output.PrintRawJSON(out, raw)
 		}
 		if modelsGetYAML {
-			return output.PrintStructuredYAML(out, model)
+			return output.PrintRawYAML(out, raw)
 		}
 
 		return output.PrintRouterModelDetail(out, model)
