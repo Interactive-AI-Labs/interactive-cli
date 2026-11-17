@@ -3,11 +3,9 @@ package platform
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 type McpBackend string
@@ -107,39 +105,6 @@ type McpToolCallData struct {
 	Status     string          `json:"status"`
 	Result     json.RawMessage `json:"result"`
 	ErrorClass *string         `json:"error_class,omitempty"`
-}
-
-// Failure says why a tool call failed, quoting the tool's own error text when it sent any.
-func (d McpToolCallData) Failure(mcpName, tool string) error {
-	reason := d.Status
-	if d.ErrorClass != nil {
-		reason = *d.ErrorClass
-	}
-	msg := fmt.Sprintf("mcp %q tool %q returned an error: %s", mcpName, tool, reason)
-	if text := toolResultText(d.Result); text != "" {
-		msg += ": " + text
-	}
-	return errors.New(msg)
-}
-
-// toolResultText joins the text blocks of an MCP CallToolResult.
-func toolResultText(result json.RawMessage) string {
-	var parsed struct {
-		Content []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"content"`
-	}
-	if json.Unmarshal(result, &parsed) != nil {
-		return ""
-	}
-	var parts []string
-	for _, block := range parsed.Content {
-		if text := strings.TrimSpace(block.Text); block.Type == "text" && text != "" {
-			parts = append(parts, text)
-		}
-	}
-	return strings.Join(parts, "\n")
 }
 
 type McpDeleteData struct {
