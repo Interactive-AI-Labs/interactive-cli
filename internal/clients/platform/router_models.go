@@ -10,26 +10,52 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
+const (
+	RouterModelRegionUS = "us"
+	RouterModelRegionEU = "eu"
+)
+
 // RouterModel is a model exposed by the router-models endpoints. Unlike the
 // eval-scoped resources, these endpoints take projectId as a query parameter
 // and return the resource directly (no {success, data} envelope).
 type RouterModel struct {
-	ID              string             `json:"id"`
-	ProjectID       string             `json:"projectId,omitempty"`
-	ModelName       string             `json:"modelName"`
-	MarketingName   string             `json:"marketingName,omitempty"`
-	MatchPattern    string             `json:"matchPattern"`
-	Description     string             `json:"description,omitempty"`
-	ContextLength   *int               `json:"contextLength,omitempty"`
-	Capabilities    []string           `json:"capabilities"`
+	ID            string `json:"id"`
+	ModelName     string `json:"modelName"`
+	MarketingName string `json:"marketingName,omitempty"`
+	Developer     string `json:"developer,omitempty"`
+	// EndpointProvider is the deprecated name of Developer, still the only one older backends send.
+	EndpointProvider string             `json:"endpointProvider,omitempty"`
+	Description      string             `json:"description,omitempty"`
+	ContextLength    *int               `json:"contextLength,omitempty"`
+	Capabilities     []string           `json:"capabilities"`
+	Prices           map[string]float64 `json:"prices"`
+	TokenizerID      string             `json:"tokenizerId,omitempty"`
+	TokenizerConfig  json.RawMessage    `json:"tokenizerConfig,omitempty"`
+	CreatedAt        string             `json:"createdAt,omitempty"`
+	Region           string             `json:"region"`
+	HasOtherRegion   bool               `json:"hasOtherRegion"`
+	Recommendations  map[string]int     `json:"recommendations,omitempty"`
+}
+
+type RouterModelProvider struct {
+	Name            string             `json:"name"`
+	Tag             *string            `json:"tag"`
 	Prices          map[string]float64 `json:"prices"`
-	TokenizerID     string             `json:"tokenizerId,omitempty"`
-	TokenizerConfig json.RawMessage    `json:"tokenizerConfig,omitempty"`
-	CreatedAt       string             `json:"createdAt,omitempty"`
-	LastUsed        string             `json:"lastUsed,omitempty"`
-	Region          string             `json:"region"`
-	HasOtherRegion  bool               `json:"hasOtherRegion"`
-	Recommendations map[string]int     `json:"recommendations,omitempty"`
+	ContextLength   *int               `json:"contextLength"`
+	MaxOutputTokens *int               `json:"maxOutputTokens"`
+	UptimeLastDay   *float64           `json:"uptimeLastDay"`
+}
+
+type RouterModelLatency struct {
+	Date                    string   `json:"date"`
+	TimeToFirstTokenSeconds *float64 `json:"timeToFirstTokenSeconds"`
+	SecondsPerOutputToken   *float64 `json:"secondsPerOutputToken"`
+}
+
+type RouterModelDetail struct {
+	RouterModel
+	Providers []RouterModelProvider `json:"providers"`
+	Latency   *RouterModelLatency   `json:"latency"`
 }
 
 type RouterModelListOptions struct {
@@ -94,11 +120,11 @@ func (c *APIClient) ListRouterModels(
 func (c *APIClient) GetRouterModelByID(
 	ctx context.Context,
 	projectID, modelID string,
-) (*RouterModel, error) {
+) (*RouterModelDetail, json.RawMessage, error) {
 	path := "/api/v1/models/router-models/by-id/" + url.PathEscape(modelID)
 	req, err := c.newRequest(ctx, http.MethodGet, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	q := req.URL.Query()
@@ -107,12 +133,12 @@ func (c *APIClient) GetRouterModelByID(
 
 	body, err := c.doAndRead(req, "get router model")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var model RouterModel
+	var model RouterModelDetail
 	if err := json.Unmarshal(body, &model); err != nil {
-		return nil, fmt.Errorf("failed to decode router model response: %w", err)
+		return nil, nil, fmt.Errorf("failed to decode router model response: %w", err)
 	}
-	return &model, nil
+	return &model, json.RawMessage(body), nil
 }

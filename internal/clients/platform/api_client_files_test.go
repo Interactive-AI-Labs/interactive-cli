@@ -207,8 +207,6 @@ func TestListFiles_QueryParams(t *testing.T) {
 	const path = "/api/platform/v1/organizations/org-1/projects/proj-1/files"
 	const body = `{"success":true,"data":{"files":[],"meta":{"cursor":null,"total_items":null,"limit":50}}}`
 
-	intPtr := func(n int) *int { return &n }
-
 	tests := []struct {
 		name      string
 		opts      FileListOptions

@@ -6,10 +6,26 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 )
+
+func floatPtr(f float64) *float64 { return &f }
+
+func intPtr(i int) *int { return &i }
+
+// readRouterModelFixture reads a response captured from the platform.
+func readRouterModelFixture(t *testing.T, name string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "router_models", name))
+	if err != nil {
+		t.Fatalf("os.ReadFile() error = %v", err)
+	}
+	return data
+}
 
 func TestRouterModelUnmarshalRecommendations(t *testing.T) {
 	tests := []struct {
@@ -124,43 +140,125 @@ func TestAPIClientListRouterModels(t *testing.T) {
 	}
 }
 
-func TestAPIClientGetRouterModelByID(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Fatalf("method = %s, want GET", r.Method)
+func TestRouterModelDetailUnmarshal(t *testing.T) {
+	read := func(name string) []byte { return readRouterModelFixture(t, name) }
+	withField := func(payload []byte, key, value string) []byte {
+		t.Helper()
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(payload, &fields); err != nil {
+			t.Fatalf("json.Unmarshal() error = %v", err)
 		}
-		if r.URL.Path != "/api/v1/models/router-models/by-id/m-1" {
-			t.Fatalf("path = %s", r.URL.Path)
+		fields[key] = json.RawMessage(value)
+		edited, err := json.Marshal(fields)
+		if err != nil {
+			t.Fatalf("json.Marshal() error = %v", err)
 		}
-		if r.URL.Query().Get("projectId") != "proj-1" {
-			t.Fatalf("projectId = %q", r.URL.Query().Get("projectId"))
-		}
-		_, _ = io.WriteString(
-			w,
-			`{"id":"m-1","modelName":"gpt-4o","endpointProvider":"openai","region":"us","prices":{"input":0.01}}`,
-		)
-	}))
-	defer server.Close()
-
-	client, err := NewAPIClient(
-		server.URL,
-		5*time.Second,
-		"",
-		"",
-		[]*http.Cookie{{Name: "session", Value: "abc"}},
-	)
-	if err != nil {
-		t.Fatalf("NewAPIClient() error = %v", err)
+		return edited
 	}
 
-	model, err := client.GetRouterModelByID(context.Background(), "proj-1", "m-1")
-	if err != nil {
-		t.Fatalf("GetRouterModelByID() error = %v", err)
+	type decoded struct {
+		Developer        string
+		EndpointProvider string
+		Providers        int
+		FirstProvider    *RouterModelProvider
+		Latency          *RouterModelLatency
 	}
-	if model.ID != "m-1" || model.ModelName != "gpt-4o" {
-		t.Fatalf("unexpected model: %#v", model)
+	azure := "azure"
+	firstProvider := func(uptime *float64) *RouterModelProvider {
+		return &RouterModelProvider{
+			Name: "Azure",
+			Tag:  &azure,
+			Prices: map[string]float64{
+				"input":                1e-7,
+				"output":               5e-7,
+				"input_cache_read":     1e-8,
+				"input_cache_creation": 1.25e-7,
+				"output_reasoning":     5e-7,
+			},
+			ContextLength:   intPtr(1050000),
+			MaxOutputTokens: intPtr(128000),
+			UptimeLastDay:   uptime,
+		}
 	}
-	if model.Prices["input"] != 0.01 {
-		t.Fatalf("unexpected prices: %#v", model.Prices)
+	latency := &RouterModelLatency{
+		Date:                    "2026-11-16",
+		TimeToFirstTokenSeconds: floatPtr(3.628168674698795),
+		SecondsPerOutputToken:   floatPtr(0.021332107236064685),
+	}
+
+	tests := []struct {
+		name    string
+		payload []byte
+		want    decoded
+	}{
+		{
+			name:    "backend without developer, uptime and latency",
+			payload: read("by_id_before_developer.json"),
+			want: decoded{
+				EndpointProvider: "openai",
+				Providers:        6,
+				FirstProvider:    firstProvider(nil),
+			},
+		},
+		{
+			name:    "backend with developer, uptime and latency",
+			payload: read("by_id.json"),
+			want: decoded{
+				Developer:        "openai",
+				EndpointProvider: "openai",
+				Providers:        6,
+				FirstProvider:    firstProvider(floatPtr(92.01388888888889)),
+				Latency:          latency,
+			},
+		},
+		{
+			name:    "developer is read from its own field",
+			payload: withField(read("by_id.json"), "developer", `"OpenAI"`),
+			want: decoded{
+				Developer:        "OpenAI",
+				EndpointProvider: "openai",
+				Providers:        6,
+				FirstProvider:    firstProvider(floatPtr(92.01388888888889)),
+				Latency:          latency,
+			},
+		},
+		{
+			name:    "null providers decode to none",
+			payload: withField(read("by_id.json"), "providers", "null"),
+			want:    decoded{Developer: "openai", EndpointProvider: "openai", Latency: latency},
+		},
+		{
+			name:    "null latency decodes to nil",
+			payload: withField(read("by_id.json"), "latency", "null"),
+			want: decoded{
+				Developer:        "openai",
+				EndpointProvider: "openai",
+				Providers:        6,
+				FirstProvider:    firstProvider(floatPtr(92.01388888888889)),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var detail RouterModelDetail
+			if err := json.Unmarshal(tt.payload, &detail); err != nil {
+				t.Fatalf("json.Unmarshal() error = %v", err)
+			}
+			got := decoded{
+				Developer:        detail.Developer,
+				EndpointProvider: detail.EndpointProvider,
+				Providers:        len(detail.Providers),
+				Latency:          detail.Latency,
+			}
+			if len(detail.Providers) > 0 {
+				got.FirstProvider = &detail.Providers[0]
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				gotJSON, _ := json.Marshal(got)
+				wantJSON, _ := json.Marshal(tt.want)
+				t.Errorf("decoded = %s\nwant      %s", gotJSON, wantJSON)
+			}
+		})
 	}
 }

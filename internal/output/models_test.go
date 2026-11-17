@@ -2,13 +2,14 @@ package output
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
 
 func intPtr(i int) *int { return &i }
+
+func floatPtr(f float64) *float64 { return &f }
 
 func TestPrintRouterModelList(t *testing.T) {
 	tests := []struct {
@@ -69,37 +70,85 @@ func TestPrintRouterModelList(t *testing.T) {
 }
 
 func TestPrintRouterModelDetail(t *testing.T) {
+	azure, openai := "azure", "openai"
 	tests := []struct {
-		name        string
-		model       platform.RouterModel
-		contains    []string
-		notContains []string
+		name  string
+		model platform.RouterModelDetail
+		want  string
 	}{
 		{
-			name: "recommended model names each category",
-			model: platform.RouterModel{
-				ID:              "m-1",
-				ModelName:       "gpt-4o",
-				MatchPattern:    "gpt-4o*",
-				Region:          "us",
-				Capabilities:    []string{"text", "vision"},
-				Prices:          map[string]float64{"input": 0.01, "output": 0.03},
-				Recommendations: map[string]int{"chat": 3, "vision": 3},
+			name: "model with provider rows",
+			model: platform.RouterModelDetail{
+				RouterModel: platform.RouterModel{
+					ID:               "m-1",
+					ModelName:        "interactive/openai/gpt-6-luna",
+					MarketingName:    "GPT-6 Luna",
+					Developer:        "OpenAI",
+					EndpointProvider: "openai",
+					Region:           "us",
+					HasOtherRegion:   true,
+					ContextLength:    intPtr(1050000),
+					Capabilities:     []string{"text", "vision"},
+					Prices:           map[string]float64{"input": 1e-7, "output": 5e-7},
+					Recommendations:  map[string]int{"chat": 3, "vision": 3},
+				},
+				Providers: []platform.RouterModelProvider{
+					{
+						Name:            "Azure",
+						Tag:             &azure,
+						Prices:          map[string]float64{"input": 1e-7, "output": 5e-7},
+						ContextLength:   intPtr(1050000),
+						MaxOutputTokens: intPtr(128000),
+						UptimeLastDay:   floatPtr(99.73),
+					},
+					{
+						Name:          "OpenAI",
+						Tag:           &openai,
+						Prices:        map[string]float64{"input": 0},
+						UptimeLastDay: floatPtr(0),
+					},
+					{Name: "Amazon Bedrock"},
+				},
+				Latency: &platform.RouterModelLatency{
+					Date:                    "2026-11-16",
+					TimeToFirstTokenSeconds: floatPtr(2.7),
+					SecondsPerOutputToken:   floatPtr(0.033),
+				},
 			},
-			contains: []string{
-				"ID:             m-1",
-				"Model Name:     gpt-4o",
-				"Capabilities:   text, vision",
-				"Recommended:    chat #3, vision #3",
-				"Prices:",
-				"  input:    0.01",
-				"  output:   0.03",
-			},
+			want: "ID:             m-1\n" +
+				"Model Name:     interactive/openai/gpt-6-luna\n" +
+				"Marketing:      GPT-6 Luna\n" +
+				"Developer:      OpenAI\n" +
+				"Region:         Global (also in EU)\n" +
+				"Recommended:    chat #3, vision #3\n" +
+				"Context:        1050000\n" +
+				"Latency:        2.7 s to first token, 0.033 s per output token (2026-11-16, UTC)\n" +
+				"Capabilities:   text, vision\n" +
+				"Prices:\n" +
+				"  input:    0.0000001\n" +
+				"  output:   0.0000005\n" +
+				"\n" +
+				"PROVIDER         TAG      INPUT       OUTPUT      CONTEXT   MAX OUTPUT   UPTIME (1D)\n" +
+				"Azure            azure    0.0000001   0.0000005   1050000   128000       99.73%\n" +
+				"OpenAI           openai   0           -           -         -            0.00%\n" +
+				"Amazon Bedrock   -        -           -           -         -            -\n",
 		},
 		{
-			name:        "unrecommended model drops the line rather than printing the list view's placeholder",
-			model:       platform.RouterModel{ID: "m-1", ModelName: "gpt-4o", Region: "us"},
-			notContains: []string{"Recommended:"},
+			name: "empty recommendations, context and prices drop their lines; no rows says none",
+			model: platform.RouterModelDetail{
+				RouterModel: platform.RouterModel{
+					ID:               "m-2",
+					ModelName:        "interactive/google/gemini-2.5-flash",
+					EndpointProvider: "google",
+					Region:           "eu",
+				},
+			},
+			want: "ID:           m-2\n" +
+				"Model Name:   interactive/google/gemini-2.5-flash\n" +
+				"Developer:    google\n" +
+				"Region:       EU\n" +
+				"Latency:      -\n" +
+				"Providers:    none\n",
 		},
 	}
 
@@ -109,16 +158,96 @@ func TestPrintRouterModelDetail(t *testing.T) {
 			if err := PrintRouterModelDetail(&buf, &tt.model); err != nil {
 				t.Fatalf("PrintRouterModelDetail() error = %v", err)
 			}
-			got := buf.String()
-			for _, want := range tt.contains {
-				if !strings.Contains(got, want) {
-					t.Errorf("output missing %q\ngot:\n%s", want, got)
-				}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("output mismatch\ngot:\n%s\nwant:\n%s", got, tt.want)
 			}
-			for _, unwanted := range tt.notContains {
-				if strings.Contains(got, unwanted) {
-					t.Errorf("output unexpectedly contains %q\ngot:\n%s", unwanted, got)
-				}
+		})
+	}
+}
+
+func TestRouterModelRegionLine(t *testing.T) {
+	tests := []struct {
+		name           string
+		region         string
+		hasOtherRegion bool
+		want           string
+	}{
+		{"global only", "us", false, "Global"},
+		{"global, also in eu", "us", true, "Global (also in EU)"},
+		{"eu only", "eu", false, "EU"},
+		{"eu, also global", "eu", true, "EU (also in Global)"},
+		{"unknown region is printed as sent", "apac", true, "apac"},
+		{"no region", "", false, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := routerModelRegionLine(tt.region, tt.hasOtherRegion); got != tt.want {
+				t.Errorf("routerModelRegionLine() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRouterModelPrice(t *testing.T) {
+	prices := map[string]float64{"input": 1e-07, "output": 0}
+	tests := []struct {
+		name   string
+		prices map[string]float64
+		key    string
+		want   string
+	}{
+		{"small price keeps its digits", prices, "input", "0.0000001"},
+		{"zero price", prices, "output", "0"},
+		{"missing key", prices, "input_cache_read", "-"},
+		{"no prices", nil, "input", "-"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := routerModelPrice(tt.prices, tt.key); got != tt.want {
+				t.Errorf("routerModelPrice() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRouterModelLatency(t *testing.T) {
+	tests := []struct {
+		name    string
+		latency *platform.RouterModelLatency
+		want    string
+	}{
+		{"no latency", nil, "-"},
+		{
+			"both figures",
+			&platform.RouterModelLatency{
+				Date:                    "2026-11-16",
+				TimeToFirstTokenSeconds: floatPtr(3.628168674698795),
+				SecondsPerOutputToken:   floatPtr(0.021332107236064685),
+			},
+			"3.63 s to first token, 0.0213 s per output token (2026-11-16, UTC)",
+		},
+		{
+			"no time to first token",
+			&platform.RouterModelLatency{
+				Date:                  "2026-11-16",
+				SecondsPerOutputToken: floatPtr(0.033),
+			},
+			"- to first token, 0.033 s per output token (2026-11-16, UTC)",
+		},
+		{
+			"no seconds per output token",
+			&platform.RouterModelLatency{Date: "2026-11-16", TimeToFirstTokenSeconds: floatPtr(0)},
+			"0 s to first token, - per output token (2026-11-16, UTC)",
+		},
+		{"neither figure", &platform.RouterModelLatency{Date: "2026-11-16"}, "-"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := routerModelLatency(tt.latency); got != tt.want {
+				t.Errorf("routerModelLatency() = %q, want %q", got, tt.want)
 			}
 		})
 	}
