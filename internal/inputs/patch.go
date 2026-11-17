@@ -149,3 +149,22 @@ func setSchedulePatch(patch deployment.UpdatePatch, in ScheduleInput) error {
 	}
 	return setJSON(patch, "schedule", sched)
 }
+
+// setAllowedDomainsPatch emits null on clear and the list on --allowed-domain; it rejects both together.
+func setAllowedDomainsPatch(
+	patch deployment.UpdatePatch,
+	hosts []string,
+	changed, clear bool,
+) error {
+	if clear && changed {
+		return fmt.Errorf("--clear-allowed-domains cannot be combined with --allowed-domain")
+	}
+	if clear {
+		patch["allowedDomains"] = json.RawMessage("null")
+		return nil
+	}
+	if !changed {
+		return nil
+	}
+	return setJSON(patch, "allowedDomains", hosts)
+}

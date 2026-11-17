@@ -239,7 +239,7 @@ func TestBuildAgentUpdatePatchIdentity(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			patch, err := BuildAgentUpdatePatch(
-				tt.input, false, false, false, false,
+				tt.input, false, false, false, false, false,
 				func(flag string) bool { return slices.Contains(tt.flags, flag) },
 			)
 			message, got := "", ""
@@ -694,6 +694,68 @@ func TestDetachMcpRefs(t *testing.T) {
 			mcps := out.(map[string]any)["mcps"].([]any)
 			if !reflect.DeepEqual(mcps, tt.want) {
 				t.Errorf("mcps = %v, want %v", mcps, tt.want)
+			}
+		})
+	}
+}
+
+func TestBuildAgentUpdatePatchAllowedDomains(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		input         AgentInput
+		clear         bool
+		flags         []string
+		want, wantErr string
+	}{
+		{name: "not set", input: AgentInput{AllowedDomains: []string{"pypi.org"}}, want: `{}`},
+		{name: "replaces the list", input: AgentInput{AllowedDomains: []string{"pypi.org", "github.com"}}, flags: []string{"allowed-domain"}, want: `{"allowedDomains":["pypi.org","github.com"]}`},
+		{name: "clear returns to the default", clear: true, want: `{"allowedDomains":null}`},
+		{name: "clear and set", input: AgentInput{AllowedDomains: []string{"pypi.org"}}, clear: true, flags: []string{"allowed-domain"}, wantErr: "--clear-allowed-domains cannot be combined with --allowed-domain"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			patch, err := BuildAgentUpdatePatch(
+				tt.input, false, false, false, false, tt.clear,
+				func(flag string) bool { return slices.Contains(tt.flags, flag) },
+			)
+			message, got := "", ""
+			if err != nil {
+				message = err.Error()
+			} else {
+				encoded, err := json.Marshal(patch)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got = string(encoded)
+			}
+			if diff := cmp.Diff([]string{tt.want, tt.wantErr}, []string{got, message}); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
+func TestBuildAgentRequestBodyAllowedDomains(t *testing.T) {
+	path := writeTempYAML(t, "name: x\n")
+	tests := []struct {
+		name  string
+		hosts []string
+		want  *[]string
+	}{
+		{name: "not set is omitted", hosts: nil, want: nil},
+		{
+			name:  "list passed through",
+			hosts: []string{"pypi.org", "github.com"},
+			want:  &[]string{"pypi.org", "github.com"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := BuildAgentRequestBody(AgentInput{FilePath: path, AllowedDomains: tt.hosts})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.want, body.AllowedDomains); diff != "" {
+				t.Fatalf("(-want +got):\n%s", diff)
 			}
 		})
 	}

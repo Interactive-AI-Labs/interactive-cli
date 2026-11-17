@@ -1,6 +1,7 @@
 package files
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -923,6 +924,32 @@ func TestAgentConfigFromDescribe(t *testing.T) {
 			desc: &deployment.DescribeAgentResponse{Id: "interactive-agent", Version: "1.0.0"},
 			want: AgentConfig{Id: "interactive-agent", Version: "1.0.0"},
 		},
+		{
+			name: "own allowed domains",
+			desc: &deployment.DescribeAgentResponse{
+				Id:             "interactive-agent",
+				Version:        "1.0.0",
+				AllowedDomains: &[]string{"pypi.org"},
+			},
+			want: AgentConfig{
+				Id:             "interactive-agent",
+				Version:        "1.0.0",
+				AllowedDomains: &[]string{"pypi.org"},
+			},
+		},
+		{
+			name: "empty own allowed domains list",
+			desc: &deployment.DescribeAgentResponse{
+				Id:             "interactive-agent",
+				Version:        "1.0.0",
+				AllowedDomains: &[]string{},
+			},
+			want: AgentConfig{
+				Id:             "interactive-agent",
+				Version:        "1.0.0",
+				AllowedDomains: &[]string{},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1337,5 +1364,44 @@ jobs: {}
 `
 	if diff := cmp.Diff(want, string(got)); diff != "" {
 		t.Errorf("yaml.Marshal() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestAgentConfigToCreateRequestAllowedDomains(t *testing.T) {
+	tests := []struct {
+		name string
+		yaml string
+		want string
+	}{
+		{
+			name: "omitted keeps the stored list on redeploy",
+			yaml: "id: a",
+			want: `{"id":"a","version":"","agentConfig":null}`,
+		},
+		{
+			name: "empty list means no extra hosts",
+			yaml: "id: a\nallowedDomains: []",
+			want: `{"id":"a","version":"","agentConfig":null,"allowedDomains":[]}`,
+		},
+		{
+			name: "list passed through",
+			yaml: "id: a\nallowedDomains: [pypi.org]",
+			want: `{"id":"a","version":"","agentConfig":null,"allowedDomains":["pypi.org"]}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var agent AgentConfig
+			if err := yaml.Unmarshal([]byte(tt.yaml), &agent); err != nil {
+				t.Fatal(err)
+			}
+			got, err := json.Marshal(agent.ToCreateRequest(""))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.want, string(got)); diff != "" {
+				t.Fatalf("(-want +got):\n%s", diff)
+			}
+		})
 	}
 }

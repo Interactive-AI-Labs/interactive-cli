@@ -37,22 +37,23 @@ iai agents create <agent_name> [flags]
 ### Options
 
 ```
-      --endpoint                   Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
-      --env stringArray            Environment variable (NAME=VALUE); can be repeated
-      --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
-  -h, --help                       help for create
-      --id string                  Agent type from the marketplace (e.g. interactive-agent)
-      --mcp stringArray            Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands
-      --mcp-endpoint string        Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
-      --mcp-id string              Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
-  -o, --organization string        Organization name
-  -p, --project string             Project name
-      --schedule-downtime string   When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
-      --schedule-timezone string   IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
-      --schedule-uptime string     When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
-      --secret stringArray         Secret to inject as environment variables; can be repeated
-      --stack-id string            Stack ID to assign the agent to
-      --version string             Agent image version to deploy (e.g. 0.0.1)
+      --allowed-domain stringArray   Domain the agent can connect to (HTTPS only), e.g. github.com; repeat for each one. Subdomains are not included. Only a signed-in user can set it, not an API key
+      --endpoint                     Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
+      --env stringArray              Environment variable (NAME=VALUE); can be repeated
+      --file string                  Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
+  -h, --help                         help for create
+      --id string                    Agent type from the marketplace (e.g. interactive-agent)
+      --mcp stringArray              Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands
+      --mcp-endpoint string          Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
+      --mcp-id string                Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
+  -o, --organization string          Organization name
+  -p, --project string               Project name
+      --schedule-downtime string     When the agent should be scaled down (mutually exclusive with --schedule-uptime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Sat-Sun 00:00-24:00'
+      --schedule-timezone string     IANA timezone for the schedule (e.g. Europe/Berlin, US/Eastern, UTC); required with --schedule-uptime or --schedule-downtime
+      --schedule-uptime string       When the agent should be running (mutually exclusive with --schedule-downtime). Format: comma-separated entries of DAY_FROM-DAY_TO HH:MM-HH:MM. Example: 'Mon-Fri 07:30-20:30'
+      --secret stringArray           Secret to inject as environment variables; can be repeated
+      --stack-id string              Stack ID to assign the agent to
+      --version string               Agent image version to deploy (e.g. 0.0.1)
 ```
 
 ### Options inherited from parent commands

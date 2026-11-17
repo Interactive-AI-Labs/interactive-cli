@@ -67,6 +67,8 @@ type AgentConfig struct {
 	Endpoint    bool                   `yaml:"endpoint,omitempty"   json:"endpoint,omitempty"`
 	Schedule    *deployment.Schedule   `yaml:"schedule,omitempty"   json:"schedule,omitempty"`
 	Env         []deployment.EnvVar    `yaml:"env,omitempty"        json:"env,omitempty"`
+	// Domains the agent can connect to; omit to keep the stored list (or the environment default).
+	AllowedDomains *[]string `yaml:"allowedDomains,omitempty" json:"allowedDomains,omitempty"`
 }
 
 type McpConfig struct {
@@ -197,14 +199,15 @@ func resolvePath(dir, path string) string {
 
 func (a AgentConfig) ToCreateRequest(stackId string) deployment.CreateAgentBody {
 	return deployment.CreateAgentBody{
-		Id:          a.Id,
-		Version:     a.Version,
-		AgentConfig: a.AgentConfig,
-		SecretRefs:  a.SecretRefs,
-		Endpoint:    a.Endpoint,
-		Schedule:    a.Schedule,
-		Env:         a.Env,
-		StackId:     stackId,
+		Id:             a.Id,
+		Version:        a.Version,
+		AgentConfig:    a.AgentConfig,
+		SecretRefs:     a.SecretRefs,
+		Endpoint:       a.Endpoint,
+		Schedule:       a.Schedule,
+		Env:            a.Env,
+		StackId:        stackId,
+		AllowedDomains: a.AllowedDomains,
 	}
 }
 
@@ -387,13 +390,14 @@ func ServiceConfigFromDescribe(svc *deployment.DescribeServiceResponse) ServiceC
 
 func AgentConfigFromDescribe(agent *deployment.DescribeAgentResponse) AgentConfig {
 	return AgentConfig{
-		Id:          agent.Id,
-		Version:     agent.Version,
-		AgentConfig: agent.AgentConfig,
-		SecretRefs:  agent.SecretRefs,
-		Endpoint:    agent.Endpoint != nil && agent.Endpoint.Public != "",
-		Schedule:    agent.Schedule,
-		Env:         agent.Env,
+		Id:             agent.Id,
+		Version:        agent.Version,
+		AgentConfig:    agent.AgentConfig,
+		SecretRefs:     agent.SecretRefs,
+		Endpoint:       agent.Endpoint != nil && agent.Endpoint.Public != "",
+		Schedule:       agent.Schedule,
+		Env:            agent.Env,
+		AllowedDomains: agent.AllowedDomains,
 	}
 }
 
