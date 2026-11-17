@@ -977,11 +977,7 @@ reported and the command exits non-zero.`,
 			return err
 		}
 		if res.Status != "ok" {
-			reason := res.Status
-			if res.ErrorClass != nil {
-				reason = *res.ErrorClass
-			}
-			return fmt.Errorf("mcp %q tool %q returned an error: %s", mcpName, tool, reason)
+			return res.Failure(mcpName, tool)
 		}
 		return output.PrintRawJSON(out, res.Result)
 	},
