@@ -39,6 +39,7 @@ func TestJobRunPath(t *testing.T) {
 		orgId, projectId, runId string
 		want                    string
 	}{
+		{"every run", "org", "project", "", "/v1/organizations/org/projects/project/job-runs"},
 		{
 			"specific run",
 			"org",

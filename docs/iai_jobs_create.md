@@ -35,7 +35,7 @@ iai jobs create <job_name> [flags]
       --memory string                     Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)
       --pyproject string                  pyproject.toml path; required for script jobs; combined with --script, maximum 350,000 bytes
       --retention-failed-runs int32       Failed, timed-out, or stopped runs to retain (0-20); server default: 10
-      --retention-successful-runs int32   Successful runs to retain (0-20); server default: 5
+      --retention-successful-runs int32   Successful runs to retain (0-20); server default: 10
       --retention-ttl int32               Seconds to keep finished runs (0-2592000); zero requests immediate cleanup; server default: 604800 seconds
       --retries int32                     Maximum retries after failure; share the run timeout and may repeat side effects; server default: 0
       --schedule string                   Five-field cron schedule or calendar shortcut (e.g. '0 2 * * *', '@daily'); omit for manual execution only

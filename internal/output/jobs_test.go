@@ -10,18 +10,57 @@ import (
 )
 
 func TestPrintJobList(t *testing.T) {
+	t.Setenv("TZ", "Europe/Madrid")
 	tests := []struct {
 		name string
-		jobs []deployment.JobOutput
+		jobs []deployment.JobListItem
 		want string
 	}{
 		{name: "empty", want: "No jobs found.\n"},
 		{
-			name: "jobs use service list columns",
-			jobs: []deployment.JobOutput{
-				{Name: "report", Revision: 1, Status: "Ready", Updated: "2026-01-15"},
-			},
-			want: "NAME     REVISION   STATUS   UPDATED\nreport   1          Ready    2026-01-15\n",
+			name: "on-demand job without a retained run",
+			jobs: []deployment.JobListItem{{
+				JobOutput: deployment.JobOutput{
+					Name: "report", Revision: 1, Status: "Ready", Updated: "2026-01-15",
+				},
+				Type: "image",
+			}},
+			want: "NAME     TYPE    SCHEDULE   REVISION   STATUS   LAST RUN   LAST RUN STARTED   UPDATED\n" +
+				"report   image   -          1          Ready    -          -                  2026-01-15\n",
+		},
+		{
+			name: "scheduled job with a finished last run",
+			jobs: []deployment.JobListItem{{
+				JobOutput: deployment.JobOutput{
+					Name: "report", Revision: 4, Status: "Ready", Updated: "2026-01-15",
+				},
+				Type: "script",
+				Cron: &deployment.JobCron{Schedule: "0 9 * * *", Timezone: "Europe/Madrid"},
+				LastRun: &deployment.JobLastRun{
+					RunId:    "run-1",
+					Status:   "TimedOut",
+					Created:  "2026-01-15T09:00:00Z",
+					Started:  "2026-01-15T09:00:03Z",
+					Finished: "2026-01-15T09:01:57Z",
+				},
+			}},
+			want: "NAME     TYPE     SCHEDULE                    REVISION   STATUS   LAST RUN    LAST RUN STARTED          UPDATED\n" +
+				"report   script   0 9 * * * (Europe/Madrid)   4          Ready    Timed out   2026-01-15 10:00:03 CET   2026-01-15\n",
+		},
+		{
+			name: "schedule without a timezone and a last run that has not started",
+			jobs: []deployment.JobListItem{{
+				JobOutput: deployment.JobOutput{
+					Name: "report", Revision: 2, Status: "Ready", Updated: "2026-01-15",
+				},
+				Type: "image",
+				Cron: &deployment.JobCron{Schedule: "@daily"},
+				LastRun: &deployment.JobLastRun{
+					RunId: "run-1", Status: "Pending", Created: "2026-01-15T09:00:00Z",
+				},
+			}},
+			want: "NAME     TYPE    SCHEDULE   REVISION   STATUS   LAST RUN   LAST RUN STARTED   UPDATED\n" +
+				"report   image   @daily     2          Ready    Pending    -                  2026-01-15\n",
 		},
 	}
 	for _, tt := range tests {
@@ -139,77 +178,106 @@ func TestPrintJobRunList(t *testing.T) {
 	t.Setenv("TZ", "Europe/Madrid")
 	now := time.Date(2026, 1, 15, 10, 5, 30, 0, time.UTC)
 	tests := []struct {
-		name string
-		runs []deployment.JobRun
-		want string
+		name    string
+		runs    []deployment.JobRun
+		showJob bool
+		want    string
 	}{
 		{name: "empty", want: "No runs found.\n"},
 		{
+			name: "runs of every job name their job",
+			runs: []deployment.JobRun{
+				{
+					RunId: "run-2", JobName: "sync", Trigger: "manual", Status: "Pending",
+					Created: "2026-01-15T10:00:00Z",
+				},
+				{
+					RunId: "run-1", JobName: "report", Trigger: "schedule", Status: "Succeeded",
+					Created: "2026-01-15T09:00:00Z", Started: "2026-01-15T09:00:03Z",
+					Finished: "2026-01-15T09:01:57Z",
+				},
+			},
+			showJob: true,
+			want: "RUN ID   JOB      TRIGGER    STATUS      STARTED                   DURATION\n" +
+				"run-2    sync     manual     Pending                               \n" +
+				"run-1    report   schedule   Succeeded   2026-01-15 10:00:03 CET   1m54s\n",
+		},
+		{
 			name: "pending run has no start or duration",
 			runs: []deployment.JobRun{
-				{RunId: "run-1", Status: "Pending", Created: "2026-01-15T10:00:00Z"},
+				{
+					RunId: "run-1", Trigger: "manual", Status: "Pending",
+					Created: "2026-01-15T10:00:00Z",
+				},
 			},
-			want: "RUN ID   STATUS    STARTED   DURATION\n" +
-				"run-1    Pending             \n",
+			want: "RUN ID   TRIGGER   STATUS    STARTED   DURATION\n" +
+				"run-1    manual    Pending             \n",
 		},
 		{
 			name: "running run is measured to now and finished run to its finish",
 			runs: []deployment.JobRun{
 				{
 					RunId:   "run-2",
+					Trigger: "manual",
 					Status:  "Running",
 					Created: "2026-01-15T10:00:00Z",
 					Started: "2026-01-15T10:00:04Z",
 				},
 				{
 					RunId:    "run-1",
+					Trigger:  "schedule",
 					Status:   "Succeeded",
 					Created:  "2026-01-15T09:00:00Z",
 					Started:  "2026-01-15T09:00:03Z",
 					Finished: "2026-01-15T09:01:57Z",
 				},
 			},
-			want: "RUN ID   STATUS      STARTED                   DURATION\n" +
-				"run-2    Running     2026-01-15 11:00:04 CET   5m26s\n" +
-				"run-1    Succeeded   2026-01-15 10:00:03 CET   1m54s\n",
+			want: "RUN ID   TRIGGER    STATUS      STARTED                   DURATION\n" +
+				"run-2    manual     Running     2026-01-15 11:00:04 CET   5m26s\n" +
+				"run-1    schedule   Succeeded   2026-01-15 10:00:03 CET   1m54s\n",
 		},
 		{
 			name: "running duration is zero when the client clock trails the server",
 			runs: []deployment.JobRun{
-				{RunId: "run-1", Status: "Running", Started: "2026-01-15T10:05:34Z"},
+				{
+					RunId: "run-1", Trigger: "manual", Status: "Running",
+					Started: "2026-01-15T10:05:34Z",
+				},
 			},
-			want: "RUN ID   STATUS    STARTED                   DURATION\n" +
-				"run-1    Running   2026-01-15 11:05:34 CET   0s\n",
+			want: "RUN ID   TRIGGER   STATUS    STARTED                   DURATION\n" +
+				"run-1    manual    Running   2026-01-15 11:05:34 CET   0s\n",
 		},
 		{
 			name: "timeout has a human readable label",
 			runs: []deployment.JobRun{
 				{
-					RunId: "run-1", Status: "TimedOut", Created: "2026-01-15T09:00:00Z",
+					RunId: "run-1", Trigger: "schedule", Status: "TimedOut",
+					Created: "2026-01-15T09:00:00Z",
 					Started: "2026-01-15T09:00:03Z", Finished: "2026-01-15T09:01:57Z",
 				},
 			},
-			want: "RUN ID   STATUS      STARTED                   DURATION\n" +
-				"run-1    Timed out   2026-01-15 10:00:03 CET   1m54s\n",
+			want: "RUN ID   TRIGGER    STATUS      STARTED                   DURATION\n" +
+				"run-1    schedule   Timed out   2026-01-15 10:00:03 CET   1m54s\n",
 		},
 		{
 			name: "run that failed before starting has no duration",
 			runs: []deployment.JobRun{
 				{
 					RunId:    "run-1",
+					Trigger:  "schedule",
 					Status:   "Failed",
 					Created:  "2026-01-15T09:00:00Z",
 					Finished: "2026-01-15T09:00:10Z",
 				},
 			},
-			want: "RUN ID   STATUS   STARTED   DURATION\n" +
-				"run-1    Failed             \n",
+			want: "RUN ID   TRIGGER    STATUS   STARTED   DURATION\n" +
+				"run-1    schedule   Failed             \n",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var out bytes.Buffer
-			if err := PrintJobRunList(&out, tt.runs, now); err != nil {
+			if err := PrintJobRunList(&out, tt.runs, now, tt.showJob); err != nil {
 				t.Fatal(err)
 			}
 			if got := out.String(); got != tt.want {
@@ -236,6 +304,17 @@ func TestPrintJobRunDescribe(t *testing.T) {
 				Created: "2026-01-15",
 			},
 			want: "Run Id:   run-1\nJob:      report\nStatus:   Pending\n",
+		},
+		{
+			name: "trigger",
+			run: deployment.JobRun{
+				RunId:   "run-1",
+				JobName: "report",
+				Trigger: "manual",
+				Status:  "Pending",
+				Created: "2026-01-15",
+			},
+			want: "Run Id:    run-1\nJob:       report\nTrigger:   manual\nStatus:    Pending\n",
 		},
 		{
 			name: "timeout with server explanation",
@@ -343,6 +422,29 @@ func TestPrintJobFile(t *testing.T) {
 			}
 			if got := out.String(); got != tt.want {
 				t.Fatalf("output = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestJobSchedule(t *testing.T) {
+	tests := []struct {
+		name  string
+		input *deployment.JobCron
+		want  string
+	}{
+		{"on-demand job", nil, "-"},
+		{"schedule without a timezone", &deployment.JobCron{Schedule: "@daily"}, "@daily"},
+		{
+			"schedule with a timezone",
+			&deployment.JobCron{Schedule: "0 9 * * *", Timezone: "Europe/Madrid"},
+			"0 9 * * * (Europe/Madrid)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := jobSchedule(tt.input); got != tt.want {
+				t.Fatalf("schedule = %q, want %q", got, tt.want)
 			}
 		})
 	}

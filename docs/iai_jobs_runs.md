@@ -28,7 +28,7 @@ Manage retained runs of jobs in a project.
 * [iai jobs](iai_jobs.md)	 - Manage saved jobs and executions
 * [iai jobs runs delete](iai_jobs_runs_delete.md)	 - Delete a finished job run
 * [iai jobs runs describe](iai_jobs_runs_describe.md)	 - Describe a job run in detail
-* [iai jobs runs list](iai_jobs_runs_list.md)	 - List runs for a job
+* [iai jobs runs list](iai_jobs_runs_list.md)	 - List runs for a job, or for every job in a project
 * [iai jobs runs logs](iai_jobs_runs_logs.md)	 - Show logs for one job run
 * [iai jobs runs stop](iai_jobs_runs_stop.md)	 - Stop an unfinished job run
 
