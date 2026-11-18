@@ -28,6 +28,16 @@ func TestEventBlock(t *testing.T) {
 			want:   "\n" + colorBrand + "●" + colorReset + " " + colorBold + "hotel" + colorReset + "\n  Welcome to\n  the hotel\n",
 		},
 		{
+			name: "agent message under its new source name",
+			event: deployment.AgentEvent{
+				Kind:   "message",
+				Source: "aiAgent",
+				Data:   json.RawMessage(`{"message":"Welcome"}`),
+			},
+			labels: map[string]string{"customer": "you", "aiAgent": "hotel"},
+			want:   "\n" + colorBrand + "●" + colorReset + " " + colorBold + "hotel" + colorReset + "\n  Welcome\n",
+		},
+		{
 			name: "customer message without a known width",
 			event: deployment.AgentEvent{
 				Kind:   "message",

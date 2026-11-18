@@ -132,7 +132,7 @@ func EventBlock(e deployment.AgentEvent, labels map[string]string, width int) st
 
 	label := sourceLabel(e.Source, labels)
 	bullet := colorBlue
-	if e.Source == deployment.EventSourceAgent {
+	if e.Source == deployment.EventSourceAgent || e.Source == deployment.EventSourceAIAgent {
 		bullet = colorBrand
 	}
 	// One column short of the width, so a full line never wraps and breaks the redraw.

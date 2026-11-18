@@ -66,7 +66,9 @@ const (
 	EventKindStatus  = "status"
 
 	EventSourceCustomer = "customer"
-	EventSourceAgent    = "agent"
+	// Deprecated spelling of the agent's own source; the platform will return EventSourceAIAgent in its place.
+	EventSourceAgent   = "agent"
+	EventSourceAIAgent = "aiAgent"
 )
 
 type AgentSessionCreateRequest struct {
