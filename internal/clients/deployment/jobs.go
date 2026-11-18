@@ -45,6 +45,21 @@ type JobOutput struct {
 	Updated   string `json:"updated,omitempty"`
 }
 
+type JobListItem struct {
+	JobOutput
+	Type    string      `json:"type"`
+	Cron    *JobCron    `json:"cron,omitempty"`
+	LastRun *JobLastRun `json:"lastRun,omitempty"`
+}
+
+type JobLastRun struct {
+	RunId    string `json:"runId"`
+	Status   string `json:"status"`
+	Created  string `json:"created"`
+	Started  string `json:"started,omitempty"`
+	Finished string `json:"finished,omitempty"`
+}
+
 type DescribeJobResponse struct {
 	JobOutput
 	CreateJobBody
@@ -56,6 +71,7 @@ type JobRun struct {
 	JobName  string `json:"jobName"`
 	Status   string `json:"status"`
 	Message  string `json:"message,omitempty"`
+	Trigger  string `json:"trigger,omitempty"`
 	Created  string `json:"created"`
 	Started  string `json:"started,omitempty"`
 	Finished string `json:"finished,omitempty"`
@@ -74,12 +90,15 @@ func jobsPath(orgId, projectId, jobName string) string {
 }
 
 func jobRunPath(orgId, projectId, runId string) string {
-	return fmt.Sprintf(
-		"/v1/organizations/%s/projects/%s/job-runs/%s",
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/job-runs",
 		url.PathEscape(orgId),
 		url.PathEscape(projectId),
-		url.PathEscape(runId),
 	)
+	if runId != "" {
+		path += "/" + url.PathEscape(runId)
+	}
+	return path
 }
 
 func (c *DeploymentClient) CreateJob(
@@ -98,13 +117,13 @@ func (c *DeploymentClient) CreateJob(
 func (c *DeploymentClient) ListJobs(
 	ctx context.Context,
 	orgId, projectId, stackId string,
-) ([]JobOutput, error) {
+) ([]JobListItem, error) {
 	path := jobsPath(orgId, projectId, "")
 	if stackId != "" {
 		path += "?" + url.Values{"stackId": {stackId}}.Encode()
 	}
 	var response struct {
-		Jobs []JobOutput `json:"jobs"`
+		Jobs []JobListItem `json:"jobs"`
 	}
 	err := c.sendJSONInto(
 		ctx,
@@ -226,17 +245,22 @@ func (c *DeploymentClient) StartJobRun(
 	return &response, nil
 }
 
+// ListJobRuns lists the runs of every job in the project when jobName is empty.
 func (c *DeploymentClient) ListJobRuns(
 	ctx context.Context,
 	orgId, projectId, jobName string,
 ) ([]JobRun, error) {
+	path := jobRunPath(orgId, projectId, "")
+	if jobName != "" {
+		path = jobsPath(orgId, projectId, jobName) + "/runs"
+	}
 	var response struct {
 		Runs []JobRun `json:"runs"`
 	}
 	err := c.sendJSONInto(
 		ctx,
 		http.MethodGet,
-		jobsPath(orgId, projectId, jobName)+"/runs",
+		path,
 		nil,
 		"list job runs",
 		&response,

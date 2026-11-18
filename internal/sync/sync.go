@@ -731,7 +731,7 @@ func Jobs(
 		return nil, fmt.Errorf("failed to list jobs: %w", err)
 	}
 
-	existingByName := make(map[string]deployment.JobOutput)
+	existingByName := make(map[string]deployment.JobListItem)
 	for _, job := range existing {
 		existingByName[job.Name] = job
 	}
@@ -741,7 +741,7 @@ func Jobs(
 		existingByName,
 		desired,
 		opts,
-		resourceOps[deployment.JobOutput, deployment.CreateJobBody]{
+		resourceOps[deployment.JobListItem, deployment.CreateJobBody]{
 			resource:  "job",
 			allowFlag: "jobs",
 			create: func(name string, body deployment.CreateJobBody) error {
@@ -755,7 +755,7 @@ func Jobs(
 				_, err := deployClient.DeleteJob(ctx, orgId, projectId, name)
 				return err
 			},
-			banner: func(w io.Writer, job deployment.JobOutput) {
+			banner: func(w io.Writer, job deployment.JobListItem) {
 				preflight.PrintUpdateBanner(w, "job "+job.Name, job.Revision, job.Updated)
 			},
 		},

@@ -64,18 +64,23 @@ var jobRunsCmd = &cobra.Command{
 }
 
 var jobRunsListCmd = &cobra.Command{
-	Use:     "list <job_name>",
+	Use:     "list [job_name]",
 	Aliases: []string{"ls"},
-	Short:   "List runs for a job",
+	Short:   "List runs for a job, or for every job in a project",
 	Long: `List retained runs of a job in a project, sorted newest-first.
+Without a job name, list the runs of every job in the project.
 
 Logs have a separate retention period.`,
-	Example: `  iai jobs runs list my-job
+	Example: `  iai jobs runs list
+  iai jobs runs list my-job
   iai jobs runs list my-job --watch
   iai jobs runs list my-job --json`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := strings.TrimSpace(args[0])
+		name := ""
+		if len(args) == 1 {
+			name = strings.TrimSpace(args[0])
+		}
 
 		pCtx, _, client, err := resolveProject(cmd.Context(), jobOrganization, jobProject)
 		if err != nil {
@@ -94,7 +99,7 @@ Logs have a separate retention period.`,
 			if jobRunsListYAML {
 				return output.PrintStructuredYAML(w, runs)
 			}
-			return output.PrintJobRunList(w, runs, time.Now())
+			return output.PrintJobRunList(w, runs, time.Now(), name == "")
 		}
 
 		if jobRunsListWatch {

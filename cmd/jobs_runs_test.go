@@ -18,6 +18,13 @@ func TestJobRunCommandArgs(t *testing.T) {
 		{"delete by ID", jobRunDeleteCmd, []string{"run-id"}, ""},
 		{"logs by ID", jobRunLogsCmd, []string{"run-id"}, ""},
 		{"list by job", jobRunsListCmd, []string{"report"}, ""},
+		{"list every job", jobRunsListCmd, nil, ""},
+		{
+			"list rejects a second job name",
+			jobRunsListCmd,
+			[]string{"report", "sync"},
+			"accepts at most 1 arg(s), received 2",
+		},
 		{"logs by job", jobLogsCmd, []string{"report"}, ""},
 		{
 			"describe rejects redundant job name",

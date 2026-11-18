@@ -366,7 +366,7 @@ func init() {
 		&jobSuccessfulRuns,
 		"retention-successful-runs",
 		0,
-		"Successful runs to retain (0-20); server default: 5",
+		"Successful runs to retain (0-20); server default: 10",
 	)
 	flags.Int32Var(
 		&jobFailedRuns,

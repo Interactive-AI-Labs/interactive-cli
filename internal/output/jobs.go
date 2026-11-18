@@ -4,27 +4,46 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
 
-func PrintJobList(out io.Writer, jobs []deployment.JobOutput) error {
+func PrintJobList(out io.Writer, jobs []deployment.JobListItem) error {
 	if len(jobs) == 0 {
 		fmt.Fprintln(out, "No jobs found.")
 		return nil
 	}
 	rows := make([][]string, len(jobs))
 	for i, job := range jobs {
+		lastRun, lastRunStarted := "-", "-"
+		if job.LastRun != nil {
+			lastRun = jobRunStatus(job.LastRun.Status)
+		}
+		if job.LastRun != nil && job.LastRun.Started != "" {
+			lastRunStarted = LocalTime(job.LastRun.Started)
+		}
 		rows[i] = []string{
 			job.Name,
+			job.Type,
+			jobSchedule(job.Cron),
 			fmt.Sprintf("%d", job.Revision),
 			job.Status,
+			lastRun,
+			lastRunStarted,
 			LocalTime(job.Updated),
 		}
 	}
-	return PrintTable(out, []string{"NAME", "REVISION", "STATUS", "UPDATED"}, rows)
+	return PrintTable(
+		out,
+		[]string{
+			"NAME", "TYPE", "SCHEDULE", "REVISION", "STATUS",
+			"LAST RUN", "LAST RUN STARTED", "UPDATED",
+		},
+		rows,
+	)
 }
 
 func PrintJobDescribe(out io.Writer, job *deployment.DescribeJobResponse) error {
@@ -121,32 +140,39 @@ func PrintJobFile(out io.Writer, job *deployment.DescribeJobResponse, pyproject 
 	return err
 }
 
-// PrintJobRunList measures unfinished runs up to now.
-func PrintJobRunList(out io.Writer, runs []deployment.JobRun, now time.Time) error {
+// PrintJobRunList measures unfinished runs up to now; showJob names each run's job.
+func PrintJobRunList(out io.Writer, runs []deployment.JobRun, now time.Time, showJob bool) error {
 	if len(runs) == 0 {
 		fmt.Fprintln(out, "No runs found.")
 		return nil
+	}
+	headers := []string{"RUN ID", "TRIGGER", "STATUS", "STARTED", "DURATION"}
+	if showJob {
+		headers = slices.Insert(headers, 1, "JOB")
 	}
 	rows := make([][]string, len(runs))
 	for i, run := range runs {
 		rows[i] = []string{
 			run.RunId,
+			run.Trigger,
 			jobRunStatus(run.Status),
 			LocalTime(run.Started),
 			runDuration(run, now),
 		}
+		if showJob {
+			rows[i] = slices.Insert(rows[i], 1, run.JobName)
+		}
 	}
-	return PrintTable(
-		out,
-		[]string{"RUN ID", "STATUS", "STARTED", "DURATION"},
-		rows,
-	)
+	return PrintTable(out, headers, rows)
 }
 
 func PrintJobRunDescribe(out io.Writer, run *deployment.JobRun, now time.Time) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Run Id:\t%s\n", run.RunId)
 	fmt.Fprintf(w, "Job:\t%s\n", run.JobName)
+	if run.Trigger != "" {
+		fmt.Fprintf(w, "Trigger:\t%s\n", run.Trigger)
+	}
 	fmt.Fprintf(w, "Status:\t%s\n", jobRunStatus(run.Status))
 	if run.Message != "" {
 		fmt.Fprintf(w, "Message:\t%s\n", run.Message)
@@ -156,6 +182,17 @@ func PrintJobRunDescribe(out io.Writer, run *deployment.JobRun, now time.Time) e
 		fmt.Fprintf(w, "Duration:\t%s\n", runDuration(*run, now))
 	}
 	return w.Flush()
+}
+
+// jobSchedule renders a cron schedule with its timezone, or "-" for on-demand jobs.
+func jobSchedule(cron *deployment.JobCron) string {
+	if cron == nil {
+		return "-"
+	}
+	if cron.Timezone == "" {
+		return cron.Schedule
+	}
+	return cron.Schedule + " (" + cron.Timezone + ")"
 }
 
 func jobRunStatus(status string) string {

@@ -1,20 +1,22 @@
 ## iai jobs runs list
 
-List runs for a job
+List runs for a job, or for every job in a project
 
 ### Synopsis
 
 List retained runs of a job in a project, sorted newest-first.
+Without a job name, list the runs of every job in the project.
 
 Logs have a separate retention period.
 
 ```
-iai jobs runs list <job_name> [flags]
+iai jobs runs list [job_name] [flags]
 ```
 
 ### Examples
 
 ```
+  iai jobs runs list
   iai jobs runs list my-job
   iai jobs runs list my-job --watch
   iai jobs runs list my-job --json
