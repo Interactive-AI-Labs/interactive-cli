@@ -246,8 +246,9 @@ func init() {
 		"Return only this many of the newest matching events (1-500); not with --follow")
 	indexFlag(agentEventListCmd, "limit", "1-500")
 	f.StringVar(&agentEventSource, "source", "",
-		"Only events from this source: customer, customerUi, human, "+
-			"humanOnBehalfOfAgent, agent or system")
+		"Only events from this source: customer, customerUi, humanAgent, "+
+			"humanAgentOnBehalfOfAiAgent, aiAgent, internalNote, system, or any other source the agent emits "+
+			"(deprecated: human, humanOnBehalfOfAgent, agent)")
 	f.StringVar(&agentEventKinds, "kinds", "",
 		"Only these kinds, comma-separated: message, tool, status, custom")
 	f.StringVar(&agentEventTraceID, "trace-id", "", "Only events of this trace")

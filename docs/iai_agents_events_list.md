@@ -31,7 +31,7 @@ iai agents events list <agent_name> <session_id> [flags]
       --min-offset int        First offset to return
   -o, --organization string   Organization name
   -p, --project string        Project name
-      --source string         Only events from this source: customer, customerUi, human, humanOnBehalfOfAgent, agent or system
+      --source string         Only events from this source: customer, customerUi, humanAgent, humanAgentOnBehalfOfAiAgent, aiAgent, internalNote, system, or any other source the agent emits (deprecated: human, humanOnBehalfOfAgent, agent)
       --trace-id string       Only events of this trace
       --yaml                  Output raw API response as YAML; with --follow, one document per complete event
 ```

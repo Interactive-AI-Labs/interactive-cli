@@ -46,6 +46,7 @@ func Chat(ctx context.Context, deps ChatDeps, opts ChatOptions) error {
 	printer := output.NewConversationPrinter(deps.Stdout, map[string]string{
 		deployment.EventSourceCustomer: "you",
 		deployment.EventSourceAgent:    opts.AgentName,
+		deployment.EventSourceAIAgent:  opts.AgentName,
 	})
 	target, err := chatTarget(ctx, deps, opts, printer)
 	if err != nil {
