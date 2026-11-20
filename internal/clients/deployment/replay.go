@@ -174,7 +174,8 @@ type replayEvent struct {
 }
 
 // FollowReplay reads the run's status stream to its verdict, calling onProgress
-// on every update. There is no automatic reconnection, as with logs --follow.
+// on every update. It doesn't reconnect itself; the replay command follows again
+// when it returns ErrReplayStreamEnded.
 func (c *DeploymentClient) FollowReplay(
 	ctx context.Context,
 	orgID, projectID, agentName, runID string,
@@ -229,6 +230,10 @@ func (c *DeploymentClient) FollowReplay(
 	}
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
+	}
+	// A line past the buffer would fail again on every follow; a dropped stream is resumable.
+	if err := scanner.Err(); errors.Is(err, bufio.ErrTooLong) {
+		return nil, fmt.Errorf("failed to read replay status: %w", err)
 	}
 	return nil, ErrReplayStreamEnded
 }

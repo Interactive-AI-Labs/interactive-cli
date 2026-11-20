@@ -250,7 +250,9 @@ func TestWaitError(t *testing.T) {
 func TestFollowUntilVerdict(t *testing.T) {
 	ended, reset := deployment.ErrReplayStreamEnded, errors.New("connection reset")
 	verdict := &deployment.ReplayRun{Status: "passed"}
+	pause := refollowPause
 	refollowPause = 0
+	t.Cleanup(func() { refollowPause = pause })
 	tests := []struct {
 		name      string
 		follows   []error // nil is the run's verdict; a trailing stream end also ends the wait
