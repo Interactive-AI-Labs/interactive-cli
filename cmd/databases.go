@@ -708,7 +708,7 @@ func addDatabaseResourceFlags(cmd *cobra.Command) {
 		StringVar(&dbMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 512M, 1G, 2G); max 15G")
 	indexFlag(cmd, "memory", "max 15G")
 	cmd.Flags().
-		StringVar(&dbStorageSize, "storage-size", "", "Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased")
+		StringVar(&dbStorageSize, "storage-size", "", "Storage size with G unit (e.g. 20G, 100G); must be between 6G and 200G; cannot be decreased")
 	cmd.Flags().
 		StringArrayVar(&dbExtensions, "extensions", nil, "PostgreSQL extension to install (can be repeated); replaces the default list, so include \"vector\" explicitly if needed; defaults to [vector] if omitted")
 	cmd.Flags().
