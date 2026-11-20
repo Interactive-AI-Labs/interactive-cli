@@ -144,6 +144,7 @@ Use a consistent, minimal set of verbs across all resource commands:
 | `create` | — | Create a new resource |
 | `update` | — | Update an existing resource |
 | `delete` | `rm` | Delete a resource |
+| `restore` | — | Bring back an earlier version of a resource (`files restore`, `databases restore`, `reports restore`) |
 | `schema` | — | Display JSON schema (for agents, routines, policies, etc.) |
 
 Do **not** introduce new verbs (e.g. `search`, `daily`, `inspect`, `show`) unless there is no way to express the functionality through the existing verb set with flags.
