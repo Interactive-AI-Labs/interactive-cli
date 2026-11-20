@@ -40,7 +40,7 @@ func TestPrintSessionList(t *testing.T) {
 			meta:    platform.PageMeta{Page: 1, TotalPages: 2, TotalItems: 3},
 			columns: inputs.DefaultSessionColumns,
 			want: "ID       CREATED AT   ENVIRONMENT   TRACE COUNT   DURATION (s)   TOTAL COST   TOTAL TOKENS\n" +
-				"sess-1   2025-01-01   prod          2             12.50s         $0.030000    1200\n" +
+				"sess-1   2025-01-01   prod          2             12.50s         $0.03        1200\n" +
 				"\nPage 1 of 2 (3 total items)\n",
 		},
 	}
@@ -103,13 +103,13 @@ func TestPrintSessionDetail(t *testing.T) {
 		"\n--- Metrics ---\n" +
 		"Trace Count:        2\n" +
 		"Duration Seconds:   12.50s\n" +
-		"Total Cost:         $0.030000\n" +
+		"Total Cost:         $0.03\n" +
 		"Input Tokens:       100\n" +
 		"Output Tokens:      200\n" +
 		"Total Tokens:       300\n" +
 		"\n--- Trace Summaries ---\n" +
-		"ID        NAME   TIMESTAMP    LATENCY   COST        OBSERVATIONS   TOTAL TOKENS   LEVEL\n" +
-		"trace-1   chat   2025-01-01   1.50s     $0.030000   4              300            DEFAULT\n"
+		"ID        NAME   TIMESTAMP    LATENCY   COST    OBSERVATIONS   TOTAL TOKENS   LEVEL\n" +
+		"trace-1   chat   2025-01-01   1.50s     $0.03   4              300            DEFAULT\n"
 
 	var buf bytes.Buffer
 	if err := PrintSessionDetail(&buf, session); err != nil {

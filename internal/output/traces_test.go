@@ -3,6 +3,7 @@ package output
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -179,7 +180,7 @@ func TestPrintTraceDetail(t *testing.T) {
 				"Public:        true\n" +
 				"\n--- Metrics ---\n" +
 				"Latency:             2.50s\n" +
-				"Total Cost:          $0.050000\n" +
+				"Total Cost:          $0.05\n" +
 				"Observation Count:   -\n" +
 				"Input Tokens:        -\n" +
 				"Output Tokens:       -\n" +
@@ -435,14 +436,27 @@ func TestFormatFloat(t *testing.T) {
 }
 
 func TestFormatCost(t *testing.T) {
-	v := 0.012345
 	tests := []struct {
 		name string
 		val  *float64
 		want string
 	}{
 		{"nil returns dash", nil, "-"},
-		{"value formatted with dollar sign", &v, "$0.012345"},
+		{"zero", floatPtr(0), "$0.00"},
+		{"whole cents", floatPtr(1.5), "$1.50"},
+		{"whole dollars", floatPtr(100), "$100.00"},
+		{"sub-cent keeps its digits", floatPtr(0.0012), "$0.0012"},
+		{"under a millionth", floatPtr(3e-7), "$0.0000003"},
+		{"float noise below", floatPtr(2.9999999999999996), "$3.00"},
+		{"float noise above", floatPtr(0.30000000000000004), "$0.30"},
+		{"float noise under a dime", floatPtr(0.09999999999999999), "$0.10"},
+		{"float noise above a million", floatPtr(1000000.1399999999), "$1000000.14"},
+		{"tiny amount keeps its digits", floatPtr(4e-11), "$0.00000000004"},
+		{"negative", floatPtr(-1.5), "$-1.50"},
+		{"negative zero", floatPtr(math.Copysign(0, -1)), "$0.00"},
+		{"six decimals", floatPtr(0.012345), "$0.012345"},
+		{"large amount keeps no float noise", floatPtr(1234567.89012), "$1234567.89012"},
+		{"large whole amount", floatPtr(1e21), "$1000000000000000000000.00"},
 	}
 
 	for _, tt := range tests {

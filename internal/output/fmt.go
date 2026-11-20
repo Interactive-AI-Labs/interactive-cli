@@ -16,7 +16,21 @@ func formatCost(v *float64) string {
 	if v == nil {
 		return "-"
 	}
-	return fmt.Sprintf("$%.6f", *v)
+	// Fifteen significant digits absorbs float noise such as 2.9999999999999996 at any magnitude.
+	rounded := roundSignificant(*v, 15)
+	if rounded == 0 {
+		rounded = 0 // drops the sign of -0
+	}
+	whole, frac, _ := strings.Cut(strconv.FormatFloat(rounded, 'f', -1, 64), ".")
+	for len(frac) < 2 {
+		frac += "0"
+	}
+	return "$" + whole + "." + frac
+}
+
+func roundSignificant(v float64, digits int) float64 {
+	r, _ := strconv.ParseFloat(strconv.FormatFloat(v, 'g', digits, 64), 64)
+	return r
 }
 
 // formatFloat formats a pointer float with a suffix for terminal output.
@@ -122,12 +136,6 @@ func formatUSD(value any) string {
 	switch v := value.(type) {
 	case float64:
 		n = v
-	case float32:
-		n = float64(v)
-	case int:
-		n = float64(v)
-	case int64:
-		n = float64(v)
 	case string:
 		parsed, err := strconv.ParseFloat(v, 64)
 		if err != nil {
@@ -137,5 +145,5 @@ func formatUSD(value any) string {
 	default:
 		return fmt.Sprint(value)
 	}
-	return fmt.Sprintf("$%.2f", n)
+	return formatCost(&n)
 }
