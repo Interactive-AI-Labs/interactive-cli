@@ -15,6 +15,22 @@ import (
 
 // doAndRead executes a request, checks status, and returns the raw body.
 func (c *APIClient) doAndRead(req *http.Request, action string) ([]byte, error) {
+	return c.doAndReadWith(req, action, func(status int, body []byte) error {
+		if msg := clients.ExtractServerMessage(body); msg != "" {
+			return errors.New(msg)
+		}
+		return fmt.Errorf(
+			"failed to %s: server returned %d %s", action, status, http.StatusText(status),
+		)
+	})
+}
+
+// doAndReadWith is doAndRead with refusal building the error for a non-2xx response.
+func (c *APIClient) doAndReadWith(
+	req *http.Request,
+	action string,
+	refusal func(status int, body []byte) error,
+) ([]byte, error) {
 	resp, err := c.do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to %s: %w", action, err)
@@ -27,10 +43,7 @@ func (c *APIClient) doAndRead(req *http.Request, action string) ([]byte, error) 
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := clients.ExtractServerMessage(body); msg != "" {
-			return nil, errors.New(msg)
-		}
-		return nil, fmt.Errorf("failed to %s: server returned %s", action, resp.Status)
+		return nil, refusal(resp.StatusCode, body)
 	}
 
 	return body, nil

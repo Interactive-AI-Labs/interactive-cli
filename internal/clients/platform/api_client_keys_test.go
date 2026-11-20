@@ -129,6 +129,7 @@ func TestRequireKeyManagementAuth(t *testing.T) {
 	}{
 		{name: "rejects api key", client: &APIClient{apiKey: "pk:sk"}, wantErr: true},
 		{name: "allows jwt", client: &APIClient{token: "jwt"}},
+		{name: "allows jwt beside an api key", client: &APIClient{apiKey: "pk:sk", token: "jwt"}},
 		{name: "allows cookies", client: &APIClient{cookies: nonEmptyCookies()}},
 		{name: "rejects missing auth", client: &APIClient{}, wantErr: true},
 	}
