@@ -211,7 +211,7 @@ func (c *DeploymentClient) GetAgentEvent(
 
 // FollowAgentEvents delivers new events as the agent records them until ctx ends,
 // onEvent returns an error, or the stream fails or ends. There is no automatic
-// reconnection, as with FollowReplay; a stream that ends returns ErrEventStreamEnded.
+// reconnection; a stream that ends returns ErrEventStreamEnded.
 func (c *DeploymentClient) FollowAgentEvents(
 	ctx context.Context,
 	orgID, projectID, agentName, sessionID string,

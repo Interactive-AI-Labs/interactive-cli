@@ -15,7 +15,7 @@ iai dataset-items create [flags]
 ```
   iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}'
   iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}' --expected-output '{"answer":"4"}'
-  iai dataset-items create --dataset-name my-dataset --id item-123 --input '{"q":"hi"}' --metadata-json '{"source":"manual"}' --status ACTIVE
+  iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --metadata-json '{"source":"manual"}'
   iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --source-trace-id trace-123 --json
 ```
 
@@ -25,7 +25,7 @@ iai dataset-items create [flags]
       --dataset-name string            Dataset name (required)
       --expected-output string         Expected output as JSON string
   -h, --help                           help for create
-      --id string                      Explicit item ID (for upsert)
+      --id string                      Explicit item ID (for upsert); API key only, a login session is refused
       --input string                   Input as JSON string
       --json                           Output raw API response as JSON
       --metadata-json string           Metadata as JSON object
@@ -33,7 +33,7 @@ iai dataset-items create [flags]
   -p, --project string                 Project name
       --source-observation-id string   Source observation ID
       --source-trace-id string         Source trace ID
-      --status string                  Item status (ACTIVE/ARCHIVED)
+      --status string                  Item status (ACTIVE/ARCHIVED); API key only, a login session is refused
       --yaml                           Output raw API response as YAML
 ```
 

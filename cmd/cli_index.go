@@ -19,6 +19,7 @@ const (
 const (
 	oneRequiredAnnotation       = "cobra_annotation_one_required"
 	mutuallyExclusiveAnnotation = "cobra_annotation_mutually_exclusive"
+	requiredTogetherAnnotation  = "cobra_annotation_required_if_others_set"
 )
 
 // The header states these flags' conflicts once.
@@ -89,7 +90,8 @@ func commandIndex(root *cobra.Command, version string) string {
 		"`<command> --help` explains each flag. `*` = --json or --yaml (not with --columns); " +
 			"only commands marked `*` or --json accept those output flags. " +
 			"--follow and --watch stream until stopped; --watch takes neither --json nor --yaml. " +
-			"In logs, --raw, --fields and --all-fields exclude each other and --decode takes neither field flag.\n",
+			"In logs, --raw, --fields and --all-fields exclude each other and --decode takes neither field flag. " +
+			"--env and --data take one NAME=VALUE per flag (repeat the flag), never JSON.\n",
 	)
 	b.WriteString(
 		"--json: `env` groups wrap lists as `{success,data:{<items>:[…],meta}}` and single items as " +
@@ -208,6 +210,21 @@ func indexFlags(c *cobra.Command) []string {
 				label = "exactly one of"
 			}
 			out = append(out, "("+label+" --"+key+")")
+		}
+	})
+
+	all.VisitAll(func(f *pflag.Flag) {
+		for _, group := range f.Annotations[requiredTogetherAnnotation] {
+			names := conflictNames(all, group)
+			key := "together " + strings.Join(names, " ")
+			if len(names) < 2 || groups[key] {
+				continue
+			}
+			groups[key] = true
+			for _, n := range names {
+				shown[n] = true
+			}
+			out = append(out, "(--"+strings.Join(names, " and --")+" together)")
 		}
 	})
 
