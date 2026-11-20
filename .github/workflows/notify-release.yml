@@ -63,20 +63,17 @@ jobs:
         id: summary
         continue-on-error: true
         timeout-minutes: 5
-        # base-action runs on any event; the full action rejects push.
-        uses: anthropics/claude-code-action/base-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
+        uses: ./.github/actions/pi
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          max-length: 150
           prompt: |
             Write the release note for ${{ inputs.component }}: one plain sentence of at most 150 characters describing what changed, based only on the commit subjects below.
 
-            The note is posted under a heading that already names the component and version, so start directly with the change. Don't repeat the released version or tag, and don't describe this task.
+            The note is posted under a heading that already names the component and version, so start directly with the change. Don't repeat the released version or tag, and don't describe this task. Reply with only that sentence.
 
             <commit_subjects>
             ${{ steps.changes.outputs.subjects }}
             </commit_subjects>
-          claude_args: |
-            --json-schema '{"type":"object","properties":{"summary":{"type":"string","minLength":1,"maxLength":150,"description":"The release note sentence itself, starting with the change, at most 150 characters"}},"required":["summary"]}'
 
       - name: Fetch Slack bot token from Secret Manager
         id: slack_token
@@ -104,7 +101,7 @@ jobs:
               - type: section
                 text:
                   type: plain_text
-                  text: ${{ toJSON(steps.summary.outcome == 'success' && fromJSON(steps.summary.outputs.structured_output).summary || format('{0} commits since {1}', steps.changes.outputs.count, steps.changes.outputs.previous)) }}
+                  text: ${{ toJSON(steps.summary.outcome == 'success' && steps.summary.outputs.result || format('{0} commits since {1}', steps.changes.outputs.count, steps.changes.outputs.previous)) }}
               - type: context
                 elements:
                   - type: mrkdwn
