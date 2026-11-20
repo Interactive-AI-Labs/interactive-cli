@@ -36,7 +36,9 @@ func TestFormatUSD(t *testing.T) {
 		{"100", "$100.00"},
 		{"100.00", "$100.00"},
 		{1.5, "$1.50"},
+		{0.0375, "$0.0375"},
 		{"n/a", "n/a"},
+		{true, "true"},
 	}
 
 	for _, tt := range cases {

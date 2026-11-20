@@ -47,10 +47,10 @@ func TestPrintMetricsDaily(t *testing.T) {
 			columns:    inputs.DefaultMetricsDailyColumns,
 			showModels: true,
 			want: "DATE         TRACE COUNT   OBSERVATION COUNT   TOTAL COST\n" +
-				"2025-01-01   4             12                  $0.050000\n" +
+				"2025-01-01   4             12                  $0.05\n" +
 				"\nModel Breakdown for 2025-01-01\n" +
 				"MODEL   OBSERVATIONS   TOTAL TOKENS   TOTAL COST\n" +
-				"gpt-4   10             300            $0.050000\n" +
+				"gpt-4   10             300            $0.05\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 	}

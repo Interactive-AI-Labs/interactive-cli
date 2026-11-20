@@ -45,8 +45,8 @@ func TestPrintObservationList(t *testing.T) {
 				},
 			},
 			columns: inputs.DefaultObservationColumns,
-			want: "ID        TYPE         NAME      MODEL   LATENCY (ms)   COST        TOTAL TOKENS\n" +
-				"obs-123   GENERATION   ChatGPT   gpt-4   9321.00ms      $0.008100   7474\n",
+			want: "ID        TYPE         NAME      MODEL   LATENCY (ms)   COST      TOTAL TOKENS\n" +
+				"obs-123   GENERATION   ChatGPT   gpt-4   9321.00ms      $0.0081   7474\n",
 		},
 		{
 			name: "custom columns subset",
@@ -135,7 +135,7 @@ func TestPrintObservationDetail(t *testing.T) {
 				"Input Tokens:    6472\n" +
 				"Output Tokens:   0\n" +
 				"Total Tokens:    7474\n" +
-				"Total Cost:      $0.008090\n",
+				"Total Cost:      $0.00809\n",
 		},
 		{
 			name: "with prompt info",
@@ -217,8 +217,8 @@ func TestPrintStandaloneObservationList(t *testing.T) {
 			},
 			meta:    platform.CursorMeta{NextCursor: "cursor-2"},
 			columns: inputs.DefaultStandaloneObservationColumns,
-			want: "ID        TRACE ID    TYPE         NAME      MODEL   LATENCY (ms)   COST        TOTAL TOKENS\n" +
-				"obs-123   trace-456   GENERATION   ChatGPT   gpt-4   9321.00ms      $0.008100   7474\n" +
+			want: "ID        TRACE ID    TYPE         NAME      MODEL   LATENCY (ms)   COST      TOTAL TOKENS\n" +
+				"obs-123   trace-456   GENERATION   ChatGPT   gpt-4   9321.00ms      $0.0081   7474\n" +
 				"\nNext cursor: cursor-2\n",
 		},
 	}
