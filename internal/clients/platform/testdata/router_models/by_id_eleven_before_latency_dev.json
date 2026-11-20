@@ -1,0 +1,38 @@
+{
+  "id": "28035fa4-0900-587d-87ad-b60c32411e2e",
+  "modelName": "interactive/elevenlabs/eleven-v3",
+  "marketingName": "ElevenLabs Eleven v3",
+  "endpointProvider": "elevenlabs",
+  "developer": "elevenlabs",
+  "description": null,
+  "contextLength": null,
+  "capabilities": [
+    "Speech"
+  ],
+  "prices": {
+    "input_characters": 0.00008
+  },
+  "tokenizerId": null,
+  "tokenizerConfig": null,
+  "createdAt": null,
+  "region": "us",
+  "hasOtherRegion": false,
+  "recommendations": {},
+  "providerNames": [
+    "ElevenLabs"
+  ],
+  "providers": [
+    {
+      "name": "ElevenLabs",
+      "tag": "elevenlabs",
+      "prices": {
+        "input_characters": 0.00008
+      },
+      "contextLength": null,
+      "maxOutputTokens": null,
+      "quantization": null,
+      "uptimeLastDay": 99.74093264248705
+    }
+  ],
+  "latency": null
+}

@@ -49,6 +49,20 @@ func formatInt(v *int) string {
 	return fmt.Sprintf("%d", *v)
 }
 
+// Integer arithmetic so 1,050,000 and 1,150,000 both round half up.
+func formatTokenCount(n *int) string {
+	switch {
+	case n == nil:
+		return "-"
+	case *n < 1000:
+		return strconv.Itoa(*n)
+	case *n < 999_500:
+		return strconv.Itoa((*n+500)/1000) + "k"
+	}
+	tenths := (*n + 50_000) / 100_000
+	return fmt.Sprintf("%d.%dM", tenths/10, tenths%10)
+}
+
 // formatLatencyMs formats milliseconds as ms or seconds for terminal output.
 func formatLatencyMs(v *float64) string {
 	if v == nil {

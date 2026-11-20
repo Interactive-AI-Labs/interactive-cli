@@ -37,25 +37,24 @@ type RouterModel struct {
 	ProviderNames    []string           `json:"providerNames"`
 }
 
-type RouterModelProvider struct {
-	Name            string             `json:"name"`
-	Tag             *string            `json:"tag"`
-	Prices          map[string]float64 `json:"prices"`
-	ContextLength   *int               `json:"contextLength"`
-	MaxOutputTokens *int               `json:"maxOutputTokens"`
-	UptimeLastDay   *float64           `json:"uptimeLastDay"`
+type RouterModelPercentiles struct {
+	P50 *float64 `json:"p50"`
 }
 
-type RouterModelLatency struct {
-	Date                    string   `json:"date"`
-	TimeToFirstTokenSeconds *float64 `json:"timeToFirstTokenSeconds"`
-	SecondsPerOutputToken   *float64 `json:"secondsPerOutputToken"`
+type RouterModelProvider struct {
+	Name              string                  `json:"name"`
+	Tag               *string                 `json:"tag"`
+	Prices            map[string]float64      `json:"prices"`
+	ContextLength     *int                    `json:"contextLength"`
+	MaxOutputTokens   *int                    `json:"maxOutputTokens"`
+	UptimeLastDay     *float64                `json:"uptimeLastDay"`
+	LatencyLast30m    *RouterModelPercentiles `json:"latencyLast30m"`    // ms to first token
+	ThroughputLast30m *RouterModelPercentiles `json:"throughputLast30m"` // tokens per second
 }
 
 type RouterModelDetail struct {
 	RouterModel
 	Providers []RouterModelProvider `json:"providers"`
-	Latency   *RouterModelLatency   `json:"latency"`
 }
 
 type RouterModelListOptions struct {

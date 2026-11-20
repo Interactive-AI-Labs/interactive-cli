@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -33,7 +34,7 @@ func PrintRouterModelList(
 			m.ModelName,
 			cmp.Or(m.Developer, m.EndpointProvider, "-"),
 			providers,
-			formatInt(m.ContextLength),
+			formatTokenCount(m.ContextLength),
 			routerModelRegionName(m.Region),
 			formatRecommendations(m.Recommendations),
 			m.ID,
@@ -64,9 +65,8 @@ func PrintRouterModelDetail(out io.Writer, m *platform.RouterModelDetail) error 
 		fmt.Fprintf(w, "Description:\t%s\n", m.Description)
 	}
 	if m.ContextLength != nil {
-		fmt.Fprintf(w, "Context:\t%s\n", formatInt(m.ContextLength))
+		fmt.Fprintf(w, "Context:\t%s\n", formatTokenCount(m.ContextLength))
 	}
-	fmt.Fprintf(w, "Latency:\t%s\n", routerModelLatency(m.Latency))
 	if len(m.Capabilities) > 0 {
 		fmt.Fprintf(w, "Capabilities:\t%s\n", strings.Join(m.Capabilities, ", "))
 	}
@@ -76,12 +76,7 @@ func PrintRouterModelDetail(out io.Writer, m *platform.RouterModelDetail) error 
 	if m.CreatedAt != "" {
 		fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(m.CreatedAt))
 	}
-	if len(m.Prices) > 0 {
-		fmt.Fprintln(w, "Prices:")
-		for _, k := range slices.Sorted(maps.Keys(m.Prices)) {
-			fmt.Fprintf(w, "  %s:\t%s\n", k, strconv.FormatFloat(m.Prices[k], 'f', -1, 64))
-		}
-	}
+	printRouterModelPrices(w, m.Prices)
 	if len(m.Providers) == 0 {
 		fmt.Fprintln(w, "Providers:\tnone")
 		return w.Flush()
@@ -94,22 +89,32 @@ func PrintRouterModelDetail(out io.Writer, m *platform.RouterModelDetail) error 
 	headers := []string{
 		"PROVIDER",
 		"TAG",
-		"INPUT",
-		"OUTPUT",
+		"INPUT ($/1M)",
+		"OUTPUT ($/1M)",
+		"CACHE READ ($/1M)",
 		"CONTEXT",
 		"MAX OUTPUT",
 		"UPTIME (1D)",
+		"LATENCY (P50 30M)",
+		"TOK/S (P50 30M)",
 	}
 	rows := make([][]string, len(m.Providers))
 	for i, p := range m.Providers {
+		throughput := "-"
+		if v := routerModelP50(p.ThroughputLast30m); v != nil {
+			throughput = strconv.FormatFloat(math.Round(*v), 'f', 0, 64)
+		}
 		rows[i] = []string{
 			p.Name,
 			cmp.Or(derefString(p.Tag), "-"),
 			routerModelPrice(p.Prices, "input"),
 			routerModelPrice(p.Prices, "output"),
-			formatInt(p.ContextLength),
-			formatInt(p.MaxOutputTokens),
+			routerModelPrice(p.Prices, "input_cache_read"),
+			formatTokenCount(p.ContextLength),
+			formatTokenCount(p.MaxOutputTokens),
 			formatFloat(p.UptimeLastDay, "%"),
+			formatLatencyMs(routerModelP50(p.LatencyLast30m)),
+			throughput,
 		}
 	}
 	return PrintTable(out, headers, rows)
@@ -142,30 +147,75 @@ func routerModelRegionLine(region string, hasOtherRegion bool) string {
 	return fmt.Sprintf("%s (also in %s)", name, routerModelRegionName(other))
 }
 
+type routerModelPriceUnit struct {
+	scale float64
+	label string
+}
+
+var routerModelPriceUnits = map[string]routerModelPriceUnit{
+	"input":                {scale: 1e6},
+	"output":               {scale: 1e6},
+	"input_cache_read":     {scale: 1e6},
+	"input_cache_creation": {scale: 1e6},
+	"output_reasoning":     {scale: 1e6},
+	"search_units":         {scale: 1, label: "per query"},
+	"input_characters":     {scale: 1e6, label: "per 1M characters"},
+	"input_seconds":        {scale: 3600, label: "per hour"},
+}
+
+func routerModelPriceText(key string, price float64) string {
+	unit, known := routerModelPriceUnits[key]
+	if !known {
+		return formatOptionalFloat(&price)
+	}
+	// Upstream prices are cut at 16 decimal places, so scaling exposes a tail.
+	v := roundSignificant(price*unit.scale, 10)
+	out := formatCost(&v)
+	if unit.label != "" {
+		out += " " + unit.label
+	}
+	return out
+}
+
 func routerModelPrice(prices map[string]float64, key string) string {
 	v, ok := prices[key]
 	if !ok {
 		return "-"
 	}
-	return formatOptionalFloat(&v)
+	return routerModelPriceText(key, v)
 }
 
-func routerModelLatency(l *platform.RouterModelLatency) string {
-	if l == nil || (l.TimeToFirstTokenSeconds == nil && l.SecondsPerOutputToken == nil) {
-		return "-"
-	}
-	seconds := func(v *float64) string {
-		if v == nil {
-			return "-"
+func printRouterModelPrices(w io.Writer, prices map[string]float64) {
+	var perToken, other []string
+	for _, k := range slices.Sorted(maps.Keys(prices)) {
+		if unit, known := routerModelPriceUnits[k]; known && unit.label == "" {
+			perToken = append(perToken, k)
+		} else {
+			other = append(other, k)
 		}
-		return strconv.FormatFloat(*v, 'g', 3, 64) + " s"
 	}
-	return fmt.Sprintf(
-		"%s to first token, %s per output token (%s, UTC)",
-		seconds(l.TimeToFirstTokenSeconds),
-		seconds(l.SecondsPerOutputToken),
-		l.Date,
-	)
+	for _, group := range []struct {
+		title string
+		keys  []string
+	}{
+		{"List price (per 1M tokens):", perToken},
+		{"List price:", other},
+	} {
+		if len(group.keys) == 0 {
+			continue
+		}
+		fmt.Fprintln(w, group.title)
+		for _, k := range group.keys {
+			fmt.Fprintf(w, "  %s:\t%s\n", k, routerModelPriceText(k, prices[k]))
+		}
+	}
+}
+
+func routerModelP50(p *platform.RouterModelPercentiles) *float64 {
+	if p == nil {
+		return nil
+	}
+	return p.P50
 }
 
 // Sorted by category so table output is stable across calls.

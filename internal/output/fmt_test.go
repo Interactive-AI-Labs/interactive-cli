@@ -1,6 +1,9 @@
 package output
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestHumanBytes(t *testing.T) {
 	cases := []struct {
@@ -45,5 +48,37 @@ func TestFormatUSD(t *testing.T) {
 		if got := formatUSD(tt.in); got != tt.want {
 			t.Fatalf("formatUSD(%v) = %q, want %q", tt.in, got, tt.want)
 		}
+	}
+}
+
+func TestFormatTokenCount(t *testing.T) {
+	tests := []struct {
+		in   *int
+		want string
+	}{
+		{nil, "-"},
+		{intPtr(0), "0"},
+		{intPtr(999), "999"},
+		{intPtr(1000), "1k"},
+		{intPtr(32768), "33k"},
+		{intPtr(64000), "64k"},
+		{intPtr(999499), "999k"},
+		{intPtr(999500), "1.0M"},
+		{intPtr(1048576), "1.0M"},
+		{intPtr(1050000), "1.1M"},
+		{intPtr(1150000), "1.2M"},
+		{intPtr(12_340_000), "12.3M"},
+	}
+
+	for _, tt := range tests {
+		name := "nil"
+		if tt.in != nil {
+			name = fmt.Sprint(*tt.in)
+		}
+		t.Run(name, func(t *testing.T) {
+			if got := formatTokenCount(tt.in); got != tt.want {
+				t.Errorf("formatTokenCount(%v) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
 	}
 }

@@ -180,9 +180,8 @@ func TestRouterModelDetailUnmarshal(t *testing.T) {
 		EndpointProvider string
 		Providers        int
 		FirstProvider    *RouterModelProvider
-		Latency          *RouterModelLatency
 	}
-	azure := "azure"
+	azure, anthropic := "azure", "anthropic"
 	firstProvider := func(uptime *float64) *RouterModelProvider {
 		return &RouterModelProvider{
 			Name: "Azure",
@@ -199,19 +198,13 @@ func TestRouterModelDetailUnmarshal(t *testing.T) {
 			UptimeLastDay:   uptime,
 		}
 	}
-	latency := &RouterModelLatency{
-		Date:                    "2026-11-16",
-		TimeToFirstTokenSeconds: floatPtr(3.628168674698795),
-		SecondsPerOutputToken:   floatPtr(0.021332107236064685),
-	}
-
 	tests := []struct {
 		name    string
 		payload []byte
 		want    decoded
 	}{
 		{
-			name:    "backend without developer, uptime and latency",
+			name:    "backend without developer and uptime",
 			payload: read("by_id_before_developer.json"),
 			want: decoded{
 				EndpointProvider: "openai",
@@ -220,14 +213,13 @@ func TestRouterModelDetailUnmarshal(t *testing.T) {
 			},
 		},
 		{
-			name:    "backend with developer, uptime and latency",
+			name:    "backend with developer and uptime",
 			payload: read("by_id.json"),
 			want: decoded{
 				Developer:        "openai",
 				EndpointProvider: "openai",
 				Providers:        6,
 				FirstProvider:    firstProvider(floatPtr(92.01388888888889)),
-				Latency:          latency,
 			},
 		},
 		{
@@ -238,23 +230,37 @@ func TestRouterModelDetailUnmarshal(t *testing.T) {
 				EndpointProvider: "openai",
 				Providers:        6,
 				FirstProvider:    firstProvider(floatPtr(92.01388888888889)),
-				Latency:          latency,
+			},
+		},
+		{
+			name:    "provider latency and throughput percentiles",
+			payload: read("by_id_sonnet_dev.json"),
+			want: decoded{
+				Developer:        "anthropic",
+				EndpointProvider: "anthropic",
+				Providers:        4,
+				FirstProvider: &RouterModelProvider{
+					Name: "Anthropic",
+					Tag:  &anthropic,
+					Prices: map[string]float64{
+						"input":                3e-6,
+						"output":               0.000015,
+						"input_cache_read":     3e-7,
+						"input_cache_creation": 3.75e-6,
+						"output_reasoning":     0.000015,
+					},
+					ContextLength:     intPtr(1000000),
+					MaxOutputTokens:   intPtr(64000),
+					UptimeLastDay:     floatPtr(100),
+					LatencyLast30m:    &RouterModelPercentiles{P50: floatPtr(1028)},
+					ThroughputLast30m: &RouterModelPercentiles{P50: floatPtr(46)},
+				},
 			},
 		},
 		{
 			name:    "null providers decode to none",
 			payload: withField(read("by_id.json"), "providers", "null"),
-			want:    decoded{Developer: "openai", EndpointProvider: "openai", Latency: latency},
-		},
-		{
-			name:    "null latency decodes to nil",
-			payload: withField(read("by_id.json"), "latency", "null"),
-			want: decoded{
-				Developer:        "openai",
-				EndpointProvider: "openai",
-				Providers:        6,
-				FirstProvider:    firstProvider(floatPtr(92.01388888888889)),
-			},
+			want:    decoded{Developer: "openai", EndpointProvider: "openai"},
 		},
 	}
 
@@ -268,7 +274,6 @@ func TestRouterModelDetailUnmarshal(t *testing.T) {
 				Developer:        detail.Developer,
 				EndpointProvider: detail.EndpointProvider,
 				Providers:        len(detail.Providers),
-				Latency:          detail.Latency,
 			}
 			if len(detail.Providers) > 0 {
 				got.FirstProvider = &detail.Providers[0]
