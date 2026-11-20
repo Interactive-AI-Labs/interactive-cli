@@ -1648,7 +1648,7 @@ func notFound(kind, name string, names []string) error {
 	sort.Strings(names)
 	// ponytail: first 20 alphabetically; rank by similarity if lists grow.
 	if len(names) > 20 {
-		names = append(names[:20], "…")
+		names = append(names[:20:20], "…")
 	}
 	return fmt.Errorf("%s %q not found; existing: %s", kind, name, strings.Join(names, ", "))
 }
