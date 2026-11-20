@@ -31,6 +31,7 @@ var (
 	deploymentHostname string = "https://deployment.interactive.ai"
 	token              string
 	apiKey             string
+	clientOrigin       string
 	cfgFilePath        string
 	rootCmd            = &cobra.Command{
 		Use:     "iai",
@@ -132,6 +133,9 @@ func init() {
 	if envApiKey != "" {
 		apiKey = envApiKey
 	}
+
+	// The Copilot sandbox sets INTERACTIVE_CLIENT_ORIGIN=copilot, so report writes record where they came from.
+	clientOrigin = os.Getenv("INTERACTIVE_CLIENT_ORIGIN")
 
 	rootCmd.AddGroup(
 		&cobra.Group{ID: groupAuth, Title: "Auth:"},

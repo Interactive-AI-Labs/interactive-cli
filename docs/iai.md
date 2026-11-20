@@ -111,6 +111,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai queue-items](iai_queue-items.md)	 - Manage items in annotation queues
 * [iai queues](iai_queues.md)	 - Annotation queues for human review workflows
 * [iai replicas](iai_replicas.md)	 - Inspect service or MCP replicas
+* [iai reports](iai_reports.md)	 - Build and change project reports
 * [iai router](iai_router.md)	 - Inspect the inference router, keys, and models
 * [iai routines](iai_routines.md)	 - Multi-step behavioral processes for agents
 * [iai run-items](iai_run-items.md)	 - Inspect results of evaluation runs
