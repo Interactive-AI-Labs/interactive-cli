@@ -76,8 +76,8 @@ type APIKeySuccessResponse struct {
 }
 
 func (c *APIClient) requireKeyManagementAuth() error {
-	if c.apiKey != "" || (c.token == "" && len(c.cookies) == 0) {
-		return auth.KeyManagementLoginRequiredError()
+	if c.token == "" && (c.apiKey != "" || len(c.cookies) == 0) {
+		return auth.LoginRequiredError("key management")
 	}
 
 	return nil

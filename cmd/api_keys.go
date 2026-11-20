@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/auth"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -35,25 +33,6 @@ var (
 	routerKeyEnable        bool
 )
 
-func requireKeyManagementAuth() error {
-	if apiKey != "" {
-		return auth.KeyManagementLoginRequiredError()
-	}
-	if token != "" {
-		return nil
-	}
-
-	cookies, err := files.LoadSessionCookies(cfgDirName, sessionFileName)
-	if err != nil {
-		return fmt.Errorf("failed to load login session: %w", err)
-	}
-	if len(cookies) == 0 {
-		return auth.KeyManagementLoginRequiredError()
-	}
-
-	return nil
-}
-
 var apiKeysCmd = &cobra.Command{
 	Use:     "api-keys",
 	Aliases: []string{"api-key"},
@@ -70,7 +49,7 @@ var apiKeysListCmd = &cobra.Command{
 	Short:   "List project API keys",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 
@@ -117,7 +96,7 @@ var apiKeysCreateCmd = &cobra.Command{
 Project API keys authenticate platform/API access for reading and writing project context, such as prompts, routines, policies, variables, glossaries, macros, traces, scores, datasets, and for creating infrastructure resources such as agents, services, and databases.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 
@@ -160,7 +139,7 @@ var apiKeysUpdateCmd = &cobra.Command{
 	Short: "Update a project API key",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 		if !cmd.Flags().Changed("note") {
@@ -211,7 +190,7 @@ var apiKeysDeleteCmd = &cobra.Command{
 	Short: "Delete a project API key",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 
@@ -269,7 +248,7 @@ var routerKeysListCmd = &cobra.Command{
 	Short:   "List router API keys",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 
@@ -316,7 +295,7 @@ var routerKeysCreateCmd = &cobra.Command{
 Router keys authenticate inference requests to the InteractiveAI Router, for example chat completions and model calls. They are used as bearer tokens for runtime inference, not for managing project context or infrastructure.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 
@@ -368,7 +347,7 @@ var routerKeysUpdateCmd = &cobra.Command{
 	Short: "Update a router API key",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 		if routerKeyClearLimit && cmd.Flags().Changed("limit") {
@@ -434,7 +413,7 @@ var routerKeysDeleteCmd = &cobra.Command{
 	Short: "Delete a router API key",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireKeyManagementAuth(); err != nil {
+		if err := requireLoginAuth("key management"); err != nil {
 			return err
 		}
 
