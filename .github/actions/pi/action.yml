@@ -1,0 +1,90 @@
+# Copy of Interactive-AI-Labs/github-workflows/.github/actions/pi/action.yml@a93b18cd62589a6c839d41993cf97c1bddbd930d.
+# This public repository cannot use actions from the private github-workflows repository; keep in sync by re-copying.
+name: Pi
+description: Run a Pi prompt through the Interactive router and return its final answer.
+inputs:
+  prompt:
+    description: Task for Pi; its final reply becomes the result output
+    required: true
+  model:
+    description: Interactive router model id
+    default: interactive/deepseek/deepseek-v4.1-flash-1017
+  thinking:
+    description: 'Pi thinking level: off, minimal, low, medium, high, xhigh, or max; empty keeps provider defaults'
+    default: ""
+  max-length:
+    description: Fail when the trimmed reply is longer than this many characters; empty allows any length
+    default: ""
+outputs:
+  result:
+    description: Text of Pi's final reply, with surrounding whitespace trimmed
+    value: ${{ steps.pi.outputs.result }}
+runs:
+  using: composite
+  steps:
+    - name: Authenticate image registry
+      shell: bash
+      run: gcloud auth configure-docker europe-west4-docker.pkg.dev --quiet
+
+    - name: Run Pi
+      id: pi
+      shell: bash
+      env:
+        SECRETS_PROJECT: common-secrets-c3bd0161
+        ROUTER_KEY_SECRET: pr-review-router-key
+        ROUTER_KEY_VERSION: "1"
+        # pi-iai 0.0.10; keep in sync with workflows/pi-iai.yml
+        PI_IMAGE: europe-west4-docker.pkg.dev/packages-3317e3ad/tools/pi-iai@sha256:25292dcf0cdf78007befc1f9f04b51f337d952023a82a19de4d4a3de7f55a2c9
+        PI_PROMPT: ${{ inputs.prompt }}
+        ROUTER_MODEL: ${{ inputs.model }}
+        ROUTER_THINKING: ${{ inputs.thinking }}
+        MAX_LENGTH: ${{ inputs.max-length }}
+      run: |
+        set -euo pipefail
+        : "${PI_PROMPT:?The prompt input must not be empty}"
+        : "${ROUTER_MODEL:?The model input must not be empty}"
+        [[ -z "$MAX_LENGTH" || "$MAX_LENGTH" =~ ^[1-9][0-9]{0,8}$ ]] || { echo "::error::max-length must be a positive whole number"; exit 1; }
+        INTERACTIVE_ROUTER_KEY=$(gcloud secrets versions access "$ROUTER_KEY_VERSION" \
+          --secret="$ROUTER_KEY_SECRET" --project="$SECRETS_PROJECT" \
+          --quiet --no-log-http --verbosity=error)
+        escaped_key="${INTERACTIVE_ROUTER_KEY//%/%25}"
+        escaped_key="${escaped_key//$'\r'/%0D}"
+        escaped_key="${escaped_key//$'\n'/%0A}"
+        printf '::add-mask::%s\n' "$escaped_key"
+        : "${INTERACTIVE_ROUTER_KEY:?The router secret is empty}"
+        export INTERACTIVE_ROUTER_KEY
+
+        # Inference only: no tools, no checkout and no GitHub token reach Pi.
+        events=$(mktemp "$RUNNER_TEMP/pi-events.XXXXXXXX")
+        container="pi-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RANDOM"
+        trap 'docker rm -f "$container" >/dev/null 2>&1 || true; rm -f "$events"' EXIT
+        echo "Running Pi"
+        docker run --rm --init --name "$container" \
+          -e INTERACTIVE_ROUTER_KEY -e ROUTER_MODEL -e ROUTER_THINKING "$PI_IMAGE" \
+          timeout --kill-after=30s 20m pi --mode json -p --no-session --no-approve --no-tools \
+          -- "$PI_PROMPT" | tee "$events" | jq --unbuffered -r '
+            select($ENV.RUNNER_DEBUG == "1")
+            | select(.type | IN("message_update", "tool_execution_update", "turn_end", "agent_end") | not)
+            | "::debug::" + (tojson | gsub("%"; "%25"))'
+
+        # The last assistant message is the answer; anything but a clean stop fails the step.
+        final=$(jq -cs '[.[] | select(.type == "message_end" and .message.role == "assistant")] | last // {}' "$events")
+        stop_reason=$(jq -r '.message.stopReason // "missing"' <<< "$final")
+        result=$(jq -r '[.message.content[]? | select(.type == "text") | .text] | join("")' <<< "$final")
+        if [ "$stop_reason" != "stop" ]; then
+          error_message=$(jq -r '.message.errorMessage // "none"' <<< "$final")
+          echo "::error::Pi stopped with reason $stop_reason: ${error_message//$'\n'/ }"
+          exit 1
+        fi
+        result="${result#"${result%%[![:space:]]*}"}"
+        result="${result%"${result##*[![:space:]]}"}"
+        [ -n "$result" ] || { echo "::error::Pi returned an empty reply"; exit 1; }
+        length=$(jq -rn --arg s "$result" '$s | length')
+        if [ -n "$MAX_LENGTH" ] && [ "$length" -gt "$MAX_LENGTH" ]; then
+          echo "::error::Pi replied with $length characters, over the $MAX_LENGTH limit"
+          exit 1
+        fi
+
+        delimiter="PI_RESULT_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+        printf 'result<<%s\n%s\n%s\n' "$delimiter" "$result" "$delimiter" >> "$GITHUB_OUTPUT"
+        echo "Pi finished (stop)"
