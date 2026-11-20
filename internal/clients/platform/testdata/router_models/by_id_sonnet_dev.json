@@ -1,0 +1,147 @@
+{
+  "id": "7d0c4146-e262-51f2-b741-2971f0867b3b",
+  "modelName": "interactive/anthropic/claude-sonnet-4.5",
+  "marketingName": "Claude Sonnet 4.5",
+  "endpointProvider": "anthropic",
+  "developer": "anthropic",
+  "description": "Claude Sonnet 4.5 is Anthropic’s most advanced Sonnet model to date, optimized for real-world agents and coding workflows. It delivers state-of-the-art performance on coding benchmarks such as SWE-bench Verified, with...",
+  "contextLength": 1000000,
+  "capabilities": [
+    "Text",
+    "Vision",
+    "Files"
+  ],
+  "prices": {
+    "input": 3e-6,
+    "output": 0.000015,
+    "input_cache_read": 3e-7,
+    "input_cache_creation": 3.75e-6,
+    "output_reasoning": 0.000015
+  },
+  "tokenizerId": null,
+  "tokenizerConfig": null,
+  "createdAt": "2026-02-05T17:18:54.115428+00:00",
+  "region": "us",
+  "hasOtherRegion": false,
+  "recommendations": {},
+  "providerNames": [
+    "Anthropic",
+    "Azure",
+    "Claude Platform on AWS",
+    "Google"
+  ],
+  "providers": [
+    {
+      "name": "Anthropic",
+      "tag": "anthropic",
+      "prices": {
+        "input": 3e-6,
+        "output": 0.000015,
+        "input_cache_read": 3e-7,
+        "input_cache_creation": 3.75e-6,
+        "output_reasoning": 0.000015
+      },
+      "contextLength": 1000000,
+      "maxOutputTokens": 64000,
+      "quantization": null,
+      "uptimeLastDay": 100.0,
+      "uptimeLast30m": 100.0,
+      "latencyLast30m": {
+        "p50": 1028.0,
+        "p75": 1206.0,
+        "p90": 1674.0,
+        "p99": 2518.5999999999995
+      },
+      "throughputLast30m": {
+        "p50": 46.0,
+        "p75": 32.0,
+        "p90": 27.0,
+        "p99": 17.0
+      }
+    },
+    {
+      "name": "Azure",
+      "tag": "azure/global",
+      "prices": {
+        "input": 3e-6,
+        "output": 0.000015,
+        "input_cache_read": 3e-7,
+        "input_cache_creation": 3.75e-6,
+        "output_reasoning": 0.000015
+      },
+      "contextLength": 200000,
+      "maxOutputTokens": 64000,
+      "quantization": null,
+      "uptimeLastDay": null,
+      "uptimeLast30m": null,
+      "latencyLast30m": {
+        "p50": 1572.0,
+        "p75": 1769.75,
+        "p90": 1853.1999999999998,
+        "p99": 1887.2199999999998
+      },
+      "throughputLast30m": {
+        "p50": 42.5,
+        "p75": 37.25,
+        "p90": 32.6,
+        "p99": 29.36
+      }
+    },
+    {
+      "name": "Claude Platform on AWS",
+      "tag": "claude-on-aws",
+      "prices": {
+        "input": 3e-6,
+        "output": 0.000015,
+        "input_cache_read": 3e-7,
+        "input_cache_creation": 3.75e-6,
+        "output_reasoning": 0.000015
+      },
+      "contextLength": 1000000,
+      "maxOutputTokens": 64000,
+      "quantization": null,
+      "uptimeLastDay": 100.0,
+      "uptimeLast30m": 100.0,
+      "latencyLast30m": {
+        "p50": 882.0,
+        "p75": 993.0,
+        "p90": 1166.0,
+        "p99": 1964.260000000002
+      },
+      "throughputLast30m": {
+        "p50": 55.0,
+        "p75": 40.0,
+        "p90": 32.0,
+        "p99": 23.0
+      }
+    },
+    {
+      "name": "Google",
+      "tag": "google-vertex/global",
+      "prices": {
+        "input": 3e-6,
+        "output": 0.000015,
+        "input_cache_read": 3e-7,
+        "input_cache_creation": 3.75e-6,
+        "output_reasoning": 0.000015
+      },
+      "contextLength": 1000000,
+      "maxOutputTokens": 64000,
+      "quantization": null,
+      "uptimeLastDay": 100.0,
+      "uptimeLast30m": 100.0,
+      "latencyLast30m": {
+        "p50": 1041.0,
+        "p75": 2868.0,
+        "p90": 5692.0,
+        "p99": 8240.000000000004
+      },
+      "throughputLast30m": {
+        "p50": 36.0,
+        "p75": 32.5,
+        "p90": 29.6,
+        "p99": 19.0
+      }
+    }
+  ]
+}
