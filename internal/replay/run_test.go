@@ -246,3 +246,55 @@ func TestWaitError(t *testing.T) {
 		})
 	}
 }
+
+func TestFollowUntilVerdict(t *testing.T) {
+	ended, reset := deployment.ErrReplayStreamEnded, errors.New("connection reset")
+	verdict := &deployment.ReplayRun{Status: "passed"}
+	refollowPause = 0
+	tests := []struct {
+		name      string
+		follows   []error // nil is the run's verdict; a trailing stream end also ends the wait
+		wantCalls int
+		wantErr   error
+	}{
+		{"a verdict on the first follow", []error{nil}, 1, nil},
+		{"a stream capped at 10 minutes is followed again", []error{ended, ended, nil}, 3, nil},
+		{"another failure is not retried", []error{reset}, 1, reset},
+		{
+			"the stream keeps ending until the wait ends",
+			[]error{ended, ended, ended},
+			3,
+			context.Canceled,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			calls := 0
+			follow := func() (*deployment.ReplayRun, error) {
+				err := tt.follows[calls]
+				calls++
+				if calls == len(tt.follows) && errors.Is(err, ended) {
+					cancel()
+				}
+				if err != nil {
+					return nil, err
+				}
+				return verdict, nil
+			}
+			run, err := followUntilVerdict(ctx, follow)
+			if calls != tt.wantCalls || !errors.Is(err, tt.wantErr) ||
+				(err == nil) != (run == verdict) {
+				t.Fatalf(
+					"calls=%d err=%v run=%v, want calls=%d err=%v",
+					calls,
+					err,
+					run,
+					tt.wantCalls,
+					tt.wantErr,
+				)
+			}
+		})
+	}
+}

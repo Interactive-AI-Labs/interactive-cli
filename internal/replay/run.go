@@ -92,10 +92,12 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 	waitCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 	progress := output.NewReplayProgress(deps.Stderr)
-	run, err := deps.Deploy.FollowReplay(
-		waitCtx, opts.OrgID, opts.ProjectID, opts.AgentName, runID,
-		progress.Update,
-	)
+	run, err := followUntilVerdict(waitCtx, func() (*deployment.ReplayRun, error) {
+		return deps.Deploy.FollowReplay(
+			waitCtx, opts.OrgID, opts.ProjectID, opts.AgentName, runID,
+			progress.Update,
+		)
+	})
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			// Stop watching quietly, as logs --follow does; the run keeps going.
@@ -122,6 +124,29 @@ func Run(ctx context.Context, deps Deps, opts Options) error {
 		return fmt.Errorf("replay %s could not be completed: %s", runID, errorSummary(run))
 	}
 	return nil
+}
+
+// refollowPause keeps a stream that closes at once from turning into a busy loop.
+var refollowPause = 2 * time.Second
+
+// followUntilVerdict follows the run again whenever its stream closes without a verdict
+// (the deployment operator caps one follow at 10 minutes), until ctx ends.
+func followUntilVerdict(
+	ctx context.Context,
+	follow func() (*deployment.ReplayRun, error),
+) (*deployment.ReplayRun, error) {
+	run, err := follow()
+	for errors.Is(err, deployment.ErrReplayStreamEnded) {
+		select {
+		case <-ctx.Done():
+		case <-time.After(refollowPause):
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		run, err = follow()
+	}
+	return run, err
 }
 
 // reattachCommand is how to pick a run back up, reaching the same agent it is on.
