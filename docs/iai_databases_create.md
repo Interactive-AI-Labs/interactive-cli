@@ -38,7 +38,7 @@ iai databases create <database_name> [flags]
       --postgres-version string   PostgreSQL major or major.minor version (e.g. 18, 17.6); supported range 15–18; defaults to latest if omitted
   -p, --project string            Project name
       --stack-id string           Stack ID to assign the database to
-      --storage-size string       Storage size with G unit (e.g. 20G, 100G); must be between 10G and 200G; cannot be decreased
+      --storage-size string       Storage size with G unit (e.g. 20G, 100G); must be between 6G and 200G; cannot be decreased
 ```
 
 ### Options inherited from parent commands
