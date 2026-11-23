@@ -23,12 +23,43 @@ func TestReportListQuery(t *testing.T) {
 			ReportListOptions{FolderID: "none", Agent: "support-bot"},
 			"agent=support-bot&folder_id=none",
 		},
+		{reportGetOptions{Include: "draft"}, "include=draft"},
 	}
 	for _, tt := range tests {
 		q, err := query.Values(tt.opts)
 		if got := q.Encode(); err != nil || got != tt.want {
 			t.Errorf("query.Values(%+v) = %q, %v; want %q", tt.opts, got, err, tt.want)
 		}
+	}
+}
+
+// A get with ?include=draft reads the draft object; an apply reads draft as a flag.
+func TestReportDraftDecode(t *testing.T) {
+	tests := []struct {
+		name, raw, want string
+	}{
+		{
+			"get with a draft",
+			`{"id":"r-1","folder_id":"f-1","draft":{"document":{"name":"B","folder_id":"f-2"}}}`,
+			`r-1 false f-2`,
+		},
+		{"get with no draft", `{"id":"r-1","folder_id":"f-1","draft":null}`, `r-1 false <nil>`},
+	}
+	for _, tt := range tests {
+		var got reportWithDraft
+		err := json.Unmarshal([]byte(tt.raw), &got)
+		folder := "<nil>"
+		if got.Draft != nil {
+			folder = *got.Draft.Document.FolderID
+		}
+		if s := fmt.Sprint(got.ID, " ", got.Report.Draft, " ", folder); err != nil || s != tt.want {
+			t.Errorf("%s: got %s, %v; want %s", tt.name, s, err, tt.want)
+		}
+	}
+	var applied Report
+	if err := json.Unmarshal([]byte(`{"id":"r-1","draft":true}`), &applied); err != nil ||
+		!applied.Draft {
+		t.Errorf("apply: got %+v, %v; want draft true", applied, err)
 	}
 }
 

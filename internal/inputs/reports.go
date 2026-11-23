@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"strings"
 
@@ -57,6 +58,7 @@ var reportReadOnlyFields = []string{
 	"created_by",
 	"updated_by",
 	"updated_via",
+	"draft",
 }
 
 // ReportDocument is a report as 'iai reports create' and 'update' read it and
@@ -203,7 +205,8 @@ func ReportBodyOf(
 }
 
 // ReportDocumentOf is a report the API answered as a document: its folder by name (null for
-// none) instead of folder_id, without id, and without updated_at unless withUpdatedAt.
+// none) instead of folder_id, without id, and without updated_at unless withUpdatedAt. With
+// the caller's draft (?include=draft), the draft's fields replace the report's and draft is true.
 func ReportDocumentOf(
 	raw json.RawMessage,
 	folder string,
@@ -214,6 +217,12 @@ func ReportDocumentOf(
 	dec.UseNumber()
 	if err := dec.Decode(&fields); err != nil {
 		return nil, fmt.Errorf("failed to decode report: %w", err)
+	}
+	draft, _ := fields["draft"].(map[string]any)
+	delete(fields, "draft")
+	if document, ok := draft["document"].(map[string]any); ok {
+		maps.Copy(fields, document)
+		fields["draft"] = true
 	}
 	delete(fields, "folder_id")
 	fields["folder"] = nil

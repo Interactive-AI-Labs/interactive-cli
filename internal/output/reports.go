@@ -91,8 +91,9 @@ func PrintReportList(
 	return PrintTable(out, headers, rows)
 }
 
-// PrintReportSummary prints a report's settings and its sections with their widgets.
-func PrintReportSummary(out io.Writer, r platform.Report, folder string) error {
+// PrintReportSummary prints a report's settings and its sections with their widgets;
+// draft says the caller has an unsaved draft of it open.
+func PrintReportSummary(out io.Writer, r platform.Report, folder string, draft bool) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", r.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", Printable(r.Name))
@@ -115,6 +116,9 @@ func PrintReportSummary(out io.Writer, r platform.Report, folder string) error {
 	fmt.Fprintf(w, "Updated By:\t%s\n", Printable(r.UpdatedBy))
 	fmt.Fprintf(w, "Updated Via:\t%s\n", r.UpdatedVia)
 	fmt.Fprintf(w, "Can Restore:\t%s\n", reportYesNo(r.CanUndo))
+	if draft {
+		fmt.Fprintln(w, "Unsaved Draft:\tyes, open in the editor; --yaml prints it")
+	}
 	if err := w.Flush(); err != nil {
 		return err
 	}
@@ -159,6 +163,15 @@ func PrintDeletedReport(out io.Writer, name, id string, doc json.RawMessage) err
 
 // PrintReportSaved prints the report a create or update saved and where to open it.
 func PrintReportSaved(out io.Writer, r platform.Report, path string) {
+	if r.Draft {
+		fmt.Fprintf(
+			out,
+			"Added to your open draft of report %q (id %s). Save in the editor to keep it.\n"+
+				"Path: %s\n",
+			Printable(r.Name), r.ID, path,
+		)
+		return
+	}
 	fmt.Fprintf(out, "Saved report %q (id %s).\nPath: %s\n", Printable(r.Name), r.ID, path)
 }
 

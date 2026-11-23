@@ -52,15 +52,24 @@ func findReport(
 	client *platform.APIClient,
 	projectID, name string,
 ) (platform.Report, json.RawMessage, error) {
+	id, err := findReportID(ctx, client, projectID, name)
+	if err != nil {
+		return platform.Report{}, nil, err
+	}
+	return client.GetReport(ctx, projectID, id)
+}
+
+func findReportID(
+	ctx context.Context,
+	client *platform.APIClient,
+	projectID, name string,
+) (string, error) {
 	reports, _, err := client.ListReports(ctx, projectID, platform.ReportListOptions{})
 	if err != nil {
-		return platform.Report{}, nil, err
+		return "", err
 	}
 	found, err := inputs.ResolveReport(reports, strings.TrimSpace(name))
-	if err != nil {
-		return platform.Report{}, nil, err
-	}
-	return client.GetReport(ctx, projectID, found.ID)
+	return found.ID, err
 }
 
 // reportFolder is the name of the folder a report is in; empty for none.
@@ -157,7 +166,8 @@ var reportsGetCmd = &cobra.Command{
 	Use:     "get <name>",
 	Aliases: []string{"describe", "desc"},
 	Short:   "Show a report, or print it as a document to save",
-	Long:    "Show a report's settings, sections and widgets.",
+	Long: `Show a report's settings, sections and widgets. While you have unsaved changes to
+the report open in the editor, --yaml and --json print that draft, marked draft: true.`,
 	Example: `  iai reports get "Traffic summary"
   iai reports get "Traffic summary" --yaml > report.yaml`,
 	Args: cobra.ExactArgs(1),
@@ -167,15 +177,24 @@ var reportsGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		report, raw, err := findReport(cmd.Context(), client, pCtx.projectId, args[0])
+		id, err := findReportID(cmd.Context(), client, pCtx.projectId, args[0])
 		if err != nil {
 			return err
 		}
-		folder, err := reportFolder(cmd.Context(), client, pCtx.projectId, report.FolderID)
+		report, draft, raw, err := client.GetReportWithDraft(cmd.Context(), pCtx.projectId, id)
 		if err != nil {
 			return err
 		}
-		if reportsGetJSON || reportsGetYAML {
+		asDocument := reportsGetJSON || reportsGetYAML
+		folderID := report.FolderID
+		if draft != nil && asDocument {
+			folderID = draft.Document.FolderID
+		}
+		folder, err := reportFolder(cmd.Context(), client, pCtx.projectId, folderID)
+		if err != nil {
+			return err
+		}
+		if asDocument {
 			doc, err := inputs.ReportDocumentOf(raw, folder, true)
 			if err != nil {
 				return err
@@ -185,7 +204,7 @@ var reportsGetCmd = &cobra.Command{
 			}
 			return output.PrintRawYAML(out, doc)
 		}
-		return output.PrintReportSummary(out, report, folder)
+		return output.PrintReportSummary(out, report, folder, draft != nil)
 	},
 }
 

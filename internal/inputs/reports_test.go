@@ -46,7 +46,7 @@ func TestReportBody(t *testing.T) {
 		{
 			name: "read-only fields are dropped",
 			in: "project_id: p\ncan_undo: true\ncreated_at: x\ncreated_by: u\nupdated_by: u\n" +
-				"updated_via: ui\nid: r-1\nname: A\n" + def,
+				"updated_via: ui\ndraft: true\nid: r-1\nname: A\n" + def,
 			want: plain,
 		},
 		{
@@ -161,33 +161,53 @@ func TestReportFolderChange(t *testing.T) {
 }
 
 func TestReportDocumentOf(t *testing.T) {
-	const raw = `{"id":"r-1","updated_at":"t","name":"A","folder_id":"f-1","n":12345678901234567}`
+	const raw = `{"id":"r-1","updated_at":"t","name":"A","folder_id":"f-1","n":12345678901234567`
+	const draft = `,"draft":{"report_id":"r-1","revision":3,"updated_at":"d",` +
+		`"document":{"name":"B","folder_id":"f-2","n":12345678901234568}}`
 	tests := []struct {
 		name, folder  string
 		withUpdatedAt bool
 		want          string
+		draft         string
 	}{
 		{
 			"get names the folder",
 			"Ops",
 			true,
 			`{"folder":"Ops","n":12345678901234567,"name":"A","updated_at":"t"}`,
+			"",
 		},
 		{
 			"no folder is null",
 			"",
 			true,
 			`{"folder":null,"n":12345678901234567,"name":"A","updated_at":"t"}`,
+			"",
 		},
 		{
 			"delete drops updated_at",
 			"Ops",
 			false,
 			`{"folder":"Ops","n":12345678901234567,"name":"A"}`,
+			"",
+		},
+		{
+			"get with no draft",
+			"Ops",
+			true,
+			`{"folder":"Ops","n":12345678901234567,"name":"A","updated_at":"t"}`,
+			`,"draft":null`,
+		},
+		{
+			"get prints the draft over the report's updated_at",
+			"Drafts",
+			true,
+			`{"draft":true,"folder":"Drafts","n":12345678901234568,"name":"B","updated_at":"t"}`,
+			draft,
 		},
 	}
 	for _, tt := range tests {
-		got, err := ReportDocumentOf(json.RawMessage(raw), tt.folder, tt.withUpdatedAt)
+		got, err := ReportDocumentOf(json.RawMessage(raw+tt.draft+"}"), tt.folder, tt.withUpdatedAt)
 		if string(got) != tt.want || err != nil {
 			t.Errorf("%s: got %s, %v; want %s", tt.name, got, err, tt.want)
 		}
