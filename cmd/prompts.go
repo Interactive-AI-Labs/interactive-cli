@@ -25,7 +25,7 @@ func init() {
 
 Unlike typed commands (routines, policies, glossaries, variables, macros),
 prompts managed here have no enforced schema or structure. They support two
-types: "text" (default) and "chat".`,
+types, chosen with --type on create.`,
 	}
 
 	parentCmd.AddCommand(
@@ -61,8 +61,6 @@ func makeGenericCreateCmd() *cobra.Command {
 
 Content is provided via --file (path to a file) or --content (inline string).
 Exactly one of --file or --content must be specified.
-
-The --type flag selects the prompt type: "text" (default) or "chat".
 
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).`,
@@ -120,10 +118,7 @@ The server automatically assigns the "latest" label to new versions. Use
 
 	cmd.Flags().StringVar(&file, "file", "", "Path to the file containing the prompt content")
 	cmd.Flags().StringVar(&content, "content", "", "Inline prompt content string")
-	cmd.Flags().StringVar(
-		&promptType, "type", "text",
-		`Prompt type: "text" (default) or "chat"`,
-	)
+	addChoiceFlag(cmd, &promptType, "type", "text", "Prompt type", validPromptTypes)
 	cmd.Flags().
 		StringSliceVar(&labels, "labels", nil, "Labels for the prompt version (comma-separated)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the prompt (comma-separated)")

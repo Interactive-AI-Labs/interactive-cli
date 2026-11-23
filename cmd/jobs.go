@@ -265,12 +265,11 @@ func init() {
 		StringVarP(&jobOrganization, "organization", "o", "", "Organization name that owns the project")
 
 	flags := jobCreateCmd.Flags()
-	flags.StringVar(&jobCreateInput.Type, "type", "image", "Job type: 'image' or 'script'")
-	flags.StringVar(
-		&jobCreateInput.ImageType,
-		"image-type",
-		"",
-		"Image type: 'internal' (project's private registry) or 'external' (any public registry)",
+	addChoiceFlag(jobCreateCmd, &jobCreateInput.Type, "type", "image", "Job type", inputs.JobTypes)
+	addChoiceFlag(
+		jobCreateCmd, &jobCreateInput.ImageType, "image-type", "",
+		"Image type; internal is the project's private registry, external any public registry",
+		imageTypes,
 	)
 	flags.StringVar(
 		&jobCreateInput.ImageRepository,

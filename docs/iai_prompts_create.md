@@ -9,8 +9,6 @@ Create a new text or chat prompt in an InteractiveAI project.
 Content is provided via --file (path to a file) or --content (inline string).
 Exactly one of --file or --content must be specified.
 
-The --type flag selects the prompt type: "text" (default) or "chat".
-
 The server automatically assigns the "latest" label to new versions. Use
 --labels to assign additional labels (e.g. --labels staging).
 
@@ -40,7 +38,7 @@ iai prompts create <name> [flags]
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
       --tags strings          Tags for the prompt (comma-separated)
-      --type string           Prompt type: "text" (default) or "chat" (default "text")
+      --type string           Prompt type (text|chat) (default "text")
 ```
 
 ### Options inherited from parent commands

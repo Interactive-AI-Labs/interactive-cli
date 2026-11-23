@@ -443,10 +443,12 @@ func init() {
 	indexFlag(tracesListCmd, "from-timestamp", "default: 7 days ago")
 	tracesListCmd.Flags().
 		StringVar(&tracesToTimestamp, "to-timestamp", "", "Filter traces to this timestamp (ISO 8601)")
-	tracesListCmd.Flags().
-		StringVar(&tracesOrderBy, "order-by", "", "Order by field: timestamp, latency, cost, name")
-	tracesListCmd.Flags().
-		StringVar(&tracesOrder, "order", "desc", "Sort direction: asc or desc (default: desc)")
+	addChoiceFlag(
+		tracesListCmd, &tracesOrderBy, "order-by", "", "Order by field", traceOrderFields,
+	)
+	addChoiceFlag(
+		tracesListCmd, &tracesOrder, "order", "desc", "Sort direction", sortOrders,
+	)
 	tracesListCmd.Flags().StringArrayVar(&tracesTags, "tags", nil, "Filter by tags (repeatable)")
 	tracesListCmd.Flags().StringVar(&tracesVersion, "version", "", "Filter by version")
 	tracesListCmd.Flags().StringVar(&tracesRelease, "release", "", "Filter by release")
@@ -464,8 +466,9 @@ func init() {
 	tracesListCmd.Flags().IntVar(&tracesMaxTokens, "max-tokens", 0, "Maximum total tokens filter")
 	tracesListCmd.Flags().StringVar(&tracesModel, "model", "", "Filter by model name")
 	tracesListCmd.Flags().BoolVar(&tracesHasError, "has-error", false, "Filter traces with errors")
-	tracesListCmd.Flags().
-		StringVar(&tracesLevel, "level", "", "Filter by aggregated level: DEBUG, DEFAULT, WARNING, ERROR")
+	addChoiceFlag(
+		tracesListCmd, &tracesLevel, "level", "", "Filter by aggregated level", traceLevels,
+	)
 	tracesListCmd.Flags().
 		StringVar(&tracesSearch, "search", "", "Search in trace name (max 200 characters)")
 	indexFlag(tracesListCmd, "search", "max 200 characters")
@@ -528,3 +531,8 @@ func init() {
 	tracesCmd.AddCommand(tracesListCmd, tracesGetCmd, tracesDiffCmd, tracesDeleteCmd)
 	rootCmd.AddCommand(tracesCmd)
 }
+
+var (
+	traceLevels      = []string{"DEBUG", "DEFAULT", "WARNING", "ERROR"}
+	traceOrderFields = []string{"timestamp", "latency", "cost", "name"}
+)

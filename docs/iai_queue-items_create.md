@@ -26,11 +26,11 @@ iai queue-items create [flags]
   -h, --help                  help for create
       --json                  Output raw API response as JSON
       --object-id string      Object ID (required)
-      --object-type string    Object type: TRACE or OBSERVATION (required)
+      --object-type string    Object type, required (TRACE|OBSERVATION)
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
       --queue-id string       Queue ID (required)
-      --status string         Status (PENDING/COMPLETED)
+      --status string         Status (PENDING|COMPLETED)
       --yaml                  Output raw API response as YAML
 ```
 

@@ -40,7 +40,7 @@ iai mcps logs <mcp_name> [flags]
       --fields strings      Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON
   -f, --follow              Stream new log entries as they arrive; mutually exclusive with --end-time
   -h, --help                help for logs
-      --level string        JSON log severity: debug, info, warn, or error
+      --level string        JSON log severity (debug|info|warn|error)
       --limit int           Maximum number of log entries to return (1-5000); defaults to 1000
       --message string      Case-insensitive RE2 regular expression matched against the log line
       --raw                 Output exact server JSON lines without formatting

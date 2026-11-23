@@ -19,3 +19,5 @@ func addChoiceFlag(
 		flagSetupErrs = append(flagSetupErrs, err)
 	}
 }
+
+var sortOrders = []string{"asc", "desc"}

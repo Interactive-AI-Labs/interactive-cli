@@ -365,7 +365,7 @@ var routerKeysUpdateCmd = &cobra.Command{
 			patch["limit"] = nil
 		}
 		if cmd.Flags().Changed("limit-reset") {
-			if routerKeyLimitReset == "none" {
+			if routerKeyLimitReset == limitResetNone {
 				patch["limit_reset"] = nil
 			} else {
 				patch["limit_reset"] = routerKeyLimitReset
@@ -487,16 +487,20 @@ func init() {
 	routerKeysCreateCmd.Flags().
 		Float64Var(&routerKeyLimit, "limit", 0, "Credit limit in USD. If omitted, defaults to $100. Maximum is $2500.")
 	indexFlag(routerKeysCreateCmd, "limit", "Maximum is $2500")
-	routerKeysCreateCmd.Flags().
-		StringVar(&routerKeyLimitReset, "limit-reset", "", "Limit reset period: daily, weekly, monthly. If omitted, defaults to monthly.")
+	addChoiceFlag(
+		routerKeysCreateCmd, &routerKeyLimitReset, "limit-reset", "",
+		"Limit reset period; server default monthly", routerKeyLimitResets,
+	)
 	routerKeysCreateCmd.Flags().
 		StringVar(&routerKeyExpiresAt, "expires-at", "", "Expiration timestamp (RFC3339). If omitted, keys do not expire by default.")
 	routerKeysUpdateCmd.Flags().
 		Float64Var(&routerKeyLimit, "limit", 0, "Credit limit in USD")
 	routerKeysUpdateCmd.Flags().
 		BoolVar(&routerKeyClearLimit, "clear-limit", false, "Remove the credit limit")
-	routerKeysUpdateCmd.Flags().
-		StringVar(&routerKeyLimitReset, "limit-reset", "", "Limit reset period: none, daily, weekly, monthly")
+	addChoiceFlag(
+		routerKeysUpdateCmd, &routerKeyLimitReset, "limit-reset", "",
+		"Limit reset period; none removes the reset", routerKeyUpdateLimitResets,
+	)
 	routerKeysUpdateCmd.Flags().
 		BoolVar(&routerKeyDisable, "disable", false, "Disable this key")
 	routerKeysUpdateCmd.Flags().
@@ -509,3 +513,10 @@ func init() {
 	)
 	routerCmd.AddCommand(routerKeysCmd)
 }
+
+const limitResetNone = "none"
+
+var (
+	routerKeyLimitResets       = []string{"daily", "weekly", "monthly"}
+	routerKeyUpdateLimitResets = append([]string{limitResetNone}, routerKeyLimitResets...)
+)

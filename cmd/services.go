@@ -1005,8 +1005,11 @@ func init() {
 	servCCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servCCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
-	servCCmd.Flags().
-		StringVar(&serviceImageType, "image-type", "", "Image type: 'internal' (project's private registry) or 'external' (any public registry)")
+	addChoiceFlag(
+		servCCmd, &serviceImageType, "image-type", "",
+		"Image type; internal is the project's private registry, external any public registry",
+		imageTypes,
+	)
 	servCCmd.Flags().
 		StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servCCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
@@ -1060,8 +1063,11 @@ func init() {
 	servUCmd.Flags().
 		StringVarP(&serviceOrganization, "organization", "o", "", "Organization name that owns the project")
 	servUCmd.Flags().IntVar(&servicePort, "port", 0, "Service port to expose")
-	servUCmd.Flags().
-		StringVar(&serviceImageType, "image-type", "", "Image type: 'internal' (project's private registry) or 'external' (any public registry)")
+	addChoiceFlag(
+		servUCmd, &serviceImageType, "image-type", "",
+		"Image type; internal is the project's private registry, external any public registry",
+		imageTypes,
+	)
 	servUCmd.Flags().
 		StringVar(&serviceImageRepository, "image-repository", "", "Container image repository (external images only)")
 	servUCmd.Flags().StringVar(&serviceImageName, "image-name", "", "Container image name")
@@ -1262,3 +1268,5 @@ func init() {
 	servicesCmd.AddCommand(servicesSyncCmd)
 	servicesCmd.AddCommand(servLogFieldsCmd)
 }
+
+var imageTypes = []string{"internal", "external"}

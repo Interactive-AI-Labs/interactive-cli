@@ -15,7 +15,7 @@ iai router keys update <id> [flags]
   -h, --help                  help for update
       --json                  Output response as JSON
       --limit float           Credit limit in USD
-      --limit-reset string    Limit reset period: none, daily, weekly, monthly
+      --limit-reset string    Limit reset period; none removes the reset (none|daily|weekly|monthly)
   -o, --organization string   Organization name
   -p, --project string        Project name
       --yaml                  Output response as YAML

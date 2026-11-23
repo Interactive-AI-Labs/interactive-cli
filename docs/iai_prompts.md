@@ -8,7 +8,7 @@ Manage general-purpose text and chat prompts in InteractiveAI projects.
 
 Unlike typed commands (routines, policies, glossaries, variables, macros),
 prompts managed here have no enforced schema or structure. They support two
-types: "text" (default) and "chat".
+types, chosen with --type on create.
 
 ### Options
 

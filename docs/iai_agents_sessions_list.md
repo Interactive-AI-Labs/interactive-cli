@@ -30,7 +30,7 @@ iai agents sessions list <agent_name> [flags]
       --limit int             Sessions per page (1-100)
   -o, --organization string   Organization name
   -p, --project string        Project name
-      --sort string           Creation order: asc or desc (default asc)
+      --sort string           Creation order; server default asc (asc|desc)
       --yaml                  Output raw API response as YAML
 ```
 
