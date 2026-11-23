@@ -1,4 +1,4 @@
-name: Claude Code
+name: Pi Review
 
 on:
   pull_request:
