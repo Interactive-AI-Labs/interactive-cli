@@ -214,15 +214,15 @@ func TestIndexNotesRejectUnquoted(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer func(errs []error) { indexFlagErrs = errs }(indexFlagErrs)
-			indexFlagErrs = nil
+			defer func(errs []error) { flagSetupErrs = errs }(flagSetupErrs)
+			flagSetupErrs = nil
 
 			root, leaf := indexFixture("get")
 			leaf.Flags().Int("limit", 0, "Items per page")
 			tt.annotate(leaf)
 
-			if len(indexFlagErrs) != 1 {
-				t.Fatalf("recorded %d errors, want 1", len(indexFlagErrs))
+			if len(flagSetupErrs) != 1 {
+				t.Fatalf("recorded %d errors, want 1", len(flagSetupErrs))
 			}
 			lines := strings.Split(commandIndex(root, "1.2.3"), "\n")
 			if got, want := lines[3], "things (Manage things): get [--limit]"; got != want {
@@ -232,8 +232,8 @@ func TestIndexNotesRejectUnquoted(t *testing.T) {
 	}
 }
 
-func TestIndexAnnotationsMatchFlags(t *testing.T) {
-	if err := errors.Join(indexFlagErrs...); err != nil {
+func TestFlagSetupRecordsNoErrors(t *testing.T) {
+	if err := errors.Join(flagSetupErrs...); err != nil {
 		t.Fatal(err)
 	}
 }

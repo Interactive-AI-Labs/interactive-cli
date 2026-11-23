@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-querystring/query"
 )
 
 func floatPtr(f float64) *float64 { return &f }
@@ -72,6 +74,37 @@ func TestRouterModelUnmarshalRecommendations(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got.Recommendations, tt.want) {
 				t.Errorf("Recommendations = %#v, want %#v", got.Recommendations, tt.want)
+			}
+		})
+	}
+}
+
+func TestRouterModelListOptionsQuery(t *testing.T) {
+	tests := []struct {
+		name string
+		opts RouterModelListOptions
+		want string
+	}{
+		{
+			name: "unset modalities send no key",
+			opts: RouterModelListOptions{Limit: 10, Region: "eu"},
+			want: "limit=10&region=eu",
+		},
+		{
+			name: "each modality is sent under its own key",
+			opts: RouterModelListOptions{Limit: 10, InputModality: "audio", OutputModality: "text"},
+			want: "inputModality=audio&limit=10&outputModality=text",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q, err := query.Values(tt.opts)
+			if err != nil {
+				t.Fatalf("query.Values() error = %v", err)
+			}
+			if got := q.Encode(); got != tt.want {
+				t.Errorf("query = %q, want %q", got, tt.want)
 			}
 		})
 	}
