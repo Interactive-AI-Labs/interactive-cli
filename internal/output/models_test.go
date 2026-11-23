@@ -40,8 +40,8 @@ func TestPrintRouterModelList(t *testing.T) {
 				},
 			},
 			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
-			want: "NAME     DEVELOPER   PROVIDERS   CONTEXT   REGION   RECOMMENDED   ID\n" +
-				"gpt-4o   openai      -           128k      Global   -             m-1\n" +
+			want: "NAME     DEVELOPER   PROVIDERS   CONTEXT   INPUT   OUTPUT   REGION   RECOMMENDED   ID\n" +
+				"gpt-4o   openai      -           128k      -       -        Global   -             m-1\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 		{
@@ -50,8 +50,8 @@ func TestPrintRouterModelList(t *testing.T) {
 				{ID: "m-3", ModelName: "gpt-4o", Region: "us", ProviderNames: []string{}},
 			},
 			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
-			want: "NAME     DEVELOPER   PROVIDERS   CONTEXT   REGION   RECOMMENDED   ID\n" +
-				"gpt-4o   -           -           -         Global   -             m-3\n" +
+			want: "NAME     DEVELOPER   PROVIDERS   CONTEXT   INPUT   OUTPUT   REGION   RECOMMENDED   ID\n" +
+				"gpt-4o   -           -           -         -       -        Global   -             m-3\n" +
 				"\nPage 1 of 1 (1 total items)\n",
 		},
 		{
@@ -69,9 +69,44 @@ func TestPrintRouterModelList(t *testing.T) {
 				},
 			},
 			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 1},
-			want: "NAME            DEVELOPER   PROVIDERS   CONTEXT   REGION   RECOMMENDED          ID\n" +
-				"claude-opus-5   Anthropic   2           200k      EU       chat #1, vision #3   m-2\n" +
+			want: "NAME            DEVELOPER   PROVIDERS   CONTEXT   INPUT   OUTPUT   REGION   RECOMMENDED          ID\n" +
+				"claude-opus-5   Anthropic   2           200k      -       -        EU       chat #1, vision #3   m-2\n" +
 				"\nPage 1 of 1 (1 total items)\n",
+		},
+		{
+			name: "each row prints its own input and output modalities",
+			models: []platform.RouterModel{
+				{
+					ID:               "m-4",
+					ModelName:        "gemini-2.5-pro",
+					Developer:        "Google",
+					Region:           "us",
+					InputModalities:  []string{"audio", "file", "image", "text", "video"},
+					OutputModalities: []string{"text"},
+				},
+				{
+					ID:               "m-5",
+					ModelName:        "text-embedding-3-small",
+					Developer:        "OpenAI",
+					Region:           "us",
+					InputModalities:  []string{"text"},
+					OutputModalities: []string{"embeddings"},
+				},
+				{
+					ID:               "m-6",
+					ModelName:        "scribe-v2",
+					Developer:        "ElevenLabs",
+					Region:           "eu",
+					InputModalities:  []string{"audio"},
+					OutputModalities: []string{"transcription"},
+				},
+			},
+			meta: platform.PageMeta{Page: 1, TotalPages: 1, TotalItems: 3},
+			want: "NAME                     DEVELOPER    PROVIDERS   CONTEXT   INPUT                             OUTPUT          REGION   RECOMMENDED   ID\n" +
+				"gemini-2.5-pro           Google       -           -         audio, file, image, text, video   text            Global   -             m-4\n" +
+				"text-embedding-3-small   OpenAI       -           -         text                              embeddings      Global   -             m-5\n" +
+				"scribe-v2                ElevenLabs   -           -         audio                             transcription   EU       -             m-6\n" +
+				"\nPage 1 of 1 (3 total items)\n",
 		},
 	}
 
@@ -107,7 +142,8 @@ func TestPrintRouterModelDetail(t *testing.T) {
 					Region:           "us",
 					HasOtherRegion:   true,
 					ContextLength:    intPtr(1050000),
-					Capabilities:     []string{"text", "vision"},
+					InputModalities:  []string{"image", "text", "hologram"},
+					OutputModalities: []string{"text"},
 					Prices:           map[string]float64{"input": 1e-7, "output": 5e-7},
 					Recommendations:  map[string]int{"chat": 3, "vision": 3},
 				},
@@ -136,14 +172,15 @@ func TestPrintRouterModelDetail(t *testing.T) {
 					{Name: "Amazon Bedrock"},
 				},
 			},
-			want: "ID:             m-1\n" +
-				"Model Name:     interactive/openai/gpt-6-luna\n" +
-				"Marketing:      GPT-6 Luna\n" +
-				"Developer:      OpenAI\n" +
-				"Region:         Global (also in EU)\n" +
-				"Recommended:    chat #3, vision #3\n" +
-				"Context:        1.1M\n" +
-				"Capabilities:   text, vision\n" +
+			want: "ID:                  m-1\n" +
+				"Model Name:          interactive/openai/gpt-6-luna\n" +
+				"Marketing:           GPT-6 Luna\n" +
+				"Developer:           OpenAI\n" +
+				"Region:              Global (also in EU)\n" +
+				"Recommended:         chat #3, vision #3\n" +
+				"Context:             1.1M\n" +
+				"Input modalities:    image, text, hologram\n" +
+				"Output modalities:   text\n" +
 				"List price (per 1M tokens):\n" +
 				"  input:    $0.10\n" +
 				"  output:   $0.50\n" +
@@ -154,7 +191,7 @@ func TestPrintRouterModelDetail(t *testing.T) {
 				"Amazon Bedrock   -        -              -               -                   -         -            -             -                   -\n",
 		},
 		{
-			name: "empty recommendations, context and prices drop their lines; no rows says none",
+			name: "empty recommendations, context and prices drop their lines; unknown directions print dashes; no rows says none",
 			model: platform.RouterModelDetail{
 				RouterModel: platform.RouterModel{
 					ID:               "m-2",
@@ -163,11 +200,13 @@ func TestPrintRouterModelDetail(t *testing.T) {
 					Region:           "eu",
 				},
 			},
-			want: "ID:           m-2\n" +
-				"Model Name:   interactive/google/gemini-2.5-flash\n" +
-				"Developer:    google\n" +
-				"Region:       EU\n" +
-				"Providers:    none\n",
+			want: "ID:                  m-2\n" +
+				"Model Name:          interactive/google/gemini-2.5-flash\n" +
+				"Developer:           google\n" +
+				"Region:              EU\n" +
+				"Input modalities:    -\n" +
+				"Output modalities:   -\n" +
+				"Providers:           none\n",
 		},
 	}
 

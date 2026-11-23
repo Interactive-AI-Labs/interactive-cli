@@ -27,7 +27,8 @@ type RouterModel struct {
 	EndpointProvider string             `json:"endpointProvider"`
 	Description      string             `json:"description"`
 	ContextLength    *int               `json:"contextLength"`
-	Capabilities     []string           `json:"capabilities"`
+	InputModalities  []string           `json:"inputModalities"`
+	OutputModalities []string           `json:"outputModalities"`
 	Prices           map[string]float64 `json:"prices"`
 	TokenizerID      string             `json:"tokenizerId"`
 	CreatedAt        string             `json:"createdAt"`

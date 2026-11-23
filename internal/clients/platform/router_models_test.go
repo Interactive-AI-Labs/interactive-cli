@@ -82,6 +82,8 @@ func TestDecodeRouterModelList(t *testing.T) {
 		Developer        string
 		EndpointProvider string
 		ProviderNames    []string
+		InputModalities  []string
+		OutputModalities []string
 	}
 	tests := []struct {
 		name      string
@@ -98,7 +100,7 @@ func TestDecodeRouterModelList(t *testing.T) {
 			opts:      RouterModelListOptions{Limit: 10},
 			wantMeta:  PageMeta{Page: 1, Limit: 10, TotalItems: 1, TotalPages: 1},
 			wantCount: 1,
-			wantFirst: row{"openai", "openai", []string{"Azure", "OpenAI"}},
+			wantFirst: row{"openai", "openai", []string{"Azure", "OpenAI"}, nil, nil},
 		},
 		{
 			name:      "null provider names stay nil; a full page adds no extra page",
@@ -106,14 +108,27 @@ func TestDecodeRouterModelList(t *testing.T) {
 			opts:      RouterModelListOptions{Limit: 2},
 			wantMeta:  PageMeta{Page: 1, Limit: 2, TotalItems: 2, TotalPages: 1},
 			wantCount: 2,
-			wantFirst: row{"google", "google", nil},
+			wantFirst: row{"google", "google", nil, nil, nil},
 		},
 		{
 			name:      "backend without developer and provider names; no limit gives no page count",
 			body:      readRouterModelFixture(t, "list_before_developer.json"),
 			wantMeta:  PageMeta{Page: 1, TotalItems: 1},
 			wantCount: 1,
-			wantFirst: row{"", "openai", nil},
+			wantFirst: row{"", "openai", nil, nil, nil},
+		},
+		{
+			name:      "input and output modalities decode per direction",
+			body:      readRouterModelFixture(t, "list_modalities.json"),
+			opts:      RouterModelListOptions{Limit: 100},
+			wantMeta:  PageMeta{Page: 1, Limit: 100, TotalItems: 3, TotalPages: 1},
+			wantCount: 3,
+			wantFirst: row{
+				"elevenlabs", "elevenlabs",
+				[]string{"ElevenLabs"},
+				[]string{"audio"},
+				[]string{"transcription"},
+			},
 		},
 		{
 			name:     "page past the end reports the 1-indexed page and totalCount",
@@ -147,7 +162,11 @@ func TestDecodeRouterModelList(t *testing.T) {
 				t.Errorf("meta = %#v, want %#v", meta, tt.wantMeta)
 			}
 			if len(models) > 0 {
-				got := row{models[0].Developer, models[0].EndpointProvider, models[0].ProviderNames}
+				m := models[0]
+				got := row{
+					m.Developer, m.EndpointProvider, m.ProviderNames,
+					m.InputModalities, m.OutputModalities,
+				}
 				if !reflect.DeepEqual(got, tt.wantFirst) {
 					t.Errorf("first model = %#v, want %#v", got, tt.wantFirst)
 				}

@@ -23,7 +23,17 @@ func PrintRouterModelList(
 		return nil
 	}
 
-	headers := []string{"NAME", "DEVELOPER", "PROVIDERS", "CONTEXT", "REGION", "RECOMMENDED", "ID"}
+	headers := []string{
+		"NAME",
+		"DEVELOPER",
+		"PROVIDERS",
+		"CONTEXT",
+		"INPUT",
+		"OUTPUT",
+		"REGION",
+		"RECOMMENDED",
+		"ID",
+	}
 	rows := make([][]string, len(models))
 	for i, m := range models {
 		providers := "-"
@@ -35,6 +45,8 @@ func PrintRouterModelList(
 			cmp.Or(m.Developer, m.EndpointProvider, "-"),
 			providers,
 			formatTokenCount(m.ContextLength),
+			formatModalities(m.InputModalities),
+			formatModalities(m.OutputModalities),
 			routerModelRegionName(m.Region),
 			formatRecommendations(m.Recommendations),
 			m.ID,
@@ -67,9 +79,8 @@ func PrintRouterModelDetail(out io.Writer, m *platform.RouterModelDetail) error 
 	if m.ContextLength != nil {
 		fmt.Fprintf(w, "Context:\t%s\n", formatTokenCount(m.ContextLength))
 	}
-	if len(m.Capabilities) > 0 {
-		fmt.Fprintf(w, "Capabilities:\t%s\n", strings.Join(m.Capabilities, ", "))
-	}
+	fmt.Fprintf(w, "Input modalities:\t%s\n", formatModalities(m.InputModalities))
+	fmt.Fprintf(w, "Output modalities:\t%s\n", formatModalities(m.OutputModalities))
 	if m.TokenizerID != "" {
 		fmt.Fprintf(w, "Tokenizer:\t%s\n", m.TokenizerID)
 	}
@@ -216,6 +227,13 @@ func routerModelP50(p *platform.RouterModelPercentiles) *float64 {
 		return nil
 	}
 	return p.P50
+}
+
+func formatModalities(values []string) string {
+	if len(values) == 0 {
+		return "-"
+	}
+	return strings.Join(values, ", ")
 }
 
 // Sorted by category so table output is stable across calls.
