@@ -60,7 +60,9 @@ type ApplyReportBody struct {
 	Name         string            `json:"name"`
 	Description  string            `json:"description"`
 	AgentIDs     []string          `json:"agent_ids,omitempty"`
+	AllAgents    *bool             `json:"all_agents,omitempty"`
 	Terms        map[string]string `json:"terms,omitempty"`
+	ShowTerms    *bool             `json:"show_terms,omitempty"`
 	DefaultRange string            `json:"default_range,omitempty"`
 	Definition   map[string]any    `json:"definition"`
 	Filters      []any             `json:"filters,omitempty"`

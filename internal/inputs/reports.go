@@ -72,6 +72,9 @@ type ReportDocument struct {
 	DefaultRange string            `json:"default_range"`
 	Filters      []any             `json:"filters"`
 	Definition   map[string]any    `json:"definition"`
+	// AllAgents and ShowTerms absent keep the report's setting.
+	AllAgents *bool `json:"all_agents,omitempty"`
+	ShowTerms *bool `json:"show_terms,omitempty"`
 }
 
 // ReadReportDocument reads a report document from path, or from stdin when path is "-".
@@ -183,6 +186,8 @@ func ReportBodyOf(
 		DefaultRange: doc.DefaultRange,
 		Definition:   doc.Definition,
 		Filters:      doc.Filters,
+		AllAgents:    doc.AllAgents,
+		ShowTerms:    doc.ShowTerms,
 	}
 	if id != "" {
 		body.ID, body.ExpectedUpdatedAt, body.Force = id, doc.UpdatedAt, force

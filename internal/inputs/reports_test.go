@@ -74,6 +74,12 @@ func TestReportBody(t *testing.T) {
 				`"default_range":"last7Days","definition":{"sections":[],"threshold":12345678901234567,"version":1}}`,
 		},
 		{
+			name: "all_agents and show_terms",
+			in:   "name: A\nall_agents: true\nshow_terms: false\n" + def,
+			want: `{"updated_via":"cli","name":"A","description":"","all_agents":true,` +
+				`"show_terms":false,"definition":{"sections":[],"version":1}}`,
+		},
+		{
 			name: "an empty folder name",
 			in:   "name: A\nfolder: ' '\n" + def,
 			want: "folder must be a folder name, or null for no folder",
