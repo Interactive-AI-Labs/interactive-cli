@@ -272,11 +272,8 @@ func init() {
 		"",
 		"Case-insensitive RE2 regular expression matched against the log line",
 	)
-	f.StringVar(
-		&mcpLogsOptions.Level,
-		"level",
-		"",
-		"JSON log severity: debug, info, warn, or error",
+	addChoiceFlag(
+		mcpLogsCmd, &mcpLogsOptions.Level, "level", "", "JSON log severity", mcpLogLevels,
 	)
 	f.BoolVar(&mcpLogsFormat.Raw, "raw", false, "Output exact server JSON lines without formatting")
 	f.BoolVar(
@@ -311,3 +308,5 @@ func init() {
 
 	mcpsCmd.AddCommand(mcpLogsCmd, mcpLogFieldsCmd)
 }
+
+var mcpLogLevels = []string{"debug", "info", "warn", "error"}

@@ -139,7 +139,10 @@ func init() {
 	f.IntVar(&agentSessionListLimit, "limit", 0, "Sessions per page (1-100)")
 	indexFlag(agentSessionListCmd, "limit", "1-100")
 	f.StringVar(&agentSessionListCursor, "cursor", "", "Cursor from the previous page")
-	f.StringVar(&agentSessionListSort, "sort", "", "Creation order: asc or desc (default asc)")
+	addChoiceFlag(
+		agentSessionListCmd, &agentSessionListSort, "sort", "",
+		"Creation order; server default asc", sortOrders,
+	)
 	f.BoolVar(&agentSessionListJSON, "json", false, "Output raw API response as JSON")
 	f.BoolVar(&agentSessionListYAML, "yaml", false, "Output raw API response as YAML")
 	agentSessionListCmd.MarkFlagsMutuallyExclusive("json", "yaml")

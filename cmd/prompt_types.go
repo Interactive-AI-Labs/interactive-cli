@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -285,6 +286,8 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	return cmd
 }
 
+var promptReadScopes = []string{platform.ScopeProject, platform.ScopeGlobal}
+
 func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	var (
 		version int
@@ -307,10 +310,9 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			out := cmd.OutOrStdout()
 			name := strings.TrimSpace(args[0])
 
-			if scope != "" && scope != platform.ScopeProject && scope != platform.ScopeGlobal {
+			if scope != "" && !slices.Contains(promptReadScopes, scope) {
 				return fmt.Errorf(
-					"invalid scope %q: must be %s or %s",
-					scope, platform.ScopeProject, platform.ScopeGlobal,
+					"invalid scope %q: must be %s", scope, strings.Join(promptReadScopes, " or "),
 				)
 			}
 
@@ -348,10 +350,8 @@ func makeGetCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().IntVar(&version, "version", 0, "Retrieve a specific version number")
 	cmd.Flags().StringVar(&label, "label", "", "Retrieve the version with this label")
 	if ptCfg.GlobalScope {
-		cmd.Flags().StringVar(&scope, "scope", "", fmt.Sprintf(
-			"Scope to read from: %s (default) or %s",
-			platform.ScopeProject, platform.ScopeGlobal,
-		))
+		addChoiceFlag(cmd, &scope, "scope", "",
+			"Scope to read from; server default "+platform.ScopeProject, promptReadScopes)
 	}
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")

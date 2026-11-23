@@ -33,8 +33,8 @@ iai queues list [flags]
   -o, --organization string   Organization name that owns the project
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
-      --sort-by string        Sort by field: name, description, created_at, updated_at, count_completed_items, count_pending_items (default: created_at)
-      --sort-order string     Sort direction: asc or desc (default: desc)
+      --sort-by string        Sort by field; server default created_at (name|description|created_at|updated_at|count_completed_items|count_pending_items)
+      --sort-order string     Sort direction; server default desc (asc|desc)
       --yaml                  Output raw API response as YAML
 ```
 

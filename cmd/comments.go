@@ -207,11 +207,10 @@ This command requires API key authentication.`,
 
 func init() {
 	indexJSONShape(commentsCmd, "env")
-	commentsListCmd.Flags().
-		StringVar(
-			&commentsListObjectType, "object-type", "",
-			"Filter by object type (TRACE/OBSERVATION/SESSION/PROMPT)",
-		)
+	addChoiceFlag(
+		commentsListCmd, &commentsListObjectType, "object-type", "",
+		"Filter by object type", commentObjectTypes,
+	)
 	commentsListCmd.Flags().
 		StringVar(&commentsListObjectID, "object-id", "", "Filter by object ID")
 	commentsListCmd.Flags().
@@ -241,11 +240,10 @@ func init() {
 	commentsGetCmd.Flags().
 		StringVarP(&commentsGetProject, "project", "p", "", "Project name")
 
-	commentsCreateCmd.Flags().
-		StringVar(
-			&commentsCreateObjectType, "object-type", "",
-			"Object type: TRACE, OBSERVATION, SESSION, or PROMPT (required)",
-		)
+	addChoiceFlag(
+		commentsCreateCmd, &commentsCreateObjectType, "object-type", "",
+		"Object type, required", commentObjectTypes,
+	)
 	commentsCreateCmd.Flags().
 		StringVar(&commentsCreateObjectID, "object-id", "", "Object ID (required)")
 	commentsCreateCmd.Flags().
@@ -268,3 +266,5 @@ func init() {
 	commentsCmd.AddCommand(commentsListCmd, commentsGetCmd, commentsCreateCmd)
 	rootCmd.AddCommand(commentsCmd)
 }
+
+var commentObjectTypes = []string{"TRACE", "OBSERVATION", "SESSION", "PROMPT"}

@@ -77,7 +77,7 @@ iai agents update <agent_name> [flags]
       --clear-schedule             Remove the schedule configuration from the agent
       --clear-secret               Remove all secret references from the agent
       --clear-stack-id             Remove the agent from its stack
-      --color string               Avatar color: slate, ember, honey, zest, lagoon, sky, twilight, sunny, moonrise, sunset, tropicana; keeps the current icon, and an agent without an avatar needs --icon too
+      --color string               Avatar color; keeps the current icon; an agent without an avatar needs --icon too (slate|ember|honey|zest|lagoon|sky|twilight|sunny|moonrise|sunset|tropicana)
       --description string         Description shown for the agent in the platform; pass an empty value to clear it
       --detach-mcp stringArray     Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it
       --endpoint                   Expose the agent publicly at <agent-name>-<project-hash>.interactive.ai
@@ -86,10 +86,10 @@ iai agents update <agent_name> [flags]
       --file string                Path to YAML file matching the agent_config schema (run 'iai agents schema' to see it)
       --force                      Apply even when the update would downgrade/remove live content pins or drop live env vars or secret refs
   -h, --help                       help for update
-      --icon string                Avatar icon: rounded, boxy; keeps the current color, and an agent without an avatar needs --color too
+      --icon string                Avatar icon; keeps the current color; an agent without an avatar needs --color too (rounded|boxy)
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
       --mcp stringArray            Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them
-      --mcp-endpoint string        Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
+      --mcp-endpoint string        Endpoint this agent dials the MCP on; needs exactly one --mcp; private, the default for a new attachment, is reachable only within the project, public is the MCP's public endpoint and needs a self-hosted MCP with it enabled (private|public)
       --mcp-id string              Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name; pass its name to go back to that), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
   -o, --organization string        Organization name
   -p, --project string             Project name

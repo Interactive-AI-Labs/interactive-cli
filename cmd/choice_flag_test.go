@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func TestChoiceFlags(t *testing.T) {
@@ -55,5 +57,46 @@ func TestChoiceFlags(t *testing.T) {
 				t.Errorf("directive = %v, want NoFileComp", directive)
 			}
 		})
+	}
+}
+
+var choiceSuffix = regexp.MustCompile(`\(([^()|\s]+(?:\|[^()|\s]+)+)\)$`)
+
+// Help that lists choices must also complete exactly those choices.
+func TestChoiceFlagsComplete(t *testing.T) {
+	found := 0
+	var walk func(c *cobra.Command)
+	walk = func(c *cobra.Command) {
+		c.LocalFlags().VisitAll(func(f *pflag.Flag) {
+			m := choiceSuffix.FindStringSubmatch(f.Usage)
+			if m == nil {
+				return
+			}
+			found++
+			where := c.CommandPath() + " --" + f.Name
+			complete, ok := c.GetFlagCompletionFunc(f.Name)
+			if !ok {
+				t.Errorf("%s: help lists choices but nothing completes them", where)
+				return
+			}
+			got, directive := complete(c, nil, "")
+			want := strings.Split(m[1], "|")
+			if !slices.Equal(got, want) || directive != cobra.ShellCompDirectiveNoFileComp {
+				t.Errorf(
+					"%s: completes %v (%v), want %v without files",
+					where,
+					got,
+					directive,
+					want,
+				)
+			}
+		})
+		for _, child := range c.Commands() {
+			walk(child)
+		}
+	}
+	walk(rootCmd)
+	if found == 0 {
+		t.Fatal("no flag lists choices; the help format changed")
 	}
 }

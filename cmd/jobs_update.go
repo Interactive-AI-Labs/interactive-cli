@@ -116,17 +116,14 @@ runs to finish; unchanged updates are allowed during a run.`,
 
 func init() {
 	flags := jobUpdateCmd.Flags()
-	flags.StringVar(
-		&jobUpdateInput.Type,
-		"type",
-		"",
-		"Job type: 'image' or 'script'; clears the old type's fields; supply the new type's inputs",
+	addChoiceFlag(
+		jobUpdateCmd, &jobUpdateInput.Type, "type", "",
+		"Job type; clears the old type's fields; supply the new type's inputs", inputs.JobTypes,
 	)
-	flags.StringVar(
-		&jobUpdateInput.ImageType,
-		"image-type",
-		"",
-		"Image type: 'internal' (project's private registry) or 'external' (any public registry)",
+	addChoiceFlag(
+		jobUpdateCmd, &jobUpdateInput.ImageType, "image-type", "",
+		"Image type; internal is the project's private registry, external any public registry",
+		imageTypes,
 	)
 	flags.StringVar(
 		&jobUpdateInput.ImageRepository,

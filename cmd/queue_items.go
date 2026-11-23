@@ -330,16 +330,20 @@ func init() {
 	queueItemsListCmd.Flags().
 		StringVar(&queueItemsListQueueID, "queue-id", "", "Queue ID (required)")
 	_ = queueItemsListCmd.MarkFlagRequired("queue-id")
-	queueItemsListCmd.Flags().
-		StringVar(&queueItemsListStatus, "status", "", "Filter by status (PENDING/COMPLETED)")
+	addChoiceFlag(queueItemsListCmd, &queueItemsListStatus, "status", "",
+		"Filter by status", queueItemStatuses)
 	queueItemsListCmd.Flags().
 		IntVar(&queueItemsListPage, "page", 1, "Page number (starts at 1)")
 	queueItemsListCmd.Flags().IntVar(&queueItemsListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(queueItemsListCmd, "limit", "max 100")
-	queueItemsListCmd.Flags().
-		StringVar(&queueItemsListSortBy, "sort-by", "", "Sort by field: created_at, completed_at, status, object_id, updated_at (default: created_at)")
-	queueItemsListCmd.Flags().
-		StringVar(&queueItemsListSortOrder, "sort-order", "", "Sort direction: asc or desc (default: desc)")
+	addChoiceFlag(
+		queueItemsListCmd, &queueItemsListSortBy, "sort-by", "",
+		"Sort by field; server default created_at", queueItemSortFields,
+	)
+	addChoiceFlag(
+		queueItemsListCmd, &queueItemsListSortOrder, "sort-order", "",
+		"Sort direction; server default desc", sortOrders,
+	)
 	queueItemsListCmd.Flags().
 		StringSliceVar(&queueItemsListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	queueItemsListCmd.Flags().
@@ -369,16 +373,15 @@ func init() {
 		StringVar(&queueItemsCreateQueueID, "queue-id", "", "Queue ID (required)")
 	queueItemsCreateCmd.Flags().
 		StringVar(&queueItemsCreateObjectID, "object-id", "", "Object ID (required)")
-	queueItemsCreateCmd.Flags().
-		StringVar(
-			&queueItemsCreateObjectType, "object-type", "",
-			"Object type: TRACE or OBSERVATION (required)",
-		)
+	addChoiceFlag(
+		queueItemsCreateCmd, &queueItemsCreateObjectType, "object-type", "",
+		"Object type, required", queueItemObjectTypes,
+	)
 	_ = queueItemsCreateCmd.MarkFlagRequired("queue-id")
 	_ = queueItemsCreateCmd.MarkFlagRequired("object-id")
 	_ = queueItemsCreateCmd.MarkFlagRequired("object-type")
-	queueItemsCreateCmd.Flags().
-		StringVar(&queueItemsCreateStatus, "status", "", "Status (PENDING/COMPLETED)")
+	addChoiceFlag(queueItemsCreateCmd, &queueItemsCreateStatus, "status", "",
+		"Status", queueItemStatuses)
 	queueItemsCreateCmd.Flags().
 		BoolVar(&queueItemsCreateJSON, "json", false, "Output raw API response as JSON")
 	queueItemsCreateCmd.Flags().
@@ -391,8 +394,10 @@ func init() {
 
 	queueItemsUpdateCmd.Flags().
 		StringVar(&queueItemsUpdateQueueID, "queue-id", "", "Queue ID (required)")
-	queueItemsUpdateCmd.Flags().
-		StringVar(&queueItemsUpdateStatus, "status", "", "New status (required)")
+	addChoiceFlag(
+		queueItemsUpdateCmd, &queueItemsUpdateStatus, "status", "",
+		"New status, required", queueItemStatuses,
+	)
 	_ = queueItemsUpdateCmd.MarkFlagRequired("queue-id")
 	_ = queueItemsUpdateCmd.MarkFlagRequired("status")
 	queueItemsUpdateCmd.Flags().
@@ -422,3 +427,11 @@ func init() {
 	)
 	rootCmd.AddCommand(queueItemsCmd)
 }
+
+var (
+	queueItemSortFields = []string{
+		"created_at", "completed_at", "status", "object_id", "updated_at",
+	}
+	queueItemObjectTypes = []string{"TRACE", "OBSERVATION"}
+	queueItemStatuses    = []string{"PENDING", "COMPLETED"}
+)

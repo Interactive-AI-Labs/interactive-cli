@@ -44,7 +44,7 @@ iai jobs update <job_name> [flags]
       --image-name string                 Container image name
       --image-repository string           Image repository; required for external images
       --image-tag string                  Container image tag
-      --image-type string                 Image type: 'internal' (project's private registry) or 'external' (any public registry)
+      --image-type string                 Image type; internal is the project's private registry, external any public registry (internal|external)
       --memory string                     Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)
       --pyproject string                  Replace pyproject.toml from a local file; combined with the new or retained script, maximum 350,000 bytes
       --retention-failed-runs int32       Failed, timed-out, or stopped runs to retain (0-20); unchanged when omitted
@@ -57,7 +57,7 @@ iai jobs update <job_name> [flags]
       --secret stringArray                Replaces the secret references; repeat for every entry to keep; dropping entries requires --force
       --stack-id string                   Stack ID to assign the job to
       --timeout int                       Run time budget in seconds (1-21600, max 6h), including startup, dependency installation, and all retries; unchanged when omitted
-      --type string                       Job type: 'image' or 'script'; clears the old type's fields; supply the new type's inputs
+      --type string                       Job type; clears the old type's fields; supply the new type's inputs (image|script)
 ```
 
 ### Options inherited from parent commands

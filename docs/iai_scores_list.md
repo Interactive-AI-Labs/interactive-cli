@@ -29,7 +29,7 @@ iai scores list [flags]
                                 Available: id,name,data_type,value,source,timestamp,trace_id,observation_id,session_id,environment,config_id,user_id,comment
       --config-id string        Filter by config ID
       --cursor string           Cursor for pagination
-      --data-type string        Filter by data type
+      --data-type string        Filter by data type (NUMERIC|CATEGORICAL|BOOLEAN|CORRECTION)
       --environment string      Filter by environment
       --fields string           Field groups to include (comma-separated)
       --from-timestamp string   Filter scores from this timestamp (ISO 8601, default: 7 days ago)

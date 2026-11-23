@@ -43,7 +43,7 @@ iai agents create <agent_name> [flags]
   -h, --help                       help for create
       --id string                  Agent type from the marketplace (e.g. interactive-agent)
       --mcp stringArray            Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands
-      --mcp-endpoint string        Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp
+      --mcp-endpoint string        Endpoint this agent dials the MCP on; needs exactly one --mcp; private, the default for a new attachment, is reachable only within the project, public is the MCP's public endpoint and needs a self-hosted MCP with it enabled (private|public)
       --mcp-id string              Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp
   -o, --organization string        Organization name
   -p, --project string             Project name

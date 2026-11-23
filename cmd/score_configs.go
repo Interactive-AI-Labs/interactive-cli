@@ -340,11 +340,10 @@ func init() {
 
 	scoreConfigsCreateCmd.Flags().
 		StringVar(&scoreConfigsCreateName, "name", "", "Config name (required)")
-	scoreConfigsCreateCmd.Flags().
-		StringVar(
-			&scoreConfigsCreateDataType, "data-type", "",
-			"Data type: NUMERIC, CATEGORICAL, or BOOLEAN (required)",
-		)
+	addChoiceFlag(
+		scoreConfigsCreateCmd, &scoreConfigsCreateDataType, "data-type", "",
+		"Data type, required", scoreConfigDataTypes,
+	)
 	scoreConfigsCreateCmd.Flags().
 		Float64Var(&scoreConfigsCreateMinValue, "min-value", 0, "Minimum value")
 	scoreConfigsCreateCmd.Flags().
@@ -393,3 +392,5 @@ func init() {
 	)
 	rootCmd.AddCommand(scoreConfigsCmd)
 }
+
+var scoreConfigDataTypes = []string{"NUMERIC", "CATEGORICAL", "BOOLEAN"}

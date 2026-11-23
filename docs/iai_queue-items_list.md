@@ -34,9 +34,9 @@ iai queue-items list [flags]
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
       --queue-id string       Queue ID (required)
-      --sort-by string        Sort by field: created_at, completed_at, status, object_id, updated_at (default: created_at)
-      --sort-order string     Sort direction: asc or desc (default: desc)
-      --status string         Filter by status (PENDING/COMPLETED)
+      --sort-by string        Sort by field; server default created_at (created_at|completed_at|status|object_id|updated_at)
+      --sort-order string     Sort direction; server default desc (asc|desc)
+      --status string         Filter by status (PENDING|COMPLETED)
       --yaml                  Output raw API response as YAML
 ```
 
