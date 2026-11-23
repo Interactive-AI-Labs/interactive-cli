@@ -4,7 +4,8 @@ Show a report, or print it as a document to save
 
 ### Synopsis
 
-Show a report's settings, sections and widgets.
+Show a report's settings, sections and widgets. While you have unsaved changes to
+the report open in the editor, --yaml and --json print that draft, marked draft: true.
 
 ```
 iai reports get <name> [flags]

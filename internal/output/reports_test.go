@@ -182,11 +182,23 @@ func TestPrintReportList(t *testing.T) {
 
 func TestPrintReportSummary(t *testing.T) {
 	report := decode[platform.Report](t, savedReport)
-	var out bytes.Buffer
-	if err := PrintReportSummary(&out, report, "Ops"); err != nil {
-		t.Fatal(err)
+	for _, draft := range []bool{false, true} {
+		var out bytes.Buffer
+		if err := PrintReportSummary(&out, report, "Ops", draft); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := out.String(), reportSummary(draft); got != want {
+			t.Errorf("draft %v: got\n%s\nwant\n%s", draft, got, want)
+		}
 	}
-	want := "ID:              r-1\n" +
+}
+
+func reportSummary(draft bool) string {
+	unsaved := ""
+	if draft {
+		unsaved = "Unsaved Draft:   yes, open in the editor; --yaml prints it\n"
+	}
+	return "ID:              r-1\n" +
 		"Name:            Traffic\n" +
 		"Description:     Requests\n" +
 		"Folder:          Ops\n" +
@@ -199,11 +211,30 @@ func TestPrintReportSummary(t *testing.T) {
 		"Updated By:      u-2\n" +
 		"Updated Via:     ui\n" +
 		"Can Restore:     yes\n" +
+		unsaved +
 		"\nSections:\n" +
 		"  \"Traffic\" (s1) (3 × 1, fixed)\n" +
 		"    - \"Traces\" (w1)  [traces · count/count · NUMBER]\n"
-	if out.String() != want {
-		t.Errorf("got\n%s\nwant\n%s", out.String(), want)
+}
+
+func TestPrintReportSaved(t *testing.T) {
+	tests := []struct {
+		draft bool
+		want  string
+	}{
+		{false, "Saved report \"Traffic\" (id r-1).\nPath: /p\n"},
+		{
+			true,
+			"Added to your open draft of report \"Traffic\" (id r-1). " +
+				"Save in the editor to keep it.\nPath: /p\n",
+		},
+	}
+	for _, tt := range tests {
+		var out bytes.Buffer
+		PrintReportSaved(&out, platform.Report{ID: "r-1", Name: "Traffic", Draft: tt.draft}, "/p")
+		if out.String() != tt.want {
+			t.Errorf("draft %v: got %q, want %q", tt.draft, out.String(), tt.want)
+		}
 	}
 }
 

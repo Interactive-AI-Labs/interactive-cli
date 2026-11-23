@@ -35,6 +35,13 @@ type Report struct {
 	Terms        map[string]string `json:"terms,omitempty"`
 	Definition   map[string]any    `json:"definition,omitempty"`
 	Filters      []any             `json:"filters,omitempty"`
+	// Draft is true when a Copilot write went into the caller's open draft, not the report.
+	Draft bool `json:"draft"`
+}
+
+// ReportDraft is the caller's unsaved edit of a report, open in the editor.
+type ReportDraft struct {
+	Document Report `json:"document"`
 }
 
 type ReportFolder struct {
@@ -178,6 +185,28 @@ func (c *APIClient) GetReport(
 	return reportsCall[Report](
 		c, ctx, http.MethodGet, reportsPath(projectID, reportID), nil, nil, "get report",
 	)
+}
+
+// reportWithDraft is GET …/reports/{id}?include=draft; its Draft shadows Report.Draft.
+type reportWithDraft struct {
+	Report
+	Draft *ReportDraft `json:"draft"`
+}
+
+type reportGetOptions struct {
+	Include string `url:"include,omitempty"`
+}
+
+// GetReportWithDraft reads a report and the caller's draft of it, nil when there is none.
+func (c *APIClient) GetReportWithDraft(
+	ctx context.Context,
+	projectID, reportID string,
+) (Report, *ReportDraft, json.RawMessage, error) {
+	got, raw, err := reportsCall[reportWithDraft](
+		c, ctx, http.MethodGet, reportsPath(projectID, reportID),
+		reportGetOptions{Include: "draft"}, nil, "get report",
+	)
+	return got.Report, got.Draft, raw, err
 }
 
 func (c *APIClient) ApplyReport(
