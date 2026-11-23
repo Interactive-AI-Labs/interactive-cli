@@ -138,7 +138,7 @@ var genIndexCmd = &cobra.Command{
 	Short:  "Print the command index the copilot reads",
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := errors.Join(indexFlagErrs...); err != nil {
+		if err := errors.Join(flagSetupErrs...); err != nil {
 			return err
 		}
 		_, err := fmt.Fprint(cmd.OutOrStdout(), commandIndex(rootCmd, version))

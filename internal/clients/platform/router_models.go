@@ -61,10 +61,12 @@ type RouterModelDetail struct {
 type RouterModelListOptions struct {
 	// Page is 0-indexed; omitempty drops page=0 from the query, which the API
 	// treats as the default first page.
-	Page   int    `url:"page,omitempty"`
-	Limit  int    `url:"limit,omitempty"`
-	Search string `url:"search,omitempty"`
-	Region string `url:"region,omitempty"`
+	Page           int    `url:"page,omitempty"`
+	Limit          int    `url:"limit,omitempty"`
+	Search         string `url:"search,omitempty"`
+	Region         string `url:"region,omitempty"`
+	InputModality  string `url:"inputModality,omitempty"`
+	OutputModality string `url:"outputModality,omitempty"`
 }
 
 type routerModelListData struct {
