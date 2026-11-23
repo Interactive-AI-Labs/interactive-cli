@@ -93,7 +93,7 @@ Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
 on their create/update commands).
 
-Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.`,
+Env names starting with IAI_MCP_ are reserved.`,
 	Example: `  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
@@ -178,8 +178,7 @@ routines and policies first using --schema-version on their create/update
 commands, then update the agent with the new config and version.
 
 Lists (--env, --secret) replace their user-managed values when provided — pass
-every value you want to keep. Env names starting with IAI_MCP_ or MCP_KEY_
-are reserved.
+every value you want to keep. Env names starting with IAI_MCP_ are reserved.
 
 For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
@@ -318,7 +317,7 @@ config diff.`,
 			droppedEntries = printDroppedEnvSecretWarnings(
 				errW,
 				cmd.Flags().Changed("env"), cmd.Flags().Changed("secret"),
-				agentUserEnv(live.Env), live.SecretRefs,
+				live.Env, live.SecretRefs,
 				agentEnvVars, agentSecretRefs,
 			)
 		}

@@ -18,7 +18,7 @@ Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
 on their create/update commands).
 
-Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.
+Env names starting with IAI_MCP_ are reserved.
 
 ```
 iai agents create <agent_name> [flags]
