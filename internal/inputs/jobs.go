@@ -85,7 +85,9 @@ func BuildJobRequestBody(in JobInput) (deployment.CreateJobBody, error) {
 		}
 		body.Script, body.Pyproject = in.Script, in.Pyproject
 	default:
-		return deployment.CreateJobBody{}, fmt.Errorf("--type must be image or script")
+		return deployment.CreateJobBody{}, fmt.Errorf(
+			"--type must be %s", strings.Join(JobTypes, " or "),
+		)
 	}
 
 	if err := ValidateServiceEnvVars(in.EnvVars); err != nil {
@@ -117,3 +119,5 @@ func BuildJobRequestBody(in JobInput) (deployment.CreateJobBody, error) {
 	}
 	return body, nil
 }
+
+var JobTypes = []string{"image", "script"}
