@@ -166,8 +166,9 @@ var reportsGetCmd = &cobra.Command{
 	Use:     "get <name>",
 	Aliases: []string{"describe", "desc"},
 	Short:   "Show a report, or print it as a document to save",
-	Long: `Show a report's settings, sections and widgets. While you have unsaved changes to
-the report open in the editor, --yaml and --json print that draft, marked draft: true.`,
+	Long: `Show a report's settings, sections and widgets. In the Copilot, while you have unsaved
+changes to the report open in the editor, it shows that draft instead, and --yaml and --json
+print it with its draft_revision.`,
 	Example: `  iai reports get "Traffic summary"
   iai reports get "Traffic summary" --yaml > report.yaml`,
 	Args: cobra.ExactArgs(1),
@@ -181,20 +182,20 @@ the report open in the editor, --yaml and --json print that draft, marked draft:
 		if err != nil {
 			return err
 		}
-		report, draft, raw, err := client.GetReportWithDraft(cmd.Context(), pCtx.projectId, id)
+		report, draft, raw, err := client.GetReportAndDraft(
+			cmd.Context(), pCtx.projectId, id, inputs.ReportsReadDraft(clientOrigin),
+		)
 		if err != nil {
 			return err
 		}
-		asDocument := reportsGetJSON || reportsGetYAML
-		folderID := report.FolderID
-		if draft != nil && asDocument {
-			folderID = draft.Document.FolderID
+		if draft != nil {
+			report = draft.Over(report)
 		}
-		folder, err := reportFolder(cmd.Context(), client, pCtx.projectId, folderID)
+		folder, err := reportFolder(cmd.Context(), client, pCtx.projectId, report.FolderID)
 		if err != nil {
 			return err
 		}
-		if asDocument {
+		if reportsGetJSON || reportsGetYAML {
 			doc, err := inputs.ReportDocumentOf(raw, folder, true)
 			if err != nil {
 				return err
@@ -241,8 +242,8 @@ var reportsUpdateCmd = &cobra.Command{
 	Long: `Replace a report with a YAML or JSON document, as 'iai reports get --yaml' prints it.
 
 Refused if the report was saved after the document's updated_at; --force overwrites it.
-A document printed from your open draft (draft: true) is refused once that draft has been
-saved or discarded.
+A document with draft_revision, as 'iai reports get' prints your open draft, is saved into
+that draft; refused if the draft changed after it was printed, or was saved or discarded.
 folder names the report's folder (null for none; a folder that does not exist is created),
 and leaving it out keeps the report where it is. Leaving out description, terms, filters
 or agent_ids clears them, and leaving out default_range sets last7Days.`,

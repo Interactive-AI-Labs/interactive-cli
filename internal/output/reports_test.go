@@ -180,25 +180,18 @@ func TestPrintReportList(t *testing.T) {
 	}
 }
 
+// openDraft is the draft of savedReport GET …/reports/{id}?include=draft answers.
+const openDraft = `{"report_id":"r-1","revision":3,"base_updated_at":"2026-11-10T09:30:00.123456Z",
+"updated_via":"ui","updated_at":"2026-11-11T08:00:00Z","document":{"name":"Traffic v2",
+"description":"","folder_id":"f-2","agent_ids":[],"default_range":"last30Days","terms":{},"filters":[],
+"definition":{"version":1,"sections":[{"id":"s2","title":"Costs","columns":2,"rows":1,
+"fill":"fixed","widgets":[{"id":"w2","name":"Spend","view":"traces",
+"metrics":[{"measure":"totalCost","aggregation":"sum"}],"chartType":"LINE_TIME_SERIES"}]}]}}}`
+
 func TestPrintReportSummary(t *testing.T) {
 	report := decode[platform.Report](t, savedReport)
-	for _, draft := range []bool{false, true} {
-		var out bytes.Buffer
-		if err := PrintReportSummary(&out, report, "Ops", draft); err != nil {
-			t.Fatal(err)
-		}
-		if got, want := out.String(), reportSummary(draft); got != want {
-			t.Errorf("draft %v: got\n%s\nwant\n%s", draft, got, want)
-		}
-	}
-}
-
-func reportSummary(draft bool) string {
-	unsaved := ""
-	if draft {
-		unsaved = "Unsaved Draft:   yes, open in the editor; --yaml prints it\n"
-	}
-	return "ID:              r-1\n" +
+	draft := decode[platform.ReportDraft](t, openDraft).Over(report)
+	saved := "ID:              r-1\n" +
 		"Name:            Traffic\n" +
 		"Description:     Requests\n" +
 		"Folder:          Ops\n" +
@@ -211,10 +204,78 @@ func reportSummary(draft bool) string {
 		"Updated By:      u-2\n" +
 		"Updated Via:     ui\n" +
 		"Can Restore:     yes\n" +
-		unsaved +
 		"\nSections:\n" +
 		"  \"Traffic\" (s1) (3 × 1, fixed)\n" +
 		"    - \"Traces\" (w1)  [traces · count/count · NUMBER]\n"
+	tests := []struct {
+		name   string
+		report platform.Report
+		folder string
+		draft  bool
+		want   string
+	}{
+		{"saved report", report, "Ops", false, saved},
+		{
+			"open draft",
+			draft,
+			"Drafts",
+			true,
+			"ID:              r-1\n" +
+				"Name:            Traffic v2\n" +
+				"Folder:          Drafts\n" +
+				"Scope:           project\n" +
+				"Default Range:   last30Days\n" +
+				"Created At:      " + LocalTime("2026-11-01T10:00:00Z") + "\n" +
+				"Updated At:      " + LocalTime("2026-11-10T09:30:00.123456Z") + "\n" +
+				"Updated By:      u-2\n" +
+				"Updated Via:     ui\n" +
+				"Can Restore:     yes\n" +
+				"Unsaved Draft:   yes, open in the editor; the settings and sections are the draft's\n" +
+				"\nSections:\n" +
+				"  \"Costs\" (s2) (2 × 1, fixed)\n" +
+				"    - \"Spend\" (w2)  [traces · totalCost/sum · LINE_TIME_SERIES]\n",
+		},
+	}
+	for _, tt := range tests {
+		var out bytes.Buffer
+		if err := PrintReportSummary(&out, tt.report, tt.folder, tt.draft); err != nil {
+			t.Fatal(err)
+		}
+		if out.String() != tt.want {
+			t.Errorf("%s: got\n%s\nwant\n%s", tt.name, out.String(), tt.want)
+		}
+	}
+}
+
+// A draft printed with --yaml saves back into that draft, at the revision it was read at.
+func TestReportDraftRoundTrip(t *testing.T) {
+	raw := strings.TrimSuffix(savedReport, "}") + `,"draft":` + openDraft + "}"
+	doc, err := inputs.ReportDocumentOf(json.RawMessage(raw), "Drafts", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var yaml bytes.Buffer
+	if err := PrintRawYAML(&yaml, doc); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(yaml.String(), "\ndraft_revision: 3\n") ||
+		!strings.Contains(yaml.String(), "\nname: Traffic v2\n") {
+		t.Errorf("yaml:\n%s", yaml.String())
+	}
+	parsed, err := inputs.ParseReportDocument(yaml.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := json.Marshal(inputs.ReportBodyOf(parsed, "r-1", false, "copilot"))
+	want := `{"id":"r-1","expected_updated_at":"2026-11-10T09:30:00.123456Z","updated_via":"copilot",` +
+		`"draft_revision":3,"folder":"Drafts","name":"Traffic v2","description":"",` +
+		`"default_range":"last30Days","definition":{"sections":[{"columns":2,` +
+		`"fill":"fixed","id":"s2","rows":1,"title":"Costs","widgets":[{"chartType":` +
+		`"LINE_TIME_SERIES","id":"w2","metrics":[{"aggregation":"sum","measure":"totalCost"}],` +
+		`"name":"Spend","view":"traces"}]}],"version":1}}`
+	if string(body) != want {
+		t.Errorf("body:\ngot  %s\nwant %s", body, want)
+	}
 }
 
 func TestPrintReportSaved(t *testing.T) {
@@ -270,6 +331,19 @@ func TestPrintReportSavePreview(t *testing.T) {
 			want: "The report changed after this document was read (saved by u-2 at " +
 				LocalTime("2026-11-10T09:30:00.123456Z") + " via ui); " +
 				"update will be refused without --force.\n" +
+				"Would update report \"Traffic\" (id r-1):\n" +
+				"  ~ default_range: \"last7Days\" → \"last30Days\"\n" +
+				"Dry run: nothing was saved.\n",
+		},
+		{
+			name:  "into the open draft",
+			saved: &saved,
+			edit: func(d *inputs.ReportDocument) {
+				revision := int64(3)
+				d.DraftRevision, d.DefaultRange = &revision, "last30Days"
+			},
+			want: "The document goes into your open draft (revision 3); " +
+				"the changes below are against the saved report.\n" +
 				"Would update report \"Traffic\" (id r-1):\n" +
 				"  ~ default_range: \"last7Days\" → \"last30Days\"\n" +
 				"Dry run: nothing was saved.\n",
@@ -348,6 +422,26 @@ func TestReportWriteErrors(t *testing.T) {
 			explain: ReportWriteError,
 			err:     &platform.ReportError{Code: "INVALID_REQUEST", Message: "too many sections"},
 			want:    "too many sections",
+		},
+		{
+			name:    "save: the open draft changed",
+			explain: ReportWriteError,
+			err: &platform.ReportError{
+				Code: "REPORT_DRAFT_CHANGED",
+				Message: "The open draft changed after you read it. " +
+					"Read the report again and redo the change on the new version.",
+			},
+			want: "The open draft changed after you read it. " +
+				"Read the report again and redo the change on the new version.",
+		},
+		{
+			name:    "save: the open draft is gone",
+			explain: ReportWriteError,
+			err: &platform.ReportError{
+				Code:    "REPORT_DRAFT_GONE",
+				Message: "The open draft was saved or discarded.",
+			},
+			want: "The open draft was saved or discarded.",
 		},
 		{
 			name:    "save: not a refusal",

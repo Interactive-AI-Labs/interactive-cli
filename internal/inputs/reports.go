@@ -49,6 +49,11 @@ func ReportsUpdatedVia(clientOrigin string) string {
 	return ReportsViaCLI
 }
 
+// ReportsReadDraft says whether 'iai reports get' reads the caller's open draft: in the Copilot.
+func ReportsReadDraft(clientOrigin string) bool {
+	return ReportsUpdatedVia(clientOrigin) == ReportsViaCopilot
+}
+
 // reportReadOnlyFields are the report keys the API returns that create and update do not send.
 var reportReadOnlyFields = []string{
 	"id",
@@ -59,6 +64,7 @@ var reportReadOnlyFields = []string{
 	"updated_by",
 	"updated_via",
 	"draft",
+	"draft_revision",
 }
 
 // ReportDocument is a report as 'iai reports create' and 'update' read it and
@@ -77,8 +83,8 @@ type ReportDocument struct {
 	// AllAgents and ShowTerms absent keep the report's setting.
 	AllAgents *bool `json:"all_agents,omitempty"`
 	ShowTerms *bool `json:"show_terms,omitempty"`
-	// FromDraft is the document's draft: true, as 'iai reports get' prints a draft.
-	FromDraft bool `json:"-"`
+	// DraftRevision is the document's draft_revision, as 'iai reports get' prints a draft.
+	DraftRevision *int64 `json:"-"`
 }
 
 // ReadReportDocument reads a report document from path, or from stdin when path is "-".
@@ -125,7 +131,10 @@ func ParseReportDocument(data []byte) (ReportDocument, error) {
 	if err != nil {
 		return doc, fmt.Errorf("failed to parse report document: %s", oneLine(err))
 	}
-	fromDraft := fields["draft"] == true
+	revision, err := reportDraftRevision(fields["draft_revision"])
+	if err != nil {
+		return doc, err
+	}
 	for _, key := range reportReadOnlyFields {
 		delete(fields, key)
 	}
@@ -139,7 +148,7 @@ func ParseReportDocument(data []byte) (ReportDocument, error) {
 	if err := dec.Decode(&doc); err != nil {
 		return doc, fmt.Errorf("failed to parse report document: %s", oneLine(err))
 	}
-	doc.FromDraft = fromDraft
+	doc.DraftRevision = revision
 	if len(doc.Folder) > 0 && string(doc.Folder) != "null" {
 		var name string
 		if json.Unmarshal(doc.Folder, &name) != nil || strings.TrimSpace(name) == "" {
@@ -147,6 +156,21 @@ func ParseReportDocument(data []byte) (ReportDocument, error) {
 		}
 	}
 	return doc, nil
+}
+
+// reportDraftRevision is a document's draft_revision, nil when absent.
+func reportDraftRevision(v any) (*int64, error) {
+	if v == nil {
+		return nil, nil
+	}
+	data, _ := json.Marshal(v)
+	var n int64
+	if json.Unmarshal(data, &n) != nil {
+		return nil, fmt.Errorf(
+			"draft_revision must be a whole number; keep it as 'iai reports get --yaml' prints it",
+		)
+	}
+	return &n, nil
 }
 
 func oneLine(err error) string {
@@ -176,7 +200,8 @@ func ReportFolderName(folderID *string, names map[string]string) string {
 }
 
 // ReportBodyOf is the save request for doc: a new report without id, else a replacement of
-// report id guarded by the document's updated_at unless force, and by the draft it was read from.
+// report id guarded by the document's updated_at unless force; with the document's
+// draft_revision, the replacement goes into the caller's open draft instead.
 func ReportBodyOf(
 	doc ReportDocument,
 	id string,
@@ -197,7 +222,7 @@ func ReportBodyOf(
 	}
 	if id != "" {
 		body.ID, body.ExpectedUpdatedAt, body.Force = id, doc.UpdatedAt, force
-		body.FromDraft = doc.FromDraft
+		body.DraftRevision = doc.DraftRevision
 	}
 	switch name, keep := ReportFolderChange(doc); {
 	case keep:
@@ -211,7 +236,8 @@ func ReportBodyOf(
 
 // ReportDocumentOf is a report the API answered as a document: its folder by name (null for
 // none) instead of folder_id, without id, and without updated_at unless withUpdatedAt. With
-// the caller's draft (?include=draft), the draft's fields replace the report's and draft is true.
+// the caller's draft (?include=draft), the draft's fields replace the report's, with its
+// revision as draft_revision.
 func ReportDocumentOf(
 	raw json.RawMessage,
 	folder string,
@@ -227,7 +253,7 @@ func ReportDocumentOf(
 	delete(fields, "draft")
 	if document, ok := draft["document"].(map[string]any); ok {
 		maps.Copy(fields, document)
-		fields["draft"] = true
+		fields["draft_revision"] = draft["revision"]
 	}
 	delete(fields, "folder_id")
 	fields["folder"] = nil
