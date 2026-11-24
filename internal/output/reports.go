@@ -166,12 +166,12 @@ func PrintDeletedReport(out io.Writer, name, id string, doc json.RawMessage) err
 
 // PrintReportSaved prints the report a create or update saved and where to open it.
 func PrintReportSaved(out io.Writer, r platform.Report, path string) {
-	if r.Draft {
+	if r.DraftRevision != nil {
 		fmt.Fprintf(
 			out,
-			"Added to your open draft of report %q (id %s). Save in the editor to keep it.\n"+
-				"Path: %s\n",
-			Printable(r.Name), r.ID, path,
+			"Added to your open draft of report %q (id %s, draft_revision: %d). "+
+				"Save in the editor to keep it.\nPath: %s\n",
+			Printable(r.Name), r.ID, *r.DraftRevision, path,
 		)
 		return
 	}

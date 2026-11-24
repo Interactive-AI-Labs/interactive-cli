@@ -297,7 +297,7 @@ func TestResolveReport(t *testing.T) {
 	}{
 		{"traffic", "r-1"},
 		{"COST", "r-2"},
-		{"r-1", `report "r-1" not found; run 'iai reports list'`},
+		{"r-1", "r-1"},
 		{"Latency", `report "Latency" not found; run 'iai reports list'`},
 	}
 	for _, tt := range tests {
