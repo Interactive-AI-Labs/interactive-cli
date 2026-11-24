@@ -37,7 +37,8 @@ The platform is the source of truth. The CLI should not implement “agent brain
 
 1. **Locate existing code**
    - Find the closest command in `cmd/`.
-   - Look for reusable helpers in `internal/`.
+   - Look for reusable helpers in `internal/` and `cmd/` before writing a new
+     one, and extend an existing one if needed.
    - Prefer extending existing patterns over new ones.
 
 2. **Plan a small change**
@@ -70,12 +71,17 @@ The platform is the source of truth. The CLI should not implement “agent brain
   - HTTP client + types in the same package/file when practical.
   - A command should either call `internal` directly or via a small local helper.
 
+- **Inline single-use helpers within a package.** A helper called once from the
+  same package belongs inline unless it is table-tested on its own. This does not
+  apply to `internal/` helpers called by a command: those keep `RunE` small.
+
 ### Comments and dead code
 
 - **No commented-out code.** Delete unused code; rely on git history.
 - **Comments only when needed.**
-  - Explain *why*, not *what*.
+  - Explain *why*, not *what*; delete comments that restate the code.
   - Document tricky behavior or external API quirks.
+  - New or changed comments and docstrings are one line at most.
 - Remove unused functions, types, and imports. No `_ = someName` hacks.
 
 ### Dependencies and init
@@ -99,14 +105,19 @@ The platform is the source of truth. The CLI should not implement “agent brain
   - `fmt.Errorf("failed to <action>: %w", err)`.
 - No panics in normal flow.
 - Error messages should be direct and helpful (e.g., hint to run `interactiveai login` or `organizations select` when needed).
-- When the server returns JSON with a `message` field, surface that string directly to the user.
+- When the server returns JSON with a `message` field, surface that string
+  directly to the user, unless it reveals platform internals (next rule).
+- **Never reveal platform internals to the user.** Help text, errors, and output
+  must not name the infrastructure behind the platform (cloud provider, clusters,
+  namespaces, internal services, databases, operators). When a server message
+  does, replace it with a neutral message that says what failed and what to do.
 
 ### Testing and formatting
 
 - Code must compile; add or update tests when behavior changes.
 - Assume `go test ./...` should conceptually pass.
 - All code must be `gofmt`-style; imports should follow Go conventions.
-- **Unit tests are pure input/output tables.** No fake HTTP servers: a test that
+- **New unit tests are table-driven, pure input/output tables.** No fake HTTP servers: a test that
   asserts against a response we invented proves the client agrees with us, not
   with the platform. Extract the decision (status → error type, payload → rows)
   and table-test that.
@@ -128,6 +139,10 @@ The platform is the source of truth. The CLI should not implement “agent brain
   - No unused code/imports.
   - Follows existing `cmd/` + `internal/` patterns.
   - Clear, minimal comments where truly necessary.
+- Bot reviews: address every bot review comment (fix it or push back), reply to
+  it, and resolve its thread.
+- Commits: as few as possible, grouped by logical change. Use fixup commits
+  while bot review is in flight, and squash them before asking for human review.
 
 ---
 
