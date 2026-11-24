@@ -15,7 +15,7 @@ iai dataset-items list [flags]
 ```
   iai dataset-items list --dataset-name my-dataset
   iai dataset-items list --dataset-name my-dataset --source-trace-id trace-123 --limit 50
-  iai dataset-items list --dataset-name my-dataset --columns id,status,input
+  iai dataset-items list --dataset-name my-dataset --columns id,name,status
   iai dataset-items list --dataset-name my-dataset --json
 ```
 

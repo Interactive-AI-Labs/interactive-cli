@@ -28,4 +28,5 @@ Manage individual items within evaluation datasets.
 * [iai dataset-items delete](iai_dataset-items_delete.md)	 - Delete a dataset item
 * [iai dataset-items get](iai_dataset-items_get.md)	 - Get a dataset item
 * [iai dataset-items list](iai_dataset-items_list.md)	 - List dataset items
+* [iai dataset-items update](iai_dataset-items_update.md)	 - Update a dataset item
 

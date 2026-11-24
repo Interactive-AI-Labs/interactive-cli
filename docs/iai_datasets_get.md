@@ -39,5 +39,5 @@ iai datasets get <name> [flags]
 
 ### SEE ALSO
 
-* [iai datasets](iai_datasets.md)	 - Create and list evaluation datasets
+* [iai datasets](iai_datasets.md)	 - Create, list and delete evaluation datasets
 

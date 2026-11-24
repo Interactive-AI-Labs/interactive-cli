@@ -1,6 +1,6 @@
 ## iai datasets
 
-Create and list evaluation datasets
+Create, list and delete evaluation datasets
 
 ### Synopsis
 
@@ -25,6 +25,7 @@ Manage evaluation datasets. Works with API key or session login.
 
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai datasets create](iai_datasets_create.md)	 - Create a dataset
+* [iai datasets delete](iai_datasets_delete.md)	 - Delete a dataset
 * [iai datasets get](iai_datasets_get.md)	 - Get a dataset by name
 * [iai datasets list](iai_datasets_list.md)	 - List datasets
 

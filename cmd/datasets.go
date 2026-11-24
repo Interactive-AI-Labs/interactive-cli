@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -29,12 +30,16 @@ var (
 	datasetsCreateProject      string
 	datasetsCreateJSON         bool
 	datasetsCreateYAML         bool
+
+	datasetsDeleteForce   bool
+	datasetsDeleteOrg     string
+	datasetsDeleteProject string
 )
 
 var datasetsCmd = &cobra.Command{
 	Use:              "datasets",
 	Aliases:          []string{"dataset"},
-	Short:            "Create and list evaluation datasets",
+	Short:            "Create, list and delete evaluation datasets",
 	GroupID:          groupEvaluation,
 	Long:             `Manage evaluation datasets. Works with API key or session login.`,
 	PersistentPreRun: chainRootPersistentPreRun,
@@ -198,6 +203,52 @@ var datasetsCreateCmd = &cobra.Command{
 	},
 }
 
+var datasetsDeleteCmd = &cobra.Command{
+	Use:     "delete <name>",
+	Aliases: []string{"rm"},
+	Short:   "Delete a dataset",
+	Long:    `Delete a dataset by name, with all its items and runs. Asks for confirmation unless -f is passed.`,
+	Example: `  iai datasets delete my-dataset
+  iai datasets delete my-dataset -f -o my-org -p my-project`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		name := strings.TrimSpace(args[0])
+
+		if !datasetsDeleteForce {
+			confirmed, err := confirmDeletion(
+				cmd.InOrStdin(),
+				out,
+				fmt.Sprintf("dataset %q with all its items and runs", name),
+			)
+			if err != nil {
+				return err
+			}
+			if !confirmed {
+				fmt.Fprintln(out, "Aborted.")
+				return nil
+			}
+		}
+
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			datasetsDeleteOrg,
+			datasetsDeleteProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		message, err := apiClient.DeleteDataset(cmd.Context(), pCtx.orgId, pCtx.projectId, name)
+		if err != nil {
+			return err
+		}
+
+		return output.PrintDeleteSuccess(out, name, "dataset", message)
+	},
+}
+
 func init() {
 	indexJSONShape(datasetsCmd, "env")
 	datasetsListCmd.Flags().IntVar(&datasetsListPage, "page", 1, "Page number (starts at 1)")
@@ -239,6 +290,13 @@ func init() {
 	datasetsCreateCmd.Flags().
 		StringVarP(&datasetsCreateProject, "project", "p", "", "Project name")
 
-	datasetsCmd.AddCommand(datasetsListCmd, datasetsGetCmd, datasetsCreateCmd)
+	datasetsDeleteCmd.Flags().
+		BoolVarP(&datasetsDeleteForce, "force", "f", false, "Skip confirmation prompt")
+	datasetsDeleteCmd.Flags().
+		StringVarP(&datasetsDeleteOrg, "organization", "o", "", "Organization name that owns the project")
+	datasetsDeleteCmd.Flags().
+		StringVarP(&datasetsDeleteProject, "project", "p", "", "Project name")
+
+	datasetsCmd.AddCommand(datasetsListCmd, datasetsGetCmd, datasetsCreateCmd, datasetsDeleteCmd)
 	rootCmd.AddCommand(datasetsCmd)
 }

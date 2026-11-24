@@ -12,6 +12,7 @@ var datasetItemColumnMap = map[string]struct {
 	Value  func(d *platform.DatasetItemInfo) string
 }{
 	"id":     {"ID", func(d *platform.DatasetItemInfo) string { return d.ID }},
+	"name":   {"NAME", func(d *platform.DatasetItemInfo) string { return d.Name }},
 	"status": {"STATUS", func(d *platform.DatasetItemInfo) string { return d.Status }},
 	"dataset_name": {
 		"DATASET NAME",
@@ -75,6 +76,9 @@ func PrintDatasetItemList(
 func PrintDatasetItemDetail(out io.Writer, item *platform.DatasetItemInfo) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
+	if item.Name != "" {
+		fmt.Fprintf(w, "Name:\t%s\n", item.Name)
+	}
 	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
 	fmt.Fprintf(w, "Dataset Name:\t%s\n", item.DatasetName)
 	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(item.CreatedAt))
@@ -101,6 +105,9 @@ func PrintDatasetItemCreateResult(out io.Writer, item *platform.DatasetItemInfo)
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "Created dataset item %q.\n", item.ID)
 	fmt.Fprintf(w, "ID:\t%s\n", item.ID)
+	if item.Name != "" {
+		fmt.Fprintf(w, "Name:\t%s\n", item.Name)
+	}
 	fmt.Fprintf(w, "Status:\t%s\n", item.Status)
 	fmt.Fprintf(w, "Dataset Name:\t%s\n", item.DatasetName)
 	fmt.Fprintf(w, "Created At:\t%s\n", LocalTime(item.CreatedAt))
