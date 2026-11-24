@@ -35,7 +35,7 @@ var reportColumnMap = map[string]struct {
 	},
 	"agents": {
 		"AGENTS",
-		func(r *platform.Report, _ map[string]string) string { return reportScope(r.AgentIDs) },
+		func(r *platform.Report, _ map[string]string) string { return reportScope(r) },
 	},
 	"default_range": {
 		"DEFAULT RANGE",
@@ -59,11 +59,14 @@ var reportColumnMap = map[string]struct {
 	},
 }
 
-func reportScope(agentIDs []string) string {
-	if len(agentIDs) == 0 {
+func reportScope(r *platform.Report) string {
+	switch {
+	case r.AllAgents:
+		return "all agents"
+	case len(r.AgentIDs) == 0:
 		return "project"
 	}
-	return Printable(TruncateList(agentIDs, 3))
+	return Printable(TruncateList(r.AgentIDs, 3))
 }
 
 func PrintReportList(
@@ -103,7 +106,7 @@ func PrintReportSummary(out io.Writer, r platform.Report, folder string) error {
 	if folder != "" {
 		fmt.Fprintf(w, "Folder:\t%s\n", Printable(folder))
 	}
-	fmt.Fprintf(w, "Scope:\t%s\n", reportScope(r.AgentIDs))
+	fmt.Fprintf(w, "Scope:\t%s\n", reportScope(&r))
 	fmt.Fprintf(w, "Default Range:\t%s\n", r.DefaultRange)
 	if len(r.Terms) > 0 {
 		fmt.Fprintf(w, "Terms:\t%s\n", reportJSON(r.Terms))
@@ -218,7 +221,8 @@ func PrintReportSavePreview(
 		fmt.Fprintf(out, "Would create report %q:\n", Printable(next.Name))
 	} else {
 		current = reportDocumentOf(*saved)
-		if saved.UpdatedAt != next.UpdatedAt && !force {
+		// A draft write is guarded by draft_revision alone.
+		if next.DraftRevision == nil && saved.UpdatedAt != next.UpdatedAt && !force {
 			fmt.Fprintf(
 				out,
 				"The report changed after this document was read (saved by %s at %s via %s); "+

@@ -86,6 +86,13 @@ func TestReportChanges(t *testing.T) {
 			want: []string{`~ all_agents: false → true`},
 		},
 		{
+			name:   "all_agents alone, with no agents listed",
+			next:   base,
+			folder: "Ops",
+			edit:   func(d *inputs.ReportDocument) { d.AgentIDs, d.AllAgents = nil, ptr(true) },
+			want:   []string{`~ all_agents: false → true`},
+		},
+		{
 			name:   "all_agents and show_terms left out keep the report's",
 			next:   base,
 			folder: "Ops",
@@ -219,6 +226,7 @@ const openDraft = `{"revision":3,"document":{"name":"Traffic v2",
 func TestPrintReportSummary(t *testing.T) {
 	report := decode[platform.Report](t, savedReport)
 	draft := decode[platform.Report](t, string(overlaid(t)))
+
 	saved := "ID:              r-1\n" +
 		"Name:            Traffic\n" +
 		"Description:     Requests\n" +
@@ -292,7 +300,7 @@ func TestReportDraftRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	body, _ := json.Marshal(inputs.ReportBodyOf(parsed, "r-1", false, "copilot"))
-	want := `{"id":"r-1","expected_updated_at":"2026-11-10T09:30:00.123456Z","updated_via":"copilot",` +
+	want := `{"id":"r-1","updated_via":"copilot",` +
 		`"draft_revision":3,"folder":"Drafts","name":"Traffic v2","description":"",` +
 		`"default_range":"last30Days","definition":{"sections":[{"columns":2,` +
 		`"fill":"fixed","id":"s2","rows":1,"title":"Costs","widgets":[{"chartType":` +
@@ -374,6 +382,17 @@ func TestPrintReportSavePreview(t *testing.T) {
 				"Would update report \"Traffic\" (id r-1):\n" +
 				"  ~ default_range: \"last7Days\" → \"last30Days\"\n" +
 				"Dry run: nothing was saved.\n",
+		},
+		{
+			name:  "into the open draft, read before the report was saved: no --force warning",
+			saved: &saved,
+			edit: func(d *inputs.ReportDocument) {
+				revision := int64(3)
+				d.DraftRevision, d.UpdatedAt = &revision, "2026-11-09T00:00:00Z"
+			},
+			want: "The document goes into your open draft (revision 3); " +
+				"the changes below are against the saved report.\n" +
+				"Would update report \"Traffic\" (id r-1):\n  No changes.\nDry run: nothing was saved.\n",
 		},
 		{
 			name:  "changed since read with --force",
@@ -523,3 +542,20 @@ Report filter columns: tags
 }
 
 func ptr[T any](v T) *T { return &v }
+
+func TestReportScope(t *testing.T) {
+	tests := []struct {
+		name   string
+		report platform.Report
+		want   string
+	}{
+		{"no agents", platform.Report{}, "project"},
+		{"some agents", platform.Report{AgentIDs: []string{"bot"}}, "bot"},
+		{"all agents, with an empty list", platform.Report{AllAgents: true}, "all agents"},
+	}
+	for _, tt := range tests {
+		if got := reportScope(&tt.report); got != tt.want {
+			t.Errorf("%s: got %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}

@@ -199,7 +199,8 @@ func ReportFolderName(folderID *string, names map[string]string) string {
 
 // ReportBodyOf is the save request for doc: a new report without id, else a replacement of
 // report id guarded by the document's updated_at unless force; with the document's
-// draft_revision, the replacement goes into the caller's open draft instead.
+// draft_revision, the replacement goes into the caller's open draft instead, guarded by that
+// revision alone.
 func ReportBodyOf(
 	doc ReportDocument,
 	id string,
@@ -218,9 +219,12 @@ func ReportBodyOf(
 		AllAgents:    doc.AllAgents,
 		ShowTerms:    doc.ShowTerms,
 	}
-	if id != "" {
+	switch {
+	case id == "":
+	case doc.DraftRevision != nil:
+		body.ID, body.DraftRevision = id, doc.DraftRevision
+	default:
 		body.ID, body.ExpectedUpdatedAt, body.Force = id, doc.UpdatedAt, force
-		body.DraftRevision = doc.DraftRevision
 	}
 	switch name, keep := ReportFolderChange(doc); {
 	case keep:
@@ -275,14 +279,30 @@ func RestoreReportBodyOf(
 	return body, nil
 }
 
-// ResolveReport finds the report whose name, ignoring case, or id is name; names are unique per project.
-func ResolveReport(reports []platform.Report, name string) (platform.Report, error) {
-	for _, r := range reports {
-		if strings.EqualFold(r.Name, name) || r.ID == name {
-			return r, nil
+// ResolveReport finds the report whose name, ignoring case, is ref, or with byID whose id is;
+// a ref that names one report and is another's id is refused.
+func ResolveReport(reports []platform.Report, ref string, byID bool) (platform.Report, error) {
+	var named, withID *platform.Report
+	for i, r := range reports {
+		if named == nil && strings.EqualFold(r.Name, ref) {
+			named = &reports[i]
+		}
+		if byID && withID == nil && r.ID == ref {
+			withID = &reports[i]
 		}
 	}
-	return platform.Report{}, fmt.Errorf("report %q not found; run 'iai reports list'", name)
+	switch {
+	case named != nil && withID != nil && named.ID != withID.ID:
+		return platform.Report{}, fmt.Errorf(
+			"%q is the name of report %s and the id of report %q; name the report by the other one",
+			ref, named.ID, withID.Name,
+		)
+	case named != nil:
+		return *named, nil
+	case withID != nil:
+		return *withID, nil
+	}
+	return platform.Report{}, fmt.Errorf("report %q not found; run 'iai reports list'", ref)
 }
 
 // ResolveReportFolder finds the folder whose name, ignoring case, is ref; "none" names no

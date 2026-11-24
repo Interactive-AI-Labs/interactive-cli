@@ -50,11 +50,18 @@ func TestReportBody(t *testing.T) {
 			want: plain,
 		},
 		{
-			name: "a replace with draft_revision goes into the draft",
+			name: "a replace with draft_revision goes into the draft, guarded by it alone",
 			in:   "draft_revision: 3\n" + replace,
 			id:   "r-1",
-			want: `{"id":"r-1","expected_updated_at":"2026-11-10T09:30:00.123456Z",` +
-				`"updated_via":"cli","draft_revision":3,"name":"A","description":"",` +
+			want: `{"id":"r-1","updated_via":"cli","draft_revision":3,"name":"A","description":"",` +
+				`"definition":{"sections":[],"version":1}}`,
+		},
+		{
+			name:  "a draft write never forces",
+			in:    "draft_revision: 3\n" + replace,
+			id:    "r-1",
+			force: true,
+			want: `{"id":"r-1","updated_via":"cli","draft_revision":3,"name":"A","description":"",` +
 				`"definition":{"sections":[],"version":1}}`,
 		},
 		{
@@ -271,22 +278,42 @@ func TestRestoreReportBodyOf(t *testing.T) {
 }
 
 func TestResolveReport(t *testing.T) {
-	reports := []platform.Report{{ID: "r-1", Name: "Traffic"}, {ID: "r-2", Name: "Cost"}}
+	plain := []platform.Report{{ID: "r-1", Name: "Traffic"}, {ID: "r-2", Name: "Cost"}}
+	// One report is named after the other's id.
+	clash := []platform.Report{{ID: "r-1", Name: "Traffic"}, {ID: "r-2", Name: "r-1"}}
+	reversed := []platform.Report{clash[1], clash[0]}
+	ambiguous := `"r-1" is the name of report r-2 and the id of report "Traffic"; ` +
+		`name the report by the other one`
 	tests := []struct {
-		name, want string
+		name    string
+		reports []platform.Report
+		ref     string
+		byID    bool
+		want    string
 	}{
-		{"traffic", "r-1"},
-		{"COST", "r-2"},
-		{"r-1", "r-1"},
-		{"Latency", `report "Latency" not found; run 'iai reports list'`},
+		{"a name, ignoring case", plain, "traffic", true, "r-1"},
+		{"another name", plain, "COST", false, "r-2"},
+		{"an id", plain, "r-1", true, "r-1"},
+		{
+			"an id where only names count",
+			plain,
+			"r-1",
+			false,
+			`report "r-1" not found; run 'iai reports list'`,
+		},
+		{"neither", plain, "Latency", true, `report "Latency" not found; run 'iai reports list'`},
+		{"a name that is another's id", clash, "r-1", true, ambiguous},
+		{"a name that is another's id, listed first", reversed, "r-1", true, ambiguous},
+		{"only names count: the name wins", clash, "r-1", false, "r-2"},
+		{"only names count, listed first", reversed, "r-1", false, "r-2"},
 	}
 	for _, tt := range tests {
-		got, err := ResolveReport(reports, tt.name)
+		got, err := ResolveReport(tt.reports, tt.ref, tt.byID)
 		if err != nil {
 			got.ID = err.Error()
 		}
 		if got.ID != tt.want {
-			t.Errorf("ResolveReport(%q) = %q, want %q", tt.name, got.ID, tt.want)
+			t.Errorf("%s: got %q, want %q", tt.name, got.ID, tt.want)
 		}
 	}
 }
