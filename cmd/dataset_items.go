@@ -375,7 +375,7 @@ func init() {
 		StringVarP(&datasetItemsGetProject, "project", "p", "", "Project name")
 
 	datasetItemsCreateCmd.Flags().
-		StringVar(&datasetItemsCreateID, "id", "", "Explicit item ID (for upsert); API key only, a login session is refused")
+		StringVar(&datasetItemsCreateID, "id", "", "Explicit item ID; an existing ID is upserted (needs datasets:update)")
 	datasetItemsCreateCmd.Flags().
 		StringVar(&datasetItemsCreateName, "name", "", "Item name")
 	datasetItemsCreateCmd.Flags().
@@ -398,7 +398,7 @@ func init() {
 			"Source observation ID",
 		)
 	addChoiceFlag(datasetItemsCreateCmd, &datasetItemsCreateStatus, "status", "",
-		"Item status", datasetItemStatuses)
+		"Item status; ARCHIVED needs datasets:update", datasetItemStatuses)
 	datasetItemsCreateCmd.Flags().
 		BoolVar(&datasetItemsCreateJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsCreateCmd.Flags().
@@ -438,7 +438,6 @@ func init() {
 		datasetItemsDeleteCmd,
 	)
 	rootCmd.AddCommand(datasetItemsCmd)
-	indexFlag(datasetItemsCreateCmd, "id", "API key only")
 }
 
 var datasetItemStatuses = []string{"ACTIVE", "ARCHIVED"}
