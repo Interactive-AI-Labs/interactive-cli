@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 
@@ -26,6 +27,8 @@ type Report struct {
 	Description  string            `json:"description"`
 	FolderID     *string           `json:"folder_id"`
 	AgentIDs     []string          `json:"agent_ids"`
+	AllAgents    bool              `json:"all_agents"`
+	ShowTerms    bool              `json:"show_terms"`
 	DefaultRange string            `json:"default_range"`
 	CanUndo      bool              `json:"can_undo"`
 	CreatedAt    string            `json:"created_at"`
@@ -35,23 +38,9 @@ type Report struct {
 	Terms        map[string]string `json:"terms,omitempty"`
 	Definition   map[string]any    `json:"definition,omitempty"`
 	Filters      []any             `json:"filters,omitempty"`
-	// DraftRevision is set when a save went into the caller's open draft, not the report.
+	// DraftRevision is the revision of the caller's open draft the report shows, or a save
+	// went into; nil for the saved report.
 	DraftRevision *int64 `json:"draft_revision"`
-}
-
-// ReportDraft is the caller's unsaved edit of a report, open in the editor.
-type ReportDraft struct {
-	Revision int64  `json:"revision"`
-	Document Report `json:"document"`
-}
-
-// Over is report r as the draft has it: the draft's settings and sections over the saved ones.
-func (d ReportDraft) Over(r Report) Report {
-	doc := d.Document
-	r.Name, r.Description, r.FolderID = doc.Name, doc.Description, doc.FolderID
-	r.AgentIDs, r.DefaultRange, r.Terms = doc.AgentIDs, doc.DefaultRange, doc.Terms
-	r.Definition, r.Filters = doc.Definition, doc.Filters
-	return r
 }
 
 type ReportFolder struct {
@@ -199,31 +188,60 @@ func (c *APIClient) GetReport(
 	)
 }
 
-// reportWithDraft is GET …/reports/{id}?include=draft.
-type reportWithDraft struct {
-	Report
-	Draft *ReportDraft `json:"draft"`
-}
-
 type reportGetOptions struct {
 	Include string `url:"include,omitempty"`
 }
 
-// GetReportAndDraft reads a report and, with includeDraft, the caller's draft of it; the
-// draft is nil when there is none.
-func (c *APIClient) GetReportAndDraft(
+// GetReportOrDraft reads a report; with draft, as the caller's open draft has it, if any.
+func (c *APIClient) GetReportOrDraft(
 	ctx context.Context,
 	projectID, reportID string,
-	includeDraft bool,
-) (Report, *ReportDraft, json.RawMessage, error) {
-	opts := reportGetOptions{}
-	if includeDraft {
-		opts.Include = "draft"
+	draft bool,
+) (Report, json.RawMessage, error) {
+	if !draft {
+		return c.GetReport(ctx, projectID, reportID)
 	}
-	got, raw, err := reportsCall[reportWithDraft](
-		c, ctx, http.MethodGet, reportsPath(projectID, reportID), opts, nil, "get report",
+	_, raw, err := reportsCall[json.RawMessage](
+		c, ctx, http.MethodGet, reportsPath(projectID, reportID),
+		reportGetOptions{Include: "draft"}, nil, "get report",
 	)
-	return got.Report, got.Draft, raw, err
+	var report Report
+	if err == nil {
+		raw, err = OverlayDraft(raw)
+	}
+	if err == nil {
+		dec := json.NewDecoder(bytes.NewReader(raw))
+		dec.UseNumber()
+		err = dec.Decode(&report)
+	}
+	if err != nil {
+		return Report{}, nil, fmt.Errorf("failed to decode get report response: %w", err)
+	}
+	return report, raw, nil
+}
+
+// OverlayDraft is a report read with ?include=draft as the draft shows it: the draft's
+// document, always whole, over the report's fields, with its revision as draft_revision.
+func OverlayDraft(raw json.RawMessage) (json.RawMessage, error) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, err
+	}
+	var draft *struct {
+		Revision json.RawMessage            `json:"revision"`
+		Document map[string]json.RawMessage `json:"document"`
+	}
+	if d := fields["draft"]; len(d) > 0 {
+		if err := json.Unmarshal(d, &draft); err != nil {
+			return nil, err
+		}
+	}
+	delete(fields, "draft")
+	if draft != nil {
+		maps.Copy(fields, draft.Document)
+		fields["draft_revision"] = draft.Revision
+	}
+	return json.Marshal(fields)
 }
 
 func (c *APIClient) ApplyReport(

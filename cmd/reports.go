@@ -182,14 +182,11 @@ it with its draft_revision.`,
 		if err != nil {
 			return err
 		}
-		report, draft, raw, err := client.GetReportAndDraft(
+		report, raw, err := client.GetReportOrDraft(
 			cmd.Context(), pCtx.projectId, id, inputs.ReportsReadDraft(clientOrigin),
 		)
 		if err != nil {
 			return err
-		}
-		if draft != nil {
-			report = draft.Over(report)
 		}
 		folder, err := reportFolder(cmd.Context(), client, pCtx.projectId, report.FolderID)
 		if err != nil {
@@ -205,7 +202,7 @@ it with its draft_revision.`,
 			}
 			return output.PrintRawYAML(out, doc)
 		}
-		return output.PrintReportSummary(out, report, folder, draft != nil)
+		return output.PrintReportSummary(out, report, folder)
 	},
 }
 
