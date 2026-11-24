@@ -318,8 +318,17 @@ func (c *APIClient) DeleteDataset(
 	ctx context.Context,
 	orgID, projectID, name string,
 ) (string, error) {
-	path := evalBasePath(orgID, projectID) + "/datasets/" + url.PathEscape(name)
-	return c.doDelete(ctx, path, "delete dataset")
+	req, err := c.newRequest(ctx, http.MethodDelete, evalBasePath(orgID, projectID)+"/datasets")
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.URL.RawQuery = url.Values{"dataset_name": {name}}.Encode()
+
+	body, err := c.doAndRead(req, "delete dataset")
+	if err != nil {
+		return "", err
+	}
+	return checkSuccess(body, "delete dataset")
 }
 
 // Dataset Items
