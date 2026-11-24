@@ -254,12 +254,7 @@ func init() {
 		_ = c.MarkFlagRequired("database")
 	}
 
-	slotsAddCmd.Flags().StringVar(
-		&slotType,
-		"type",
-		"float32",
-		"Vector slot type (float32, float16, binary, or sparse; default: float32)",
-	)
+	addChoiceFlag(slotsAddCmd, &slotType, "type", "float32", "Vector slot type", slotTypes)
 	slotsAddCmd.Flags().
 		IntVar(&slotDimension, "dimension", 0, "Vector dimension (required unless --file is provided)")
 	slotsAddCmd.Flags().
@@ -281,3 +276,5 @@ func init() {
 	slotsCmd.AddCommand(slotSubs...)
 	collectionsCmd.AddCommand(slotsCmd)
 }
+
+var slotTypes = []string{"float32", "float16", "binary", "sparse"}

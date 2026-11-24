@@ -272,7 +272,9 @@ func init() {
 	scoresListCmd.Flags().
 		StringVar(&scoresSessionID, "session-id", "", "Filter by session ID")
 	scoresListCmd.Flags().StringVar(&scoresSource, "source", "", "Filter by source")
-	scoresListCmd.Flags().StringVar(&scoresDataType, "data-type", "", "Filter by data type")
+	addChoiceFlag(
+		scoresListCmd, &scoresDataType, "data-type", "", "Filter by data type", scoreDataTypes,
+	)
 	scoresListCmd.Flags().
 		StringVar(&scoresEnvironment, "environment", "", "Filter by environment")
 	scoresListCmd.Flags().StringVar(&scoresConfigID, "config-id", "", "Filter by config ID")
@@ -305,8 +307,10 @@ func init() {
 	scoresCreateCmd.Flags().
 		StringVar(&scoreCreateSessionID, "session-id", "", "Target session ID")
 	scoresCreateCmd.Flags().StringVar(&scoreCreateValue, "value", "", "Score value")
-	scoresCreateCmd.Flags().
-		StringVar(&scoreCreateDataType, "data-type", "NUMERIC", "Score data type")
+	addChoiceFlag(
+		scoresCreateCmd, &scoreCreateDataType, "data-type", "NUMERIC", "Score data type",
+		scoreDataTypes,
+	)
 	scoresCreateCmd.Flags().StringVar(&scoreCreateComment, "comment", "", "Score comment")
 	scoresCreateCmd.Flags().
 		StringVar(&scoreCreateMetadataJSON, "metadata-json", "", "Metadata as JSON object")
@@ -334,3 +338,5 @@ func init() {
 	scoresCmd.AddCommand(scoresListCmd, scoresCreateCmd, scoresDeleteCmd)
 	rootCmd.AddCommand(scoresCmd)
 }
+
+var scoreDataTypes = []string{"NUMERIC", "CATEGORICAL", "BOOLEAN", "CORRECTION"}

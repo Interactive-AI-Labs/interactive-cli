@@ -2,9 +2,15 @@ package inputs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 )
+
+// RouterModelRegions are the advertised --region values; "us" is still accepted for "global".
+var RouterModelRegions = []string{regionGlobal, platform.RouterModelRegionEU}
+
+const regionGlobal = "global"
 
 // PrepareRouterModelListOptions cannot reuse ValidatePagination: page is 0-indexed, limit max 100.
 func PrepareRouterModelListOptions(
@@ -18,10 +24,14 @@ func PrepareRouterModelListOptions(
 	}
 	switch opts.Region {
 	case "", platform.RouterModelRegionUS, platform.RouterModelRegionEU:
-	case "global":
+	case regionGlobal:
 		opts.Region = platform.RouterModelRegionUS
 	default:
-		return opts, fmt.Errorf("invalid region %q: must be one of global, eu", opts.Region)
+		return opts, fmt.Errorf(
+			"invalid region %q: must be one of %s",
+			opts.Region,
+			strings.Join(RouterModelRegions, ", "),
+		)
 	}
 	return opts, nil
 }

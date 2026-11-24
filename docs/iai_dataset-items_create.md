@@ -33,7 +33,7 @@ iai dataset-items create [flags]
   -p, --project string                 Project name
       --source-observation-id string   Source observation ID
       --source-trace-id string         Source trace ID
-      --status string                  Item status (ACTIVE/ARCHIVED); API key only, a login session is refused
+      --status string                  Item status; API key only, a login session is refused (ACTIVE|ARCHIVED)
       --yaml                           Output raw API response as YAML
 ```
 

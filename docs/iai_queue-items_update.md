@@ -28,7 +28,7 @@ iai queue-items update <item-id> [flags]
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name
       --queue-id string       Queue ID (required)
-      --status string         New status (required)
+      --status string         New status, required (PENDING|COMPLETED)
       --yaml                  Output raw API response as YAML
 ```
 

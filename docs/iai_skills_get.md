@@ -37,7 +37,7 @@ iai skills get <name> [flags]
       --label string          Retrieve the version with this label
   -o, --organization string   Organization name that owns the project
   -p, --project string        Project name that owns the prompts
-      --scope string          Scope to read from: project (default) or global
+      --scope string          Scope to read from; server default project (project|global)
       --version int           Retrieve a specific version number
       --yaml                  Output response as YAML
 ```

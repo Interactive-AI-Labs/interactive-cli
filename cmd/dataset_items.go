@@ -323,8 +323,8 @@ func init() {
 			&datasetItemsCreateSourceObservationID, "source-observation-id", "",
 			"Source observation ID",
 		)
-	datasetItemsCreateCmd.Flags().
-		StringVar(&datasetItemsCreateStatus, "status", "", "Item status (ACTIVE/ARCHIVED); API key only, a login session is refused")
+	addChoiceFlag(datasetItemsCreateCmd, &datasetItemsCreateStatus, "status", "",
+		"Item status; API key only, a login session is refused", datasetItemStatuses)
 	datasetItemsCreateCmd.Flags().
 		BoolVar(&datasetItemsCreateJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsCreateCmd.Flags().
@@ -350,3 +350,5 @@ func init() {
 	indexFlag(datasetItemsCreateCmd, "id", "API key only")
 	indexFlag(datasetItemsCreateCmd, "status", "API key only")
 }
+
+var datasetItemStatuses = []string{"ACTIVE", "ARCHIVED"}

@@ -44,7 +44,7 @@ iai traces list [flags]
       --has-error                 Filter traces with errors
   -h, --help                      help for list
       --json                      Output raw API response as JSON
-      --level string              Filter by aggregated level: DEBUG, DEFAULT, WARNING, ERROR
+      --level string              Filter by aggregated level (DEBUG|DEFAULT|WARNING|ERROR)
       --limit int                 Items per page (max 100)
       --max-cost float            Maximum total cost filter
       --max-latency float         Maximum latency filter (seconds)
@@ -54,8 +54,8 @@ iai traces list [flags]
       --min-tokens int            Minimum total tokens filter
       --model string              Filter by model name
       --name string               Filter by trace name
-      --order string              Sort direction: asc or desc (default: desc) (default "desc")
-      --order-by string           Order by field: timestamp, latency, cost, name
+      --order string              Sort direction (asc|desc) (default "desc")
+      --order-by string           Order by field (timestamp|latency|cost|name)
   -o, --organization string       Organization name that owns the project
       --page int                  Page number (starts at 1) (default 1)
   -p, --project string            Project name

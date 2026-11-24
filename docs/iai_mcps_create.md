@@ -77,7 +77,7 @@ iai mcps create <mcp_name> [flags]
 ```
       --auth-header string          Header used for custom authentication
       --auth-header-prefix string   Optional credential prefix for custom authentication (e.g. "Token ")
-      --auth-type string            Authentication type: "bearer" (Authorization: Bearer), "api_key" (X-API-Key), "custom", "none", "oauth", or "client_credentials"; inferred on create
+      --auth-type string            Authentication type, inferred on create; bearer sends Authorization: Bearer, api_key sends X-API-Key (bearer|api_key|custom|none|oauth|client_credentials)
       --catalog-id string           Catalog entry id (see 'iai mcps catalog'); derives endpoint + auth (catalog remote mcp)
       --client-id string            Client ID of an app you registered at the provider; requires --catalog-id (oauth or client_credentials)
       --client-secret string        Client secret of that app; write-only. Rotatable on oauth via update, delete-and-recreate on client_credentials. Prefer --client-secret-stdin
@@ -91,14 +91,14 @@ iai mcps create <mcp_name> [flags]
   -h, --help                        help for create
       --image-name string           Container image name; a catalog id for --image-type platform (self-hosted)
       --image-tag string            Container image tag (self-hosted)
-      --image-type string           Image type: 'internal' (the project's registry, default) or 'platform' (a self-hosted image from 'iai mcps catalog') (self-hosted)
+      --image-type string           Self-hosted image type, internal by default on create; internal is the project's registry, platform is an image from 'iai mcps catalog' (internal|platform)
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
       --port int                    Port the mcp's own server listens on (self-hosted, default 3000)
       --remote-url string           Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)
       --secret stringArray          Existing project secret whose keys become environment variables; repeatable (self-hosted)
       --stack-id string             Stack ID to assign the mcp to (self-hosted)
-      --type string                 Mcp type: "self-hosted" or "remote" (inferred from other flags if omitted)
+      --type string                 Mcp type; inferred from other flags if omitted (self-hosted|remote)
 ```
 
 ### Options inherited from parent commands

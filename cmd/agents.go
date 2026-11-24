@@ -93,7 +93,7 @@ Routines and policies referenced in the config must already exist in the project
 and should be validated against the matching schema version (see --schema-version
 on their create/update commands).
 
-Env names starting with IAI_MCP_ or MCP_KEY_ are reserved.`,
+Env names starting with IAI_MCP_ are reserved.`,
 	Example: `  iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --endpoint
   iai agents create chat-agent --id interactive-agent --version 0.0.1 --file agent-config.yaml --secret api-keys --env LOG_LEVEL=info
@@ -178,8 +178,7 @@ routines and policies first using --schema-version on their create/update
 commands, then update the agent with the new config and version.
 
 Lists (--env, --secret) replace their user-managed values when provided — pass
-every value you want to keep. Env names starting with IAI_MCP_ or MCP_KEY_
-are reserved.
+every value you want to keep. Env names starting with IAI_MCP_ are reserved.
 
 For schedules, passing --schedule-uptime auto-clears any existing downtime,
 and --schedule-downtime auto-clears any existing uptime. Pass --schedule-timezone
@@ -318,7 +317,7 @@ config diff.`,
 			droppedEntries = printDroppedEnvSecretWarnings(
 				errW,
 				cmd.Flags().Changed("env"), cmd.Flags().Changed("secret"),
-				agentUserEnv(live.Env), live.SecretRefs,
+				live.Env, live.SecretRefs,
 				agentEnvVars, agentSecretRefs,
 			)
 		}
@@ -1060,8 +1059,14 @@ func init() {
 		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands")
 	agentCreateCmd.Flags().
 		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp")
-	agentCreateCmd.Flags().
-		StringVar(&agentMcpEndpoint, "mcp-endpoint", "", "Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp")
+	addChoiceFlag(
+		agentCreateCmd,
+		&agentMcpEndpoint,
+		"mcp-endpoint",
+		"",
+		agentMcpEndpointUsage,
+		inputs.McpEndpoints,
+	)
 	_ = agentCreateCmd.MarkFlagRequired("id")
 	_ = agentCreateCmd.MarkFlagRequired("version")
 	_ = agentCreateCmd.MarkFlagRequired("file")
@@ -1101,17 +1106,25 @@ func init() {
 		BoolVar(&agentClearStackId, "clear-stack-id", false, "Remove the agent from its stack")
 	agentUpdateCmd.Flags().
 		StringVar(&agentDescription, "description", "", "Description shown for the agent in the platform; pass an empty value to clear it")
-	agentUpdateCmd.Flags().
-		StringVar(&agentIcon, "icon", "", "Avatar icon: "+strings.Join(inputs.AgentIcons, ", ")+"; keeps the current color, and an agent without an avatar needs --color too")
-	agentUpdateCmd.Flags().
-		StringVar(&agentColor, "color", "", "Avatar color: "+strings.Join(inputs.AgentColors, ", ")+"; keeps the current icon, and an agent without an avatar needs --icon too")
+	addChoiceFlag(agentUpdateCmd, &agentIcon, "icon", "",
+		"Avatar icon; keeps the current color; an agent without an avatar needs --color too",
+		inputs.AgentIcons)
+	addChoiceFlag(agentUpdateCmd, &agentColor, "color", "",
+		"Avatar color; keeps the current icon; an agent without an avatar needs --icon too",
+		inputs.AgentColors)
 	// StringArrayVar, not StringVar, so a second --mcp is seen and rejected rather than silently winning.
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentMcpNames, "mcp", nil, "Attach one MCP by name (see 'iai mcps list'); attach further MCPs in their own commands. Without --file, appends to the agent's current mcps; an MCP already attached keeps its prefix and endpoint unless --mcp-id or --mcp-endpoint set them")
 	agentUpdateCmd.Flags().
 		StringVar(&agentMcpId, "mcp-id", "", "Prefix this agent calls the MCP's tools by, as in 'tools:send_email' (defaults to its name; pass its name to go back to that), so MCPs such as tools-dev and tools-prod can share a prefix and routines; needs exactly one --mcp")
-	agentUpdateCmd.Flags().
-		StringVar(&agentMcpEndpoint, "mcp-endpoint", "", "Endpoint this agent dials the MCP on: private (default, reachable only within the project) or public (the MCP's public endpoint; needs a self-hosted MCP with it enabled); needs exactly one --mcp")
+	addChoiceFlag(
+		agentUpdateCmd,
+		&agentMcpEndpoint,
+		"mcp-endpoint",
+		"",
+		agentMcpEndpointUsage,
+		inputs.McpEndpoints,
+	)
 	agentUpdateCmd.Flags().
 		StringArrayVar(&agentDetachMcpNames, "detach-mcp", nil, "Detach an MCP by name, whatever prefix it has; can be repeated. Without --file, removes from the agent's current mcps, before --mcp, so both together swap one for another. Detach an MCP before deleting it: 'iai mcps delete' blocks while an agent still references it")
 	agentUpdateCmd.Flags().
@@ -1275,3 +1288,5 @@ func init() {
 	agentsCmd.AddCommand(agentCompatibilityMatrixCmd)
 	agentsCmd.AddCommand(agentLogFieldsCmd)
 }
+
+const agentMcpEndpointUsage = "Endpoint this agent dials the MCP on; needs exactly one --mcp; private, the default for a new attachment, is reachable only within the project, public is the MCP's public endpoint and needs a self-hosted MCP with it enabled"

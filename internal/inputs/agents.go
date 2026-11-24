@@ -74,8 +74,10 @@ func McpRefsFor(
 	}
 	endpoint = strings.TrimSpace(endpoint)
 	if endpointGiven {
-		if endpoint != "private" && endpoint != "public" {
-			return nil, fmt.Errorf(`--mcp-endpoint must be "private" or "public"`)
+		if !slices.Contains(McpEndpoints, endpoint) {
+			return nil, fmt.Errorf(
+				`--mcp-endpoint must be "%s"`, strings.Join(McpEndpoints, `" or "`),
+			)
 		}
 		if len(names) == 0 {
 			return nil, fmt.Errorf(
@@ -471,3 +473,5 @@ func setAppearancePatch(
 	}
 	return setJSON(patch, "appearance", appearance)
 }
+
+var McpEndpoints = []string{"private", "public"}

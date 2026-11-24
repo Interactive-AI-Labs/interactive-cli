@@ -333,10 +333,14 @@ func init() {
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(queuesListCmd, "limit", "max 100")
-	queuesListCmd.Flags().
-		StringVar(&queuesListSortBy, "sort-by", "", "Sort by field: name, description, created_at, updated_at, count_completed_items, count_pending_items (default: created_at)")
-	queuesListCmd.Flags().
-		StringVar(&queuesListSortOrder, "sort-order", "", "Sort direction: asc or desc (default: desc)")
+	addChoiceFlag(
+		queuesListCmd, &queuesListSortBy, "sort-by", "",
+		"Sort by field; server default created_at", queueSortFields,
+	)
+	addChoiceFlag(
+		queuesListCmd, &queuesListSortOrder, "sort-order", "",
+		"Sort direction; server default desc", sortOrders,
+	)
 	queuesListCmd.Flags().
 		StringSliceVar(&queuesListColumns, "columns", nil, "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml")
 	queuesListCmd.Flags().
@@ -406,4 +410,9 @@ func init() {
 		queuesUnassignCmd,
 	)
 	rootCmd.AddCommand(queuesCmd)
+}
+
+var queueSortFields = []string{
+	"name", "description", "created_at", "updated_at",
+	"count_completed_items", "count_pending_items",
 }

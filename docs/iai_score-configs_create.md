@@ -25,7 +25,7 @@ iai score-configs create [flags]
 
 ```
       --categories string     Categories as JSON array
-      --data-type string      Data type: NUMERIC, CATEGORICAL, or BOOLEAN (required)
+      --data-type string      Data type, required (NUMERIC|CATEGORICAL|BOOLEAN)
       --description string    Config description
   -h, --help                  help for create
       --json                  Output raw API response as JSON

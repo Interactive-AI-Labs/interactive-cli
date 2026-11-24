@@ -1057,8 +1057,14 @@ func init() {
 			BoolVar(&mcpEndpoint, "endpoint", false, "Expose the mcp publicly at <mcp-name>-<project-hash>.interactive.ai (self-hosted)")
 		c.Flags().
 			StringVar(&mcpPath, "path", "", `Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")`)
-		c.Flags().
-			StringVar(&mcpImageType, "image-type", "", "Image type: 'internal' (the project's registry, default) or 'platform' (a self-hosted image from 'iai mcps catalog') (self-hosted)")
+		addChoiceFlag(
+			c,
+			&mcpImageType,
+			"image-type",
+			"",
+			"Self-hosted image type, internal by default on create; internal is the project's registry, platform is an image from 'iai mcps catalog'",
+			mcpImageTypes,
+		)
 		c.Flags().
 			StringVar(&mcpImageName, "image-name", "", "Container image name; a catalog id for --image-type platform (self-hosted)")
 		c.Flags().
@@ -1067,8 +1073,14 @@ func init() {
 			StringVar(&mcpMemory, "memory", "", "Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)")
 		c.Flags().
 			StringVar(&mcpCPU, "cpu", "", "CPU cores or millicores (e.g. 0.5, 1, 2, 500m, 1000m) (self-hosted, default 100m)")
-		c.Flags().
-			StringVar(&mcpAuthType, "auth-type", "", `Authentication type: "bearer" (Authorization: Bearer), "api_key" (X-API-Key), "custom", "none", "oauth", or "client_credentials"; inferred on create`)
+		addChoiceFlag(
+			c,
+			&mcpAuthType,
+			"auth-type",
+			"",
+			"Authentication type, inferred on create; bearer sends Authorization: Bearer, api_key sends X-API-Key",
+			mcpAuthTypes,
+		)
 		c.Flags().
 			StringVar(&mcpCredential, "credential", "", "Credential the mcp server requires; a self-hosted mcp's server reads it from MCP_API_KEY")
 		c.Flags().
@@ -1095,8 +1107,10 @@ func init() {
 	mcpUpdateCmd.Flags().
 		BoolVar(&mcpClearStackID, "clear-stack-id", false, "Remove the mcp from its stack (self-hosted)")
 
-	mcpCreateCmd.Flags().
-		StringVar(&mcpType, "type", "", `Mcp type: "self-hosted" or "remote" (inferred from other flags if omitted)`)
+	addChoiceFlag(
+		mcpCreateCmd, &mcpType, "type", "",
+		"Mcp type; inferred from other flags if omitted", mcpTypes,
+	)
 	mcpCreateCmd.Flags().
 		StringVar(&mcpEndpointURL, "remote-url", "", "Remote MCP server URL — not platform-owned, dialed directly (custom remote mcp)")
 	mcpCreateCmd.Flags().
@@ -1170,3 +1184,13 @@ func init() {
 		mcpDeleteCmd,
 	)
 }
+
+var (
+	mcpTypes      = []string{deployment.McpTypeSelfHosted, deployment.McpTypeRemote}
+	mcpImageTypes = []string{"internal", "platform"}
+	mcpAuthTypes  = []string{
+		string(platform.McpAuthBearer), string(platform.McpAuthAPIKey),
+		string(platform.McpAuthCustom), string(platform.McpAuthNone),
+		string(platform.McpAuthOAuth), string(platform.McpAuthClientCredentials),
+	}
+)

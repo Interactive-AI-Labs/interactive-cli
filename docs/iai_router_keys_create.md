@@ -20,7 +20,7 @@ iai router keys create <name> [flags]
   -h, --help                  help for create
       --json                  Output response as JSON
       --limit float           Credit limit in USD. If omitted, defaults to $100. Maximum is $2500.
-      --limit-reset string    Limit reset period: daily, weekly, monthly. If omitted, defaults to monthly.
+      --limit-reset string    Limit reset period; server default monthly (daily|weekly|monthly)
   -o, --organization string   Organization name
   -p, --project string        Project name
       --yaml                  Output response as YAML

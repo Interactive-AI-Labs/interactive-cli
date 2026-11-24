@@ -37,14 +37,14 @@ var indexSkipFlags = map[string]bool{
 	"yaml":         true,
 }
 
-var indexFlagErrs []error
+var flagSetupErrs []error
 
 // quoted records an error unless help already says note.
 func quoted(where, help, note string) bool {
 	if strings.Contains(strings.ToLower(help), strings.ToLower(note)) {
 		return true
 	}
-	indexFlagErrs = append(indexFlagErrs, fmt.Errorf("%s: help text lacks %q", where, note))
+	flagSetupErrs = append(flagSetupErrs, fmt.Errorf("%s: help text lacks %q", where, note))
 	return false
 }
 
@@ -70,7 +70,7 @@ func indexFlag(c *cobra.Command, name, note string) {
 	where := c.CommandPath() + " --" + name
 	f := c.Flags().Lookup(name)
 	if f == nil {
-		indexFlagErrs = append(indexFlagErrs, fmt.Errorf("%s: no such flag", where))
+		flagSetupErrs = append(flagSetupErrs, fmt.Errorf("%s: no such flag", where))
 		return
 	}
 	if quoted(where, f.Usage, note) {

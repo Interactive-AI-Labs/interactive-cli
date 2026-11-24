@@ -3,6 +3,8 @@ package inputs
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 )
@@ -19,8 +21,8 @@ func BuildJobUpdatePatch(
 ) (deployment.UpdatePatch, error) {
 	patch := deployment.UpdatePatch{}
 	if changed("type") {
-		if in.Type != "image" && in.Type != "script" {
-			return nil, fmt.Errorf("--type must be image or script")
+		if !slices.Contains(JobTypes, in.Type) {
+			return nil, fmt.Errorf("--type must be %s", strings.Join(JobTypes, " or "))
 		}
 		if err := setJSON(patch, "type", in.Type); err != nil {
 			return nil, err

@@ -25,7 +25,7 @@ iai scores create [flags]
 ```
       --comment string          Score comment
       --config-id string        Related config ID
-      --data-type string        Score data type (default "NUMERIC")
+      --data-type string        Score data type (NUMERIC|CATEGORICAL|BOOLEAN|CORRECTION) (default "NUMERIC")
       --environment string      Target environment
   -h, --help                    help for create
       --id string               Explicit score ID

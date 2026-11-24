@@ -15,6 +15,8 @@ var (
 	modelsListLimit   int
 	modelsListSearch  string
 	modelsListRegion  string
+	modelsListInput   string
+	modelsListOutput  string
 	modelsListJSON    bool
 	modelsListYAML    bool
 	modelsListOrg     string
@@ -24,6 +26,21 @@ var (
 	modelsGetYAML    bool
 	modelsGetOrg     string
 	modelsGetProject string
+)
+
+var (
+	routerModelInputModalities  = []string{"audio", "file", "image", "text", "video"}
+	routerModelOutputModalities = []string{
+		"audio",
+		"decisions",
+		"embeddings",
+		"image",
+		"rerank",
+		"speech",
+		"text",
+		"transcription",
+		"video",
+	}
 )
 
 var modelsCmd = &cobra.Command{
@@ -44,6 +61,8 @@ var modelsListCmd = &cobra.Command{
   iai router models list --page 1 --limit 10
   iai router models list --search claude
   iai router models list --region global
+  iai router models list --input-modality image
+  iai router models list --input-modality audio --output-modality text
   iai router models list --json
   iai router models list --yaml`,
 	Args: cobra.NoArgs,
@@ -51,10 +70,12 @@ var modelsListCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 
 		opts, err := inputs.PrepareRouterModelListOptions(platform.RouterModelListOptions{
-			Page:   modelsListPage,
-			Limit:  modelsListLimit,
-			Search: modelsListSearch,
-			Region: modelsListRegion,
+			Page:           modelsListPage,
+			Limit:          modelsListLimit,
+			Search:         modelsListSearch,
+			Region:         modelsListRegion,
+			InputModality:  modelsListInput,
+			OutputModality: modelsListOutput,
 		})
 		if err != nil {
 			return err
@@ -133,7 +154,18 @@ func init() {
 	modelsListCmd.Flags().IntVar(&modelsListLimit, "limit", 50, "Items per page (max 100)")
 	indexFlag(modelsListCmd, "limit", "max 100")
 	modelsListCmd.Flags().StringVar(&modelsListSearch, "search", "", "Search filter")
-	modelsListCmd.Flags().StringVar(&modelsListRegion, "region", "", "Filter by region (global|eu)")
+	addChoiceFlag(
+		modelsListCmd,
+		&modelsListRegion,
+		"region",
+		"",
+		"Filter by region",
+		inputs.RouterModelRegions,
+	)
+	addChoiceFlag(modelsListCmd, &modelsListInput, "input-modality", "",
+		"Only models that accept this input", routerModelInputModalities)
+	addChoiceFlag(modelsListCmd, &modelsListOutput, "output-modality", "",
+		"Only models that produce this output", routerModelOutputModalities)
 	modelsListCmd.Flags().
 		BoolVar(&modelsListJSON, "json", false, "Output response as JSON")
 	modelsListCmd.Flags().

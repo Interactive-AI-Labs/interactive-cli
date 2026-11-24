@@ -51,7 +51,7 @@ iai mcps update <mcp_name> [flags]
 ```
       --auth-header string          Header used for custom authentication
       --auth-header-prefix string   Optional credential prefix for custom authentication (e.g. "Token ")
-      --auth-type string            Authentication type: "bearer" (Authorization: Bearer), "api_key" (X-API-Key), "custom", "none", "oauth", or "client_credentials"; inferred on create
+      --auth-type string            Authentication type, inferred on create; bearer sends Authorization: Bearer, api_key sends X-API-Key (bearer|api_key|custom|none|oauth|client_credentials)
       --clear-env                   Remove all environment variables from the mcp (self-hosted)
       --clear-secret                Remove all secret references from the mcp (self-hosted)
       --clear-stack-id              Remove the mcp from its stack (self-hosted)
@@ -67,7 +67,7 @@ iai mcps update <mcp_name> [flags]
   -h, --help                        help for update
       --image-name string           Container image name; a catalog id for --image-type platform (self-hosted)
       --image-tag string            Container image tag (self-hosted)
-      --image-type string           Image type: 'internal' (the project's registry, default) or 'platform' (a self-hosted image from 'iai mcps catalog') (self-hosted)
+      --image-type string           Self-hosted image type, internal by default on create; internal is the project's registry, platform is an image from 'iai mcps catalog' (internal|platform)
       --memory string               Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G) (self-hosted, default 128M)
       --path string                 Endpoint path the mcp's own server exposes (self-hosted, default "/mcp")
       --port int                    Port the mcp's own server listens on (self-hosted, default 3000)

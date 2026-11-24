@@ -31,7 +31,7 @@ iai jobs create <job_name> [flags]
       --image-name string                 Container image name
       --image-repository string           Image repository; required for external images
       --image-tag string                  Container image tag
-      --image-type string                 Image type: 'internal' (project's private registry) or 'external' (any public registry)
+      --image-type string                 Image type; internal is the project's private registry, external any public registry (internal|external)
       --memory string                     Memory in megabytes (M) or gigabytes (G) (e.g. 128M, 512M, 1G, 1.5G)
       --pyproject string                  pyproject.toml path; required for script jobs; combined with --script, maximum 350,000 bytes
       --retention-failed-runs int32       Failed, timed-out, or stopped runs to retain (0-20); server default: 10
@@ -44,7 +44,7 @@ iai jobs create <job_name> [flags]
       --secret stringArray                Secrets to be loaded as env vars; can be repeated
       --stack-id string                   Stack ID to assign the job to
       --timeout int                       Run time budget in seconds (1-21600, max 6h), including startup, dependency installation, and all retries; server default: 3600 seconds
-      --type string                       Job type: 'image' or 'script' (default "image")
+      --type string                       Job type (image|script) (default "image")
 ```
 
 ### Options inherited from parent commands
