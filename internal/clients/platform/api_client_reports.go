@@ -193,22 +193,24 @@ type reportGetOptions struct {
 }
 
 // GetReportOrDraft reads a report; with draft, as the caller's open draft has it, if any.
+// The answer never carries a draft key, so a printed document can be saved back.
 func (c *APIClient) GetReportOrDraft(
 	ctx context.Context,
 	projectID, reportID string,
 	draft bool,
 ) (Report, json.RawMessage, error) {
-	if !draft {
-		return c.GetReport(ctx, projectID, reportID)
+	var opts reportGetOptions
+	if draft {
+		opts.Include = "draft"
 	}
 	_, raw, err := reportsCall[json.RawMessage](
-		c, ctx, http.MethodGet, reportsPath(projectID, reportID),
-		reportGetOptions{Include: "draft"}, nil, "get report",
+		c, ctx, http.MethodGet, reportsPath(projectID, reportID), opts, nil, "get report",
 	)
-	var report Report
-	if err == nil {
-		raw, err = OverlayDraft(raw)
+	if err != nil {
+		return Report{}, nil, err
 	}
+	var report Report
+	raw, err = OverlayDraft(raw)
 	if err == nil {
 		dec := json.NewDecoder(bytes.NewReader(raw))
 		dec.UseNumber()
