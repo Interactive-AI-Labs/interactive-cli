@@ -34,28 +34,32 @@ func TestReportListQuery(t *testing.T) {
 	}
 }
 
-// A get with ?include=draft reads the draft; an apply into a draft answers its new revision.
-func TestReportDraftDecode(t *testing.T) {
+// A report read with ?include=draft shows the draft, numbers kept exactly.
+func TestOverlayDraft(t *testing.T) {
+	const report = `"id":"r-1","updated_at":"t","name":"A","folder_id":"f-1","n":12345678901234567`
 	tests := []struct {
 		name, raw, want string
 	}{
 		{
-			"get with a draft",
-			`{"id":"r-1","folder_id":"f-1",` +
-				`"draft":{"revision":3,"document":{"name":"B","folder_id":"f-2"}}}`,
-			`r-1 3 f-2`,
+			"no draft asked",
+			`{` + report + `}`,
+			`{"folder_id":"f-1","id":"r-1","n":12345678901234567,"name":"A","updated_at":"t"}`,
 		},
-		{"get with no draft", `{"id":"r-1","folder_id":"f-1","draft":null}`, `r-1 0 <nil>`},
+		{
+			"no draft open",
+			`{` + report + `,"draft":null}`,
+			`{"folder_id":"f-1","id":"r-1","n":12345678901234567,"name":"A","updated_at":"t"}`,
+		},
+		{
+			"an open draft",
+			`{` + report + `,"draft":{"revision":3,"document":{"name":"B","folder_id":null,"n":12345678901234568}}}`,
+			`{"draft_revision":3,"folder_id":null,"id":"r-1","n":12345678901234568,"name":"B","updated_at":"t"}`,
+		},
 	}
 	for _, tt := range tests {
-		var got reportWithDraft
-		err := json.Unmarshal([]byte(tt.raw), &got)
-		folder, revision := "<nil>", int64(0)
-		if got.Draft != nil {
-			folder, revision = *got.Draft.Document.FolderID, got.Draft.Revision
-		}
-		if s := fmt.Sprint(got.ID, " ", revision, " ", folder); err != nil || s != tt.want {
-			t.Errorf("%s: got %s, %v; want %s", tt.name, s, err, tt.want)
+		got, err := OverlayDraft(json.RawMessage(tt.raw))
+		if string(got) != tt.want || err != nil {
+			t.Errorf("%s: got %s, %v; want %s", tt.name, got, err, tt.want)
 		}
 	}
 	var applied Report

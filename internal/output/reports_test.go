@@ -77,6 +77,21 @@ func TestReportChanges(t *testing.T) {
 			},
 		},
 		{
+			name:   "all_agents and show_terms",
+			next:   base,
+			folder: "Ops",
+			edit: func(d *inputs.ReportDocument) {
+				d.AllAgents, d.ShowTerms = ptr(true), ptr(true)
+			},
+			want: []string{`~ all_agents: false → true`},
+		},
+		{
+			name:   "all_agents and show_terms left out keep the report's",
+			next:   base,
+			folder: "Ops",
+			edit:   func(d *inputs.ReportDocument) { d.AllAgents, d.ShowTerms = nil, nil },
+		},
+		{
 			name:   "sections and widgets",
 			folder: "Ops",
 			next: `{"version":1,"sections":[
@@ -116,6 +131,8 @@ func TestReportChanges(t *testing.T) {
 				Name:         "Traffic",
 				DefaultRange: "last7Days",
 				Definition:   definition(t, base),
+				AllAgents:    ptr(false),
+				ShowTerms:    ptr(true),
 			}
 			next := saved
 			next.Definition = definition(t, tt.next)
@@ -180,6 +197,18 @@ func TestPrintReportList(t *testing.T) {
 	}
 }
 
+// overlaid is savedReport read with ?include=draft while openDraft is open.
+func overlaid(t *testing.T) json.RawMessage {
+	t.Helper()
+	raw, err := platform.OverlayDraft(
+		json.RawMessage(strings.TrimSuffix(savedReport, "}") + `,"draft":` + openDraft + "}"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
 // openDraft is the draft of savedReport GET …/reports/{id}?include=draft answers.
 const openDraft = `{"revision":3,"document":{"name":"Traffic v2",
 "description":"","folder_id":"f-2","agent_ids":[],"default_range":"last30Days","terms":{},"filters":[],
@@ -189,7 +218,7 @@ const openDraft = `{"revision":3,"document":{"name":"Traffic v2",
 
 func TestPrintReportSummary(t *testing.T) {
 	report := decode[platform.Report](t, savedReport)
-	draft := decode[platform.ReportDraft](t, openDraft).Over(report)
+	draft := decode[platform.Report](t, string(overlaid(t)))
 	saved := "ID:              r-1\n" +
 		"Name:            Traffic\n" +
 		"Description:     Requests\n" +
@@ -210,15 +239,13 @@ func TestPrintReportSummary(t *testing.T) {
 		name   string
 		report platform.Report
 		folder string
-		draft  bool
 		want   string
 	}{
-		{"saved report", report, "Ops", false, saved},
+		{"saved report", report, "Ops", saved},
 		{
 			"open draft",
 			draft,
 			"Drafts",
-			true,
 			"ID:              r-1\n" +
 				"Name:            Traffic v2\n" +
 				"Folder:          Drafts\n" +
@@ -237,7 +264,7 @@ func TestPrintReportSummary(t *testing.T) {
 	}
 	for _, tt := range tests {
 		var out bytes.Buffer
-		if err := PrintReportSummary(&out, tt.report, tt.folder, tt.draft); err != nil {
+		if err := PrintReportSummary(&out, tt.report, tt.folder); err != nil {
 			t.Fatal(err)
 		}
 		if out.String() != tt.want {
@@ -248,8 +275,7 @@ func TestPrintReportSummary(t *testing.T) {
 
 // A draft printed with --yaml saves back into that draft, at the revision it was read at.
 func TestReportDraftRoundTrip(t *testing.T) {
-	raw := strings.TrimSuffix(savedReport, "}") + `,"draft":` + openDraft + "}"
-	doc, err := inputs.ReportDocumentOf(json.RawMessage(raw), "Drafts", true)
+	doc, err := inputs.ReportDocumentOf(overlaid(t), "Drafts", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -495,3 +521,5 @@ Report filter columns: tags
 		t.Errorf("got\n%s\nwant\n%s", out.String(), want)
 	}
 }
+
+func ptr[T any](v T) *T { return &v }

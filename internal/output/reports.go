@@ -91,9 +91,9 @@ func PrintReportList(
 	return PrintTable(out, headers, rows)
 }
 
-// PrintReportSummary prints a report's settings and its sections with their widgets;
-// draft says r is the caller's unsaved draft of it, over the saved report.
-func PrintReportSummary(out io.Writer, r platform.Report, folder string, draft bool) error {
+// PrintReportSummary prints a report's settings and its sections with their widgets, as the
+// caller's open draft has them when r carries its draft_revision.
+func PrintReportSummary(out io.Writer, r platform.Report, folder string) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", r.ID)
 	fmt.Fprintf(w, "Name:\t%s\n", Printable(r.Name))
@@ -116,7 +116,7 @@ func PrintReportSummary(out io.Writer, r platform.Report, folder string, draft b
 	fmt.Fprintf(w, "Updated By:\t%s\n", Printable(r.UpdatedBy))
 	fmt.Fprintf(w, "Updated Via:\t%s\n", r.UpdatedVia)
 	fmt.Fprintf(w, "Can Restore:\t%s\n", reportYesNo(r.CanUndo))
-	if draft {
+	if r.DraftRevision != nil {
 		fmt.Fprintln(
 			w,
 			"Unsaved Draft:\tyes, open in the editor; the settings and sections are the draft's",
@@ -193,6 +193,8 @@ func reportDocumentOf(r platform.Report) inputs.ReportDocument {
 		Name:         r.Name,
 		Description:  r.Description,
 		AgentIDs:     r.AgentIDs,
+		AllAgents:    &r.AllAgents,
+		ShowTerms:    &r.ShowTerms,
 		Terms:        r.Terms,
 		DefaultRange: r.DefaultRange,
 		Filters:      r.Filters,
@@ -260,6 +262,13 @@ func ReportChanges(saved, next inputs.ReportDocument, before, after string) []st
 		field("folder", before, after)
 	}
 	field("agent_ids", reportStrings(saved.AgentIDs), reportStrings(next.AgentIDs))
+	// Left out of the document, they keep the report's setting.
+	if next.AllAgents != nil {
+		field("all_agents", reportFlag(saved.AllAgents), *next.AllAgents)
+	}
+	if next.ShowTerms != nil {
+		field("show_terms", reportFlag(saved.ShowTerms), *next.ShowTerms)
+	}
 	field("terms", reportTerms(saved.Terms), reportTerms(next.Terms))
 	field(
 		"default_range",
@@ -269,6 +278,8 @@ func ReportChanges(saved, next inputs.ReportDocument, before, after string) []st
 	field("filters", reportList(saved.Filters), reportList(next.Filters))
 	return append(lines, reportDefinitionChanges(saved.Definition, next.Definition)...)
 }
+
+func reportFlag(b *bool) bool { return b != nil && *b }
 
 func reportDefaultRange(r string) string {
 	if r == "" {
