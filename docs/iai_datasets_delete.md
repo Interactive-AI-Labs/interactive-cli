@@ -4,7 +4,7 @@ Delete a dataset
 
 ### Synopsis
 
-Delete a dataset by name, with all its items and runs. Asks for confirmation unless -f is passed.
+Delete a dataset by name, with all its items and runs. Asks for confirmation unless -f is passed. Needs the session login (iai login); API keys cannot delete datasets.
 
 ```
 iai datasets delete <name> [flags]
