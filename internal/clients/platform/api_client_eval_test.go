@@ -262,3 +262,38 @@ func TestAPIClientDeleteQueueResources(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIClientDeleteDatasetSendsTheNameAsAQuery(t *testing.T) {
+	for _, dataset := range []string{"evals", "foo/runs/bar"} {
+		t.Run(dataset, func(t *testing.T) {
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					got := []any{r.Method, r.URL.Path, r.URL.Query()}
+					want := []any{
+						http.MethodDelete,
+						"/api/platform/v1/organizations/org-1/projects/proj-1/datasets",
+						url.Values{"dataset_name": {dataset}},
+					}
+					if !reflect.DeepEqual(got, want) {
+						t.Errorf("request = %v, want %v", got, want)
+					}
+					_, _ = io.WriteString(
+						w,
+						`{"success":true,"data":{"message":"Dataset deleted"}}`,
+					)
+				}),
+			)
+			defer server.Close()
+
+			client := newEvalTestClient(t, server.URL)
+			if _, err := client.DeleteDataset(
+				context.Background(),
+				"org-1",
+				"proj-1",
+				dataset,
+			); err != nil {
+				t.Fatalf("DeleteDataset() error = %v", err)
+			}
+		})
+	}
+}
