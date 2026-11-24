@@ -50,6 +50,29 @@ func TestReportBody(t *testing.T) {
 			want: plain,
 		},
 		{
+			name: "a replace read from a draft says so",
+			in:   "draft: true\n" + replace,
+			id:   "r-1",
+			want: `{"id":"r-1","expected_updated_at":"2026-11-10T09:30:00.123456Z",` +
+				`"updated_via":"cli","from_draft":true,"name":"A","description":"",` +
+				`"definition":{"sections":[],"version":1}}`,
+		},
+		{
+			name: "a replace read from json printed from a draft",
+			in:   `{"draft": true, "name": "A", "definition": {"version": 1, "sections": []}}`,
+			id:   "r-1",
+			want: `{"id":"r-1","updated_via":"cli","from_draft":true,"name":"A","description":"",` +
+				`"definition":{"sections":[],"version":1}}`,
+		},
+		{name: "a create from a draft is a new report", in: "draft: true\nname: A\n" + def, want: plain},
+		{
+			name: "draft false is not a draft",
+			in:   "draft: false\n" + replace,
+			id:   "r-1",
+			want: `{"id":"r-1","expected_updated_at":"2026-11-10T09:30:00.123456Z",` +
+				`"updated_via":"cli","name":"A","description":"","definition":{"sections":[],"version":1}}`,
+		},
+		{
 			name: "a folder name moves it",
 			in:   "name: A\nfolder: Ops\n" + def,
 			want: `{"updated_via":"cli","folder":"Ops","name":"A","description":"",` +
