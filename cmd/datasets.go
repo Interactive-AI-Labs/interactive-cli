@@ -41,7 +41,7 @@ var datasetsCmd = &cobra.Command{
 	Aliases:          []string{"dataset"},
 	Short:            "Create, list and delete evaluation datasets",
 	GroupID:          groupEvaluation,
-	Long:             `Manage evaluation datasets. Works with API key or session login.`,
+	Long:             `Manage evaluation datasets. Works with API key or session login; delete needs the session login.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
 
@@ -207,7 +207,7 @@ var datasetsDeleteCmd = &cobra.Command{
 	Use:     "delete <name>",
 	Aliases: []string{"rm"},
 	Short:   "Delete a dataset",
-	Long:    `Delete a dataset by name, with all its items and runs. Asks for confirmation unless -f is passed.`,
+	Long:    `Delete a dataset by name, with all its items and runs. Asks for confirmation unless -f is passed. Needs the session login (iai login); API keys cannot delete datasets.`,
 	Example: `  iai datasets delete my-dataset
   iai datasets delete my-dataset -f -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
@@ -215,6 +215,10 @@ var datasetsDeleteCmd = &cobra.Command{
 		out := cmd.OutOrStdout()
 
 		name := strings.TrimSpace(args[0])
+
+		if err := requireLoginAuth("dataset deletion"); err != nil {
+			return err
+		}
 
 		if !datasetsDeleteForce {
 			confirmed, err := confirmDeletion(

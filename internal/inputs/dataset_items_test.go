@@ -77,17 +77,27 @@ func TestBuildDatasetItemUpdateBody(t *testing.T) {
 }
 
 func TestBuildDatasetItemCreateBodyName(t *testing.T) {
-	got, err := BuildDatasetItemCreateBody(DatasetItemCreateInput{
-		DatasetName: "ds",
-		Name:        " scenario-1 ",
-	})
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "trimmed", in: " scenario-1 ", want: "scenario-1"},
+		{name: "omitted", in: "", want: ""},
+		{name: "blank", in: "   ", want: ""},
 	}
-	if diff := cmp.Diff(
-		platform.DatasetItemCreateBody{DatasetName: "ds", Name: "scenario-1"},
-		got,
-	); diff != "" {
-		t.Fatalf("body mismatch (-want +got):\n%s", diff)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := BuildDatasetItemCreateBody(
+				DatasetItemCreateInput{DatasetName: "ds", Name: tt.in},
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := platform.DatasetItemCreateBody{DatasetName: "ds", Name: tt.want}
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("body mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

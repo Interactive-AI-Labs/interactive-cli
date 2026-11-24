@@ -4,7 +4,7 @@ Create, list and delete evaluation datasets
 
 ### Synopsis
 
-Manage evaluation datasets. Works with API key or session login.
+Manage evaluation datasets. Works with API key or session login; delete needs the session login.
 
 ### Options
 
