@@ -4,12 +4,12 @@ Show a report, or print it as a document to save
 
 ### Synopsis
 
-Show a report's settings, sections and widgets. In the Copilot, while you have unsaved
-changes to the report open in the editor, it shows that draft instead, and --yaml and --json
-print it with its draft_revision.
+Show a report's settings, sections and widgets. In the Copilot, while the report is open
+in the user's editor, it shows the editor's unsaved draft instead, and --yaml and --json print
+it with its draft_revision.
 
 ```
-iai reports get <name> [flags]
+iai reports get <name|id> [flags]
 ```
 
 ### Examples

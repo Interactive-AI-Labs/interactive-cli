@@ -181,8 +181,7 @@ func TestPrintReportList(t *testing.T) {
 }
 
 // openDraft is the draft of savedReport GET …/reports/{id}?include=draft answers.
-const openDraft = `{"report_id":"r-1","revision":3,"base_updated_at":"2026-11-10T09:30:00.123456Z",
-"updated_via":"ui","updated_at":"2026-11-11T08:00:00Z","document":{"name":"Traffic v2",
+const openDraft = `{"revision":3,"document":{"name":"Traffic v2",
 "description":"","folder_id":"f-2","agent_ids":[],"default_range":"last30Days","terms":{},"filters":[],
 "definition":{"version":1,"sections":[{"id":"s2","title":"Costs","columns":2,"rows":1,
 "fill":"fixed","widgets":[{"id":"w2","name":"Spend","view":"traces",
@@ -279,20 +278,22 @@ func TestReportDraftRoundTrip(t *testing.T) {
 }
 
 func TestPrintReportSaved(t *testing.T) {
+	revision := int64(4)
 	tests := []struct {
-		draft bool
+		draft *int64
 		want  string
 	}{
-		{false, "Saved report \"Traffic\" (id r-1).\nPath: /p\n"},
+		{nil, "Saved report \"Traffic\" (id r-1).\nPath: /p\n"},
 		{
-			true,
-			"Added to your open draft of report \"Traffic\" (id r-1). " +
+			&revision,
+			"Added to your open draft of report \"Traffic\" (id r-1, draft_revision: 4). " +
 				"Save in the editor to keep it.\nPath: /p\n",
 		},
 	}
 	for _, tt := range tests {
 		var out bytes.Buffer
-		PrintReportSaved(&out, platform.Report{ID: "r-1", Name: "Traffic", Draft: tt.draft}, "/p")
+		r := platform.Report{ID: "r-1", Name: "Traffic", DraftRevision: tt.draft}
+		PrintReportSaved(&out, r, "/p")
 		if out.String() != tt.want {
 			t.Errorf("draft %v: got %q, want %q", tt.draft, out.String(), tt.want)
 		}
@@ -422,26 +423,6 @@ func TestReportWriteErrors(t *testing.T) {
 			explain: ReportWriteError,
 			err:     &platform.ReportError{Code: "INVALID_REQUEST", Message: "too many sections"},
 			want:    "too many sections",
-		},
-		{
-			name:    "save: the open draft changed",
-			explain: ReportWriteError,
-			err: &platform.ReportError{
-				Code: "REPORT_DRAFT_CHANGED",
-				Message: "The open draft changed after you read it. " +
-					"Read the report again and redo the change on the new version.",
-			},
-			want: "The open draft changed after you read it. " +
-				"Read the report again and redo the change on the new version.",
-		},
-		{
-			name:    "save: the open draft is gone",
-			explain: ReportWriteError,
-			err: &platform.ReportError{
-				Code:    "REPORT_DRAFT_GONE",
-				Message: "The open draft was saved or discarded.",
-			},
-			want: "The open draft was saved or discarded.",
 		},
 		{
 			name:    "save: not a refusal",

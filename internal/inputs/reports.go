@@ -285,10 +285,10 @@ func RestoreReportBodyOf(
 	return body, nil
 }
 
-// ResolveReport finds the report whose name, ignoring case, is name; names are unique per project.
+// ResolveReport finds the report whose name, ignoring case, or id is name; names are unique per project.
 func ResolveReport(reports []platform.Report, name string) (platform.Report, error) {
 	for _, r := range reports {
-		if strings.EqualFold(r.Name, name) {
+		if strings.EqualFold(r.Name, name) || r.ID == name {
 			return r, nil
 		}
 	}

@@ -163,12 +163,12 @@ var reportsListCmd = &cobra.Command{
 }
 
 var reportsGetCmd = &cobra.Command{
-	Use:     "get <name>",
+	Use:     "get <name|id>",
 	Aliases: []string{"describe", "desc"},
 	Short:   "Show a report, or print it as a document to save",
-	Long: `Show a report's settings, sections and widgets. In the Copilot, while you have unsaved
-changes to the report open in the editor, it shows that draft instead, and --yaml and --json
-print it with its draft_revision.`,
+	Long: `Show a report's settings, sections and widgets. In the Copilot, while the report is open
+in the user's editor, it shows the editor's unsaved draft instead, and --yaml and --json print
+it with its draft_revision.`,
 	Example: `  iai reports get "Traffic summary"
   iai reports get "Traffic summary" --yaml > report.yaml`,
 	Args: cobra.ExactArgs(1),
@@ -237,14 +237,16 @@ created_at and updated_by, are ignored.`,
 }
 
 var reportsUpdateCmd = &cobra.Command{
-	Use:   "update <name>",
+	Use:   "update <name|id>",
 	Short: "Replace a report with a document",
 	Long: `Replace a report with a YAML or JSON document, as 'iai reports get --yaml' prints it.
 
 Refused if the report was saved after the document's updated_at; --force overwrites it.
-A document with draft_revision, as 'iai reports get' prints your open draft, is saved into
-that draft; refused if the draft changed after it was printed, or was saved or discarded.
-folder names the report's folder (null for none; a folder that does not exist is created),
+A document with draft_revision, as 'iai reports get' prints an open draft, is saved into that
+draft, not the report; refused if the draft is past that revision, or was saved or discarded.
+The save prints the draft's new draft_revision for the next one.
+folder names the report's folder (null for none; a folder that does not exist is created,
+except in a draft),
 and leaving it out keeps the report where it is. Leaving out description, terms, filters
 or agent_ids clears them, and leaving out default_range sets last7Days.`,
 	Example: `  iai reports get "Traffic summary" --yaml > report.yaml

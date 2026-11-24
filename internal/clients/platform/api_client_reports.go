@@ -35,12 +35,13 @@ type Report struct {
 	Terms        map[string]string `json:"terms,omitempty"`
 	Definition   map[string]any    `json:"definition,omitempty"`
 	Filters      []any             `json:"filters,omitempty"`
-	// Draft is true when a Copilot write went into the caller's open draft, not the report.
-	Draft bool `json:"draft"`
+	// DraftRevision is set when a save went into the caller's open draft, not the report.
+	DraftRevision *int64 `json:"draft_revision"`
 }
 
 // ReportDraft is the caller's unsaved edit of a report, open in the editor.
 type ReportDraft struct {
+	Revision int64  `json:"revision"`
 	Document Report `json:"document"`
 }
 
@@ -198,7 +199,7 @@ func (c *APIClient) GetReport(
 	)
 }
 
-// reportWithDraft is GET …/reports/{id}?include=draft; its Draft shadows Report.Draft.
+// reportWithDraft is GET …/reports/{id}?include=draft.
 type reportWithDraft struct {
 	Report
 	Draft *ReportDraft `json:"draft"`
