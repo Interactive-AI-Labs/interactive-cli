@@ -27,7 +27,7 @@ iai dataset-items create [flags]
       --dataset-name string            Dataset name (required)
       --expected-output string         Expected output as JSON string
   -h, --help                           help for create
-      --id string                      Explicit item ID; an existing ID is upserted (needs datasets:update)
+      --id string                      Explicit item ID; upserts an existing item (needs datasets:update)
       --input string                   Input as JSON string
       --json                           Output raw API response as JSON
       --metadata-json string           Metadata as JSON object

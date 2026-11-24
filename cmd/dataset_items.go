@@ -375,7 +375,7 @@ func init() {
 		StringVarP(&datasetItemsGetProject, "project", "p", "", "Project name")
 
 	datasetItemsCreateCmd.Flags().
-		StringVar(&datasetItemsCreateID, "id", "", "Explicit item ID; an existing ID is upserted (needs datasets:update)")
+		StringVar(&datasetItemsCreateID, "id", "", "Explicit item ID; upserts an existing item (needs datasets:update)")
 	datasetItemsCreateCmd.Flags().
 		StringVar(&datasetItemsCreateName, "name", "", "Item name")
 	datasetItemsCreateCmd.Flags().
