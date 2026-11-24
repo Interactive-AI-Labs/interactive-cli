@@ -294,8 +294,9 @@ func ResolveReport(reports []platform.Report, ref string, byID bool) (platform.R
 	switch {
 	case named != nil && withID != nil && named.ID != withID.ID:
 		return platform.Report{}, fmt.Errorf(
-			"%q is the name of report %s and the id of report %q; name the report by the other one",
-			ref, named.ID, withID.Name,
+			"%q is the name of report %s and the id of report %q; "+
+				"use the id %s for the report named %q, or the name %q for report %s",
+			ref, named.ID, withID.Name, named.ID, named.Name, withID.Name, withID.ID,
 		)
 	case named != nil:
 		return *named, nil
