@@ -8,7 +8,8 @@ Replace a report with a YAML or JSON document, as 'iai reports get --yaml' print
 
 Refused if the report was saved after the document's updated_at; --force overwrites it.
 A document with draft_revision, as 'iai reports get' prints an open draft, is saved into that
-draft, not the report; refused if the draft is past that revision, or was saved or discarded.
+draft, not the report, and only that revision guards it (updated_at and --force don't apply);
+refused if the draft is past that revision, or was saved or discarded.
 The save prints the draft's new draft_revision for the next one.
 folder names the report's folder (null for none; a folder that does not exist is created,
 except in a draft),

@@ -46,13 +46,14 @@ func reportPath(projectID, reportID string) string {
 	return fmt.Sprintf("/project/%s/dashboards/%s", projectID, reportID)
 }
 
-// findReport reads the report named name, ignoring case.
+// findReport reads the report named ref, ignoring case, or with byID the report with id ref.
 func findReport(
 	ctx context.Context,
 	client *platform.APIClient,
-	projectID, name string,
+	projectID, ref string,
+	byID bool,
 ) (platform.Report, json.RawMessage, error) {
-	id, err := findReportID(ctx, client, projectID, name)
+	id, err := findReportID(ctx, client, projectID, ref, byID)
 	if err != nil {
 		return platform.Report{}, nil, err
 	}
@@ -62,13 +63,14 @@ func findReport(
 func findReportID(
 	ctx context.Context,
 	client *platform.APIClient,
-	projectID, name string,
+	projectID, ref string,
+	byID bool,
 ) (string, error) {
 	reports, _, err := client.ListReports(ctx, projectID, platform.ReportListOptions{})
 	if err != nil {
 		return "", err
 	}
-	found, err := inputs.ResolveReport(reports, strings.TrimSpace(name))
+	found, err := inputs.ResolveReport(reports, strings.TrimSpace(ref), byID)
 	return found.ID, err
 }
 
@@ -178,7 +180,7 @@ it with its draft_revision.`,
 		if err != nil {
 			return err
 		}
-		id, err := findReportID(cmd.Context(), client, pCtx.projectId, args[0])
+		id, err := findReportID(cmd.Context(), client, pCtx.projectId, args[0], true)
 		if err != nil {
 			return err
 		}
@@ -240,7 +242,8 @@ var reportsUpdateCmd = &cobra.Command{
 
 Refused if the report was saved after the document's updated_at; --force overwrites it.
 A document with draft_revision, as 'iai reports get' prints an open draft, is saved into that
-draft, not the report; refused if the draft is past that revision, or was saved or discarded.
+draft, not the report, and only that revision guards it (updated_at and --force don't apply);
+refused if the draft is past that revision, or was saved or discarded.
 The save prints the draft's new draft_revision for the next one.
 folder names the report's folder (null for none; a folder that does not exist is created,
 except in a draft),
@@ -260,7 +263,7 @@ or agent_ids clears them, and leaving out default_range sets last7Days.`,
 		if err != nil {
 			return err
 		}
-		if doc.UpdatedAt == "" && !reportsUpdateForce {
+		if doc.UpdatedAt == "" && doc.DraftRevision == nil && !reportsUpdateForce {
 			return fmt.Errorf(
 				"the document has no updated_at; start from 'iai reports get %q --yaml', or pass --force",
 				args[0],
@@ -286,7 +289,7 @@ func saveReport(
 	var saved *platform.Report
 	before := ""
 	if ref != "" {
-		report, _, err := findReport(ctx, client, pCtx.projectId, ref)
+		report, _, err := findReport(ctx, client, pCtx.projectId, ref, true)
 		if err != nil {
 			return err
 		}
@@ -342,7 +345,7 @@ the change back.`,
 		if err != nil {
 			return err
 		}
-		found, _, err := findReport(cmd.Context(), client, pCtx.projectId, args[0])
+		found, _, err := findReport(cmd.Context(), client, pCtx.projectId, args[0], false)
 		if err != nil {
 			return err
 		}
@@ -381,7 +384,7 @@ can create it again.`,
 		if err != nil {
 			return err
 		}
-		found, _, err := findReport(cmd.Context(), client, pCtx.projectId, args[0])
+		found, _, err := findReport(cmd.Context(), client, pCtx.projectId, args[0], false)
 		if err != nil {
 			return err
 		}
