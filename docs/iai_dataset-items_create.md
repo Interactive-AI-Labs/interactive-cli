@@ -4,7 +4,7 @@ Create a dataset item
 
 ### Synopsis
 
-Create or upsert an item in a dataset.
+Create or upsert an item in a dataset. --id needs API-key authentication; --name and --status work with either login.
 
 ```
 iai dataset-items create [flags]
@@ -14,6 +14,8 @@ iai dataset-items create [flags]
 
 ```
   iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}'
+  iai dataset-items create --dataset-name my-dataset --name defensores-37-pdf-excel-v2 --input '{"q":"hi"}'
+  iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --status ARCHIVED
   iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}' --expected-output '{"answer":"4"}'
   iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --metadata-json '{"source":"manual"}'
   iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --source-trace-id trace-123 --json
@@ -29,11 +31,12 @@ iai dataset-items create [flags]
       --input string                   Input as JSON string
       --json                           Output raw API response as JSON
       --metadata-json string           Metadata as JSON object
+      --name string                    Item name
   -o, --organization string            Organization name that owns the project
   -p, --project string                 Project name
       --source-observation-id string   Source observation ID
       --source-trace-id string         Source trace ID
-      --status string                  Item status; API key only, a login session is refused (ACTIVE|ARCHIVED)
+      --status string                  Item status (ACTIVE|ARCHIVED)
       --yaml                           Output raw API response as YAML
 ```
 

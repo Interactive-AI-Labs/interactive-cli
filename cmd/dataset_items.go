@@ -27,6 +27,7 @@ var (
 	datasetItemsGetProject string
 
 	datasetItemsCreateID                  string
+	datasetItemsCreateName                string
 	datasetItemsCreateDatasetName         string
 	datasetItemsCreateInput               string
 	datasetItemsCreateExpectedOutput      string
@@ -38,6 +39,14 @@ var (
 	datasetItemsCreateYAML                bool
 	datasetItemsCreateOrg                 string
 	datasetItemsCreateProject             string
+
+	datasetItemsUpdateName         string
+	datasetItemsUpdateStatus       string
+	datasetItemsUpdateMetadataJSON string
+	datasetItemsUpdateJSON         bool
+	datasetItemsUpdateYAML         bool
+	datasetItemsUpdateOrg          string
+	datasetItemsUpdateProject      string
 
 	datasetItemsDeleteOrg     string
 	datasetItemsDeleteProject string
@@ -59,7 +68,7 @@ var datasetItemsListCmd = &cobra.Command{
 	Long:    `List items in a dataset with optional filters.`,
 	Example: `  iai dataset-items list --dataset-name my-dataset
   iai dataset-items list --dataset-name my-dataset --source-trace-id trace-123 --limit 50
-  iai dataset-items list --dataset-name my-dataset --columns id,status,input
+  iai dataset-items list --dataset-name my-dataset --columns id,name,status
   iai dataset-items list --dataset-name my-dataset --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -172,8 +181,10 @@ var datasetItemsGetCmd = &cobra.Command{
 var datasetItemsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a dataset item",
-	Long:  `Create or upsert an item in a dataset.`,
+	Long:  `Create or upsert an item in a dataset. --id needs API-key authentication; --name and --status work with either login.`,
 	Example: `  iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}'
+  iai dataset-items create --dataset-name my-dataset --name defensores-37-pdf-excel-v2 --input '{"q":"hi"}'
+  iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --status ARCHIVED
   iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}' --expected-output '{"answer":"4"}'
   iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --metadata-json '{"source":"manual"}'
   iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --source-trace-id trace-123 --json`,
@@ -183,6 +194,7 @@ var datasetItemsCreateCmd = &cobra.Command{
 
 		body, err := inputs.BuildDatasetItemCreateBody(inputs.DatasetItemCreateInput{
 			ID:                  datasetItemsCreateID,
+			Name:                datasetItemsCreateName,
 			DatasetName:         datasetItemsCreateDatasetName,
 			InputJSON:           datasetItemsCreateInput,
 			ExpectedOutputJSON:  datasetItemsCreateExpectedOutput,
@@ -223,6 +235,66 @@ var datasetItemsCreateCmd = &cobra.Command{
 		}
 
 		return output.PrintDatasetItemCreateResult(out, item)
+	},
+}
+
+var datasetItemsUpdateCmd = &cobra.Command{
+	Use:   "update <id>",
+	Short: "Update a dataset item",
+	Long: `Change the name, status or metadata of a dataset item. Flags you leave out keep their current value.
+--name "" removes the name. --metadata-json replaces the metadata and keeps the name.`,
+	Example: `  iai dataset-items update item-123 --name defensores-37-pdf-excel-v2
+  iai dataset-items update item-123 --status ARCHIVED
+  iai dataset-items update item-123 --status ACTIVE --metadata-json '{"source":"manual"}'
+  iai dataset-items update item-123 --name ""`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		itemID := strings.TrimSpace(args[0])
+
+		var name *string
+		if cmd.Flags().Changed("name") {
+			name = &datasetItemsUpdateName
+		}
+		body, err := inputs.BuildDatasetItemUpdateBody(inputs.DatasetItemUpdateInput{
+			Name:         name,
+			Status:       datasetItemsUpdateStatus,
+			MetadataJSON: datasetItemsUpdateMetadataJSON,
+		})
+		if err != nil {
+			return err
+		}
+
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(),
+			datasetItemsUpdateOrg,
+			datasetItemsUpdateProject,
+		)
+		if err != nil {
+			return err
+		}
+
+		item, rawJSON, err := apiClient.UpdateDatasetItem(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			itemID,
+			body,
+		)
+		if err != nil {
+			return err
+		}
+
+		if datasetItemsUpdateJSON {
+			return output.PrintRawJSON(out, rawJSON)
+		}
+
+		if datasetItemsUpdateYAML {
+			return output.PrintRawYAML(out, rawJSON)
+		}
+
+		return output.PrintDatasetItemDetail(out, item)
 	},
 }
 
@@ -305,6 +377,8 @@ func init() {
 	datasetItemsCreateCmd.Flags().
 		StringVar(&datasetItemsCreateID, "id", "", "Explicit item ID (for upsert); API key only, a login session is refused")
 	datasetItemsCreateCmd.Flags().
+		StringVar(&datasetItemsCreateName, "name", "", "Item name")
+	datasetItemsCreateCmd.Flags().
 		StringVar(&datasetItemsCreateDatasetName, "dataset-name", "", "Dataset name (required)")
 	_ = datasetItemsCreateCmd.MarkFlagRequired("dataset-name")
 	datasetItemsCreateCmd.Flags().
@@ -324,7 +398,7 @@ func init() {
 			"Source observation ID",
 		)
 	addChoiceFlag(datasetItemsCreateCmd, &datasetItemsCreateStatus, "status", "",
-		"Item status; API key only, a login session is refused", datasetItemStatuses)
+		"Item status", datasetItemStatuses)
 	datasetItemsCreateCmd.Flags().
 		BoolVar(&datasetItemsCreateJSON, "json", false, "Output raw API response as JSON")
 	datasetItemsCreateCmd.Flags().
@@ -335,6 +409,22 @@ func init() {
 	datasetItemsCreateCmd.Flags().
 		StringVarP(&datasetItemsCreateProject, "project", "p", "", "Project name")
 
+	datasetItemsUpdateCmd.Flags().
+		StringVar(&datasetItemsUpdateName, "name", "", `Item name ("" removes it)`)
+	addChoiceFlag(datasetItemsUpdateCmd, &datasetItemsUpdateStatus, "status", "",
+		"Item status", datasetItemStatuses)
+	datasetItemsUpdateCmd.Flags().
+		StringVar(&datasetItemsUpdateMetadataJSON, "metadata-json", "", "Metadata as JSON object (replaces the current metadata)")
+	datasetItemsUpdateCmd.Flags().
+		BoolVar(&datasetItemsUpdateJSON, "json", false, "Output raw API response as JSON")
+	datasetItemsUpdateCmd.Flags().
+		BoolVar(&datasetItemsUpdateYAML, "yaml", false, "Output raw API response as YAML")
+	datasetItemsUpdateCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	datasetItemsUpdateCmd.Flags().
+		StringVarP(&datasetItemsUpdateOrg, "organization", "o", "", "Organization name that owns the project")
+	datasetItemsUpdateCmd.Flags().
+		StringVarP(&datasetItemsUpdateProject, "project", "p", "", "Project name")
+
 	datasetItemsDeleteCmd.Flags().
 		StringVarP(&datasetItemsDeleteOrg, "organization", "o", "", "Organization name that owns the project")
 	datasetItemsDeleteCmd.Flags().
@@ -344,11 +434,11 @@ func init() {
 		datasetItemsListCmd,
 		datasetItemsGetCmd,
 		datasetItemsCreateCmd,
+		datasetItemsUpdateCmd,
 		datasetItemsDeleteCmd,
 	)
 	rootCmd.AddCommand(datasetItemsCmd)
 	indexFlag(datasetItemsCreateCmd, "id", "API key only")
-	indexFlag(datasetItemsCreateCmd, "status", "API key only")
 }
 
 var datasetItemStatuses = []string{"ACTIVE", "ARCHIVED"}

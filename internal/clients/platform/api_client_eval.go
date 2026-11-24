@@ -314,10 +314,19 @@ func (c *APIClient) CreateDataset(
 	return &data.Dataset, raw, nil
 }
 
+func (c *APIClient) DeleteDataset(
+	ctx context.Context,
+	orgID, projectID, name string,
+) (string, error) {
+	path := evalBasePath(orgID, projectID) + "/datasets/" + url.PathEscape(name)
+	return c.doDelete(ctx, path, "delete dataset")
+}
+
 // Dataset Items
 
 type DatasetItemInfo struct {
 	ID                  string          `json:"id"`
+	Name                string          `json:"name"`
 	Status              string          `json:"status"`
 	DatasetID           string          `json:"dataset_id"`
 	DatasetName         string          `json:"dataset_name"`
@@ -340,6 +349,7 @@ type DatasetItemListOptions struct {
 
 type DatasetItemCreateBody struct {
 	ID                  string `json:"id,omitempty"`
+	Name                string `json:"name,omitempty"`
 	DatasetName         string `json:"dataset_name"`
 	Input               any    `json:"input,omitempty"`
 	ExpectedOutput      any    `json:"expected_output,omitempty"`
@@ -390,6 +400,21 @@ func (c *APIClient) CreateDatasetItem(
 ) (*DatasetItemInfo, json.RawMessage, error) {
 	path := evalBasePath(orgID, projectID) + "/dataset-items"
 	data, raw, err := doCreate[datasetItemWrapper](c, ctx, path, body, "create dataset item")
+	if err != nil {
+		return nil, nil, err
+	}
+	return &data.Item, raw, nil
+}
+
+type DatasetItemUpdateBody map[string]any
+
+func (c *APIClient) UpdateDatasetItem(
+	ctx context.Context,
+	orgID, projectID, itemID string,
+	body DatasetItemUpdateBody,
+) (*DatasetItemInfo, json.RawMessage, error) {
+	path := evalBasePath(orgID, projectID) + "/dataset-items/" + url.PathEscape(itemID)
+	data, raw, err := doUpdate[datasetItemWrapper](c, ctx, path, body, "update dataset item")
 	if err != nil {
 		return nil, nil, err
 	}

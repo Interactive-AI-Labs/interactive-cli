@@ -1,6 +1,7 @@
 package inputs
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -8,6 +9,7 @@ import (
 
 var DefaultDatasetItemColumns = []string{
 	"id",
+	"name",
 	"status",
 	"dataset_name",
 	"source_trace_id",
@@ -16,6 +18,7 @@ var DefaultDatasetItemColumns = []string{
 
 var AllDatasetItemColumns = []string{
 	"id",
+	"name",
 	"status",
 	"dataset_name",
 	"source_trace_id",
@@ -30,6 +33,7 @@ func ValidateDatasetItemListOptions(opts platform.DatasetItemListOptions) error 
 
 type DatasetItemCreateInput struct {
 	ID                  string
+	Name                string
 	DatasetName         string
 	InputJSON           string
 	ExpectedOutputJSON  string
@@ -44,6 +48,7 @@ func BuildDatasetItemCreateBody(
 ) (platform.DatasetItemCreateBody, error) {
 	body := platform.DatasetItemCreateBody{
 		ID:                  strings.TrimSpace(input.ID),
+		Name:                strings.TrimSpace(input.Name),
 		DatasetName:         strings.TrimSpace(input.DatasetName),
 		SourceTraceID:       strings.TrimSpace(input.SourceTraceID),
 		SourceObservationID: strings.TrimSpace(input.SourceObservationID),
@@ -77,5 +82,42 @@ func BuildDatasetItemCreateBody(
 		body.Metadata = metadata
 	}
 
+	return body, nil
+}
+
+type DatasetItemUpdateInput struct {
+	Name         *string
+	Status       string
+	MetadataJSON string
+}
+
+func BuildDatasetItemUpdateBody(
+	input DatasetItemUpdateInput,
+) (platform.DatasetItemUpdateBody, error) {
+	body := platform.DatasetItemUpdateBody{}
+
+	if input.Name != nil {
+		if name := strings.TrimSpace(*input.Name); name != "" {
+			body["name"] = name
+		} else {
+			body["name"] = nil
+		}
+	}
+
+	if status := strings.TrimSpace(input.Status); status != "" {
+		body["status"] = strings.ToUpper(status)
+	}
+
+	if strings.TrimSpace(input.MetadataJSON) != "" {
+		metadata, err := parseJSONObject(input.MetadataJSON, "--metadata-json")
+		if err != nil {
+			return nil, err
+		}
+		body["metadata"] = metadata
+	}
+
+	if len(body) == 0 {
+		return nil, errors.New("nothing to update: pass --name, --status or --metadata-json")
+	}
 	return body, nil
 }
