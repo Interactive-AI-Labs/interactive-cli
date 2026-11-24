@@ -13,7 +13,8 @@ import (
 
 // savedReport is a report as GET …/reports/{id} answers it.
 const savedReport = `{"id":"r-1","project_id":"proj-1","name":"Traffic","description":"Requests",
-"folder_id":null,"agent_ids":["support-bot"],"default_range":"last7Days","can_undo":true,
+"folder_id":null,"agent_ids":["support-bot"],"all_agents":false,"show_terms":true,
+"default_range":"last7Days","can_undo":true,
 "created_at":"2026-11-01T10:00:00Z","created_by":"u-1",
 "updated_at":"2026-11-10T09:30:00.123456Z","updated_by":"u-2","updated_via":"ui",
 "terms":{"traces":"Replies"},"filters":[{"column":"environment","operator":"=","value":"prod"}],
@@ -84,6 +85,13 @@ func TestReportChanges(t *testing.T) {
 				d.AllAgents, d.ShowTerms = ptr(true), ptr(true)
 			},
 			want: []string{`~ all_agents: false → true`},
+		},
+		{
+			name:   "show_terms alone",
+			next:   base,
+			folder: "Ops",
+			edit:   func(d *inputs.ReportDocument) { d.ShowTerms = ptr(false) },
+			want:   []string{`~ show_terms: true → false`},
 		},
 		{
 			name:   "all_agents alone, with no agents listed",
@@ -217,8 +225,9 @@ func overlaid(t *testing.T) json.RawMessage {
 }
 
 // openDraft is the draft of savedReport GET …/reports/{id}?include=draft answers.
-const openDraft = `{"revision":3,"document":{"name":"Traffic v2",
-"description":"","folder_id":"f-2","agent_ids":[],"default_range":"last30Days","terms":{},"filters":[],
+const openDraft = `{"id":"d-1","revision":3,"document":{"name":"Traffic v2",
+"description":"","folder_id":"f-2","agent_ids":[],"all_agents":true,"show_terms":false,
+"default_range":"last30Days","terms":{},"filters":[],
 "definition":{"version":1,"sections":[{"id":"s2","title":"Costs","columns":2,"rows":1,
 "fill":"fixed","widgets":[{"id":"w2","name":"Spend","view":"traces",
 "metrics":[{"measure":"totalCost","aggregation":"sum"}],"chartType":"LINE_TIME_SERIES"}]}]}}}`
@@ -257,7 +266,7 @@ func TestPrintReportSummary(t *testing.T) {
 			"ID:              r-1\n" +
 				"Name:            Traffic v2\n" +
 				"Folder:          Drafts\n" +
-				"Scope:           project\n" +
+				"Scope:           all agents\n" +
 				"Default Range:   last30Days\n" +
 				"Created At:      " + LocalTime("2026-11-01T10:00:00Z") + "\n" +
 				"Updated At:      " + LocalTime("2026-11-10T09:30:00.123456Z") + "\n" +
@@ -302,6 +311,7 @@ func TestReportDraftRoundTrip(t *testing.T) {
 	body, _ := json.Marshal(inputs.ReportBodyOf(parsed, "r-1", false, "copilot"))
 	want := `{"id":"r-1","updated_via":"copilot",` +
 		`"draft_revision":3,"folder":"Drafts","name":"Traffic v2","description":"",` +
+		`"all_agents":true,"show_terms":false,` +
 		`"default_range":"last30Days","definition":{"sections":[{"columns":2,` +
 		`"fill":"fixed","id":"s2","rows":1,"title":"Costs","widgets":[{"chartType":` +
 		`"LINE_TIME_SERIES","id":"w2","metrics":[{"aggregation":"sum","measure":"totalCost"}],` +

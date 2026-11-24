@@ -52,7 +52,7 @@ func TestOverlayDraft(t *testing.T) {
 		},
 		{
 			"an open draft",
-			`{` + report + `,"draft":{"revision":3,"document":{"name":"B","folder_id":null,"n":12345678901234568}}}`,
+			`{` + report + `,"draft":{"id":"d-1","revision":3,"document":{"name":"B","folder_id":null,"n":12345678901234568}}}`,
 			`{"draft_revision":3,"folder_id":null,"id":"r-1","n":12345678901234568,"name":"B","updated_at":"t"}`,
 		},
 	}
