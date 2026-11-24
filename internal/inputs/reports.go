@@ -77,6 +77,8 @@ type ReportDocument struct {
 	// AllAgents and ShowTerms absent keep the report's setting.
 	AllAgents *bool `json:"all_agents,omitempty"`
 	ShowTerms *bool `json:"show_terms,omitempty"`
+	// FromDraft is the document's draft: true, as 'iai reports get' prints a draft.
+	FromDraft bool `json:"-"`
 }
 
 // ReadReportDocument reads a report document from path, or from stdin when path is "-".
@@ -123,6 +125,7 @@ func ParseReportDocument(data []byte) (ReportDocument, error) {
 	if err != nil {
 		return doc, fmt.Errorf("failed to parse report document: %s", oneLine(err))
 	}
+	fromDraft := fields["draft"] == true
 	for _, key := range reportReadOnlyFields {
 		delete(fields, key)
 	}
@@ -136,6 +139,7 @@ func ParseReportDocument(data []byte) (ReportDocument, error) {
 	if err := dec.Decode(&doc); err != nil {
 		return doc, fmt.Errorf("failed to parse report document: %s", oneLine(err))
 	}
+	doc.FromDraft = fromDraft
 	if len(doc.Folder) > 0 && string(doc.Folder) != "null" {
 		var name string
 		if json.Unmarshal(doc.Folder, &name) != nil || strings.TrimSpace(name) == "" {
@@ -172,7 +176,7 @@ func ReportFolderName(folderID *string, names map[string]string) string {
 }
 
 // ReportBodyOf is the save request for doc: a new report without id, else a replacement of
-// report id guarded by the document's updated_at unless force.
+// report id guarded by the document's updated_at unless force, and by the draft it was read from.
 func ReportBodyOf(
 	doc ReportDocument,
 	id string,
@@ -193,6 +197,7 @@ func ReportBodyOf(
 	}
 	if id != "" {
 		body.ID, body.ExpectedUpdatedAt, body.Force = id, doc.UpdatedAt, force
+		body.FromDraft = doc.FromDraft
 	}
 	switch name, keep := ReportFolderChange(doc); {
 	case keep:

@@ -61,6 +61,9 @@ type ApplyReportBody struct {
 	ExpectedUpdatedAt string `json:"expected_updated_at,omitempty"`
 	Force             bool   `json:"force,omitempty"`
 	UpdatedVia        string `json:"updated_via"`
+	// FromDraft says the document was read from the caller's draft; the save is refused once
+	// that draft has been saved or discarded.
+	FromDraft bool `json:"from_draft,omitempty"`
 	// FolderID is absent to keep the folder, null to unfile, or a quoted id to move.
 	FolderID     json.RawMessage   `json:"folder_id,omitempty"`
 	Folder       string            `json:"folder,omitempty"`

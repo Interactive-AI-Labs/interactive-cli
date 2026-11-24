@@ -7,6 +7,8 @@ Replace a report with a document
 Replace a report with a YAML or JSON document, as 'iai reports get --yaml' prints it.
 
 Refused if the report was saved after the document's updated_at; --force overwrites it.
+A document printed from your open draft (draft: true) is refused once that draft has been
+saved or discarded.
 folder names the report's folder (null for none; a folder that does not exist is created),
 and leaving it out keeps the report where it is. Leaving out description, terms, filters
 or agent_ids clears them, and leaving out default_range sets last7Days.
