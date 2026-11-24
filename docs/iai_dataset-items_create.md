@@ -27,7 +27,7 @@ iai dataset-items create [flags]
       --dataset-name string            Dataset name (required)
       --expected-output string         Expected output as JSON string
   -h, --help                           help for create
-      --id string                      Explicit item ID (for upsert); API key only, a login session is refused
+      --id string                      Explicit item ID; an existing ID is upserted (needs datasets:update)
       --input string                   Input as JSON string
       --json                           Output raw API response as JSON
       --metadata-json string           Metadata as JSON object
@@ -36,7 +36,7 @@ iai dataset-items create [flags]
   -p, --project string                 Project name
       --source-observation-id string   Source observation ID
       --source-trace-id string         Source trace ID
-      --status string                  Item status (ACTIVE|ARCHIVED)
+      --status string                  Item status; ARCHIVED needs datasets:update (ACTIVE|ARCHIVED)
       --yaml                           Output raw API response as YAML
 ```
 
