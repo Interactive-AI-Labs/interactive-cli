@@ -44,6 +44,15 @@ type ReportDraft struct {
 	Document Report `json:"document"`
 }
 
+// Over is report r as the draft has it: the draft's settings and sections over the saved ones.
+func (d ReportDraft) Over(r Report) Report {
+	doc := d.Document
+	r.Name, r.Description, r.FolderID = doc.Name, doc.Description, doc.FolderID
+	r.AgentIDs, r.DefaultRange, r.Terms = doc.AgentIDs, doc.DefaultRange, doc.Terms
+	r.Definition, r.Filters = doc.Definition, doc.Filters
+	return r
+}
+
 type ReportFolder struct {
 	ID        string `json:"id"`
 	ProjectID string `json:"project_id"`
@@ -61,9 +70,8 @@ type ApplyReportBody struct {
 	ExpectedUpdatedAt string `json:"expected_updated_at,omitempty"`
 	Force             bool   `json:"force,omitempty"`
 	UpdatedVia        string `json:"updated_via"`
-	// FromDraft says the document was read from the caller's draft; the save is refused once
-	// that draft has been saved or discarded.
-	FromDraft bool `json:"from_draft,omitempty"`
+	// DraftRevision saves into the caller's open draft, refused unless it is still at this revision.
+	DraftRevision *int64 `json:"draft_revision,omitempty"`
 	// FolderID is absent to keep the folder, null to unfile, or a quoted id to move.
 	FolderID     json.RawMessage   `json:"folder_id,omitempty"`
 	Folder       string            `json:"folder,omitempty"`
@@ -200,14 +208,19 @@ type reportGetOptions struct {
 	Include string `url:"include,omitempty"`
 }
 
-// GetReportWithDraft reads a report and the caller's draft of it, nil when there is none.
-func (c *APIClient) GetReportWithDraft(
+// GetReportAndDraft reads a report and, with includeDraft, the caller's draft of it; the
+// draft is nil when there is none.
+func (c *APIClient) GetReportAndDraft(
 	ctx context.Context,
 	projectID, reportID string,
+	includeDraft bool,
 ) (Report, *ReportDraft, json.RawMessage, error) {
+	opts := reportGetOptions{}
+	if includeDraft {
+		opts.Include = "draft"
+	}
 	got, raw, err := reportsCall[reportWithDraft](
-		c, ctx, http.MethodGet, reportsPath(projectID, reportID),
-		reportGetOptions{Include: "draft"}, nil, "get report",
+		c, ctx, http.MethodGet, reportsPath(projectID, reportID), opts, nil, "get report",
 	)
 	return got.Report, got.Draft, raw, err
 }

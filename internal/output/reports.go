@@ -92,7 +92,7 @@ func PrintReportList(
 }
 
 // PrintReportSummary prints a report's settings and its sections with their widgets;
-// draft says the caller has an unsaved draft of it open.
+// draft says r is the caller's unsaved draft of it, over the saved report.
 func PrintReportSummary(out io.Writer, r platform.Report, folder string, draft bool) error {
 	w := NewDescribeWriter(out)
 	fmt.Fprintf(w, "ID:\t%s\n", r.ID)
@@ -117,7 +117,10 @@ func PrintReportSummary(out io.Writer, r platform.Report, folder string, draft b
 	fmt.Fprintf(w, "Updated Via:\t%s\n", r.UpdatedVia)
 	fmt.Fprintf(w, "Can Restore:\t%s\n", reportYesNo(r.CanUndo))
 	if draft {
-		fmt.Fprintln(w, "Unsaved Draft:\tyes, open in the editor; --yaml prints it")
+		fmt.Fprintln(
+			w,
+			"Unsaved Draft:\tyes, open in the editor; the settings and sections are the draft's",
+		)
 	}
 	if err := w.Flush(); err != nil {
 		return err
@@ -219,6 +222,14 @@ func PrintReportSavePreview(
 				"The report changed after this document was read (saved by %s at %s via %s); "+
 					"update will be refused without --force.\n",
 				Printable(saved.UpdatedBy), LocalTime(saved.UpdatedAt), saved.UpdatedVia,
+			)
+		}
+		if next.DraftRevision != nil {
+			fmt.Fprintf(
+				out,
+				"The document goes into your open draft (revision %d); "+
+					"the changes below are against the saved report.\n",
+				*next.DraftRevision,
 			)
 		}
 		fmt.Fprintf(out, "Would update report %q (id %s):\n", Printable(saved.Name), saved.ID)

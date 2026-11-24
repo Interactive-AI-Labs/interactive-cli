@@ -50,27 +50,37 @@ func TestReportBody(t *testing.T) {
 			want: plain,
 		},
 		{
-			name: "a replace read from a draft says so",
-			in:   "draft: true\n" + replace,
+			name: "a replace with draft_revision goes into the draft",
+			in:   "draft_revision: 3\n" + replace,
 			id:   "r-1",
 			want: `{"id":"r-1","expected_updated_at":"2026-11-10T09:30:00.123456Z",` +
-				`"updated_via":"cli","from_draft":true,"name":"A","description":"",` +
+				`"updated_via":"cli","draft_revision":3,"name":"A","description":"",` +
 				`"definition":{"sections":[],"version":1}}`,
 		},
 		{
-			name: "a replace read from json printed from a draft",
-			in:   `{"draft": true, "name": "A", "definition": {"version": 1, "sections": []}}`,
+			name: "draft_revision in json",
+			in:   `{"draft_revision": 12, "name": "A", "definition": {"version": 1, "sections": []}}`,
 			id:   "r-1",
-			want: `{"id":"r-1","updated_via":"cli","from_draft":true,"name":"A","description":"",` +
+			want: `{"id":"r-1","updated_via":"cli","draft_revision":12,"name":"A","description":"",` +
 				`"definition":{"sections":[],"version":1}}`,
 		},
-		{name: "a create from a draft is a new report", in: "draft: true\nname: A\n" + def, want: plain},
 		{
-			name: "draft false is not a draft",
-			in:   "draft: false\n" + replace,
+			name: "a create drops draft_revision",
+			in:   "draft_revision: 3\nname: A\n" + def,
+			want: plain,
+		},
+		{
+			name: "draft_revision null is a plain replace",
+			in:   "draft_revision: null\n" + replace,
 			id:   "r-1",
 			want: `{"id":"r-1","expected_updated_at":"2026-11-10T09:30:00.123456Z",` +
 				`"updated_via":"cli","name":"A","description":"","definition":{"sections":[],"version":1}}`,
+		},
+		{
+			name: "draft_revision that is not a whole number",
+			in:   "draft_revision: '3'\n" + replace,
+			id:   "r-1",
+			want: "draft_revision must be a whole number; keep it as 'iai reports get --yaml' prints it",
 		},
 		{
 			name: "a folder name moves it",
@@ -225,7 +235,7 @@ func TestReportDocumentOf(t *testing.T) {
 			"get prints the draft over the report's updated_at",
 			"Drafts",
 			true,
-			`{"draft":true,"folder":"Drafts","n":12345678901234568,"name":"B","updated_at":"t"}`,
+			`{"draft_revision":3,"folder":"Drafts","n":12345678901234568,"name":"B","updated_at":"t"}`,
 			draft,
 		},
 	}
@@ -327,6 +337,14 @@ func TestReportsUpdatedVia(t *testing.T) {
 	for origin, want := range map[string]string{"": "cli", "copilot": "copilot", "ui": "cli"} {
 		if got := ReportsUpdatedVia(origin); got != want {
 			t.Errorf("ReportsUpdatedVia(%q) = %q, want %q", origin, got, want)
+		}
+	}
+}
+
+func TestReportsReadDraft(t *testing.T) {
+	for origin, want := range map[string]bool{"": false, "copilot": true, "ui": false} {
+		if got := ReportsReadDraft(origin); got != want {
+			t.Errorf("ReportsReadDraft(%q) = %v, want %v", origin, got, want)
 		}
 	}
 }

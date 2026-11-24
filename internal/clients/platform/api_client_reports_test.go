@@ -24,6 +24,7 @@ func TestReportListQuery(t *testing.T) {
 			"agent=support-bot&folder_id=none",
 		},
 		{reportGetOptions{Include: "draft"}, "include=draft"},
+		{reportGetOptions{}, ""},
 	}
 	for _, tt := range tests {
 		q, err := query.Values(tt.opts)
@@ -40,7 +41,8 @@ func TestReportDraftDecode(t *testing.T) {
 	}{
 		{
 			"get with a draft",
-			`{"id":"r-1","folder_id":"f-1","draft":{"document":{"name":"B","folder_id":"f-2"}}}`,
+			`{"id":"r-1","folder_id":"f-1",` +
+				`"draft":{"revision":3,"document":{"name":"B","folder_id":"f-2"}}}`,
 			`r-1 false f-2`,
 		},
 		{"get with no draft", `{"id":"r-1","folder_id":"f-1","draft":null}`, `r-1 false <nil>`},
@@ -87,6 +89,14 @@ func TestReportRefusal(t *testing.T) {
 			status: 400,
 			body:   `{"success":false,"error":{"code":"INVALID_REQUEST","message":"bad"}}`,
 			want:   `{"Code":"INVALID_REQUEST","Message":"bad","Details":null}`,
+		},
+		{
+			name:   "the open draft changed",
+			status: 409,
+			body: `{"success":false,"error":{"code":"REPORT_DRAFT_CHANGED","message":` +
+				`"The open draft changed after you read it.","details":{}}}`,
+			want: `{"Code":"REPORT_DRAFT_CHANGED","Message":"The open draft changed after you read it.",` +
+				`"Details":{}}`,
 		},
 		{
 			name:   "fastapi detail",
