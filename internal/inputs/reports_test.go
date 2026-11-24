@@ -283,7 +283,7 @@ func TestResolveReport(t *testing.T) {
 	clash := []platform.Report{{ID: "r-1", Name: "Traffic"}, {ID: "r-2", Name: "r-1"}}
 	reversed := []platform.Report{clash[1], clash[0]}
 	ambiguous := `"r-1" is the name of report r-2 and the id of report "Traffic"; ` +
-		`name the report by the other one`
+		`use the id r-2 for the report named "r-1", or the name "Traffic" for report r-1`
 	tests := []struct {
 		name    string
 		reports []platform.Report
