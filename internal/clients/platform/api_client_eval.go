@@ -665,9 +665,6 @@ func (c *APIClient) AssignQueue(
 	ctx context.Context,
 	orgID, projectID, queueID, userID string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode("assigning queues"); err != nil {
-		return "", err
-	}
 	path := evalBasePath(orgID, projectID) + "/annotation-queues/" +
 		url.PathEscape(queueID) + "/assignments"
 	body := map[string]string{"user_id": userID}
@@ -697,9 +694,6 @@ func (c *APIClient) UnassignQueue(
 	ctx context.Context,
 	orgID, projectID, queueID, userID string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode("unassigning queues"); err != nil {
-		return "", err
-	}
 	path := evalBasePath(orgID, projectID) + "/annotation-queues/" +
 		url.PathEscape(queueID) + "/assignments"
 	body := map[string]string{"user_id": userID}
