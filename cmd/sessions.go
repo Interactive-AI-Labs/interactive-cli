@@ -221,7 +221,7 @@ func init() {
 	indexFlag(sessionsListCmd, "limit", "max 100")
 	sessionsListCmd.Flags().
 		StringVar(&sessionsEnvironment, "environment", "", "Filter by environment")
-	sessionsListCmd.Flags().StringVar(&sessionsAgent, "agent", "", "Filter by agent name")
+	sessionsListCmd.Flags().StringVar(&sessionsAgent, "agent", "", "Filter by agent name or id")
 	sessionsListCmd.Flags().
 		StringSliceVar(&sessionsColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.\nAvailable: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens")
 	sessionsListCmd.Flags().
