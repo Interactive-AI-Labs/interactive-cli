@@ -63,7 +63,7 @@ var scoresCmd = &cobra.Command{
 	Aliases:          []string{"score"},
 	Short:            "Read and write evaluation scores",
 	GroupID:          groupObserve,
-	Long:             `Manage observability scores. Read commands work with API key or session login; write commands currently require API key authentication.`,
+	Long:             `Manage observability scores. Read commands work with API key or session login; write commands are API key only.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
 
@@ -165,7 +165,7 @@ var scoresCreateCmd = &cobra.Command{
 	Short: "Create a score",
 	Long: `Create a score on exactly one target resource.
 
-This command currently requires API key authentication.`,
+API key only; a session login or token is refused.`,
 	Example: `  iai scores create --name accuracy --value 0.95 --trace-id trace-abc123
   iai scores create --name relevance --value 1 --data-type NUMERIC --observation-id obs-xyz789 --comment "looks good"
   iai scores create --name sentiment --value positive --data-type CATEGORICAL --session-id sess-456 --json`,
@@ -221,7 +221,7 @@ var scoresDeleteCmd = &cobra.Command{
 	Short:   "Delete a score",
 	Long: `Delete a score by ID.
 
-This command currently requires API key authentication.`,
+API key only; a session login or token is refused.`,
 	Example: `  iai scores delete score-abc123
   iai scores delete score-abc123 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
@@ -251,6 +251,8 @@ This command currently requires API key authentication.`,
 
 func init() {
 	indexJSONShape(scoresCmd, "env")
+	indexCommand(scoresCreateCmd, "API key only")
+	indexCommand(scoresDeleteCmd, "API key only")
 	scoresListCmd.Flags().StringVar(
 		&scoresFromTimestamp,
 		"from-timestamp",

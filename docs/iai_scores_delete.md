@@ -6,7 +6,7 @@ Delete a score
 
 Delete a score by ID.
 
-This command currently requires API key authentication.
+API key only; a session login or token is refused.
 
 ```
 iai scores delete <score-id> [flags]

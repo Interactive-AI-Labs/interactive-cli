@@ -172,9 +172,7 @@ var scoreConfigsGetCmd = &cobra.Command{
 var scoreConfigsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a score config",
-	Long: `Create a new scoring configuration.
-
-This command requires API key authentication.`,
+	Long:  `Create a new scoring configuration.`,
 	Example: `  iai score-configs create --name accuracy --data-type NUMERIC --min-value 0 --max-value 1
   iai score-configs create --name sentiment --data-type CATEGORICAL --categories '["positive","neutral","negative"]'
   iai score-configs create --name passed --data-type BOOLEAN --description "Did the response pass review"
@@ -235,9 +233,7 @@ This command requires API key authentication.`,
 var scoreConfigsUpdateCmd = &cobra.Command{
 	Use:   "update <id>",
 	Short: "Update a score config",
-	Long: `Update an existing scoring configuration.
-
-This command requires API key authentication.`,
+	Long:  `Update an existing scoring configuration.`,
 	Example: `  iai score-configs update sc_123 --description "Updated scoring rubric"
   iai score-configs update sc_123 --min-value 0 --max-value 10
   iai score-configs update sc_123 --categories '["pass","fail"]'

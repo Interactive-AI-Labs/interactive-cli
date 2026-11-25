@@ -4,7 +4,7 @@ Read and write evaluation scores
 
 ### Synopsis
 
-Manage observability scores. Read commands work with API key or session login; write commands currently require API key authentication.
+Manage observability scores. Read commands work with API key or session login; write commands are API key only.
 
 ### Options
 

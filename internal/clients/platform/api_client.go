@@ -117,13 +117,16 @@ func (c *APIClient) newJSONRequest(
 	return req, nil
 }
 
-func (c *APIClient) requireAPIKeyMode() error {
+// requireAPIKeyMode refuses action unless the client sends a project API key.
+func (c *APIClient) requireAPIKeyMode(action string) error {
 	if c.isApiKeyMode {
 		return nil
 	}
 
 	return fmt.Errorf(
-		"this command requires API key authentication (--api-key or INTERACTIVE_API_KEY)",
+		"this command requires API key authentication; a session login or token is not supported for %s. "+
+			"Create a project API key in the web app and pass it with --api-key or INTERACTIVE_API_KEY, or do this in the web app",
+		action,
 	)
 }
 
@@ -866,7 +869,7 @@ func (c *APIClient) CreateScore(
 	orgID, projectID string,
 	body ScoreCreateBody,
 ) (*ScoreInfo, json.RawMessage, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
+	if err := c.requireAPIKeyMode("creating scores"); err != nil {
 		return nil, nil, err
 	}
 	path := evalBasePath(orgID, projectID) + "/scores"
@@ -882,7 +885,7 @@ func (c *APIClient) DeleteScore(
 	ctx context.Context,
 	orgID, projectID, scoreID string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
+	if err := c.requireAPIKeyMode("deleting scores"); err != nil {
 		return "", err
 	}
 	path := evalBasePath(orgID, projectID) + "/scores/" + url.PathEscape(scoreID)
@@ -903,27 +906,21 @@ func (c *APIClient) ListMetricsDaily(
 	return data.Metrics, data.Meta, raw, nil
 }
 
-// DeleteTrace deletes a single trace. Requires API key authentication.
+// DeleteTrace deletes a single trace.
 func (c *APIClient) DeleteTrace(
 	ctx context.Context,
 	orgID, projectID, traceID string,
 ) (string, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return "", err
-	}
 	path := evalBasePath(orgID, projectID) + "/traces/" + url.PathEscape(traceID)
 	return c.doDelete(ctx, path, "delete trace")
 }
 
-// DeleteTraces bulk-deletes up to 500 traces. Requires API key authentication.
+// DeleteTraces bulk-deletes up to 500 traces.
 func (c *APIClient) DeleteTraces(
 	ctx context.Context,
 	orgID, projectID string,
 	body BulkTraceDeleteBody,
 ) (string, error) {
-	if err := c.requireAPIKeyMode(); err != nil {
-		return "", err
-	}
 	path := evalBasePath(orgID, projectID) + "/traces"
 	req, err := c.newJSONRequest(ctx, http.MethodDelete, path, body)
 	if err != nil {

@@ -357,9 +357,7 @@ var tracesDeleteCmd = &cobra.Command{
 	Use:     "delete [trace-id]",
 	Aliases: []string{"rm"},
 	Short:   "Delete one or more traces",
-	Long: `Delete a single trace or bulk delete multiple traces.
-
-This command currently requires API key authentication.`,
+	Long:    `Delete a single trace or bulk delete multiple traces.`,
 	Example: `  iai traces delete trace-123
   iai traces delete --ids trace-1,trace-2
   iai traces delete --ids trace-1 --ids trace-2 -f`,

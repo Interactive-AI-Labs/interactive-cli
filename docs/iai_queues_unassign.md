@@ -6,8 +6,6 @@ Unassign a user from a queue
 
 Remove a user from an annotation queue.
 
-This command requires API key authentication.
-
 ```
 iai queues unassign <queue-id> [flags]
 ```

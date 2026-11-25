@@ -6,8 +6,6 @@ Create a comment
 
 Create a new comment on a trace, observation, session, or prompt.
 
-This command requires API key authentication.
-
 ```
 iai comments create [flags]
 ```

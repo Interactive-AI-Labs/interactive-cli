@@ -6,8 +6,6 @@ Create a score config
 
 Create a new scoring configuration.
 
-This command requires API key authentication.
-
 ```
 iai score-configs create [flags]
 ```

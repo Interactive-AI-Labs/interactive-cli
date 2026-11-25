@@ -157,9 +157,7 @@ var commentsGetCmd = &cobra.Command{
 var commentsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a comment",
-	Long: `Create a new comment on a trace, observation, session, or prompt.
-
-This command requires API key authentication.`,
+	Long:  `Create a new comment on a trace, observation, session, or prompt.`,
 	Example: `  iai comments create --object-type TRACE --object-id trace-abc123 --content "Investigated this run"
   iai comments create --object-type OBSERVATION --object-id obs-456 --content "Looks correct" --author-user-id user-42
   iai comments create --object-type PROMPT --object-id prompt-789 --content "Needs review" --json`,

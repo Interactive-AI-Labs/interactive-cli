@@ -111,7 +111,7 @@ var runItemsCreateCmd = &cobra.Command{
 	Short: "Create a run item",
 	Long: `Create a new dataset run item linking a trace/observation to a dataset item.
 
-This command requires API key authentication.`,
+API key only; a session login or token is refused.`,
 	Example: `  iai run-items create --run-name nightly-eval --dataset-item-id item-123
   iai run-items create --run-name nightly-eval --dataset-item-id item-123 --trace-id trace-abc --observation-id obs-xyz
   iai run-items create --run-name nightly-eval --dataset-item-id item-123 --run-description "Nightly regression run" --metadata-json '{"model":"v2"}'
@@ -165,6 +165,7 @@ This command requires API key authentication.`,
 
 func init() {
 	indexJSONShape(runItemsCmd, "env")
+	indexCommand(runItemsCreateCmd, "API key only")
 	runItemsListCmd.Flags().
 		StringVar(&runItemsListRunName, "run-name", "", "Filter by run name")
 	runItemsListCmd.Flags().
