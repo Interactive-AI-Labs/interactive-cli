@@ -213,9 +213,7 @@ var queuesCreateCmd = &cobra.Command{
 var queuesAssignCmd = &cobra.Command{
 	Use:   "assign <queue-id>",
 	Short: "Assign a user to a queue",
-	Long: `Assign a user to an annotation queue.
-
-API key only; a session login or token is refused.`,
+	Long:  `Assign a user to an annotation queue.`,
 	Example: `  iai queues assign queue-123 --user-id user-456
   iai queues assign queue-123 --user-id user-456 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
@@ -252,9 +250,7 @@ API key only; a session login or token is refused.`,
 var queuesUnassignCmd = &cobra.Command{
 	Use:   "unassign <queue-id>",
 	Short: "Unassign a user from a queue",
-	Long: `Remove a user from an annotation queue.
-
-API key only; a session login or token is refused.`,
+	Long:  `Remove a user from an annotation queue.`,
 	Example: `  iai queues unassign queue-123 --user-id user-456
   iai queues unassign queue-123 --user-id user-456 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
@@ -328,8 +324,6 @@ This command requires Cookie or Bearer authentication; API keys are rejected by 
 
 func init() {
 	indexJSONShape(queuesCmd, "env")
-	indexCommand(queuesAssignCmd, "API key only")
-	indexCommand(queuesUnassignCmd, "API key only")
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(queuesListCmd, "limit", "max 100")
