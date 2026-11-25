@@ -17,6 +17,7 @@ var (
 	sessionsPage          int
 	sessionsLimit         int
 	sessionsEnvironment   string
+	sessionsAgent         string
 	sessionsColumns       []string
 	sessionsListJSON      bool
 	sessionsListYAML      bool
@@ -60,6 +61,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 	Example: `  iai sessions list
   iai sessions list --from-timestamp 2026-06-01T00:00:00Z --to-timestamp 2026-06-08T00:00:00Z
   iai sessions list --environment production --limit 50 --page 2
+  iai sessions list --agent my-agent
   iai sessions list --columns id,created_at,total_cost --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -89,6 +91,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			Page:          sessionsPage,
 			Limit:         sessionsLimit,
 			Environment:   sessionsEnvironment,
+			Agent:         sessionsAgent,
 		}
 		if err := inputs.ValidateSessionListOptions(opts); err != nil {
 			return err
@@ -218,6 +221,7 @@ func init() {
 	indexFlag(sessionsListCmd, "limit", "max 100")
 	sessionsListCmd.Flags().
 		StringVar(&sessionsEnvironment, "environment", "", "Filter by environment")
+	sessionsListCmd.Flags().StringVar(&sessionsAgent, "agent", "", "Filter by agent name")
 	sessionsListCmd.Flags().
 		StringSliceVar(&sessionsColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.\nAvailable: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens")
 	sessionsListCmd.Flags().
