@@ -37,4 +37,5 @@ iai databases backups <database_name> [flags]
 ### SEE ALSO
 
 * [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
+* [iai databases backups delete](iai_databases_backups_delete.md)	 - Delete a database backup
 

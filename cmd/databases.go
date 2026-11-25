@@ -43,6 +43,8 @@ var (
 	dbSourceDatabase string
 	dbTargetTime     string
 
+	dbBackupDeleteForce bool
+
 	dbLogsFollow     bool
 	dbLogsSince      string
 	dbLogsStartTime  string
@@ -561,6 +563,63 @@ var dbBackupsCmd = &cobra.Command{
 	},
 }
 
+var dbBackupDeleteCmd = &cobra.Command{
+	Use:     "delete <database_name> <backup_name>",
+	Aliases: []string{"rm"},
+	Short:   "Delete a database backup",
+	Long: `Delete a backup and its stored data. Other backups are kept and can still be
+restored. Backups in progress cannot be deleted.`,
+	Example: `  iai databases backups delete my-db my-db-on-demand-1795614308
+  iai databases backups delete my-db my-db-on-demand-1795614308 --force`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+		databaseName := strings.TrimSpace(args[0])
+		backupName := strings.TrimSpace(args[1])
+		if databaseName == "" {
+			return fmt.Errorf("database name is required")
+		}
+		if backupName == "" {
+			return fmt.Errorf("backup name is required")
+		}
+
+		if !dbBackupDeleteForce {
+			confirmed, err := confirmDeletion(
+				cmd.InOrStdin(),
+				out,
+				fmt.Sprintf("backup %q of database %q", backupName, databaseName),
+			)
+			if err != nil {
+				return err
+			}
+			if !confirmed {
+				fmt.Fprintln(out, "Aborted.")
+				return nil
+			}
+		}
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), dbOrganization, dbProject)
+		if err != nil {
+			return err
+		}
+
+		serverMessage, err := deployClient.DeleteDatabaseBackup(
+			cmd.Context(),
+			pCtx.orgId,
+			pCtx.projectId,
+			databaseName,
+			backupName,
+		)
+		if err != nil {
+			return err
+		}
+		if serverMessage != "" {
+			fmt.Fprintln(out, serverMessage)
+		}
+		return nil
+	},
+}
+
 var dbBackupCmd = &cobra.Command{
 	Use:   "backup <database_name>",
 	Short: "Trigger an on-demand backup",
@@ -825,6 +884,15 @@ func init() {
 		StringVarP(&dbProject, "project", "p", "", "Project name")
 	dbBackupsCmd.Flags().
 		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+
+	// databases backups delete
+	dbBackupDeleteCmd.Flags().
+		StringVarP(&dbProject, "project", "p", "", "Project name")
+	dbBackupDeleteCmd.Flags().
+		StringVarP(&dbOrganization, "organization", "o", "", "Organization name")
+	dbBackupDeleteCmd.Flags().
+		BoolVarP(&dbBackupDeleteForce, "force", "f", false, "Skip confirmation prompt")
+	dbBackupsCmd.AddCommand(dbBackupDeleteCmd)
 
 	// databases backup
 	dbBackupCmd.Flags().
