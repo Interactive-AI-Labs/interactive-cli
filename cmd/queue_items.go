@@ -325,6 +325,7 @@ var queueItemsDeleteCmd = &cobra.Command{
 
 func init() {
 	indexJSONShape(queueItemsCmd, "env")
+	indexCommand(queueItemsUpdateCmd, "With a session login, only COMPLETED is allowed")
 	queueItemsListCmd.Flags().
 		StringVar(&queueItemsListQueueID, "queue-id", "", "Queue ID (required)")
 	_ = queueItemsListCmd.MarkFlagRequired("queue-id")
