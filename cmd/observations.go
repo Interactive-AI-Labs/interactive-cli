@@ -36,6 +36,7 @@ var (
 	obsListParentObservationID string
 	obsListVersion             string
 	obsListUserID              string
+	obsListAgent               string
 )
 
 var observationsCmd = &cobra.Command{
@@ -64,6 +65,7 @@ Uses the platform API with dual authentication (API key or session).`,
 
   # Search observations across traces
   iai observations list --type GENERATION --model gpt-4
+  iai observations list --agent my-agent
   iai observations list --from-timestamp 2025-01-01T00:00:00Z --name my-span
   iai observations list --json | jq '.data'`,
 	Args: cobra.NoArgs,
@@ -149,6 +151,7 @@ Uses the platform API with dual authentication (API key or session).`,
 			ParentObservationID: obsListParentObservationID,
 			Version:             obsListVersion,
 			UserID:              obsListUserID,
+			Agent:               obsListAgent,
 		}
 		if err := inputs.ValidateObservationSearchOptions(opts); err != nil {
 			return err
@@ -262,6 +265,8 @@ func init() {
 		StringVar(&obsListParentObservationID, "parent-observation-id", "", "Filter by parent observation ID")
 	obsListCmd.Flags().StringVar(&obsListVersion, "version", "", "Filter by version")
 	obsListCmd.Flags().StringVar(&obsListUserID, "user-id", "", "Filter by user ID")
+	obsListCmd.Flags().StringVar(&obsListAgent, "agent", "", "Filter by agent name")
+	obsListCmd.MarkFlagsMutuallyExclusive("agent", "trace-id")
 
 	// observations get flags
 	obsGetCmd.Flags().BoolVar(&obsGetJSON, "json", false, "Output raw API response as JSON")

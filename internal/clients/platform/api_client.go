@@ -437,6 +437,7 @@ type TraceListOptions struct {
 	Level         string   `url:"level,omitempty"`
 	Search        string   `url:"search,omitempty"`
 	Fields        string   `url:"fields,omitempty"`
+	Agent         string   `url:"agent,omitempty"`
 }
 
 // ObservationInfo represents an observation returned by the list endpoint.
@@ -524,6 +525,7 @@ type ObservationSearchOptions struct {
 	ParentObservationID string `url:"parent_observation_id,omitempty"`
 	Version             string `url:"version,omitempty"`
 	UserID              string `url:"user_id,omitempty"`
+	Agent               string `url:"agent,omitempty"`
 }
 
 type observationSearchData struct {
@@ -567,6 +569,7 @@ type SessionListOptions struct {
 	Page          int    `url:"page,omitempty"`
 	Limit         int    `url:"limit,omitempty"`
 	Environment   string `url:"environment,omitempty"`
+	Agent         string `url:"agent,omitempty"`
 }
 
 type sessionListData struct {

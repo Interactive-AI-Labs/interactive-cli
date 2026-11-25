@@ -19,6 +19,7 @@ iai traces list [flags]
   iai traces list
   iai traces list --limit 20 --page 2
   iai traces list --name my-trace --user-id user123
+  iai traces list --agent my-agent
   iai traces list --from-timestamp 2025-01-01T00:00:00Z
   iai traces list --order-by timestamp --order desc
   iai traces list --tags tag1 --tags tag2
@@ -36,6 +37,7 @@ iai traces list [flags]
 ### Options
 
 ```
+      --agent string              Filter by agent name
       --columns strings           Columns to display for table output only (comma-separated, default: id,name,timestamp,latency,cost,tags). Cannot be used with --json or --yaml.
                                   Available: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level
       --environment stringArray   Filter by environment (repeatable)

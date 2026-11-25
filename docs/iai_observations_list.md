@@ -25,6 +25,7 @@ iai observations list [flags]
 
   # Search observations across traces
   iai observations list --type GENERATION --model gpt-4
+  iai observations list --agent my-agent
   iai observations list --from-timestamp 2025-01-01T00:00:00Z --name my-span
   iai observations list --json | jq '.data'
 ```
@@ -32,6 +33,7 @@ iai observations list [flags]
 ### Options
 
 ```
+      --agent string                   Filter by agent name
       --columns strings                Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
                                        With --trace-id default: id,type,name,model,latency_ms,total_cost,total_tokens
                                        Without --trace-id default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens

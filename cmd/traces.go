@@ -21,6 +21,7 @@ var (
 	tracesUserID        string
 	tracesName          string
 	tracesSessionID     string
+	tracesAgent         string
 	tracesFromTimestamp string
 	tracesToTimestamp   string
 	tracesOrderBy       string
@@ -82,6 +83,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 	Example: `  iai traces list
   iai traces list --limit 20 --page 2
   iai traces list --name my-trace --user-id user123
+  iai traces list --agent my-agent
   iai traces list --from-timestamp 2025-01-01T00:00:00Z
   iai traces list --order-by timestamp --order desc
   iai traces list --tags tag1 --tags tag2
@@ -123,6 +125,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			UserID:        tracesUserID,
 			Name:          tracesName,
 			SessionID:     tracesSessionID,
+			Agent:         tracesAgent,
 			FromTimestamp: fromTS,
 			ToTimestamp:   tracesToTimestamp,
 			OrderBy:       tracesOrderBy,
@@ -436,6 +439,7 @@ func init() {
 	tracesListCmd.Flags().StringVar(&tracesUserID, "user-id", "", "Filter by user ID")
 	tracesListCmd.Flags().StringVar(&tracesName, "name", "", "Filter by trace name")
 	tracesListCmd.Flags().StringVar(&tracesSessionID, "session-id", "", "Filter by session ID")
+	tracesListCmd.Flags().StringVar(&tracesAgent, "agent", "", "Filter by agent name")
 	tracesListCmd.Flags().
 		StringVar(&tracesFromTimestamp, "from-timestamp", "", "Filter traces from this timestamp (ISO 8601, default: 7 days ago)")
 	indexFlag(tracesListCmd, "from-timestamp", "default: 7 days ago")

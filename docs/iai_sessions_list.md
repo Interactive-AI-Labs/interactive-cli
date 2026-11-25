@@ -19,12 +19,14 @@ iai sessions list [flags]
   iai sessions list
   iai sessions list --from-timestamp 2026-06-01T00:00:00Z --to-timestamp 2026-06-08T00:00:00Z
   iai sessions list --environment production --limit 50 --page 2
+  iai sessions list --agent my-agent
   iai sessions list --columns id,created_at,total_cost --json
 ```
 
 ### Options
 
 ```
+      --agent string            Filter by agent name
       --columns strings         Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.
                                 Available: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens
       --environment string      Filter by environment

@@ -6,6 +6,11 @@ Deploy AI agents with policies, routines, and tools
 
 Manage deployment of agents to InteractiveAI projects.
 
+See what an agent did:
+  iai traces list --agent <agent_name>
+  iai observations list --agent <agent_name>
+  iai sessions list --agent <agent_name>
+
 ### Options
 
 ```

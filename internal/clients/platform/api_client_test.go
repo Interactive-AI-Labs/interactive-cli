@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-querystring/query"
 )
 
 func TestNewAPIClient(t *testing.T) {
@@ -988,5 +990,23 @@ func TestDeletePromptRequest(t *testing.T) {
 				t.Errorf("request = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestAgentListQuery(t *testing.T) {
+	tests := []struct {
+		opts any
+		want string
+	}{
+		{TraceListOptions{Agent: "support bot", UserID: "u-1"}, "agent=support+bot&user_id=u-1"},
+		{ObservationSearchOptions{Agent: "support-bot", Model: "m"}, "agent=support-bot&model=m"},
+		{SessionListOptions{Agent: "support-bot", Page: 2}, "agent=support-bot&page=2"},
+		{SessionListOptions{}, ""},
+	}
+	for _, tt := range tests {
+		q, err := query.Values(tt.opts)
+		if got := q.Encode(); err != nil || got != tt.want {
+			t.Errorf("query.Values(%+v) = %q, %v; want %q", tt.opts, got, err, tt.want)
+		}
 	}
 }
