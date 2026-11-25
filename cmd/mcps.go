@@ -76,7 +76,7 @@ var mcpsCmd = &cobra.Command{
 	Use:     "mcps",
 	Aliases: []string{"mcp"},
 	Short:   "Deploy and manage MCP servers",
-	GroupID: groupInfra,
+	GroupID: groupIntegrations,
 	Long: `Manage MCP servers for a project — self-hosted servers deployed in the
 platform, or remote servers hosted outside the platform: a custom URL or a
 catalog-backed provider whose URL and auth come from the curated catalog.

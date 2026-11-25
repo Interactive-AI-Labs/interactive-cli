@@ -18,12 +18,13 @@ const (
 	sessionFileName    = "session_cookies.json"
 	defaultHTTPTimeout = 30 * time.Second
 
-	groupAuth       = "auth"
-	groupInfra      = "infra"
-	groupContext    = "context"
-	groupCopilot    = "copilot"
-	groupObserve    = "observe"
-	groupEvaluation = "evaluation"
+	groupAuth         = "auth"
+	groupAgents       = "agents"
+	groupContext      = "context"
+	groupIntegrations = "integrations"
+	groupInfra        = "infra"
+	groupObserve      = "observe"
+	groupEvaluation   = "evaluation"
 )
 
 var (
@@ -139,9 +140,10 @@ func init() {
 
 	rootCmd.AddGroup(
 		&cobra.Group{ID: groupAuth, Title: "Auth:"},
-		&cobra.Group{ID: groupInfra, Title: "Infrastructure:"},
+		&cobra.Group{ID: groupAgents, Title: "Agents:"},
 		&cobra.Group{ID: groupContext, Title: "Context:"},
-		&cobra.Group{ID: groupCopilot, Title: "Copilot:"},
+		&cobra.Group{ID: groupIntegrations, Title: "Integrations:"},
+		&cobra.Group{ID: groupInfra, Title: "Infrastructure:"},
 		&cobra.Group{ID: groupObserve, Title: "Observability:"},
 		&cobra.Group{ID: groupEvaluation, Title: "Evaluation & Annotation:"},
 	)

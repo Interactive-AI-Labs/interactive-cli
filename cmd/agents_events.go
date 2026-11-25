@@ -39,6 +39,7 @@ var agentEventsCmd = &cobra.Command{
 	Use:     "events",
 	Aliases: []string{"event"},
 	Short:   "Events in a conversation session on an agent",
+	GroupID: groupAgentConversations,
 	Long: `Read and create the events of a conversation session on a deployed agent.
 
 A conversation is an ordered list of events: the messages each side sends,

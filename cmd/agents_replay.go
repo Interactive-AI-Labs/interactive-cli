@@ -38,8 +38,9 @@ var (
 const replayAgentAPIKeyEnv = "INTERACTIVE_AGENT_API_KEY"
 
 var agentReplayCmd = &cobra.Command{
-	Use:   "replay <agent_name>",
-	Short: "Test an agent by replaying recorded scenarios and report the verdict",
+	Use:     "replay <agent_name>",
+	Short:   "Test an agent by replaying recorded scenarios and report the verdict",
+	GroupID: groupAgentConversations,
 	Long: `Test a deployed agent by replaying recorded scenarios and report the verdict.
 
 A scenario is a dataset item: a recorded conversation's customer messages,

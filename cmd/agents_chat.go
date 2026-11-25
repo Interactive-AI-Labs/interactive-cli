@@ -17,8 +17,9 @@ var (
 )
 
 var agentChatCmd = &cobra.Command{
-	Use:   "chat <agent_name>",
-	Short: "Talk to an agent from the terminal",
+	Use:     "chat <agent_name>",
+	Short:   "Talk to an agent from the terminal",
+	GroupID: groupAgentConversations,
 	Long: `Talk to a deployed agent from the terminal.
 
 Each line you enter is sent as a customer message and the agent's reply is shown
