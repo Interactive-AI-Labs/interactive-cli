@@ -30,11 +30,11 @@ func TestSessionWrites(t *testing.T) {
 		{"assign queue", func(ctx context.Context, c *APIClient) error {
 			_, err := c.AssignQueue(ctx, "o", "p", "q", "u")
 			return err
-		}, sent},
+		}, refused("assigning queues")},
 		{"unassign queue", func(ctx context.Context, c *APIClient) error {
 			_, err := c.UnassignQueue(ctx, "o", "p", "q", "u")
 			return err
-		}, sent},
+		}, refused("unassigning queues")},
 		{"create queue item", func(ctx context.Context, c *APIClient) error {
 			_, _, err := c.CreateQueueItem(ctx, "o", "p", "q", QueueItemCreateBody{})
 			return err

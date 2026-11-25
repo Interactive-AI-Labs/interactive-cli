@@ -6,6 +6,8 @@ Assign a user to a queue
 
 Assign a user to an annotation queue.
 
+API key only; a session login or token is refused.
+
 ```
 iai queues assign <queue-id> [flags]
 ```
