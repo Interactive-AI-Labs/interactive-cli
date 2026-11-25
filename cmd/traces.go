@@ -439,7 +439,7 @@ func init() {
 	tracesListCmd.Flags().StringVar(&tracesUserID, "user-id", "", "Filter by user ID")
 	tracesListCmd.Flags().StringVar(&tracesName, "name", "", "Filter by trace name")
 	tracesListCmd.Flags().StringVar(&tracesSessionID, "session-id", "", "Filter by session ID")
-	tracesListCmd.Flags().StringVar(&tracesAgent, "agent", "", "Filter by agent name")
+	tracesListCmd.Flags().StringVar(&tracesAgent, "agent", "", "Filter by agent name or id")
 	tracesListCmd.Flags().
 		StringVar(&tracesFromTimestamp, "from-timestamp", "", "Filter traces from this timestamp (ISO 8601, default: 7 days ago)")
 	indexFlag(tracesListCmd, "from-timestamp", "default: 7 days ago")

@@ -26,7 +26,7 @@ iai sessions list [flags]
 ### Options
 
 ```
-      --agent string            Filter by agent name
+      --agent string            Filter by agent name or id
       --columns strings         Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.
                                 Available: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens
       --environment string      Filter by environment

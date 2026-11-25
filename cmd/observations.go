@@ -265,7 +265,8 @@ func init() {
 		StringVar(&obsListParentObservationID, "parent-observation-id", "", "Filter by parent observation ID")
 	obsListCmd.Flags().StringVar(&obsListVersion, "version", "", "Filter by version")
 	obsListCmd.Flags().StringVar(&obsListUserID, "user-id", "", "Filter by user ID")
-	obsListCmd.Flags().StringVar(&obsListAgent, "agent", "", "Filter by agent name")
+	obsListCmd.Flags().
+		StringVar(&obsListAgent, "agent", "", "Filter by agent name or id (not with --trace-id)")
 	obsListCmd.MarkFlagsMutuallyExclusive("agent", "trace-id")
 
 	// observations get flags
