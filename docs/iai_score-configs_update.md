@@ -6,8 +6,6 @@ Update a score config
 
 Update an existing scoring configuration.
 
-This command requires API key authentication.
-
 ```
 iai score-configs update <id> [flags]
 ```

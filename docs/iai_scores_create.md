@@ -6,7 +6,7 @@ Create a score
 
 Create a score on exactly one target resource.
 
-This command currently requires API key authentication.
+API key only; a session login or token is refused.
 
 ```
 iai scores create [flags]

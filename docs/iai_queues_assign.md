@@ -6,8 +6,6 @@ Assign a user to a queue
 
 Assign a user to an annotation queue.
 
-This command requires API key authentication.
-
 ```
 iai queues assign <queue-id> [flags]
 ```

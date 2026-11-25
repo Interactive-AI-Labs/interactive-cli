@@ -6,8 +6,6 @@ Create an annotation queue
 
 Create a new annotation queue.
 
-This command requires API key authentication.
-
 ```
 iai queues create <name> [flags]
 ```

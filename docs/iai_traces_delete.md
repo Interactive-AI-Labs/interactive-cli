@@ -6,8 +6,6 @@ Delete one or more traces
 
 Delete a single trace or bulk delete multiple traces.
 
-This command currently requires API key authentication.
-
 ```
 iai traces delete [trace-id] [flags]
 ```

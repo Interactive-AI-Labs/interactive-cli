@@ -164,9 +164,7 @@ var queuesGetCmd = &cobra.Command{
 var queuesCreateCmd = &cobra.Command{
 	Use:   "create <name>",
 	Short: "Create an annotation queue",
-	Long: `Create a new annotation queue.
-
-This command requires API key authentication.`,
+	Long:  `Create a new annotation queue.`,
 	Example: `  iai queues create my-queue
   iai queues create my-queue --description "Review of chat outputs"
   iai queues create my-queue --score-config-ids sc-1,sc-2
@@ -215,9 +213,7 @@ This command requires API key authentication.`,
 var queuesAssignCmd = &cobra.Command{
 	Use:   "assign <queue-id>",
 	Short: "Assign a user to a queue",
-	Long: `Assign a user to an annotation queue.
-
-This command requires API key authentication.`,
+	Long:  `Assign a user to an annotation queue.`,
 	Example: `  iai queues assign queue-123 --user-id user-456
   iai queues assign queue-123 --user-id user-456 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),
@@ -254,9 +250,7 @@ This command requires API key authentication.`,
 var queuesUnassignCmd = &cobra.Command{
 	Use:   "unassign <queue-id>",
 	Short: "Unassign a user from a queue",
-	Long: `Remove a user from an annotation queue.
-
-This command requires API key authentication.`,
+	Long:  `Remove a user from an annotation queue.`,
 	Example: `  iai queues unassign queue-123 --user-id user-456
   iai queues unassign queue-123 --user-id user-456 -o my-org -p my-project`,
 	Args: cobra.ExactArgs(1),

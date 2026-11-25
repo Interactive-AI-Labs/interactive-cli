@@ -6,8 +6,6 @@ Create a queue item
 
 Add an item to an annotation queue.
 
-This command requires API key authentication.
-
 ```
 iai queue-items create [flags]
 ```

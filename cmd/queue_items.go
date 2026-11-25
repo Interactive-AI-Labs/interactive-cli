@@ -187,9 +187,7 @@ var queueItemsGetCmd = &cobra.Command{
 var queueItemsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a queue item",
-	Long: `Add an item to an annotation queue.
-
-This command requires API key authentication.`,
+	Long:  `Add an item to an annotation queue.`,
 	Example: `  iai queue-items create --queue-id queue-123 --object-id trace-789 --object-type TRACE
   iai queue-items create --queue-id queue-123 --object-id obs-789 --object-type OBSERVATION --status PENDING
   iai queue-items create --queue-id queue-123 --object-id trace-789 --object-type TRACE --json`,

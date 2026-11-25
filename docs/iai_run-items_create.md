@@ -6,7 +6,7 @@ Create a run item
 
 Create a new dataset run item linking a trace/observation to a dataset item.
 
-This command requires API key authentication.
+API key only; a session login or token is refused.
 
 ```
 iai run-items create [flags]
