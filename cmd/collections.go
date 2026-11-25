@@ -26,7 +26,7 @@ var collectionsCmd = &cobra.Command{
 	Use:     "collections",
 	Aliases: []string{"collection", "coll"},
 	Short:   "Knowledge bases (searchable tables of chunks) inside a pgvector database",
-	GroupID: groupInfra,
+	GroupID: groupContext,
 	Long: `Manage collections within a database.
 
 A collection is a table of chunks (rows) — each chunk is text plus its vector

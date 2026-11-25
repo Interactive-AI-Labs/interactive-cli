@@ -24,6 +24,7 @@ var agentRoutinesCmd = &cobra.Command{
 	Use:     "routines",
 	Aliases: []string{"routine"},
 	Short:   "Execute autonomous routines on a deployed agent",
+	GroupID: groupAgentConversations,
 	Long: `Execute autonomous routines already loaded by a deployed agent.
 
 Use 'iai routines' to manage routine definitions and 'iai agents events' to

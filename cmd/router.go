@@ -13,7 +13,7 @@ var (
 var routerCmd = &cobra.Command{
 	Use:     "router",
 	Short:   "Inspect the inference router, keys, and models",
-	GroupID: groupInfra,
+	GroupID: groupIntegrations,
 	Long: `Inspect the InteractiveAI inference router, manage its API keys, and browse available models.
 
 Use "iai router info" to display inference endpoint URLs.`,

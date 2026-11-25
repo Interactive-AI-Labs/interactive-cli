@@ -68,17 +68,25 @@ var (
 	agentSchemaYAML    bool
 )
 
+const (
+	groupAgentCreate        = "agent-create"
+	groupAgentManage        = "agent-manage"
+	groupAgentConversations = "agent-conversations"
+	groupAgentReference     = "agent-reference"
+)
+
 var agentsCmd = &cobra.Command{
 	Use:     "agents",
 	Aliases: []string{"agent"},
 	Short:   "Deploy AI agents with policies, routines, and tools",
-	GroupID: groupInfra,
+	GroupID: groupAgents,
 	Long:    `Manage deployment of agents to InteractiveAI projects.`,
 }
 
 var agentCreateCmd = &cobra.Command{
-	Use:   "create <agent_name>",
-	Short: "Create an agent in a project",
+	Use:     "create <agent_name>",
+	Short:   "Create an agent in a project",
+	GroupID: groupAgentCreate,
 	Long: `Create an agent in a specific project.
 
 The --file flag takes a YAML file matching the agent_config schema. Pass the
@@ -160,8 +168,9 @@ Env names starting with IAI_MCP_ are reserved.`,
 }
 
 var agentUpdateCmd = &cobra.Command{
-	Use:   "update <agent_name>",
-	Short: "Update an agent in a project",
+	Use:     "update <agent_name>",
+	Short:   "Update an agent in a project",
+	GroupID: groupAgentManage,
 	Long: `Update an agent in a specific project.
 
 Only the flags you pass are applied; everything else is left at its current
@@ -354,6 +363,7 @@ var agentListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List agents in a project",
+	GroupID: groupAgentManage,
 	Long:    `List agents in a specific project.`,
 	Example: `  iai agents list
   iai agents list -p my-project
@@ -394,6 +404,7 @@ var agentDescribeCmd = &cobra.Command{
 	Use:     "describe <agent_name>",
 	Aliases: []string{"desc"},
 	Short:   "Describe an agent in detail",
+	GroupID: groupAgentManage,
 	Long: `Show detailed information about a specific agent including its configuration.
 
 Endpoint shows Private (name:port), reachable only within the project, and
@@ -465,6 +476,7 @@ Past revision output includes server-recorded actor and source attribution when 
 var agentDeleteCmd = &cobra.Command{
 	Use:     "delete <agent_name>",
 	Short:   "Delete an agent from a project",
+	GroupID: groupAgentManage,
 	Long:    `Delete an agent from a specific project.`,
 	Example: `  iai agents delete my-agent`,
 	Args:    cobra.ExactArgs(1),
@@ -501,6 +513,7 @@ var agentDeleteCmd = &cobra.Command{
 var agentRestartCmd = &cobra.Command{
 	Use:     "restart <agent_name>",
 	Short:   "Restart an agent in a project",
+	GroupID: groupAgentManage,
 	Long:    `Restart an agent in a specific project.`,
 	Example: `  iai agents restart my-agent`,
 	Args:    cobra.ExactArgs(1),
@@ -535,8 +548,9 @@ var agentRestartCmd = &cobra.Command{
 }
 
 var agentDeactivateCmd = &cobra.Command{
-	Use:   "deactivate <agent_name>",
-	Short: "Deactivate an agent in a project",
+	Use:     "deactivate <agent_name>",
+	Short:   "Deactivate an agent in a project",
+	GroupID: groupAgentManage,
 	Long: `Deactivate an agent, stopping all running instances. The current configuration
 is preserved and will be restored when the agent is activated again.`,
 	Example: `  iai agents deactivate my-agent`,
@@ -579,6 +593,7 @@ is preserved and will be restored when the agent is activated again.`,
 var agentActivateCmd = &cobra.Command{
 	Use:     "activate <agent_name>",
 	Short:   "Activate a deactivated agent in a project",
+	GroupID: groupAgentManage,
 	Long:    `Activate a deactivated agent, restoring it to its previous configuration.`,
 	Example: `  iai agents activate my-agent`,
 	Args:    cobra.ExactArgs(1),
@@ -631,8 +646,9 @@ var (
 )
 
 var agentLogsCmd = &cobra.Command{
-	Use:   "logs <agent_name>",
-	Short: "Show logs for an agent",
+	Use:     "logs <agent_name>",
+	Short:   "Show logs for an agent",
+	GroupID: groupAgentManage,
 	Long: `Show logs for an agent in a project.
 
 Returns up to 1000 log entries in chronological order by default; use
@@ -710,8 +726,9 @@ nested JSON values.`,
 }
 
 var agentCatalogCmd = &cobra.Command{
-	Use:   "catalog [agent_id]",
-	Short: "List available agent types and versions",
+	Use:     "catalog [agent_id]",
+	Short:   "List available agent types and versions",
+	GroupID: groupAgentReference,
 	Long: `List agent types available in the catalog.
 
 Without arguments, lists all available agent IDs.
@@ -756,8 +773,9 @@ With an agent ID argument, lists available versions for that agent.`,
 }
 
 var agentSchemaCmd = &cobra.Command{
-	Use:   "schema",
-	Short: "Display the JSON Schema for agent configuration",
+	Use:     "schema",
+	Short:   "Display the JSON Schema for agent configuration",
+	GroupID: groupAgentReference,
 	Long: `Fetch and display the JSON Schema for the agent_config block.
 
 Defaults to the latest schema version. Use --schema-version to fetch a specific
@@ -809,8 +827,9 @@ var (
 )
 
 var agentCompatibilityMatrixCmd = &cobra.Command{
-	Use:   "compatibility-matrix",
-	Short: "Show agent version to schema version compatibility",
+	Use:     "compatibility-matrix",
+	Short:   "Show agent version to schema version compatibility",
+	GroupID: groupAgentReference,
 	Long: `Display the compatibility matrix between agent versions and schema versions.
 
 Each agent version requires a specific config schema. Use this command to find
@@ -849,6 +868,7 @@ var agentRevisionsCmd = &cobra.Command{
 	Use:     "revisions <agent_name>",
 	Aliases: []string{"revs"},
 	Short:   "List revisions of an agent",
+	GroupID: groupAgentManage,
 	Long: `Show past revisions of an agent, sorted newest-first.
 Up to 50 revisions are retained per agent. Server-recorded actor and source
 metadata is shown when available.`,
@@ -880,6 +900,7 @@ metadata is shown when available.`,
 var agentDiffCmd = &cobra.Command{
 	Use:     "diff <agent_name> <revision_a> <revision_b>",
 	Short:   "Compare two revisions of an agent",
+	GroupID: groupAgentManage,
 	Long:    `Show the differences between two revisions of an agent.`,
 	Example: `  iai agents diff my-agent 1 3`,
 	Args:    cobra.ExactArgs(3),
@@ -933,8 +954,9 @@ var (
 )
 
 var agentPortForwardCmd = &cobra.Command{
-	Use:   "port-forward <agent_name>",
-	Short: "Forward a local port to an agent",
+	Use:     "port-forward <agent_name>",
+	Short:   "Forward a local port to an agent",
+	GroupID: groupAgentManage,
 	Long: `Open a local TCP listener and tunnel traffic to an agent running in
 the platform.
 
@@ -965,8 +987,9 @@ override. Use --local-port to choose the local listening port (defaults to
 var agentLogFieldsSince string
 
 var agentLogFieldsCmd = &cobra.Command{
-	Use:   "log-fields <agent_name>",
-	Short: "List available fields in structured logs",
+	Use:     "log-fields <agent_name>",
+	Short:   "List available fields in structured logs",
+	GroupID: groupAgentManage,
 	Long: `Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
 
 Use the reported field names with 'iai agents logs --fields' to include them in output.`,
@@ -1271,6 +1294,12 @@ func init() {
 
 	// Register commands
 	rootCmd.AddCommand(agentsCmd)
+	agentsCmd.AddGroup(
+		&cobra.Group{ID: groupAgentCreate, Title: "Create:"},
+		&cobra.Group{ID: groupAgentManage, Title: "Manage:"},
+		&cobra.Group{ID: groupAgentConversations, Title: "Conversations:"},
+		&cobra.Group{ID: groupAgentReference, Title: "Reference:"},
+	)
 	agentsCmd.AddCommand(agentCreateCmd)
 	agentsCmd.AddCommand(agentUpdateCmd)
 	agentsCmd.AddCommand(agentListCmd)

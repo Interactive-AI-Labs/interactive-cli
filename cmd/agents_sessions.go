@@ -29,6 +29,7 @@ var agentSessionsCmd = &cobra.Command{
 	Use:     "sessions",
 	Aliases: []string{"session"},
 	Short:   "Conversation sessions on an agent",
+	GroupID: groupAgentConversations,
 	Long: `Manage conversation sessions on a deployed agent.
 
 A session holds one conversation. Create one, send it messages with
