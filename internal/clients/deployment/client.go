@@ -2658,6 +2658,28 @@ func (c *DeploymentClient) ListDatabaseBackups(
 	return result.Backups, nil
 }
 
+func databaseBackupPath(orgId, projectId, databaseName, backupName string) string {
+	return fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/databases/%s/backups/%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(databaseName),
+		url.PathEscape(backupName),
+	)
+}
+
+func (c *DeploymentClient) DeleteDatabaseBackup(
+	ctx context.Context,
+	orgId, projectId, databaseName, backupName string,
+) (string, error) {
+	path := databaseBackupPath(orgId, projectId, databaseName, backupName)
+	data, err := c.sendJSONRequest(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return "", err
+	}
+	return clients.ExtractServerMessage(data), nil
+}
+
 func (c *DeploymentClient) RestoreDatabase(
 	ctx context.Context,
 	orgId,
