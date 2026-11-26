@@ -134,3 +134,44 @@ func printPerformance(out io.Writer, body []byte) error {
 	}
 	return PrintAgentPerformance(out, p)
 }
+
+func TestPrintAgentActivity(t *testing.T) {
+	t.Setenv("TZ", "Europe/Madrid")
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"empty", `{"activity":[]}`, "No activity found.\n"},
+		{
+			"deploy and a long update",
+			`{"activity":[` +
+				`{"time":"2026-11-05T09:52:07.013933Z","action":"deploy","success":true,` +
+				`"data":{"revision":34},"actor":{"id":"user:1","display":"Ana"}},` +
+				`{"time":"2026-11-05T09:50:53Z","action":"update","success":false,` +
+				`"data":{"changes":{"context.preamble":{"from":null,"to":{"examples":["one","two","three","four"]}}}},` +
+				`"actor":{"id":"system:rollout","display":"System"}}],` +
+				`"meta":{"page":1,"limit":2,"total_items":42,"total_pages":21}}`,
+			"TIME                      ACTION   ACTOR    SUCCESS   DATA\n" +
+				"2026-11-05 10:52:07 CET   deploy   Ana      true      {\"revision\":34}\n" +
+				"2026-11-05 10:50:53 CET   update   System   false     " +
+				"{\"changes\":{\"context.preamble\":{\"from\":null,\"to\":{\"examples\":[\"one\",\"two\",\"th...\n" +
+				"\nPage 1 of 21 (42 total items)\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var a platform.AgentActivity
+			if err := json.Unmarshal([]byte(tt.body), &a); err != nil {
+				t.Fatal(err)
+			}
+			var buf bytes.Buffer
+			if err := PrintAgentActivity(&buf, a); err != nil {
+				t.Fatal(err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("got:\n%s\nwant:\n%s", got, tt.want)
+			}
+		})
+	}
+}
