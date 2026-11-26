@@ -249,7 +249,7 @@ func indexFixture(use string) (root, leaf *cobra.Command) {
 
 // Groups whose --json output is bare.
 var bareJSONGroups = map[string]bool{
-	"agents": true, "api-keys": true, "collections": true, "databases": true, "images": true,
+	"api-keys": true, "collections": true, "databases": true, "images": true,
 	"jobs": true, "organizations": true, "projects": true, "replicas": true, "reports": true,
 	"router": true, "secrets": true, "services": true, "stacks": true,
 }

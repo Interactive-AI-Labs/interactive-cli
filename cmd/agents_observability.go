@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"slices"
 	"strings"
 
@@ -21,12 +22,23 @@ func agentObservabilityCmd(
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			*agent = strings.TrimSpace(args[0])
+			if *agent == "" {
+				return errors.New("agent name is required")
+			}
 			return list.RunE(cmd, nil)
 		},
 	}
 	list.Flags().VisitAll(func(f *pflag.Flag) {
-		if !slices.Contains(drop, f.Name) {
-			c.Flags().AddFlag(f)
+		if slices.Contains(drop, f.Name) {
+			return
+		}
+		// Copied so help and Changed are per command; the value stays shared.
+		nf := *f
+		c.Flags().AddFlag(&nf)
+		if complete, ok := list.GetFlagCompletionFunc(f.Name); ok {
+			if err := c.RegisterFlagCompletionFunc(f.Name, complete); err != nil {
+				flagSetupErrs = append(flagSetupErrs, err)
+			}
 		}
 	})
 	return c

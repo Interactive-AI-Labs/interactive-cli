@@ -234,7 +234,7 @@ func init() {
 	sessionsListCmd.Flags().
 		StringVarP(&sessionsListProject, "project", "p", "", "Project name")
 	agentsCmd.AddCommand(agentObservabilityCmd(
-		"traced-sessions", sessionsListCmd, &sessionsAgent, "agent",
+		"trace-sessions", sessionsListCmd, &sessionsAgent, "agent",
 	))
 
 	sessionsGetCmd.Flags().
