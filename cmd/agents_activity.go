@@ -30,6 +30,9 @@ var agentActivityCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if agent, err = agentName(agent); err != nil {
+			return err
+		}
 		pCtx, apiClient, _, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err

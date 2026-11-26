@@ -28,6 +28,9 @@ func TestAgentFlag(t *testing.T) {
 		{datasetsListCmd, []string{"--agent", "a"}, ""},
 		{scoresListCmd, []string{"--agent", "a", "--user-id", "u"}, ""},
 		{metricsListCmd, []string{"--agent", "a", "--environment", "e"}, ""},
+		{agentLogsCmd, []string{"--summary", "--level", "error", "--message", "m"}, ""},
+		{agentLogsCmd, []string{"--summary", "--follow"}, "[follow summary] were all set"},
+		{agentLogsCmd, []string{"--summary", "--raw"}, "[raw summary] were all set"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.cmd.CommandPath()+" "+strings.Join(tt.args, " "), func(t *testing.T) {
@@ -37,8 +40,11 @@ func TestAgentFlag(t *testing.T) {
 				queuesListAgent, queuesListSortBy, datasetsListAgent = "", "", ""
 				queueItemsListAgent, queueItemsListStatus = "", ""
 				scoresAgent, scoresUserID, metricsListAgent, metricsListEnvironment = "", "", "", ""
+				agentLogsSummary, agentLogsFollow, agentLogsRaw = false, false, false
+				agentLogsLevel, agentLogsMessage = "", ""
 				for _, name := range []string{
 					"agent", "user-id", "environment", "model", "trace-id", "sort-by", "status",
+					"summary", "follow", "raw", "level", "message",
 				} {
 					if f := tt.cmd.Flags().Lookup(name); f != nil {
 						f.Changed = false

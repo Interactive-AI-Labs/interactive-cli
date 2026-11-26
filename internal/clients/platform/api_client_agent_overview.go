@@ -164,7 +164,7 @@ func (c *APIClient) GetAgentPerformance(
 	if perf.CostTotal, total, err = decodeBody[Figure](c, req, "get agent cost total"); err != nil {
 		return perf, nil, err
 	}
-	var fields map[string]json.RawMessage
+	fields := map[string]json.RawMessage{}
 	if err := json.Unmarshal(raw, &fields); err != nil {
 		return perf, nil, fmt.Errorf("failed to decode get agent performance response: %w", err)
 	}

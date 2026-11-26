@@ -395,11 +395,11 @@ The selected agent is marked with *.`,
 			if err != nil {
 				return err
 			}
-			drafts, err := apiClient.ListAgentDrafts(ctx, pCtx.projectId)
-			if err != nil {
-				return err
+			if drafts, err := apiClient.ListAgentDrafts(ctx, pCtx.projectId); err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "warning: drafts not listed: %v\n", err)
+			} else {
+				agents = withDrafts(agents, drafts)
 			}
-			agents = withDrafts(agents, drafts)
 			if agentListJSON {
 				return output.PrintStructuredJSON(w, agents)
 			}
@@ -1389,6 +1389,9 @@ func init() {
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
+	for _, f := range []string{"follow", "raw", "decode", "fields", "all-fields", "timestamps"} {
+		agentLogsCmd.MarkFlagsMutuallyExclusive("summary", f)
+	}
 
 	// Flags for "agents log-fields"
 	agentLogFieldsCmd.Flags().
@@ -1447,7 +1450,7 @@ func init() {
 	)
 	indexJSONShape(
 		agentsCmd,
-		"bare; observations, traces and trace-sessions are env; traces --summary is bare",
+		"bare; activity, observations, traces and trace-sessions are env; traces --summary is bare",
 	)
 	agentsCmd.AddCommand(agentCreateCmd)
 	agentsCmd.AddCommand(agentUpdateCmd)
