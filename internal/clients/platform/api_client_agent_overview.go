@@ -164,13 +164,20 @@ func (c *APIClient) GetAgentPerformance(
 	if perf.CostTotal, total, err = decodeBody[Figure](c, req, "get agent cost total"); err != nil {
 		return perf, nil, err
 	}
-	fields := map[string]json.RawMessage{}
+	raw, err = withCostTotal(raw, total)
+	return perf, raw, err
+}
+
+func withCostTotal(raw, total json.RawMessage) (json.RawMessage, error) {
+	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &fields); err != nil {
-		return perf, nil, fmt.Errorf("failed to decode get agent performance response: %w", err)
+		return nil, fmt.Errorf("failed to decode get agent performance response: %w", err)
+	}
+	if fields == nil {
+		fields = map[string]json.RawMessage{}
 	}
 	fields["costTotal"] = total
-	raw, err = json.Marshal(fields)
-	return perf, raw, err
+	return json.Marshal(fields)
 }
 
 // decodeBody reads a response the platform returns without the success envelope.
