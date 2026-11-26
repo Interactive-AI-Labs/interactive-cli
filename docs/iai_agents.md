@@ -6,15 +6,6 @@ Deploy AI agents with policies, routines, and tools
 
 Manage deployment of agents to InteractiveAI projects.
 
-### Examples
-
-```
-  # See what an agent did
-  iai traces list --agent <agent>
-  iai observations list --agent <agent>
-  iai sessions list --agent <agent>
-```
-
 ### Options
 
 ```
@@ -46,6 +37,7 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai agents list](iai_agents_list.md)	 - List agents in a project
 * [iai agents log-fields](iai_agents_log-fields.md)	 - List available fields in structured logs
 * [iai agents logs](iai_agents_logs.md)	 - Show logs for an agent
+* [iai agents observations](iai_agents_observations.md)	 - List an agent's observations
 * [iai agents port-forward](iai_agents_port-forward.md)	 - Forward a local port to an agent
 * [iai agents replay](iai_agents_replay.md)	 - Test an agent by replaying recorded scenarios and report the verdict
 * [iai agents restart](iai_agents_restart.md)	 - Restart an agent in a project
@@ -53,5 +45,7 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai agents routines](iai_agents_routines.md)	 - Execute autonomous routines on a deployed agent
 * [iai agents schema](iai_agents_schema.md)	 - Display the JSON Schema for agent configuration
 * [iai agents sessions](iai_agents_sessions.md)	 - Conversation sessions on an agent
+* [iai agents traced-sessions](iai_agents_traced-sessions.md)	 - List an agent's traced sessions
+* [iai agents traces](iai_agents_traces.md)	 - List an agent's traces
 * [iai agents update](iai_agents_update.md)	 - Update an agent in a project
 

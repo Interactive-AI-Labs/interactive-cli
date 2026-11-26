@@ -72,6 +72,7 @@ const (
 	groupAgentCreate        = "agent-create"
 	groupAgentManage        = "agent-manage"
 	groupAgentConversations = "agent-conversations"
+	groupAgentObservability = "agent-observability"
 	groupAgentReference     = "agent-reference"
 )
 
@@ -81,10 +82,6 @@ var agentsCmd = &cobra.Command{
 	Short:   "Deploy AI agents with policies, routines, and tools",
 	GroupID: groupAgents,
 	Long:    `Manage deployment of agents to InteractiveAI projects.`,
-	Example: `  # See what an agent did
-  iai traces list --agent <agent>
-  iai observations list --agent <agent>
-  iai sessions list --agent <agent>`,
 }
 
 var agentCreateCmd = &cobra.Command{
@@ -1302,6 +1299,7 @@ func init() {
 		&cobra.Group{ID: groupAgentCreate, Title: "Create:"},
 		&cobra.Group{ID: groupAgentManage, Title: "Manage:"},
 		&cobra.Group{ID: groupAgentConversations, Title: "Conversations:"},
+		&cobra.Group{ID: groupAgentObservability, Title: "Observability:"},
 		&cobra.Group{ID: groupAgentReference, Title: "Reference:"},
 	)
 	agentsCmd.AddCommand(agentCreateCmd)

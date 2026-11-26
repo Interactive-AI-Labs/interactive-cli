@@ -233,6 +233,9 @@ func init() {
 		StringVarP(&sessionsListOrg, "organization", "o", "", "Organization name that owns the project")
 	sessionsListCmd.Flags().
 		StringVarP(&sessionsListProject, "project", "p", "", "Project name")
+	agentsCmd.AddCommand(agentObservabilityCmd(
+		"traced-sessions", sessionsListCmd, &sessionsAgent, "agent",
+	))
 
 	sessionsGetCmd.Flags().
 		StringVar(&sessionsGetFields, "fields", "core,traces", "Field groups to include (comma-separated)")

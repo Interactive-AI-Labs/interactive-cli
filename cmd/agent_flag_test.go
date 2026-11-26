@@ -4,7 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func TestAgentFlag(t *testing.T) {
@@ -37,6 +39,32 @@ func TestAgentFlag(t *testing.T) {
 			if (err == nil) != (tt.wantErr == "") ||
 				err != nil && !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("error = %v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAgentObservabilityFlags(t *testing.T) {
+	tests := []struct {
+		name    string
+		list    *cobra.Command
+		dropped []string
+	}{
+		{"traces", tracesListCmd, []string{"agent"}},
+		{"traced-sessions", sessionsListCmd, []string{"agent"}},
+		{"observations", obsListCmd, []string{"agent", "include-io", "trace-id"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, _, _ := agentsCmd.Find([]string{tt.name})
+			got := []string{c.Name()}
+			tt.list.LocalFlags().VisitAll(func(f *pflag.Flag) {
+				if c.Flags().Lookup(f.Name) == nil {
+					got = append(got, f.Name)
+				}
+			})
+			if diff := cmp.Diff(append([]string{tt.name}, tt.dropped...), got); diff != "" {
+				t.Errorf("command and dropped flags (-want +got):\n%s", diff)
 			}
 		})
 	}

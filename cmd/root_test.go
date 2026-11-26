@@ -69,11 +69,14 @@ func TestHelpGroups(t *testing.T) {
 		"agents replay":               groupAgentConversations,
 		"agents routines":             groupAgentConversations,
 		"agents sessions":             groupAgentConversations,
+		"agents observations":         groupAgentObservability,
+		"agents traced-sessions":      groupAgentObservability,
+		"agents traces":               groupAgentObservability,
 		"agents catalog":              groupAgentReference,
 		"agents compatibility-matrix": groupAgentReference,
 		"agents schema":               groupAgentReference,
 		"sections":                    "Auth: Agents: Context: Integrations: Infrastructure: Observability: Evaluation & Annotation:",
-		"agents sections":             "Create: Manage: Conversations: Reference:",
+		"agents sections":             "Create: Manage: Conversations: Observability: Reference:",
 	}
 	got := map[string]string{
 		"sections":        titles(rootCmd.Groups()),
