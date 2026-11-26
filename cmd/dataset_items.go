@@ -181,7 +181,7 @@ var datasetItemsGetCmd = &cobra.Command{
 var datasetItemsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a dataset item",
-	Long:  `Create or upsert an item in a dataset. --id needs API-key authentication; --name and --status work with either login.`,
+	Long:  `Create or upsert an item in a dataset.`,
 	Example: `  iai dataset-items create --dataset-name my-dataset --input '{"question":"2+2?"}'
   iai dataset-items create --dataset-name my-dataset --name defensores-37-pdf-excel-v2 --input '{"q":"hi"}'
   iai dataset-items create --dataset-name my-dataset --input '{"q":"hi"}' --status ARCHIVED

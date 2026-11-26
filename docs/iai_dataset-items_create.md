@@ -4,7 +4,7 @@ Create a dataset item
 
 ### Synopsis
 
-Create or upsert an item in a dataset. --id needs API-key authentication; --name and --status work with either login.
+Create or upsert an item in a dataset.
 
 ```
 iai dataset-items create [flags]
