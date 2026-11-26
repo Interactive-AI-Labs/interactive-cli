@@ -16,6 +16,9 @@ private one.
 
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
+An agent that is only a draft from the platform's Build wizard shows status
+draft and its saved configuration.
+
 Use --revision to view a specific past revision instead of the current state.
 Past revision output includes server-recorded actor and source attribution when available.
 

@@ -4,7 +4,9 @@ List agents in a project
 
 ### Synopsis
 
-List agents in a specific project. The selected agent is marked with *.
+List agents in a specific project, including drafts saved in the platform's
+Build wizard (status draft). A draft named like a deployed agent is not listed.
+The selected agent is marked with *.
 
 ```
 iai agents list [flags]

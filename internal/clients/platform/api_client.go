@@ -1665,3 +1665,51 @@ func notFound(kind, name string, names []string) error {
 	}
 	return fmt.Errorf("%s %q not found; existing: %s", kind, name, strings.Join(names, ", "))
 }
+
+// AgentDraft is an agent saved in the platform's Build wizard and not yet deployed.
+type AgentDraft struct {
+	Id           string `json:"id"`
+	Name         string `json:"name"`
+	ProjectId    string `json:"projectId"`
+	Status       string `json:"status"`
+	AgentConfig  any    `json:"agentConfig"`
+	AgentVersion string `json:"agentVersion"`
+	Description  string `json:"description"`
+	CreatedAt    string `json:"createdAt"`
+	UpdatedAt    string `json:"updatedAt"`
+}
+
+func (c *APIClient) ListAgentDrafts(ctx context.Context, projectID string) ([]AgentDraft, error) {
+	var res struct {
+		Items []AgentDraft `json:"items"`
+	}
+	err := c.getAgentDrafts(ctx, projectID, "", &res)
+	return res.Items, err
+}
+
+func (c *APIClient) GetAgentDraft(
+	ctx context.Context,
+	projectID, name string,
+) (*AgentDraft, error) {
+	var draft AgentDraft
+	if err := c.getAgentDrafts(ctx, projectID, "/"+url.PathEscape(name), &draft); err != nil {
+		return nil, err
+	}
+	return &draft, nil
+}
+
+func (c *APIClient) getAgentDrafts(ctx context.Context, projectID, suffix string, dst any) error {
+	req, err := c.newRequest(ctx, http.MethodGet,
+		"/api/platform/v1/projects/"+url.PathEscape(projectID)+"/build-agent-configs"+suffix)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	body, err := c.doAndRead(req, "get agent drafts")
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(body, dst); err != nil {
+		return fmt.Errorf("failed to decode agent drafts: %w", err)
+	}
+	return nil
+}

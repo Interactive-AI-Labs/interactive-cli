@@ -13,6 +13,10 @@ import (
 	"github.com/spf13/pflag"
 )
 
+const wipDraft = `{"id":"d-1","name":"wip","projectId":"proj-1","status":"draft",
+	"agentConfig":{"model":"m"},"agentVersion":"0.9","description":null,
+	"createdAt":"2026-11-01T00:00:00Z","updatedAt":null}`
+
 func agentListsServer(t *testing.T, filters *[]string) {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -24,9 +28,24 @@ func agentListsServer(t *testing.T, filters *[]string) {
 		case strings.HasPrefix(r.URL.Path, "/api/platform/v1/projects/proj-1/prompts/"):
 			*filters = append(*filters, r.URL.Query().Get("filter"))
 			fmt.Fprint(w, `{"success":true,"data":{"prompts":[],"totalCount":0}}`)
-		case strings.HasPrefix(r.URL.Path, "/v1/organizations/org-1/projects/proj-1/agents/"):
+		case strings.Contains(r.URL.Path, "/logs"):
 			*filters = append(*filters, r.URL.RequestURI())
 			fmt.Fprint(w, `{"total":3,"debug":0,"info":1,"warn":0,"error":2}`)
+		case r.URL.Path == "/v1/organizations/org-1/projects/proj-1/agents":
+			fmt.Fprint(w, `{"agents":[{"name":"live","status":"Running","revision":2},
+				{"name":"both","status":"Running","revision":1}]}`)
+		case r.URL.Path == "/v1/organizations/org-1/projects/proj-1/agents/live":
+			fmt.Fprint(w, `{"name":"live","status":"Running","revision":2}`)
+		case strings.HasPrefix(r.URL.Path, "/v1/organizations/org-1/projects/proj-1/agents/"):
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{"message":"agent not found"}`)
+		case r.URL.Path == "/api/platform/v1/projects/proj-1/build-agent-configs":
+			fmt.Fprint(w, `{"items":[`+wipDraft+`,{"name":"both","status":"draft"}]}`)
+		case r.URL.Path == "/api/platform/v1/projects/proj-1/build-agent-configs/wip":
+			fmt.Fprint(w, wipDraft)
+		case strings.HasPrefix(r.URL.Path, "/api/platform/v1/projects/proj-1/build-agent-configs/"):
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{"detail":{"error":{"message":"not found"}}}`)
 		case r.URL.Path == "/api/platform/v1/organizations/org-1/projects/proj-1/mcps":
 			fmt.Fprint(w, `{"success":true,"data":{"internal_available":true,"mcps":[
 				{"name":"crm","attached_agents":["bot"],"extra":1},
@@ -188,6 +207,67 @@ func TestAgentLogsFilters(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("got %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAgentDrafts(t *testing.T) {
+	const wipJSON = `{"name":"wip","projectId":"proj-1","revision":0,"status":"draft",` +
+		`"updated":"2026-11-01T00:00:00Z","id":"d-1","version":"0.9","agentConfig":{"model":"m"}}`
+	tests := []struct {
+		cmd  string
+		args []string
+		want string
+	}{
+		{
+			"list",
+			[]string{"--json"},
+			`[{"name":"live","projectId":"","revision":2,"status":"Running"},` +
+				`{"name":"both","projectId":"","revision":1,"status":"Running"},` +
+				`{"name":"wip","projectId":"proj-1","revision":0,"status":"draft","updated":"2026-11-01T00:00:00Z"}]`,
+		},
+		{"describe", []string{"--json", "wip"}, wipJSON},
+		{
+			"describe",
+			[]string{"--json", "live"},
+			`{"name":"live","projectId":"","revision":2,"status":"Running","id":"","version":"","agentConfig":null}`,
+		},
+		{"describe", []string{"ghost"}, "error: agent not found"},
+		{"select", []string{"wip"}, "Selected agent wip"},
+		{"select", []string{"ghost"}, `error: failed to resolve agent "ghost": agent not found`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.cmd+" "+strings.Join(tt.args, " "), func(t *testing.T) {
+			saveSelection(t, "")
+			agentListsServer(t, new([]string))
+			cmd, _, err := rootCmd.Find([]string{"agents", tt.cmd})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				cmd.Flags().VisitAll(func(f *pflag.Flag) {
+					_ = f.Value.Set(f.DefValue)
+					f.Changed = false
+				})
+				cmd.SetOut(nil)
+			})
+			if err := cmd.ParseFlags(append(tt.args, "-o", "org", "-p", "proj")); err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			cmd.SetOut(&out)
+			cmd.SetContext(context.Background())
+			err = cmd.RunE(cmd, cmd.Flags().Args())
+			var compact bytes.Buffer
+			got := strings.TrimSpace(out.String())
+			if err != nil {
+				got = "error: " + err.Error()
+			} else if json.Compact(&compact, out.Bytes()) == nil {
+				got = compact.String()
+			}
+			if got != tt.want {
+				t.Errorf("got %s\nwant %s", got, tt.want)
 			}
 		})
 	}

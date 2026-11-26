@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -367,7 +369,9 @@ var agentListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List agents in a project",
 	GroupID: groupAgentManage,
-	Long:    `List agents in a specific project. The selected agent is marked with *.`,
+	Long: `List agents in a specific project, including drafts saved in the platform's
+Build wizard (status draft). A draft named like a deployed agent is not listed.
+The selected agent is marked with *.`,
 	Example: `  iai agents list
   iai agents list -p my-project
   iai agents list --json`,
@@ -375,7 +379,9 @@ var agentListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		pCtx, apiClient, deployClient, err := resolveProject(
+			cmd.Context(), agentOrganization, agentProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -388,6 +394,20 @@ var agentListCmd = &cobra.Command{
 			agents, err := deployClient.ListAgents(ctx, pCtx.orgId, pCtx.projectId, "")
 			if err != nil {
 				return err
+			}
+			drafts, err := apiClient.ListAgentDrafts(ctx, pCtx.projectId)
+			if err != nil {
+				return err
+			}
+			for _, d := range drafts {
+				if !slices.ContainsFunc(agents, func(a deployment.AgentOutput) bool {
+					return a.Name == d.Name
+				}) {
+					agents = append(agents, deployment.AgentOutput{
+						Name: d.Name, ProjectId: d.ProjectId, Status: d.Status,
+						Updated: cmp.Or(d.UpdatedAt, d.CreatedAt),
+					})
+				}
 			}
 			if agentListJSON {
 				return output.PrintStructuredJSON(w, agents)
@@ -440,7 +460,9 @@ project clears the selected agent.`,
 			return errors.New("agent name is required: pass the agent name, or --clear")
 		}
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		pCtx, apiClient, deployClient, err := resolveProject(
+			cmd.Context(), agentOrganization, agentProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -457,8 +479,8 @@ project clears the selected agent.`,
 			)
 		}
 
-		if _, err := deployClient.DescribeAgent(
-			cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
+		if _, err := describeAgentOrDraft(
+			cmd.Context(), apiClient, deployClient, pCtx, agentName,
 		); err != nil {
 			return fmt.Errorf("failed to resolve agent %q: %w", agentName, err)
 		}
@@ -491,6 +513,9 @@ private one.
 
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
+An agent that is only a draft from the platform's Build wizard shows status
+draft and its saved configuration.
+
 Use --revision to view a specific past revision instead of the current state.
 Past revision output includes server-recorded actor and source attribution when available.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents describe my-agent
@@ -504,7 +529,9 @@ Past revision output includes server-recorded actor and source attribution when 
 			return err
 		}
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		pCtx, apiClient, deployClient, err := resolveProject(
+			cmd.Context(), agentOrganization, agentProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -530,7 +557,7 @@ Past revision output includes server-recorded actor and source attribution when 
 		}
 
 		render := func(ctx context.Context, w io.Writer) error {
-			agent, err := deployClient.DescribeAgent(ctx, pCtx.orgId, pCtx.projectId, agentName)
+			agent, err := describeAgentOrDraft(ctx, apiClient, deployClient, pCtx, agentName)
 			if err != nil {
 				return err
 			}
@@ -1451,3 +1478,27 @@ func init() {
 }
 
 const agentMcpEndpointUsage = "Endpoint this agent dials the MCP on; needs exactly one --mcp; private, the default for a new attachment, is reachable only within the project, public is the MCP's public endpoint and needs a self-hosted MCP with it enabled"
+
+// describeAgentOrDraft falls back to the platform's draft of that name, keeping the operator's error when there is none.
+func describeAgentOrDraft(
+	ctx context.Context,
+	apiClient *platform.APIClient,
+	deployClient *deployment.DeploymentClient,
+	pCtx *projectContext,
+	name string,
+) (*deployment.DescribeAgentResponse, error) {
+	agent, err := deployClient.DescribeAgent(ctx, pCtx.orgId, pCtx.projectId, name)
+	if err == nil {
+		return agent, nil
+	}
+	draft, draftErr := apiClient.GetAgentDraft(ctx, pCtx.projectId, name)
+	if draftErr != nil {
+		return nil, err
+	}
+	return &deployment.DescribeAgentResponse{
+		Name: draft.Name, ProjectId: draft.ProjectId, Status: draft.Status,
+		Updated: cmp.Or(draft.UpdatedAt, draft.CreatedAt), Id: draft.Id,
+		Version: draft.AgentVersion, Description: draft.Description,
+		AgentConfig: draft.AgentConfig,
+	}, nil
+}
