@@ -2,44 +2,202 @@ package cmd
 
 import (
 	"errors"
-	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
-// agentObservabilityCmd runs list for one agent, with list's flags except drop.
-func agentObservabilityCmd(
-	name string, list *cobra.Command, agent *string, drop ...string,
-) *cobra.Command {
-	c := &cobra.Command{
-		Use:     name + " <agent_name>",
-		Short:   "List an agent's " + strings.ReplaceAll(name, "-", " "),
-		GroupID: groupAgentObservability,
-		Example: "  iai agents " + name + " my-agent\n" +
-			"  iai agents " + name + " my-agent --limit 20 --json",
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			*agent = strings.TrimSpace(args[0])
-			if *agent == "" {
-				return errors.New("agent name is required")
-			}
-			return list.RunE(cmd, nil)
-		},
+func agentName(arg string) (string, error) {
+	name := strings.TrimSpace(arg)
+	if name == "" {
+		return "", errors.New("agent name is required")
 	}
-	list.Flags().VisitAll(func(f *pflag.Flag) {
-		if slices.Contains(drop, f.Name) {
-			return
+	return name, nil
+}
+
+var agentTracesCmd = &cobra.Command{
+	Use:     "traces <agent_name>",
+	Short:   "List an agent's traces",
+	GroupID: groupAgentObservability,
+	Example: `  iai agents traces my-agent
+  iai agents traces my-agent --limit 20 --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		if tracesAgent, err = agentName(args[0]); err != nil {
+			return err
 		}
-		// Copied so help and Changed are per command; the value stays shared.
-		nf := *f
-		c.Flags().AddFlag(&nf)
-		if complete, ok := list.GetFlagCompletionFunc(f.Name); ok {
-			if err := c.RegisterFlagCompletionFunc(f.Name, complete); err != nil {
-				flagSetupErrs = append(flagSetupErrs, err)
-			}
+		return tracesListCmd.RunE(cmd, nil)
+	},
+}
+
+var agentTraceSessionsCmd = &cobra.Command{
+	Use:     "trace-sessions <agent_name>",
+	Short:   "List an agent's trace sessions",
+	GroupID: groupAgentObservability,
+	Example: `  iai agents trace-sessions my-agent
+  iai agents trace-sessions my-agent --limit 20 --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		if sessionsAgent, err = agentName(args[0]); err != nil {
+			return err
 		}
-	})
-	return c
+		return sessionsListCmd.RunE(cmd, nil)
+	},
+}
+
+var agentObservationsCmd = &cobra.Command{
+	Use:     "observations <agent_name>",
+	Short:   "List an agent's observations",
+	GroupID: groupAgentObservability,
+	Example: `  iai agents observations my-agent
+  iai agents observations my-agent --limit 20 --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		if obsListAgent, err = agentName(args[0]); err != nil {
+			return err
+		}
+		return obsListCmd.RunE(cmd, nil)
+	},
+}
+
+func init() {
+	// Flags bind the list commands' variables, which their RunE reads.
+	f := agentTracesCmd.Flags()
+	f.IntVar(&tracesPage, "page", 1, "Page number (starts at 1)")
+	f.IntVar(&tracesLimit, "limit", 0, "Items per page (max 100)")
+	indexFlag(agentTracesCmd, "limit", "max 100")
+	f.StringVar(&tracesUserID, "user-id", "", "Filter by user ID")
+	f.StringVar(&tracesName, "name", "", "Filter by trace name")
+	f.StringVar(&tracesSessionID, "session-id", "", "Filter by session ID")
+	f.StringVar(&tracesFromTimestamp, "from-timestamp", "",
+		"Filter traces from this timestamp (ISO 8601, default: 7 days ago)")
+	indexFlag(agentTracesCmd, "from-timestamp", "default: 7 days ago")
+	f.StringVar(
+		&tracesToTimestamp,
+		"to-timestamp",
+		"",
+		"Filter traces to this timestamp (ISO 8601)",
+	)
+	addChoiceFlag(
+		agentTracesCmd,
+		&tracesOrderBy,
+		"order-by",
+		"",
+		"Order by field",
+		traceOrderFields,
+	)
+	addChoiceFlag(agentTracesCmd, &tracesOrder, "order", "desc", "Sort direction", sortOrders)
+	f.StringArrayVar(&tracesTags, "tags", nil, "Filter by tags (repeatable)")
+	f.StringVar(&tracesVersion, "version", "", "Filter by version")
+	f.StringVar(&tracesRelease, "release", "", "Filter by release")
+	f.StringArrayVar(&tracesEnvironment, "environment", nil, "Filter by environment (repeatable)")
+	f.Float64Var(&tracesMinCost, "min-cost", 0, "Minimum total cost filter")
+	f.Float64Var(&tracesMaxCost, "max-cost", 0, "Maximum total cost filter")
+	f.Float64Var(&tracesMinLatency, "min-latency", 0, "Minimum latency filter (seconds)")
+	f.Float64Var(&tracesMaxLatency, "max-latency", 0, "Maximum latency filter (seconds)")
+	f.IntVar(&tracesMinTokens, "min-tokens", 0, "Minimum total tokens filter")
+	f.IntVar(&tracesMaxTokens, "max-tokens", 0, "Maximum total tokens filter")
+	f.StringVar(&tracesModel, "model", "", "Filter by model name")
+	f.BoolVar(&tracesHasError, "has-error", false, "Filter traces with errors")
+	addChoiceFlag(
+		agentTracesCmd,
+		&tracesLevel,
+		"level",
+		"",
+		"Filter by aggregated level",
+		traceLevels,
+	)
+	f.StringVar(&tracesSearch, "search", "", "Search in trace name (max 200 characters)")
+	indexFlag(agentTracesCmd, "search", "max 200 characters")
+	f.StringVar(&tracesFields, "fields", "core,metrics",
+		"Field groups to include: core, io, metrics (comma-separated)")
+	indexFlag(agentTracesCmd, "fields", "core, io, metrics")
+	f.BoolVar(&tracesJSON, "json", false, "Output raw API response as JSON")
+	f.BoolVar(&tracesYAML, "yaml", false, "Output raw API response as YAML")
+	f.BoolVar(&tracesListSummary, "summary", false,
+		"Show conditions, decisions, tools, and results for each listed turn")
+	f.StringSliceVar(
+		&tracesColumns,
+		"columns",
+		nil,
+		"Columns to display for table output only (comma-separated, default: id,name,timestamp,latency,cost,tags). Cannot be used with --json or --yaml.\nAvailable: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level",
+	)
+	f.StringVarP(&tracesListOrg, "organization", "o", "", "Organization name that owns the project")
+	f.StringVarP(&tracesListProject, "project", "p", "", "Project name")
+	agentTracesCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	agentTracesCmd.MarkFlagsMutuallyExclusive("summary", "columns")
+	agentTracesCmd.MarkFlagsMutuallyExclusive("summary", "fields")
+
+	f = agentTraceSessionsCmd.Flags()
+	f.StringVar(&sessionsFromTimestamp, "from-timestamp", "",
+		"Filter sessions from this timestamp (ISO 8601, default: 7 days ago)")
+	indexFlag(agentTraceSessionsCmd, "from-timestamp", "default: 7 days ago")
+	f.StringVar(
+		&sessionsToTimestamp,
+		"to-timestamp",
+		"",
+		"Filter sessions to this timestamp (ISO 8601)",
+	)
+	f.IntVar(&sessionsPage, "page", 1, "Page number (starts at 1)")
+	f.IntVar(&sessionsLimit, "limit", 0, "Items per page (max 100)")
+	indexFlag(agentTraceSessionsCmd, "limit", "max 100")
+	f.StringVar(&sessionsEnvironment, "environment", "", "Filter by environment")
+	f.StringSliceVar(
+		&sessionsColumns,
+		"columns",
+		nil,
+		"Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.\nAvailable: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens",
+	)
+	f.BoolVar(&sessionsListJSON, "json", false, "Output raw API response as JSON")
+	f.BoolVar(&sessionsListYAML, "yaml", false, "Output raw API response as YAML")
+	f.StringVarP(
+		&sessionsListOrg,
+		"organization",
+		"o",
+		"",
+		"Organization name that owns the project",
+	)
+	f.StringVarP(&sessionsListProject, "project", "p", "", "Project name")
+	agentTraceSessionsCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+
+	f = agentObservationsCmd.Flags()
+	f.BoolVar(&obsListJSON, "json", false, "Output raw API response as JSON")
+	f.BoolVar(&obsListYAML, "yaml", false, "Output raw API response as YAML")
+	f.StringSliceVar(
+		&obsColumns,
+		"columns",
+		nil,
+		"Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml\nDefault: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens",
+	)
+	f.StringVarP(&obsListOrg, "organization", "o", "", "Organization name that owns the project")
+	f.StringVarP(&obsListProject, "project", "p", "", "Project name")
+	f.StringVar(&obsListFromTimestamp, "from-timestamp", "",
+		"Filter observations from this timestamp (ISO 8601, default: 7 days ago)")
+	indexFlag(agentObservationsCmd, "from-timestamp", "default: 7 days ago")
+	f.StringVar(
+		&obsListToTimestamp,
+		"to-timestamp",
+		"",
+		"Filter observations to this timestamp (ISO 8601)",
+	)
+	f.StringVar(&obsListCursor, "cursor", "", "Cursor for pagination")
+	f.IntVar(&obsListLimit, "limit", 0, "Items per page (max 100)")
+	indexFlag(agentObservationsCmd, "limit", "max 100")
+	f.StringVar(&obsListFields, "fields", "", "Field groups to include (comma-separated)")
+	f.StringVar(&obsListType, "type", "", "Filter by observation type")
+	f.StringVar(&obsListName, "name", "", "Filter by observation name")
+	f.StringVar(&obsListLevel, "level", "", "Filter by level")
+	f.StringVar(&obsListModel, "model", "", "Filter by model")
+	f.StringVar(&obsListEnvironment, "environment", "", "Filter by environment")
+	f.StringVar(
+		&obsListParentObservationID,
+		"parent-observation-id",
+		"",
+		"Filter by parent observation ID",
+	)
+	f.StringVar(&obsListVersion, "version", "", "Filter by version")
+	f.StringVar(&obsListUserID, "user-id", "", "Filter by user ID")
+	agentObservationsCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+
+	agentsCmd.AddCommand(agentTracesCmd, agentTraceSessionsCmd, agentObservationsCmd)
 }

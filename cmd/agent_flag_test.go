@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -71,31 +70,32 @@ func TestAgentObservabilityFlags(t *testing.T) {
 	}
 }
 
-func TestAgentObservabilityAgentArg(t *testing.T) {
+func TestAgentName(t *testing.T) {
 	tests := []struct {
-		name  string
-		list  *cobra.Command
-		agent *string
+		input   string
+		want    string
+		wantErr string
 	}{
-		{"traces", tracesListCmd, &tracesAgent},
-		{"trace-sessions", sessionsListCmd, &sessionsAgent},
-		{"observations", obsListCmd, &obsListAgent},
+		{"my-agent", "my-agent", ""},
+		{" my-agent ", "my-agent", ""},
+		{" ", "", "agent name is required"},
+		{"", "", "agent name is required"},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			run := tt.list.RunE
-			t.Cleanup(func() { tt.list.RunE = run; *tt.agent = "" })
-			tt.list.RunE = func(*cobra.Command, []string) error { return nil }
-			c, _, _ := agentsCmd.Find([]string{tt.name})
-			var got []string
-			for _, arg := range []string{" my-agent ", " "} {
-				err := c.RunE(c, []string{arg})
-				got = append(got, fmt.Sprint(*tt.agent, " ", err))
-			}
-			want := []string{"my-agent <nil>", " agent name is required"}
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("agent and error per argument (-want +got):\n%s", diff)
-			}
-		})
+		got, err := agentName(tt.input)
+		gotErr := ""
+		if err != nil {
+			gotErr = err.Error()
+		}
+		if got != tt.want || gotErr != tt.wantErr {
+			t.Errorf(
+				"agentName(%q) = %q, %q; want %q, %q",
+				tt.input,
+				got,
+				gotErr,
+				tt.want,
+				tt.wantErr,
+			)
+		}
 	}
 }
