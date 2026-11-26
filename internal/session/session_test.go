@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -280,6 +281,49 @@ func TestResolveProject(t *testing.T) {
 				if !strings.Contains(err.Error(), "project is required") {
 					t.Errorf("error message should mention 'project is required', got: %v", err)
 				}
+			}
+		})
+	}
+}
+
+func TestSelectedAgent(t *testing.T) {
+	tests := []struct {
+		name        string
+		flagOrg     string
+		flagProject string
+		envProject  string
+		want        string
+	}{
+		{"selected org and project", "", "", "", "bot true"},
+		{"same names in another case", "ORG", "Proj", "", "bot true"},
+		{"different --organization", "other", "", "", " false"},
+		{"different --project", "", "other", "", " false"},
+		{"project from the environment variable", "", "", "other", " false"},
+		{"environment variable naming the selected project", "", "", "proj", "bot true"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
+			t.Setenv("INTERACTIVE_ORGANIZATION", "")
+			t.Setenv("INTERACTIVE_PROJECT", tt.envProject)
+			cfg := &files.Config{SelectedOrg: "org", SelectedProject: "proj", SelectedAgent: "bot"}
+			if err := files.SaveConfig(".test", cfg); err != nil {
+				t.Fatal(err)
+			}
+			s := NewSession(".test")
+			agent, err := s.SelectedAgent("", tt.flagOrg, "", tt.flagProject)
+			org, _ := s.ResolveOrganization("", tt.flagOrg)
+			project, _ := s.ResolveProject("", tt.flagProject)
+			selected, selErr := s.IsSelectedProject(org, project)
+			got := fmt.Sprintf("%s %t", agent, selected)
+			if err != nil || selErr != nil || got != tt.want {
+				t.Errorf(
+					"agent, is selected project = %q (%v, %v), want %q",
+					got,
+					err,
+					selErr,
+					tt.want,
+				)
 			}
 		})
 	}

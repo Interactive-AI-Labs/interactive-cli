@@ -11,8 +11,10 @@ The remote port defaults to the agent's configured port. Use --port to
 override. Use --local-port to choose the local listening port (defaults to
 --port when set, or an available OS-assigned port otherwise).
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents port-forward <agent_name> [flags]
+iai agents port-forward [agent_name] [flags]
 ```
 
 ### Examples

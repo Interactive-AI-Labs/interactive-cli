@@ -15,8 +15,10 @@ fields are extracted and displayed as "LEVEL message". Use --fields or
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
 nested JSON values.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents logs <agent_name> [flags]
+iai agents logs [agent_name] [flags]
 ```
 
 ### Examples

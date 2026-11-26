@@ -137,6 +137,11 @@ Uses the platform API with dual authentication (API key or session).`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
+		agent, err := agentFlag(obsListAgent, obsListOrg, obsListProject)
+		if err != nil {
+			return err
+		}
+
 		opts := platform.ObservationSearchOptions{
 			FromTimestamp:       fromTS,
 			ToTimestamp:         obsListToTimestamp,
@@ -151,7 +156,7 @@ Uses the platform API with dual authentication (API key or session).`,
 			ParentObservationID: obsListParentObservationID,
 			Version:             obsListVersion,
 			UserID:              obsListUserID,
-			Agent:               obsListAgent,
+			Agent:               agent,
 		}
 		if err := inputs.ValidateObservationSearchOptions(opts); err != nil {
 			return err
@@ -266,7 +271,7 @@ func init() {
 	obsListCmd.Flags().StringVar(&obsListVersion, "version", "", "Filter by version")
 	obsListCmd.Flags().StringVar(&obsListUserID, "user-id", "", "Filter by user ID")
 	obsListCmd.Flags().
-		StringVar(&obsListAgent, "agent", "", "Filter by agent name or id (not with --trace-id)")
+		StringVar(&obsListAgent, "agent", "", "Filter by agent name or id (not with --trace-id); defaults to the selected agent")
 	obsListCmd.MarkFlagsMutuallyExclusive("agent", "trace-id")
 
 	// observations get flags

@@ -2,8 +2,14 @@
 
 List an agent's traces
 
+### Synopsis
+
+List an agent's traces.
+
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents traces <agent_name> [flags]
+iai agents traces [agent_name] [flags]
 ```
 
 ### Examples

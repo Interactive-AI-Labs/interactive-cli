@@ -6,8 +6,10 @@ Get one event of a conversation session
 
 Get one event of a conversation session on a deployed agent.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents events get <agent_name> <session_id> <event_id> [flags]
+iai agents events get [agent_name] <session_id> <event_id> [flags]
 ```
 
 ### Examples

@@ -72,17 +72,24 @@ func TestAgentRoutineRunArgs(t *testing.T) {
 		wantErr string
 	}{
 		{"agent and folder routine", []string{"my-agent", "billing/refund"}, ""},
-		{"no args", nil, "accepts 2 arg(s), received 0"},
-		{"missing routine", []string{"my-agent"}, "accepts 2 arg(s), received 1"},
+		{"no args", nil, "accepts between 1 and 2 arg(s), received 0"},
+		{
+			"missing routine",
+			[]string{"my-agent"},
+			"accepts 2 arg(s), received 1: pass the agent name or run 'iai agents select'",
+		},
 		{
 			"extra input argument",
 			[]string{"my-agent", "refund", "input.json"},
-			"accepts 2 arg(s), received 3",
+			"accepts between 1 and 2 arg(s), received 3",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := agentRoutineRunCmd.Args(agentRoutineRunCmd, tt.args)
+			if err == nil {
+				_, _, err = splitAgentArgs(tt.args, 2, "")
+			}
 			gotErr := ""
 			if err != nil {
 				gotErr = err.Error()

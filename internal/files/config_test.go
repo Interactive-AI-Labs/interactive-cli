@@ -196,3 +196,53 @@ func TestSelectOrg(t *testing.T) {
 		}
 	})
 }
+
+func TestSelectAgent(t *testing.T) {
+	tests := []struct {
+		name  string
+		apply func(cfgDir string) error
+		want  Config
+	}{
+		{
+			"select agent", func(d string) error { return SelectAgent(d, " bot ") },
+			Config{SelectedOrg: "o", SelectedProject: "p", SelectedAgent: "bot"},
+		},
+		{
+			"clear agent", func(d string) error { return SelectAgent(d, "") },
+			Config{SelectedOrg: "o", SelectedProject: "p"},
+		},
+		{
+			"same project keeps agent", func(d string) error { return SelectProject(d, "p") },
+			Config{SelectedOrg: "o", SelectedProject: "p", SelectedAgent: "a"},
+		},
+		{
+			"project change clears agent", func(d string) error { return SelectProject(d, "q") },
+			Config{SelectedOrg: "o", SelectedProject: "q"},
+		},
+		{
+			"org change clears project and agent",
+			func(d string) error { return SelectOrg(d, "x") },
+			Config{SelectedOrg: "x"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
+			cfgDir := ".test-config"
+			start := &Config{SelectedOrg: "o", SelectedProject: "p", SelectedAgent: "a"}
+			if err := SaveConfig(cfgDir, start); err != nil {
+				t.Fatal(err)
+			}
+			if err := tt.apply(cfgDir); err != nil {
+				t.Fatal(err)
+			}
+			got, err := LoadConfig(cfgDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if *got != tt.want {
+				t.Errorf("config = %+v, want %+v", *got, tt.want)
+			}
+		})
+	}
+}

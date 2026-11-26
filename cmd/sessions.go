@@ -85,13 +85,18 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
+		agent, err := agentFlag(sessionsAgent, sessionsListOrg, sessionsListProject)
+		if err != nil {
+			return err
+		}
+
 		opts := platform.SessionListOptions{
 			FromTimestamp: fromTS,
 			ToTimestamp:   sessionsToTimestamp,
 			Page:          sessionsPage,
 			Limit:         sessionsLimit,
 			Environment:   sessionsEnvironment,
-			Agent:         sessionsAgent,
+			Agent:         agent,
 		}
 		if err := inputs.ValidateSessionListOptions(opts); err != nil {
 			return err
@@ -221,7 +226,8 @@ func init() {
 	indexFlag(sessionsListCmd, "limit", "max 100")
 	sessionsListCmd.Flags().
 		StringVar(&sessionsEnvironment, "environment", "", "Filter by environment")
-	sessionsListCmd.Flags().StringVar(&sessionsAgent, "agent", "", "Filter by agent name or id")
+	sessionsListCmd.Flags().
+		StringVar(&sessionsAgent, "agent", "", "Filter by agent name or id; defaults to the selected agent")
 	sessionsListCmd.Flags().
 		StringSliceVar(&sessionsColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: id,created_at,environment,trace_count,duration_seconds,total_cost,total_tokens). Cannot be used with --json or --yaml.\nAvailable: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens")
 	sessionsListCmd.Flags().

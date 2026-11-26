@@ -19,8 +19,10 @@ Secret-backed environment variables show <secret: name/key>, not the secret valu
 Use --revision to view a specific past revision instead of the current state.
 Past revision output includes server-recorded actor and source attribution when available.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents describe <agent_name> [flags]
+iai agents describe [agent_name] [flags]
 ```
 
 ### Examples

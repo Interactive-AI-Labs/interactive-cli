@@ -2,8 +2,14 @@
 
 List an agent's observations
 
+### Synopsis
+
+List an agent's observations.
+
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents observations <agent_name> [flags]
+iai agents observations [agent_name] [flags]
 ```
 
 ### Examples

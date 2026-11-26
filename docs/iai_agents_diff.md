@@ -6,8 +6,10 @@ Compare two revisions of an agent
 
 Show the differences between two revisions of an agent.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents diff <agent_name> <revision_a> <revision_b> [flags]
+iai agents diff [agent_name] <revision_a> <revision_b> [flags]
 ```
 
 ### Examples

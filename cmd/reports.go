@@ -133,6 +133,10 @@ var reportsListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		agent, err := agentFlag(reportsListAgent, reportsOrganization, reportsProject)
+		if err != nil {
+			return err
+		}
 		raw := reportsListJSON || reportsListYAML
 		var folders []platform.ReportFolder
 		if reportsListFolder != "" || !raw {
@@ -148,7 +152,7 @@ var reportsListCmd = &cobra.Command{
 		}
 		reports, body, err := client.ListReports(
 			cmd.Context(), pCtx.projectId,
-			platform.ReportListOptions{FolderID: folderID, Agent: reportsListAgent},
+			platform.ReportListOptions{FolderID: folderID, Agent: agent},
 		)
 		if err != nil {
 			return err
@@ -456,7 +460,7 @@ func init() {
 	reportsListCmd.Flags().
 		StringVar(&reportsListFolder, "folder", "", "Only reports in this folder; none for reports in no folder")
 	reportsListCmd.Flags().
-		StringVar(&reportsListAgent, "agent", "", "Only reports attached to this agent id")
+		StringVar(&reportsListAgent, "agent", "", "Only reports attached to this agent id; defaults to the selected agent")
 	reportsListCmd.Flags().
 		StringSliceVar(&reportsListColumns, "columns", nil, fmt.Sprintf(
 			"Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml. Available: %s",

@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func PrintAgentList(out io.Writer, agents []deployment.AgentOutput) error {
+func PrintAgentList(out io.Writer, agents []deployment.AgentOutput, selectedAgent string) error {
 	if len(agents) == 0 {
 		fmt.Fprintln(out, "No agents found.")
 		return nil
@@ -19,8 +19,12 @@ func PrintAgentList(out io.Writer, agents []deployment.AgentOutput) error {
 	headers := []string{"NAME", "REVISION", "STATUS", "UPDATED"}
 	rows := make([][]string, len(agents))
 	for i, a := range agents {
+		displayName := a.Name
+		if selectedAgent != "" && strings.EqualFold(a.Name, selectedAgent) {
+			displayName = displayName + " *"
+		}
 		rows[i] = []string{
-			a.Name,
+			displayName,
 			fmt.Sprintf("%d", a.Revision),
 			a.Status,
 			LocalTime(a.Updated),

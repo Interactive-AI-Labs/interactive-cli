@@ -8,8 +8,10 @@ Scan recent logs and list the extra top-level fields present in structured (JSON
 
 Use the reported field names with 'iai agents logs --fields' to include them in output.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents log-fields <agent_name> [flags]
+iai agents log-fields [agent_name] [flags]
 ```
 
 ### Examples

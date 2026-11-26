@@ -8,8 +8,10 @@ Launch an existing autonomous routine and return its receipt without waiting
 for completion. Inspect tool activity and output with 'iai agents events list'.
 Requests are not automatically retried.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents routines run <agent_name> <routine_id> [flags]
+iai agents routines run [agent_name] <routine_id> [flags]
 ```
 
 ### Examples

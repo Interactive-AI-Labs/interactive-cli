@@ -33,7 +33,7 @@ iai observations list [flags]
 ### Options
 
 ```
-      --agent string                   Filter by agent name or id (not with --trace-id)
+      --agent string                   Filter by agent name or id (not with --trace-id); defaults to the selected agent
       --columns strings                Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
                                        With --trace-id default: id,type,name,model,latency_ms,total_cost,total_tokens
                                        Without --trace-id default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens

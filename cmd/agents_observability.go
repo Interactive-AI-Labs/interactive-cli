@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -15,15 +18,63 @@ func agentName(arg string) (string, error) {
 	return name, nil
 }
 
+const selectedAgentHelp = "Without agent_name, the selected agent is used (see 'iai agents select')."
+
+func selectedAgent(org, project string) (string, error) {
+	cfg, err := files.LoadStackConfig(cfgFilePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to load config file: %w", err)
+	}
+	return session.NewSession(cfgDirName).SelectedAgent(cfg.Organization, org, cfg.Project, project)
+}
+
+// agentArg returns the agent and the remaining args, using the selected agent when it is left out.
+func agentArg(args []string, n int, org, project string) (string, []string, error) {
+	selected := ""
+	if len(args) < n {
+		var err error
+		if selected, err = selectedAgent(org, project); err != nil {
+			return "", nil, err
+		}
+	}
+	return splitAgentArgs(args, n, selected)
+}
+
+// splitAgentArgs holds agentArg's decision: all n args means the first is the agent.
+func splitAgentArgs(args []string, n int, selected string) (string, []string, error) {
+	if len(args) == n {
+		return strings.TrimSpace(args[0]), args[1:], nil
+	}
+	if selected == "" {
+		return "", nil, fmt.Errorf(
+			"accepts %d arg(s), received %d: pass the agent name or run 'iai agents select'",
+			n, len(args),
+		)
+	}
+	return selected, args, nil
+}
+
+// agentFlag returns the --agent value, or the selected agent when it is not passed.
+func agentFlag(agent, org, project string) (string, error) {
+	if agent != "" {
+		return agent, nil
+	}
+	return selectedAgent(org, project)
+}
+
 var agentTracesCmd = &cobra.Command{
-	Use:     "traces <agent_name>",
+	Use:     "traces [agent_name]",
 	Short:   "List an agent's traces",
 	GroupID: groupAgentObservability,
+	Long:    "List an agent's traces.\n\n" + selectedAgentHelp,
 	Example: `  iai agents traces my-agent
   iai agents traces my-agent --limit 20 --json`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		if tracesAgent, err = agentName(args[0]); err != nil {
+		if tracesAgent, _, err = agentArg(args, 1, tracesListOrg, tracesListProject); err != nil {
+			return err
+		}
+		if tracesAgent, err = agentName(tracesAgent); err != nil {
 			return err
 		}
 		return tracesListCmd.RunE(cmd, nil)
@@ -31,14 +82,23 @@ var agentTracesCmd = &cobra.Command{
 }
 
 var agentTraceSessionsCmd = &cobra.Command{
-	Use:     "trace-sessions <agent_name>",
+	Use:     "trace-sessions [agent_name]",
 	Short:   "List an agent's trace sessions",
 	GroupID: groupAgentObservability,
+	Long:    "List an agent's trace sessions.\n\n" + selectedAgentHelp,
 	Example: `  iai agents trace-sessions my-agent
   iai agents trace-sessions my-agent --limit 20 --json`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		if sessionsAgent, err = agentName(args[0]); err != nil {
+		if sessionsAgent, _, err = agentArg(
+			args,
+			1,
+			sessionsListOrg,
+			sessionsListProject,
+		); err != nil {
+			return err
+		}
+		if sessionsAgent, err = agentName(sessionsAgent); err != nil {
 			return err
 		}
 		return sessionsListCmd.RunE(cmd, nil)
@@ -46,14 +106,18 @@ var agentTraceSessionsCmd = &cobra.Command{
 }
 
 var agentObservationsCmd = &cobra.Command{
-	Use:     "observations <agent_name>",
+	Use:     "observations [agent_name]",
 	Short:   "List an agent's observations",
 	GroupID: groupAgentObservability,
+	Long:    "List an agent's observations.\n\n" + selectedAgentHelp,
 	Example: `  iai agents observations my-agent
   iai agents observations my-agent --limit 20 --json`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		if obsListAgent, err = agentName(args[0]); err != nil {
+		if obsListAgent, _, err = agentArg(args, 1, obsListOrg, obsListProject); err != nil {
+			return err
+		}
+		if obsListAgent, err = agentName(obsListAgent); err != nil {
 			return err
 		}
 		return obsListCmd.RunE(cmd, nil)

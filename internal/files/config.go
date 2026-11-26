@@ -14,6 +14,7 @@ const configFileName = "config.yaml"
 type Config struct {
 	SelectedOrg     string `yaml:"selected_organization,omitempty"`
 	SelectedProject string `yaml:"selected_project,omitempty"`
+	SelectedAgent   string `yaml:"selected_agent,omitempty"`
 }
 
 func LoadConfig(cfgDirName string) (*Config, error) {
@@ -112,19 +113,36 @@ func GetSelectedProject(cfgDirName string) (string, error) {
 
 // SelectProject updates the selected project name in the
 // config file. An empty name clears the selection.
+// When the project changes, the selected agent is cleared.
 func SelectProject(cfgDirName, projectName string) error {
 	cfg, err := LoadConfig(cfgDirName)
 	if err != nil {
 		return err
 	}
 
-	cfg.SelectedProject = strings.TrimSpace(projectName)
+	newProject := strings.TrimSpace(projectName)
+	if cfg.SelectedProject != newProject {
+		cfg.SelectedAgent = ""
+	}
+	cfg.SelectedProject = newProject
+	return SaveConfig(cfgDirName, cfg)
+}
+
+// SelectAgent updates the selected agent name in the
+// config file. An empty name clears the selection.
+func SelectAgent(cfgDirName, agentName string) error {
+	cfg, err := LoadConfig(cfgDirName)
+	if err != nil {
+		return err
+	}
+
+	cfg.SelectedAgent = strings.TrimSpace(agentName)
 	return SaveConfig(cfgDirName, cfg)
 }
 
 // SelectOrg updates the selected organization name in the
 // config file. An empty name clears the selection.
-// When the organization changes, the selected project is cleared.
+// When the organization changes, the selected project and agent are cleared.
 func SelectOrg(cfgDirName, orgName string) error {
 	cfg, err := LoadConfig(cfgDirName)
 	if err != nil {
@@ -134,6 +152,7 @@ func SelectOrg(cfgDirName, orgName string) error {
 	newOrg := strings.TrimSpace(orgName)
 	if cfg.SelectedOrg != newOrg {
 		cfg.SelectedProject = ""
+		cfg.SelectedAgent = ""
 	}
 	cfg.SelectedOrg = newOrg
 	return SaveConfig(cfgDirName, cfg)

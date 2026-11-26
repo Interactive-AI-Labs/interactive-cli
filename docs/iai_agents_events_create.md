@@ -6,8 +6,10 @@ Send an event to a conversation session
 
 Send an event to a conversation session on a deployed agent.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents events create <agent_name> <session_id> [flags]
+iai agents events create [agent_name] <session_id> [flags]
 ```
 
 ### Examples
