@@ -78,6 +78,11 @@ Use --daily to get metrics aggregated by day (default).`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
+		agent, err := agentFlag(metricsListAgent, metricsListOrg, metricsListProject)
+		if err != nil {
+			return err
+		}
+
 		opts := platform.MetricsDailyOptions{
 			FromTimestamp: fromTS,
 			ToTimestamp:   metricsListToTimestamp,
@@ -87,7 +92,7 @@ Use --daily to get metrics aggregated by day (default).`,
 			UserID:        metricsListUserID,
 			Tags:          metricsListTags,
 			Environment:   metricsListEnvironment,
-			Agent:         metricsListAgent,
+			Agent:         agent,
 		}
 		if err := inputs.ValidateMetricsDailyOptions(opts); err != nil {
 			return err
@@ -143,7 +148,8 @@ func init() {
 		StringArrayVar(&metricsListTags, "tags", nil, "Filter by tags (repeatable)")
 	metricsListCmd.Flags().
 		StringVar(&metricsListEnvironment, "environment", "", "Filter by environment")
-	metricsListCmd.Flags().StringVar(&metricsListAgent, "agent", "", "Filter by agent name or id")
+	metricsListCmd.Flags().
+		StringVar(&metricsListAgent, "agent", "", "Filter by agent name or id; defaults to the selected agent")
 	metricsListCmd.Flags().
 		StringSliceVar(&metricsListColumns, "columns", nil, "Columns to display for table output only (comma-separated, default: date,count_traces,count_observations,total_cost). Cannot be used with --json or --yaml.\nAvailable: date,count_traces,count_observations,total_cost,total_tokens")
 	metricsListCmd.Flags().

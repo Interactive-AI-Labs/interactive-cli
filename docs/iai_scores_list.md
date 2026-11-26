@@ -26,7 +26,7 @@ iai scores list [flags]
 ### Options
 
 ```
-      --agent string            Filter by agent name or id
+      --agent string            Filter by agent name or id; defaults to the selected agent
       --columns strings         Columns to display for table output only (comma-separated, default: id,name,data_type,value,source,timestamp,trace_id). Cannot be used with --json or --yaml.
                                 Available: id,name,data_type,value,source,timestamp,trace_id,observation_id,session_id,environment,config_id,user_id,comment
       --config-id string        Filter by config ID
