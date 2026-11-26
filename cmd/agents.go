@@ -720,6 +720,9 @@ var (
 	agentLogsAllFields  bool
 	agentLogsTimestamps bool
 	agentLogsLimit      int
+	agentLogsMessage    string
+	agentLogsLevel      string
+	agentLogsSummary    bool
 )
 
 var agentLogsCmd = &cobra.Command{
@@ -740,6 +743,8 @@ nested JSON values.` + "\n\n" + selectedAgentHelp,
   iai agents logs my-agent --follow
   iai agents logs my-agent --since 30m
   iai agents logs my-agent --timestamps
+  iai agents logs my-agent --since 30m --level error --message 'timeout|failed'
+  iai agents logs my-agent --since 24h --summary
   iai agents logs my-agent --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -775,6 +780,18 @@ nested JSON values.` + "\n\n" + selectedAgentHelp,
 			StartTime: agentLogsStartTime,
 			EndTime:   agentLogsEndTime,
 			Limit:     agentLogsLimit,
+			Message:   agentLogsMessage,
+			Level:     agentLogsLevel,
+		}
+
+		if agentLogsSummary {
+			summary, err := deployClient.GetAgentLogSummary(
+				ctx, pCtx.orgId, pCtx.projectId, agentName, opts,
+			)
+			if err != nil {
+				return err
+			}
+			return output.PrintRawJSON(out, summary)
 		}
 
 		logsResp, err := deployClient.GetAgentLogs(ctx, pCtx.orgId, pCtx.projectId, agentName, opts)
@@ -1341,6 +1358,14 @@ func init() {
 	agentLogsCmd.Flags().
 		IntVar(&agentLogsLimit, "limit", 0, logsLimitUsage)
 	indexLogsLimits(agentLogsCmd)
+	agentLogsCmd.Flags().
+		StringVar(&agentLogsMessage, "message", "", "Case-insensitive RE2 regular expression matched against the log line")
+	addChoiceFlag(
+		agentLogsCmd, &agentLogsLevel, "level", "", "JSON log severity", mcpLogLevels,
+	)
+	agentLogsCmd.Flags().
+		BoolVar(&agentLogsSummary, "summary", false, "Print the number of log entries per level instead of the entries")
+	indexFlag(agentLogsCmd, "message", "regular expression")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")

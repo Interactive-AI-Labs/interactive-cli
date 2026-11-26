@@ -24,6 +24,9 @@ func agentListsServer(t *testing.T, filters *[]string) {
 		case strings.HasPrefix(r.URL.Path, "/api/platform/v1/projects/proj-1/prompts/"):
 			*filters = append(*filters, r.URL.Query().Get("filter"))
 			fmt.Fprint(w, `{"success":true,"data":{"prompts":[],"totalCount":0}}`)
+		case strings.HasPrefix(r.URL.Path, "/v1/organizations/org-1/projects/proj-1/agents/"):
+			*filters = append(*filters, r.URL.RequestURI())
+			fmt.Fprint(w, `{"total":3,"debug":0,"info":1,"warn":0,"error":2}`)
 		case r.URL.Path == "/api/platform/v1/organizations/org-1/projects/proj-1/mcps":
 			fmt.Fprint(w, `{"success":true,"data":{"internal_available":true,"mcps":[
 				{"name":"crm","attached_agents":["bot"],"extra":1},
@@ -36,9 +39,11 @@ func agentListsServer(t *testing.T, filters *[]string) {
 		}
 	}))
 	t.Cleanup(server.Close)
-	origHostname, origToken, origAPIKey := hostname, token, apiKey
-	t.Cleanup(func() { hostname, token, apiKey = origHostname, origToken, origAPIKey })
-	hostname, token, apiKey = server.URL, "test-token", ""
+	origHostname, origDeploy, origToken, origAPIKey := hostname, deploymentHostname, token, apiKey
+	t.Cleanup(func() {
+		hostname, deploymentHostname, token, apiKey = origHostname, origDeploy, origToken, origAPIKey
+	})
+	hostname, deploymentHostname, token, apiKey = server.URL, server.URL, "test-token", ""
 }
 
 func TestAgentListFilters(t *testing.T) {
@@ -133,4 +138,57 @@ func mcpsOutput(t *testing.T, out []byte, filtered bool) string {
 	}
 	b, _ := json.Marshal(v)
 	return string(b)
+}
+
+func TestAgentLogsFilters(t *testing.T) {
+	const path = "/v1/organizations/org-1/projects/proj-1/agents/bot/logs"
+	const counts = `{"total":3,"debug":0,"info":1,"warn":0,"error":2}`
+	tests := []struct {
+		args []string
+		want string
+	}{
+		{
+			[]string{"--level", "error", "--message", "time|fail"},
+			path + "?level=error&message=time%7Cfail",
+		},
+		{[]string{"--summary"}, path + "/summary? " + counts},
+		{
+			[]string{"--summary", "--since", "24h", "--message", "fail"},
+			path + "/summary?message=fail&since=24h " + counts,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
+			saveSelection(t, "")
+			var requests []string
+			agentListsServer(t, &requests)
+			t.Cleanup(func() {
+				agentLogsCmd.Flags().VisitAll(func(f *pflag.Flag) {
+					_ = f.Value.Set(f.DefValue)
+					f.Changed = false
+				})
+				agentLogsCmd.SetOut(nil)
+			})
+			if err := agentLogsCmd.ParseFlags(
+				append(tt.args, "-o", "org", "-p", "proj"),
+			); err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			agentLogsCmd.SetOut(&out)
+			agentLogsCmd.SetContext(context.Background())
+			if err := agentLogsCmd.RunE(agentLogsCmd, []string{"bot"}); err != nil {
+				t.Fatal(err)
+			}
+			got := strings.Join(requests, "")
+			if strings.Contains(got, "/summary") {
+				var compact bytes.Buffer
+				_ = json.Compact(&compact, out.Bytes())
+				got += " " + compact.String()
+			}
+			if got != tt.want {
+				t.Errorf("got %s, want %s", got, tt.want)
+			}
+		})
+	}
 }
