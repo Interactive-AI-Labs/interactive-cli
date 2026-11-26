@@ -1302,6 +1302,7 @@ func init() {
 		&cobra.Group{ID: groupAgentObservability, Title: "Observability:"},
 		&cobra.Group{ID: groupAgentReference, Title: "Reference:"},
 	)
+	indexJSONShape(agentsCmd, "bare; observations, traces and trace-sessions are env")
 	agentsCmd.AddCommand(agentCreateCmd)
 	agentsCmd.AddCommand(agentUpdateCmd)
 	agentsCmd.AddCommand(agentListCmd)

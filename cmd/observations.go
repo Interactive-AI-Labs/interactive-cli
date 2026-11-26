@@ -268,9 +268,11 @@ func init() {
 	obsListCmd.Flags().
 		StringVar(&obsListAgent, "agent", "", "Filter by agent name or id (not with --trace-id)")
 	obsListCmd.MarkFlagsMutuallyExclusive("agent", "trace-id")
-	agentsCmd.AddCommand(agentObservabilityCmd(
+	agentObsCmd := agentObservabilityCmd(
 		"observations", obsListCmd, &obsListAgent, "agent", "trace-id", "include-io",
-	))
+	)
+	agentObsCmd.Flags().Lookup("columns").Usage = "Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml\nDefault: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens"
+	agentsCmd.AddCommand(agentObsCmd)
 
 	// observations get flags
 	obsGetCmd.Flags().BoolVar(&obsGetJSON, "json", false, "Output raw API response as JSON")

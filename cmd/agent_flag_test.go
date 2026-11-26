@@ -51,7 +51,7 @@ func TestAgentObservabilityFlags(t *testing.T) {
 		dropped []string
 	}{
 		{"traces", tracesListCmd, []string{"agent"}},
-		{"traced-sessions", sessionsListCmd, []string{"agent"}},
+		{"trace-sessions", sessionsListCmd, []string{"agent"}},
 		{"observations", obsListCmd, []string{"agent", "include-io", "trace-id"}},
 	}
 	for _, tt := range tests {
@@ -67,5 +67,14 @@ func TestAgentObservabilityFlags(t *testing.T) {
 				t.Errorf("command and dropped flags (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestAgentObservabilityEmptyAgent(t *testing.T) {
+	for _, name := range []string{"traces", "trace-sessions", "observations"} {
+		c, _, _ := agentsCmd.Find([]string{name})
+		if err := c.RunE(c, []string{" "}); err == nil || err.Error() != "agent name is required" {
+			t.Errorf("%s: got %v, want agent name is required", name, err)
+		}
 	}
 }

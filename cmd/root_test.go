@@ -70,7 +70,7 @@ func TestHelpGroups(t *testing.T) {
 		"agents routines":             groupAgentConversations,
 		"agents sessions":             groupAgentConversations,
 		"agents observations":         groupAgentObservability,
-		"agents traced-sessions":      groupAgentObservability,
+		"agents trace-sessions":       groupAgentObservability,
 		"agents traces":               groupAgentObservability,
 		"agents catalog":              groupAgentReference,
 		"agents compatibility-matrix": groupAgentReference,

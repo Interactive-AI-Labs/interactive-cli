@@ -1,16 +1,16 @@
-## iai agents traced-sessions
+## iai agents trace-sessions
 
-List an agent's traced sessions
+List an agent's trace sessions
 
 ```
-iai agents traced-sessions <agent_name> [flags]
+iai agents trace-sessions <agent_name> [flags]
 ```
 
 ### Examples
 
 ```
-  iai agents traced-sessions my-agent
-  iai agents traced-sessions my-agent --limit 20 --json
+  iai agents trace-sessions my-agent
+  iai agents trace-sessions my-agent --limit 20 --json
 ```
 
 ### Options
@@ -20,7 +20,7 @@ iai agents traced-sessions <agent_name> [flags]
                                 Available: id,created_at,updated_at,environment,user_id,trace_count,duration_seconds,total_cost,input_tokens,output_tokens,total_tokens
       --environment string      Filter by environment
       --from-timestamp string   Filter sessions from this timestamp (ISO 8601, default: 7 days ago)
-  -h, --help                    help for traced-sessions
+  -h, --help                    help for trace-sessions
       --json                    Output raw API response as JSON
       --limit int               Items per page (max 100)
   -o, --organization string     Organization name that owns the project

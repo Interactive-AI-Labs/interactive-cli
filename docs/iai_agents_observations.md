@@ -17,8 +17,7 @@ iai agents observations <agent_name> [flags]
 
 ```
       --columns strings                Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
-                                       With --trace-id default: id,type,name,model,latency_ms,total_cost,total_tokens
-                                       Without --trace-id default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens
+                                       Default: id,trace_id,type,name,model,latency_ms,total_cost,total_tokens
       --cursor string                  Cursor for pagination
       --environment string             Filter by environment
       --fields string                  Field groups to include (comma-separated)
