@@ -1950,6 +1950,20 @@ func (c *DeploymentClient) GetAgentLogs(
 	return c.fetchLogs(ctx, path, opts)
 }
 
+// GetAgentLogSummary returns the server's per-level log counts for the same window and filters.
+func (c *DeploymentClient) GetAgentLogSummary(
+	ctx context.Context, orgId, projectId, agentName string, opts LogsOptions,
+) ([]byte, error) {
+	path := fmt.Sprintf(
+		"/v1/organizations/%s/projects/%s/agents/%s/logs/summary?%s",
+		url.PathEscape(orgId),
+		url.PathEscape(projectId),
+		url.PathEscape(agentName),
+		opts.query().Encode(),
+	)
+	return c.sendJSONRequest(ctx, http.MethodGet, path, nil)
+}
+
 type catalogAgentsResponse struct {
 	Agents []CatalogAgent `json:"agents"`
 }

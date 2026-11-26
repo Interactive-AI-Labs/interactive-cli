@@ -28,6 +28,8 @@ iai agents logs [agent_name] [flags]
   iai agents logs my-agent --follow
   iai agents logs my-agent --since 30m
   iai agents logs my-agent --timestamps
+  iai agents logs my-agent --since 30m --level error --message 'timeout|failed'
+  iai agents logs my-agent --since 24h --summary
   iai agents logs my-agent --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z
 ```
 
@@ -40,12 +42,15 @@ iai agents logs [agent_name] [flags]
       --fields strings        Additional fields to show after the message for structured (JSON) logs (e.g. --fields logger,pid); ignored for plain-text logs; use --raw for exact server JSON
   -f, --follow                Stream new log entries as they arrive; mutually exclusive with --end-time
   -h, --help                  help for logs
+      --level string          JSON log severity (debug|info|warn|error)
       --limit int             Maximum number of log entries to return (1-5000); defaults to 1000
+      --message string        Case-insensitive RE2 regular expression matched against the log line
   -o, --organization string   Organization name
   -p, --project string        Project name
       --raw                   Output exact server JSON lines without formatting
       --since string          Relative duration to look back (max 72h, e.g. 30m, 1h, 3d); default 1h; mutually exclusive with --start-time and --end-time
       --start-time string     Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window
+      --summary               Print the number of log entries per level instead of the entries
       --timestamps            Include platform log timestamps
 ```
 
