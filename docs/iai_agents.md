@@ -26,6 +26,7 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai](iai.md)	 - InteractiveAI's CLI
 * [iai agents activate](iai_agents_activate.md)	 - Activate a deactivated agent in a project
 * [iai agents activity](iai_agents_activity.md)	 - List an agent's deploys, context changes and secret edits
+* [iai agents analytics](iai_agents_analytics.md)	 - Show an agent's CPU, memory, requests, status codes and latency
 * [iai agents catalog](iai_agents_catalog.md)	 - List available agent types and versions
 * [iai agents chat](iai_agents_chat.md)	 - Talk to an agent from the terminal
 * [iai agents compatibility-matrix](iai_agents_compatibility-matrix.md)	 - Show agent version to schema version compatibility
