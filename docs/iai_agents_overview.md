@@ -26,7 +26,7 @@ iai agents overview [agent_name] [flags]
       --from-timestamp string   Start of a custom window (ISO 8601)
   -h, --help                    help for overview
       --json                    Output raw API response as JSON
-  -o, --organization string     Organization name that owns the project
+  -o, --organization string     Organization name
   -p, --project string          Project name
       --to-timestamp string     End of a custom window (ISO 8601)
       --window string           Window length: 30m, 1h, 6h, 24h, 3d, 7d, 14d, 1mo, 3mo, all, or custom with --from-timestamp and --to-timestamp (default "24h")

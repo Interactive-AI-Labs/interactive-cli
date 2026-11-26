@@ -98,18 +98,13 @@ func (c *APIClient) GetAgentOverview(
 	orgID, projectID, agent string,
 	opts AgentOverviewOptions,
 ) (AgentOverview, json.RawMessage, error) {
-	var overview AgentOverview
-	req, err := c.newRequest(ctx, http.MethodGet,
-		evalBasePath(orgID, projectID)+"/agents/"+url.PathEscape(agent)+"/overview")
-	if err != nil {
-		return overview, nil, fmt.Errorf("failed to create request: %w", err)
-	}
 	q, err := query.Values(opts)
 	if err != nil {
-		return overview, nil, fmt.Errorf("failed to encode query parameters: %w", err)
+		return AgentOverview{}, nil, fmt.Errorf("failed to encode query parameters: %w", err)
 	}
-	req.URL.RawQuery = q.Encode()
-	return decodeBody[AgentOverview](c, req, "get agent overview")
+	return getBody[AgentOverview](c, ctx,
+		evalBasePath(orgID, projectID)+"/agents/"+url.PathEscape(agent)+"/overview",
+		q, "get agent overview")
 }
 
 // PerformanceFilter is a filter of the project home's agent table.
@@ -191,6 +186,19 @@ func decodeBody[T any](c *APIClient, req *http.Request, action string) (T, json.
 	return v, json.RawMessage(body), nil
 }
 
+// getBody is decodeBody for a GET of path with query q.
+func getBody[T any](
+	c *APIClient, ctx context.Context, path string, q url.Values, action string,
+) (T, json.RawMessage, error) {
+	req, err := c.newRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		var zero T
+		return zero, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.URL.RawQuery = q.Encode()
+	return decodeBody[T](c, req, action)
+}
+
 type AgentActivityOptions struct {
 	Page   int      `url:"page,omitempty"`
 	Limit  int      `url:"limit,omitempty"`
@@ -250,19 +258,19 @@ func (c *APIClient) GetAgentAnalytics(
 	opts AgentAnalyticsOptions,
 ) (AgentAnalytics, json.RawMessage, error) {
 	var analytics AgentAnalytics
-	uris, err := agentAnalyticsURIs(orgID, projectID, agent, opts)
+	q, err := query.Values(opts)
 	if err != nil {
-		return analytics, nil, err
+		return analytics, nil, fmt.Errorf("failed to encode query parameters: %w", err)
 	}
 	charts := map[string]json.RawMessage{}
-	for key, uri := range uris {
-		path, rawQuery, _ := strings.Cut(uri, "?")
-		req, err := c.newRequest(ctx, http.MethodGet, path)
-		if err != nil {
-			return analytics, nil, fmt.Errorf("failed to create request: %w", err)
-		}
-		req.URL.RawQuery = rawQuery
-		if charts[key], err = c.doAndRead(req, "get agent analytics"); err != nil {
+	for _, route := range []string{
+		"cpu-usage", "memory-usage", "status-codes", "requests-per-domain", "latency",
+	} {
+		path := evalBasePath(orgID, projectID) + "/agents/" + url.PathEscape(agent) + "/" + route
+		key := strings.ReplaceAll(route, "-", "_")
+		if charts[key], _, err = getBody[json.RawMessage](
+			c, ctx, path, q, "get agent analytics",
+		); err != nil {
 			return analytics, nil, err
 		}
 	}
@@ -274,22 +282,4 @@ func (c *APIClient) GetAgentAnalytics(
 		return analytics, nil, fmt.Errorf("failed to decode agent analytics: %w", err)
 	}
 	return analytics, raw, nil
-}
-
-// agentAnalyticsURIs maps each analytics key to its route's request URI.
-func agentAnalyticsURIs(
-	orgID, projectID, agent string, opts AgentAnalyticsOptions,
-) (map[string]string, error) {
-	q, err := query.Values(opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode query parameters: %w", err)
-	}
-	uris := map[string]string{}
-	for _, route := range []string{
-		"cpu-usage", "memory-usage", "status-codes", "requests-per-domain", "latency",
-	} {
-		uris[strings.ReplaceAll(route, "-", "_")] = evalBasePath(orgID, projectID) +
-			"/agents/" + url.PathEscape(agent) + "/" + route + "?" + q.Encode()
-	}
-	return uris, nil
 }

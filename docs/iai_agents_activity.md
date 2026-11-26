@@ -27,7 +27,7 @@ iai agents activity [agent_name] [flags]
   -h, --help                  help for activity
       --json                  Output raw API response as JSON
       --limit int             Items per page (max 100)
-  -o, --organization string   Organization name that owns the project
+  -o, --organization string   Organization name
       --page int              Page number (starts at 1) (default 1)
   -p, --project string        Project name
       --search string         Search in actor, action and data (max 200 characters)

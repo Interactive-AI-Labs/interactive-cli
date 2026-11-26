@@ -1470,7 +1470,7 @@ func init() {
 
 const agentMcpEndpointUsage = "Endpoint this agent dials the MCP on; needs exactly one --mcp; private, the default for a new attachment, is reachable only within the project, public is the MCP's public endpoint and needs a self-hosted MCP with it enabled"
 
-// describeAgentOrDraft falls back to the platform's draft of that name.
+// describeAgentOrDraft falls back to the platform's draft only when the operator has no such agent.
 func describeAgentOrDraft(
 	ctx context.Context,
 	apiClient *platform.APIClient,
@@ -1479,19 +1479,12 @@ func describeAgentOrDraft(
 	name string,
 ) (*deployment.DescribeAgentResponse, error) {
 	agent, err := deployClient.DescribeAgent(ctx, pCtx.orgId, pCtx.projectId, name)
-	if err == nil {
-		return agent, nil
+	if !errors.As(err, new(deployment.NotFoundError)) {
+		return agent, err
 	}
 	draft, draftErr := apiClient.GetAgentDraft(ctx, pCtx.projectId, name)
-	return draftOrError(draft, draftErr, err)
-}
-
-// draftOrError describes the draft, or returns the operator's error when there is no draft.
-func draftOrError(
-	draft *platform.AgentDraft, draftErr, operatorErr error,
-) (*deployment.DescribeAgentResponse, error) {
 	if draftErr != nil {
-		return nil, operatorErr
+		return nil, err
 	}
 	return &deployment.DescribeAgentResponse{
 		Name: draft.Name, ProjectId: draft.ProjectId, Status: draft.Status,

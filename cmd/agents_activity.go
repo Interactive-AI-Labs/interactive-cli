@@ -7,14 +7,12 @@ import (
 )
 
 var (
-	activityPage    int
-	activityLimit   int
-	activitySearch  string
-	activityActors  []string
-	activityJSON    bool
-	activityYAML    bool
-	activityOrg     string
-	activityProject string
+	activityPage   int
+	activityLimit  int
+	activitySearch string
+	activityActors []string
+	activityJSON   bool
+	activityYAML   bool
 )
 
 var agentActivityCmd = &cobra.Command{
@@ -28,14 +26,11 @@ var agentActivityCmd = &cobra.Command{
   iai agents activity my-agent --actor user:123 --actor api_key:iai_ab --json`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		agent, _, err := agentArg(args, 1, activityOrg, activityProject)
+		agent, _, err := agentArg(args, 1, agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
-		if agent, err = agentName(agent); err != nil {
-			return err
-		}
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), activityOrg, activityProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
@@ -78,8 +73,8 @@ func init() {
 	)
 	f.BoolVar(&activityJSON, "json", false, "Output raw API response as JSON")
 	f.BoolVar(&activityYAML, "yaml", false, "Output raw API response as YAML")
-	f.StringVarP(&activityOrg, "organization", "o", "", "Organization name that owns the project")
-	f.StringVarP(&activityProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 	agentActivityCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	agentsCmd.AddCommand(agentActivityCmd)

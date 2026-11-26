@@ -11,8 +11,6 @@ var (
 	analyticsStep      string
 	analyticsJSON      bool
 	analyticsYAML      bool
-	analyticsOrg       string
-	analyticsProject   string
 )
 
 var agentAnalyticsCmd = &cobra.Command{
@@ -28,14 +26,11 @@ var agentAnalyticsCmd = &cobra.Command{
   iai agents analytics my-agent --time-range 6h --step 5m --json`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		agent, _, err := agentArg(args, 1, analyticsOrg, analyticsProject)
+		agent, _, err := agentArg(args, 1, agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
-		if agent, err = agentName(agent); err != nil {
-			return err
-		}
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), analyticsOrg, analyticsProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
@@ -66,8 +61,8 @@ func init() {
 		"Resolution, e.g. 60s or 5m (defaults by time range)")
 	f.BoolVar(&analyticsJSON, "json", false, "Output raw API responses as JSON")
 	f.BoolVar(&analyticsYAML, "yaml", false, "Output raw API responses as YAML")
-	f.StringVarP(&analyticsOrg, "organization", "o", "", "Organization name that owns the project")
-	f.StringVarP(&analyticsProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 	agentAnalyticsCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	agentsCmd.AddCommand(agentAnalyticsCmd)

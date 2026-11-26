@@ -27,7 +27,7 @@ iai agents performance [flags]
       --from-timestamp string   Show agents from this timestamp (ISO 8601, default: 7 days ago)
   -h, --help                    help for performance
       --json                    Output raw API response as JSON
-  -o, --organization string     Organization name that owns the project
+  -o, --organization string     Organization name
   -p, --project string          Project name
       --to-timestamp string     Show agents to this timestamp (ISO 8601, default: now)
       --yaml                    Output raw API response as YAML

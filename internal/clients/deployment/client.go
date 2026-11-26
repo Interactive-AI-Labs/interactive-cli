@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -1771,6 +1772,9 @@ func (c *DeploymentClient) ListAgents(
 	return result.Agents, nil
 }
 
+// NotFoundError is a 404 from the operator; it reads as the server's message.
+type NotFoundError struct{ error }
+
 func (c *DeploymentClient) DescribeAgent(
 	ctx context.Context,
 	orgId,
@@ -1799,11 +1803,14 @@ func (c *DeploymentClient) DescribeAgent(
 		if err != nil {
 			return nil, fmt.Errorf("failed to read error response: %w", err)
 		}
-		msg := clients.ExtractServerMessage(respBody)
-		if msg != "" {
-			return nil, fmt.Errorf("%s", msg)
+		err = fmt.Errorf("agent describe failed with status %s", resp.Status)
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			err = errors.New(msg)
 		}
-		return nil, fmt.Errorf("agent describe failed with status %s", resp.Status)
+		if resp.StatusCode == http.StatusNotFound {
+			err = NotFoundError{err}
+		}
+		return nil, err
 	}
 
 	var result DescribeAgentResponse
