@@ -216,6 +216,16 @@ func TestSelectAgent(t *testing.T) {
 			Config{SelectedOrg: "o", SelectedProject: "p", SelectedAgent: "a"},
 		},
 		{
+			"same project in another case keeps agent",
+			func(d string) error { return SelectProject(d, "P") },
+			Config{SelectedOrg: "o", SelectedProject: "P", SelectedAgent: "a"},
+		},
+		{
+			"same org in another case keeps project and agent",
+			func(d string) error { return SelectOrg(d, "O") },
+			Config{SelectedOrg: "O", SelectedProject: "p", SelectedAgent: "a"},
+		},
+		{
 			"project change clears agent", func(d string) error { return SelectProject(d, "q") },
 			Config{SelectedOrg: "o", SelectedProject: "q"},
 		},
