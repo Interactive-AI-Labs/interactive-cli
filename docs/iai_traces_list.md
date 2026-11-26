@@ -37,7 +37,7 @@ iai traces list [flags]
 ### Options
 
 ```
-      --agent string              Filter by agent name or id
+      --agent string              Filter by agent name or id; defaults to the selected agent
       --columns strings           Columns to display for table output only (comma-separated, default: id,name,timestamp,latency,cost,tags). Cannot be used with --json or --yaml.
                                   Available: id,name,timestamp,user_id,session_id,release,version,environment,public,latency,cost,tags,observation_count,input_tokens,output_tokens,total_tokens,level
       --environment stringArray   Filter by environment (repeatable)

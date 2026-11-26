@@ -48,16 +48,20 @@ Each event has an offset that orders it in the conversation.`,
 }
 
 var agentEventCreateCmd = &cobra.Command{
-	Use:   "create <agent_name> <session_id>",
+	Use:   "create [agent_name] <session_id>",
 	Short: "Send an event to a conversation session",
-	Long:  `Send an event to a conversation session on a deployed agent.`,
+	Long:  `Send an event to a conversation session on a deployed agent.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents events create my-agent 9mtKfiDIaZ --message "Where is my order?"
   iai agents events create my-agent 9mtKfiDIaZ --file event.json
   cat event.json | iai agents events create my-agent 9mtKfiDIaZ --file -`,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName, sessionID := strings.TrimSpace(args[0]), strings.TrimSpace(args[1])
+		agentName, rest, err := agentArg(args, 2, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+		sessionID := strings.TrimSpace(rest[0])
 
 		body, err := inputs.BuildEventBody(agentEventMessage, agentEventFile, cmd.InOrStdin())
 		if err != nil {
@@ -84,18 +88,22 @@ var agentEventCreateCmd = &cobra.Command{
 }
 
 var agentEventListCmd = &cobra.Command{
-	Use:     "list <agent_name> <session_id>",
+	Use:     "list [agent_name] <session_id>",
 	Aliases: []string{"ls"},
 	Short:   "List the events of a conversation session",
-	Long:    `List the events of a conversation session on a deployed agent, in offset order.`,
+	Long:    `List the events of a conversation session on a deployed agent, in offset order.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents events list my-agent 9mtKfiDIaZ
   iai agents events list my-agent 9mtKfiDIaZ --kinds message
   iai agents events list my-agent 9mtKfiDIaZ --min-offset 12 --follow
   iai agents events list my-agent 9mtKfiDIaZ --follow --json`,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName, sessionID := strings.TrimSpace(args[0]), strings.TrimSpace(args[1])
+		agentName, rest, err := agentArg(args, 2, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+		sessionID := strings.TrimSpace(rest[0])
 		opts := deployment.AgentEventListOptions{
 			MinOffset: agentEventMinOffset,
 			Limit:     agentEventLimit,
@@ -141,18 +149,21 @@ var agentEventListCmd = &cobra.Command{
 }
 
 var agentEventGetCmd = &cobra.Command{
-	Use:     "get <agent_name> <session_id> <event_id>",
+	Use:     "get [agent_name] <session_id> <event_id>",
 	Aliases: []string{"describe", "desc"},
 	Short:   "Get one event of a conversation session",
-	Long:    `Get one event of a conversation session on a deployed agent.`,
+	Long:    `Get one event of a conversation session on a deployed agent.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents events get my-agent 9mtKfiDIaZ 3f9c2a
   iai agents events get my-agent 9mtKfiDIaZ 3f9c2a --follow
   iai agents events get my-agent 9mtKfiDIaZ 3f9c2a --json`,
-	Args: cobra.ExactArgs(3),
+	Args: cobra.RangeArgs(2, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
-		sessionID, eventID := strings.TrimSpace(args[1]), strings.TrimSpace(args[2])
+		agentName, rest, err := agentArg(args, 3, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+		sessionID, eventID := strings.TrimSpace(rest[0]), strings.TrimSpace(rest[1])
 
 		if agentEventGetFollow {
 			print := output.EventFollower(out, agentEventGetJSON, agentEventGetYAML)

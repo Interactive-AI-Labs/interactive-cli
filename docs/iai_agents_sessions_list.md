@@ -6,8 +6,10 @@ List conversation sessions on an agent
 
 List conversation sessions on a deployed agent.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents sessions list <agent_name> [flags]
+iai agents sessions list [agent_name] [flags]
 ```
 
 ### Examples

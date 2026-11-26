@@ -38,7 +38,7 @@ var (
 const replayAgentAPIKeyEnv = "INTERACTIVE_AGENT_API_KEY"
 
 var agentReplayCmd = &cobra.Command{
-	Use:     "replay <agent_name>",
+	Use:     "replay [agent_name]",
 	Short:   "Test an agent by replaying recorded scenarios and report the verdict",
 	GroupID: groupAgentConversations,
 	Long: `Test a deployed agent by replaying recorded scenarios and report the verdict.
@@ -53,7 +53,7 @@ file (--file), or re-attach to a run in flight (--run-id).
 A replay writes a synthetic customer and session to the agent and uses your
 project's quota: prefer a non-production agent. Progress goes to stderr and
 only the verdict to stdout. Exit code is 0 for any verdict, 1 when the replay
-could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
+could not run; gate in CI with --json and jq -e '.status == "passed"'.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock
   iai agents replay agent-chat-dev --dataset replay-chat --scenarios account-lock --scenarios bonus-misrouted --repeat 3
   iai agents replay agent-chat-dev --dataset replay-chat --repeat 3 --concurrency 16
@@ -61,7 +61,7 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
   iai agents replay agent-chat-dev --dataset replay-chat --experiment-name "prompt-v4 sweep"
   iai agents replay agent-chat-dev --dataset replay-chat --json > run.json
   iai agents replay agent-chat-dev --run-id 9d0c44e1aa52`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		in := inputs.ReplayInput{
 			Dataset:     replayDataset,
@@ -82,7 +82,10 @@ could not run; gate in CI with --json and jq -e '.status == "passed"'.`,
 		if err != nil {
 			return err
 		}
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 		deps, orgID, projectID, err := replayTarget(ctx, agentURL, agentName)
 		if err != nil {
 			return err

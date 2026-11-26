@@ -6,8 +6,10 @@ List the events of a conversation session
 
 List the events of a conversation session on a deployed agent, in offset order.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents events list <agent_name> <session_id> [flags]
+iai agents events list [agent_name] <session_id> [flags]
 ```
 
 ### Examples

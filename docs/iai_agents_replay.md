@@ -18,8 +18,10 @@ project's quota: prefer a non-production agent. Progress goes to stderr and
 only the verdict to stdout. Exit code is 0 for any verdict, 1 when the replay
 could not run; gate in CI with --json and jq -e '.status == "passed"'.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents replay <agent_name> [flags]
+iai agents replay [agent_name] [flags]
 ```
 
 ### Examples

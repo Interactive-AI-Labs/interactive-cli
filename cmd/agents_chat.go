@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/conversation"
@@ -17,20 +16,23 @@ var (
 )
 
 var agentChatCmd = &cobra.Command{
-	Use:     "chat <agent_name>",
+	Use:     "chat [agent_name]",
 	Short:   "Talk to an agent from the terminal",
 	GroupID: groupAgentConversations,
 	Long: `Talk to a deployed agent from the terminal.
 
 Each line you enter is sent as a customer message and the agent's reply is shown
 as it is written. Ctrl+C or end of input stops the chat; the session stays on
-the agent.`,
+the agent.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents chat my-agent
   iai agents chat my-agent --session-id 9mtKfiDIaZ
   iai agents chat my-agent --customer-id cust_42 --title "Order 123"`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 

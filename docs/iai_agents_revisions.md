@@ -8,8 +8,10 @@ Show past revisions of an agent, sorted newest-first.
 Up to 50 revisions are retained per agent. Server-recorded actor and source
 metadata is shown when available.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents revisions <agent_name> [flags]
+iai agents revisions [agent_name] [flags]
 ```
 
 ### Examples

@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/inputs"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
+	"github.com/Interactive-AI-Labs/interactive-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -377,6 +379,10 @@ var agentListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		selected, err := selectedAgent(agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 
 		render := func(ctx context.Context, w io.Writer) error {
 			agents, err := deployClient.ListAgents(ctx, pCtx.orgId, pCtx.projectId, "")
@@ -389,7 +395,7 @@ var agentListCmd = &cobra.Command{
 			if agentListYAML {
 				return output.PrintStructuredYAML(w, agents)
 			}
-			return output.PrintAgentList(w, agents)
+			return output.PrintAgentList(w, agents, selected)
 		}
 
 		if agentListWatch {
@@ -399,10 +405,74 @@ var agentListCmd = &cobra.Command{
 	},
 }
 
+var agentSelectClear bool
+
+var agentSelectCmd = &cobra.Command{
+	Use:     "select [agent_name]",
+	Aliases: []string{"set"},
+	Short:   "Select an agent for subsequent commands",
+	GroupID: groupAgentManage,
+	Long: `Select an agent by name and store it in the local CLI configuration so other
+commands can use it without specifying the agent each time. Commands that create,
+change or remove an agent still take the name. Selecting another organization or
+project clears the selected agent.`,
+	Example: `  iai agents select my-agent
+  iai agents select --clear`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
+
+		if agentSelectClear {
+			if len(args) > 0 {
+				return errors.New("pass an agent name or --clear, not both")
+			}
+			if err := files.SelectAgent(cfgDirName, ""); err != nil {
+				return fmt.Errorf("failed to clear selected agent: %w", err)
+			}
+			fmt.Fprintln(out, "Cleared the selected agent")
+			return nil
+		}
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			return errors.New("agent name is required: pass the agent name, or --clear")
+		}
+		agentName := strings.TrimSpace(args[0])
+
+		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+		selected, err := session.NewSession(cfgDirName).
+			IsSelectedProject(pCtx.orgName, pCtx.projectName)
+		if err != nil {
+			return err
+		}
+		if !selected {
+			return fmt.Errorf(
+				"project %q of organization %q is not the selected project: select it first with 'iai organizations select' and 'iai projects select'",
+				pCtx.projectName,
+				pCtx.orgName,
+			)
+		}
+
+		if _, err := deployClient.DescribeAgent(
+			cmd.Context(), pCtx.orgId, pCtx.projectId, agentName,
+		); err != nil {
+			return fmt.Errorf("failed to resolve agent %q: %w", agentName, err)
+		}
+
+		if err := files.SelectAgent(cfgDirName, agentName); err != nil {
+			return fmt.Errorf("failed to store selected agent: %w", err)
+		}
+
+		fmt.Fprintf(out, "Selected agent %s\n", agentName)
+		return nil
+	},
+}
+
 var agentDescribeRevision int
 
 var agentDescribeCmd = &cobra.Command{
-	Use:     "describe <agent_name>",
+	Use:     "describe [agent_name]",
 	Aliases: []string{"desc"},
 	Short:   "Describe an agent in detail",
 	GroupID: groupAgentManage,
@@ -419,14 +489,17 @@ private one.
 Secret-backed environment variables show <secret: name/key>, not the secret value.
 
 Use --revision to view a specific past revision instead of the current state.
-Past revision output includes server-recorded actor and source attribution when available.`,
+Past revision output includes server-recorded actor and source attribution when available.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents describe my-agent
   iai agents describe my-agent --revision 3
   iai agents describe my-agent --yaml`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
@@ -647,7 +720,7 @@ var (
 )
 
 var agentLogsCmd = &cobra.Command{
-	Use:     "logs <agent_name>",
+	Use:     "logs [agent_name]",
 	Short:   "Show logs for an agent",
 	GroupID: groupAgentManage,
 	Long: `Show logs for an agent in a project.
@@ -659,16 +732,19 @@ Structured (JSON) logs are automatically formatted: the level and message
 fields are extracted and displayed as "LEVEL message". Use --fields or
 --all-fields to include additional top-level fields after the message. Use
 --raw for exact server JSON, or --decode to decode embedded JSON strings into
-nested JSON values.`,
+nested JSON values.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents logs my-agent
   iai agents logs my-agent --follow
   iai agents logs my-agent --since 30m
   iai agents logs my-agent --timestamps
   iai agents logs my-agent --start-time 2026-01-01T00:00:00Z --end-time 2026-01-01T01:00:00Z`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 
 		ctx := cmd.Context()
 		if agentLogsFollow {
@@ -866,18 +942,21 @@ By default, output is a formatted table. Use --json for machine-readable output.
 }
 
 var agentRevisionsCmd = &cobra.Command{
-	Use:     "revisions <agent_name>",
+	Use:     "revisions [agent_name]",
 	Aliases: []string{"revs"},
 	Short:   "List revisions of an agent",
 	GroupID: groupAgentManage,
 	Long: `Show past revisions of an agent, sorted newest-first.
 Up to 50 revisions are retained per agent. Server-recorded actor and source
-metadata is shown when available.`,
+metadata is shown when available.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents revisions my-agent`,
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
@@ -899,21 +978,25 @@ metadata is shown when available.`,
 }
 
 var agentDiffCmd = &cobra.Command{
-	Use:     "diff <agent_name> <revision_a> <revision_b>",
+	Use:     "diff [agent_name] <revision_a> <revision_b>",
 	Short:   "Compare two revisions of an agent",
 	GroupID: groupAgentManage,
-	Long:    `Show the differences between two revisions of an agent.`,
+	Long:    `Show the differences between two revisions of an agent.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents diff my-agent 1 3`,
-	Args:    cobra.ExactArgs(3),
+	Args:    cobra.RangeArgs(2, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
-
-		revA, err := inputs.ParseRevisionArg(args[1])
+		agentName, rest, err := agentArg(args, 3, agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
-		revB, err := inputs.ParseRevisionArg(args[2])
+		labelA, labelB := rest[0], rest[1]
+
+		revA, err := inputs.ParseRevisionArg(labelA)
+		if err != nil {
+			return err
+		}
+		revB, err := inputs.ParseRevisionArg(labelB)
 		if err != nil {
 			return err
 		}
@@ -945,7 +1028,7 @@ var agentDiffCmd = &cobra.Command{
 			return err
 		}
 
-		return output.PrintRevisionDiff(out, args[1], a, args[2], b)
+		return output.PrintRevisionDiff(out, labelA, a, labelB, b)
 	},
 }
 
@@ -955,7 +1038,7 @@ var (
 )
 
 var agentPortForwardCmd = &cobra.Command{
-	Use:     "port-forward <agent_name>",
+	Use:     "port-forward [agent_name]",
 	Short:   "Forward a local port to an agent",
 	GroupID: groupAgentManage,
 	Long: `Open a local TCP listener and tunnel traffic to an agent running in
@@ -963,13 +1046,16 @@ the platform.
 
 The remote port defaults to the agent's configured port. Use --port to
 override. Use --local-port to choose the local listening port (defaults to
---port when set, or an available OS-assigned port otherwise).`,
+--port when set, or an available OS-assigned port otherwise).` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents port-forward my-agent
   iai agents port-forward my-agent --port 8080
   iai agents port-forward my-agent --port 8080 --local-port 9090`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 		localPort := agentPFLocalPort
 		if localPort == 0 {
 			localPort = agentPFPort
@@ -988,18 +1074,21 @@ override. Use --local-port to choose the local listening port (defaults to
 var agentLogFieldsSince string
 
 var agentLogFieldsCmd = &cobra.Command{
-	Use:     "log-fields <agent_name>",
+	Use:     "log-fields [agent_name]",
 	Short:   "List available fields in structured logs",
 	GroupID: groupAgentManage,
 	Long: `Scan recent logs and list the extra top-level fields present in structured (JSON) log entries.
 
-Use the reported field names with 'iai agents logs --fields' to include them in output.`,
+Use the reported field names with 'iai agents logs --fields' to include them in output.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents log-fields my-agent
   iai agents log-fields my-agent --since 1h`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 
 		since := agentLogFieldsSince
 
@@ -1173,6 +1262,14 @@ func init() {
 	agentListCmd.MarkFlagsMutuallyExclusive("watch", "json")
 	agentListCmd.MarkFlagsMutuallyExclusive("watch", "yaml")
 
+	// Flags for "agents select"
+	agentSelectCmd.Flags().
+		StringVarP(&agentProject, "project", "p", "", "Project name")
+	agentSelectCmd.Flags().
+		StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
+	agentSelectCmd.Flags().
+		BoolVar(&agentSelectClear, "clear", false, "Clear the selected agent")
+
 	// Flags for "agents describe"
 	agentDescribeCmd.Flags().
 		StringVarP(&agentProject, "project", "p", "", "Project name")
@@ -1309,6 +1406,7 @@ func init() {
 	agentsCmd.AddCommand(agentCreateCmd)
 	agentsCmd.AddCommand(agentUpdateCmd)
 	agentsCmd.AddCommand(agentListCmd)
+	agentsCmd.AddCommand(agentSelectCmd)
 	agentsCmd.AddCommand(agentDescribeCmd)
 	agentsCmd.AddCommand(agentDeleteCmd)
 	agentsCmd.AddCommand(agentRestartCmd)

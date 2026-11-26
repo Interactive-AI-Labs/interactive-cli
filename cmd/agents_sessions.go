@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -38,16 +36,19 @@ A session holds one conversation. Create one, send it messages with
 }
 
 var agentSessionCreateCmd = &cobra.Command{
-	Use:   "create <agent_name>",
+	Use:   "create [agent_name]",
 	Short: "Create a conversation session on an agent",
-	Long:  `Create a conversation session on a deployed agent and print its ID.`,
+	Long:  `Create a conversation session on a deployed agent and print its ID.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents sessions create my-agent
   iai agents sessions create my-agent --customer-id cust_42 --title "Order 123"
   iai agents sessions create my-agent --labels test --json`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
@@ -76,18 +77,21 @@ var agentSessionCreateCmd = &cobra.Command{
 }
 
 var agentSessionListCmd = &cobra.Command{
-	Use:     "list <agent_name>",
+	Use:     "list [agent_name]",
 	Aliases: []string{"ls"},
 	Short:   "List conversation sessions on an agent",
-	Long:    `List conversation sessions on a deployed agent.`,
+	Long:    `List conversation sessions on a deployed agent.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents sessions list my-agent
   iai agents sessions list my-agent --customer-id cust_42
   iai agents sessions list my-agent --labels test --limit 10
   iai agents sessions list my-agent --json`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		agentName := strings.TrimSpace(args[0])
+		agentName, _, err := agentArg(args, 1, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {

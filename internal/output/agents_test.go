@@ -118,9 +118,10 @@ func TestPrintAgentDescribe(t *testing.T) {
 
 func TestPrintAgentList(t *testing.T) {
 	tests := []struct {
-		name   string
-		agents []deployment.AgentOutput
-		want   string
+		name     string
+		agents   []deployment.AgentOutput
+		selected string
+		want     string
 	}{
 		{
 			name:   "empty list prints message",
@@ -150,12 +151,23 @@ func TestPrintAgentList(t *testing.T) {
 				"agent-a   1          deployed    \n" +
 				"agent-b   5          deploying   \n",
 		},
+		{
+			name: "selected agent is marked",
+			agents: []deployment.AgentOutput{
+				{Name: "agent-a", Revision: 1, Status: "deployed"},
+				{Name: "agent-b", Revision: 5, Status: "deploying"},
+			},
+			selected: "agent-b",
+			want: "NAME        REVISION   STATUS      UPDATED\n" +
+				"agent-a     1          deployed    \n" +
+				"agent-b *   5          deploying   \n",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := PrintAgentList(&buf, tt.agents)
+			err := PrintAgentList(&buf, tt.agents, tt.selected)
 			if err != nil {
 				t.Fatalf("PrintAgentList() error = %v", err)
 			}

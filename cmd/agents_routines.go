@@ -32,17 +32,21 @@ inspect execution events.`,
 }
 
 var agentRoutineRunCmd = &cobra.Command{
-	Use:   "run <agent_name> <routine_id>",
+	Use:   "run [agent_name] <routine_id>",
 	Short: "Launch an existing autonomous routine",
 	Long: `Launch an existing autonomous routine and return its receipt without waiting
 for completion. Inspect tool activity and output with 'iai agents events list'.
-Requests are not automatically retried.`,
+Requests are not automatically retried.` + "\n\n" + selectedAgentHelp,
 	Example: `  iai agents routines run my-agent billing/refund --input-file input.json --callback-url https://trusted.example/results
   iai agents routines run my-agent billing/refund --input-file input.json --callback-url https://trusted.example/results --session-id sess_123
   cat input.json | iai agents routines run my-agent billing/refund --input-file - --callback-url https://trusted.example/results --idempotency-key refund-order-123 --json`,
-	Args: cobra.ExactArgs(2),
+	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		agentName, routineID := strings.TrimSpace(args[0]), strings.TrimSpace(args[1])
+		agentName, rest, err := agentArg(args, 2, agentOrganization, agentProject)
+		if err != nil {
+			return err
+		}
+		routineID := strings.TrimSpace(rest[0])
 		if err := inputs.ValidateRoutineRun(
 			agentName,
 			routineID,

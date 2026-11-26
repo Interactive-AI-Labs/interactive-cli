@@ -75,6 +75,7 @@ func TestHelpGroups(t *testing.T) {
 		"agents catalog":              groupAgentReference,
 		"agents compatibility-matrix": groupAgentReference,
 		"agents schema":               groupAgentReference,
+		"agents select":               groupAgentManage,
 		"sections":                    "Auth: Agents: Context: Integrations: Infrastructure: Observability: Evaluation & Annotation:",
 		"agents sections":             "Create: Manage: Conversations: Observability: Reference:",
 	}

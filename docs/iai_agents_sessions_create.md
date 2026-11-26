@@ -6,8 +6,10 @@ Create a conversation session on an agent
 
 Create a conversation session on a deployed agent and print its ID.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents sessions create <agent_name> [flags]
+iai agents sessions create [agent_name] [flags]
 ```
 
 ### Examples

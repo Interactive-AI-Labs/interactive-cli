@@ -10,8 +10,10 @@ Each line you enter is sent as a customer message and the agent's reply is shown
 as it is written. Ctrl+C or end of input stops the chat; the session stays on
 the agent.
 
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents chat <agent_name> [flags]
+iai agents chat [agent_name] [flags]
 ```
 
 ### Examples

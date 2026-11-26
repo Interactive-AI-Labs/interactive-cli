@@ -2,8 +2,14 @@
 
 List an agent's trace sessions
 
+### Synopsis
+
+List an agent's trace sessions.
+
+Without agent_name, the selected agent is used (see 'iai agents select').
+
 ```
-iai agents trace-sessions <agent_name> [flags]
+iai agents trace-sessions [agent_name] [flags]
 ```
 
 ### Examples

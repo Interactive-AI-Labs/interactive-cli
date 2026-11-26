@@ -21,7 +21,7 @@ iai reports list [flags]
 ### Options
 
 ```
-      --agent string      Only reports attached to this agent id
+      --agent string      Only reports attached to this agent id; defaults to the selected agent
       --columns strings   Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml. Available: id, name, description, folder, agents, default_range, updated_at, updated_by, updated_via, created_at
       --folder string     Only reports in this folder; none for reports in no folder
   -h, --help              help for list

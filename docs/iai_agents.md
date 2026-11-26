@@ -44,6 +44,7 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai agents revisions](iai_agents_revisions.md)	 - List revisions of an agent
 * [iai agents routines](iai_agents_routines.md)	 - Execute autonomous routines on a deployed agent
 * [iai agents schema](iai_agents_schema.md)	 - Display the JSON Schema for agent configuration
+* [iai agents select](iai_agents_select.md)	 - Select an agent for subsequent commands
 * [iai agents sessions](iai_agents_sessions.md)	 - Conversation sessions on an agent
 * [iai agents trace-sessions](iai_agents_trace-sessions.md)	 - List an agent's trace sessions
 * [iai agents traces](iai_agents_traces.md)	 - List an agent's traces
