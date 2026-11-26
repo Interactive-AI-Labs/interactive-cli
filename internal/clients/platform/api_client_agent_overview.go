@@ -189,3 +189,34 @@ func decodeBody[T any](c *APIClient, req *http.Request, action string) (T, json.
 	}
 	return v, json.RawMessage(body), nil
 }
+
+type AgentActivityOptions struct {
+	Page   int      `url:"page,omitempty"`
+	Limit  int      `url:"limit,omitempty"`
+	Search string   `url:"q,omitempty"`
+	Actors []string `url:"actor,omitempty"`
+}
+
+type AgentActivity struct {
+	Activity []struct {
+		Time    string         `json:"time"`
+		Action  string         `json:"action"`
+		Success bool           `json:"success"`
+		Data    map[string]any `json:"data"`
+		Actor   struct {
+			ID      string `json:"id"`
+			Display string `json:"display"`
+		} `json:"actor"`
+	} `json:"activity"`
+	Meta PageMeta `json:"meta"`
+}
+
+func (c *APIClient) ListAgentActivity(
+	ctx context.Context,
+	orgID, projectID, agent string,
+	opts AgentActivityOptions,
+) (AgentActivity, json.RawMessage, error) {
+	return doList[AgentActivity](c, ctx,
+		evalBasePath(orgID, projectID)+"/agents/"+url.PathEscape(agent)+"/activity",
+		opts, "list agent activity")
+}

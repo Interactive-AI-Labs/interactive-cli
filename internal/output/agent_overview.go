@@ -1,6 +1,7 @@
 package output
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -126,4 +127,31 @@ func PrintAgentPerformance(out io.Writer, p platform.AgentPerformance) error {
 	}
 	_, err := fmt.Fprintf(out, "\nTotal Cost: %s\n", formatFigure(p.CostTotal))
 	return err
+}
+
+func PrintAgentActivity(out io.Writer, a platform.AgentActivity) error {
+	if len(a.Activity) == 0 {
+		_, err := fmt.Fprintln(out, "No activity found.")
+		return err
+	}
+	rows := make([][]string, 0, len(a.Activity))
+	for _, e := range a.Activity {
+		data, _ := json.Marshal(e.Data)
+		rows = append(rows, []string{
+			LocalTime(e.Time),
+			Printable(e.Action),
+			Printable(e.Actor.Display),
+			strconv.FormatBool(e.Success),
+			Printable(truncateString(string(data), 80)),
+		})
+	}
+	if err := PrintTable(
+		out,
+		[]string{"TIME", "ACTION", "ACTOR", "SUCCESS", "DATA"},
+		rows,
+	); err != nil {
+		return err
+	}
+	PrintPageMeta(out, a.Meta.Page, a.Meta.TotalPages, a.Meta.TotalItems)
+	return nil
 }
