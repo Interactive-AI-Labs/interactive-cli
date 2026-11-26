@@ -25,8 +25,11 @@ func agentListsServer(t *testing.T, filters *[]string) {
 			fmt.Fprint(w, `{"organizations":[{"id":"org-1","name":"org"}]}`)
 		case r.URL.Path == "/api/v1/session/organizations/org-1/projects":
 			fmt.Fprint(w, `{"projects":[{"id":"proj-1","name":"proj"}]}`)
-		case strings.HasPrefix(r.URL.Path, "/api/platform/v1/projects/proj-1/prompts/"):
+		case strings.HasPrefix(r.URL.Path, "/api/platform/v1/projects/proj-1/prompts"):
 			*filters = append(*filters, r.URL.Query().Get("filter"))
+			if agent := r.URL.Query().Get("agent"); agent != "" {
+				*filters = append(*filters, "agent="+agent)
+			}
 			fmt.Fprint(w, `{"success":true,"data":{"prompts":[],"totalCount":0}}`)
 		case strings.Contains(r.URL.Path, "/logs"):
 			*filters = append(*filters, r.URL.RequestURI())
@@ -82,6 +85,12 @@ func TestAgentListFilters(t *testing.T) {
 		{[]string{"glossaries", "list"}, "", []string{"--agent", "bot"}, filter},
 		{[]string{"glossaries", "list"}, "bot", nil, filter},
 		{[]string{"glossaries", "list"}, "", nil, ""},
+		{[]string{"macros", "list"}, "other", []string{"--agent", "bot"}, "agent=bot"},
+		{[]string{"macros", "list"}, "bot", nil, "agent=bot"},
+		{[]string{"macros", "list"}, "", nil, ""},
+		{[]string{"prompts", "list"}, "other", []string{"--agent", "bot"}, "agent=bot"},
+		{[]string{"prompts", "list"}, "bot", nil, "agent=bot"},
+		{[]string{"prompts", "list"}, "", nil, ""},
 		{
 			[]string{"mcps", "list"},
 			"",
