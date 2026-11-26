@@ -96,8 +96,13 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 			}
 		}
 
+		agent, err := agentFlag(queueItemsListAgent, queueItemsListOrg, queueItemsListProject)
+		if err != nil {
+			return err
+		}
+
 		opts := platform.QueueItemListOptions{
-			Agent:     queueItemsListAgent,
+			Agent:     agent,
 			Status:    queueItemsListStatus,
 			Page:      queueItemsListPage,
 			Limit:     queueItemsListLimit,
@@ -335,7 +340,7 @@ func init() {
 	addChoiceFlag(queueItemsListCmd, &queueItemsListStatus, "status", "",
 		"Filter by status", queueItemStatuses)
 	queueItemsListCmd.Flags().
-		StringVar(&queueItemsListAgent, "agent", "", "Filter by agent name or id")
+		StringVar(&queueItemsListAgent, "agent", "", "Filter by agent name or id; defaults to the selected agent")
 	queueItemsListCmd.Flags().
 		IntVar(&queueItemsListPage, "page", 1, "Page number (starts at 1)")
 	queueItemsListCmd.Flags().IntVar(&queueItemsListLimit, "limit", 0, "Items per page (max 100)")

@@ -85,8 +85,13 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 			}
 		}
 
+		agent, err := agentFlag(queuesListAgent, queuesListOrg, queuesListProject)
+		if err != nil {
+			return err
+		}
+
 		opts := platform.AnnotationQueueListOptions{
-			Agent:     queuesListAgent,
+			Agent:     agent,
 			Page:      queuesListPage,
 			Limit:     queuesListLimit,
 			SortBy:    queuesListSortBy,
@@ -327,7 +332,8 @@ This command requires Cookie or Bearer authentication; API keys are rejected by 
 
 func init() {
 	indexJSONShape(queuesCmd, "env")
-	queuesListCmd.Flags().StringVar(&queuesListAgent, "agent", "", "Filter by agent name or id")
+	queuesListCmd.Flags().
+		StringVar(&queuesListAgent, "agent", "", "Filter by agent name or id; defaults to the selected agent")
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(queuesListCmd, "limit", "max 100")

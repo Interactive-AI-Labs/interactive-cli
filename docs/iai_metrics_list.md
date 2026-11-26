@@ -27,7 +27,7 @@ iai metrics list [flags]
 ### Options
 
 ```
-      --agent string            Filter by agent name or id
+      --agent string            Filter by agent name or id; defaults to the selected agent
       --columns strings         Columns to display for table output only (comma-separated, default: date,count_traces,count_observations,total_cost). Cannot be used with --json or --yaml.
                                 Available: date,count_traces,count_observations,total_cost,total_tokens
       --daily                   Aggregate metrics by day (default true)

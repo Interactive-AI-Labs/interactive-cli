@@ -73,8 +73,13 @@ var datasetsListCmd = &cobra.Command{
 			}
 		}
 
+		agent, err := agentFlag(datasetsListAgent, datasetsListOrg, datasetsListProject)
+		if err != nil {
+			return err
+		}
+
 		opts := platform.DatasetListOptions{
-			Agent: datasetsListAgent,
+			Agent: agent,
 			Page:  datasetsListPage,
 			Limit: datasetsListLimit,
 		}
@@ -258,7 +263,8 @@ var datasetsDeleteCmd = &cobra.Command{
 
 func init() {
 	indexJSONShape(datasetsCmd, "env")
-	datasetsListCmd.Flags().StringVar(&datasetsListAgent, "agent", "", "Filter by agent name or id")
+	datasetsListCmd.Flags().
+		StringVar(&datasetsListAgent, "agent", "", "Filter by agent name or id; defaults to the selected agent")
 	datasetsListCmd.Flags().IntVar(&datasetsListPage, "page", 1, "Page number (starts at 1)")
 	datasetsListCmd.Flags().IntVar(&datasetsListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(datasetsListCmd, "limit", "max 100")

@@ -1238,7 +1238,6 @@ func (c *APIClient) ListPrompts(
 	}, nil
 }
 
-// promptListQuery encodes opts for the generic or the typed list endpoint.
 func promptListQuery(routeSegment string, opts PromptListOptions) (url.Values, error) {
 	q := url.Values{}
 

@@ -186,7 +186,6 @@ func decodeBody[T any](c *APIClient, req *http.Request, action string) (T, json.
 	return v, json.RawMessage(body), nil
 }
 
-// getBody is decodeBody for a GET of path with query q.
 func getBody[T any](
 	c *APIClient, ctx context.Context, path string, q url.Values, action string,
 ) (T, json.RawMessage, error) {

@@ -1494,7 +1494,6 @@ func describeAgentOrDraft(
 	}, nil
 }
 
-// withDrafts appends the drafts not named like an operator agent.
 func withDrafts(
 	agents []deployment.AgentOutput, drafts []platform.AgentDraft,
 ) []deployment.AgentOutput {
