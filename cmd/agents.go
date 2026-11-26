@@ -399,16 +399,7 @@ The selected agent is marked with *.`,
 			if err != nil {
 				return err
 			}
-			for _, d := range drafts {
-				if !slices.ContainsFunc(agents, func(a deployment.AgentOutput) bool {
-					return a.Name == d.Name
-				}) {
-					agents = append(agents, deployment.AgentOutput{
-						Name: d.Name, ProjectId: d.ProjectId, Status: d.Status,
-						Updated: cmp.Or(d.UpdatedAt, d.CreatedAt),
-					})
-				}
-			}
+			agents = withDrafts(agents, drafts)
 			if agentListJSON {
 				return output.PrintStructuredJSON(w, agents)
 			}
@@ -1479,7 +1470,7 @@ func init() {
 
 const agentMcpEndpointUsage = "Endpoint this agent dials the MCP on; needs exactly one --mcp; private, the default for a new attachment, is reachable only within the project, public is the MCP's public endpoint and needs a self-hosted MCP with it enabled"
 
-// describeAgentOrDraft falls back to the platform's draft of that name, keeping the operator's error when there is none.
+// describeAgentOrDraft falls back to the platform's draft of that name.
 func describeAgentOrDraft(
 	ctx context.Context,
 	apiClient *platform.APIClient,
@@ -1492,8 +1483,15 @@ func describeAgentOrDraft(
 		return agent, nil
 	}
 	draft, draftErr := apiClient.GetAgentDraft(ctx, pCtx.projectId, name)
+	return draftOrError(draft, draftErr, err)
+}
+
+// draftOrError describes the draft, or returns the operator's error when there is no draft.
+func draftOrError(
+	draft *platform.AgentDraft, draftErr, operatorErr error,
+) (*deployment.DescribeAgentResponse, error) {
 	if draftErr != nil {
-		return nil, err
+		return nil, operatorErr
 	}
 	return &deployment.DescribeAgentResponse{
 		Name: draft.Name, ProjectId: draft.ProjectId, Status: draft.Status,
@@ -1501,4 +1499,21 @@ func describeAgentOrDraft(
 		Version: draft.AgentVersion, Description: draft.Description,
 		AgentConfig: draft.AgentConfig,
 	}, nil
+}
+
+// withDrafts appends the drafts not named like an operator agent.
+func withDrafts(
+	agents []deployment.AgentOutput, drafts []platform.AgentDraft,
+) []deployment.AgentOutput {
+	for _, d := range drafts {
+		if !slices.ContainsFunc(agents, func(a deployment.AgentOutput) bool {
+			return a.Name == d.Name
+		}) {
+			agents = append(agents, deployment.AgentOutput{
+				Name: d.Name, ProjectId: d.ProjectId, Status: d.Status,
+				Updated: cmp.Or(d.UpdatedAt, d.CreatedAt),
+			})
+		}
+	}
+	return agents
 }

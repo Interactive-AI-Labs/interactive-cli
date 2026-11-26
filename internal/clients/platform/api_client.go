@@ -1197,7 +1197,50 @@ func (c *APIClient) ListPrompts(
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	q := req.URL.Query()
+	q, err := promptListQuery(routeSegment, opts)
+	if err != nil {
+		return nil, err
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.do(req)
+	if err != nil {
+		return nil, fmt.Errorf("prompt list request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if msg := clients.ExtractServerMessage(respBody); msg != "" {
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return nil, fmt.Errorf("failed to list prompts: server returned %s", resp.Status)
+	}
+
+	var envelope promptAPIResponse
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode prompts response: %w", err)
+	}
+
+	var listData promptListData
+	if err := json.Unmarshal(envelope.Data, &listData); err != nil {
+		return nil, fmt.Errorf("failed to decode prompts data: %w", err)
+	}
+
+	return &PromptListResponse{
+		Prompts:    listData.Prompts,
+		TotalCount: listData.TotalCount,
+		Scope:      listData.Scope,
+	}, nil
+}
+
+// promptListQuery encodes opts for the generic or the typed list endpoint.
+func promptListQuery(routeSegment string, opts PromptListOptions) (url.Values, error) {
+	q := url.Values{}
 
 	// The generic /prompts endpoint (empty routeSegment) expects all query
 	// parameters encoded as a JSON object in a single "input" query param.
@@ -1250,41 +1293,7 @@ func (c *APIClient) ListPrompts(
 	if opts.Scope != "" {
 		q.Set("scope", opts.Scope)
 	}
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := c.do(req)
-	if err != nil {
-		return nil, fmt.Errorf("prompt list request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if msg := clients.ExtractServerMessage(respBody); msg != "" {
-			return nil, fmt.Errorf("%s", msg)
-		}
-		return nil, fmt.Errorf("failed to list prompts: server returned %s", resp.Status)
-	}
-
-	var envelope promptAPIResponse
-	if err := json.Unmarshal(respBody, &envelope); err != nil {
-		return nil, fmt.Errorf("failed to decode prompts response: %w", err)
-	}
-
-	var listData promptListData
-	if err := json.Unmarshal(envelope.Data, &listData); err != nil {
-		return nil, fmt.Errorf("failed to decode prompts data: %w", err)
-	}
-
-	return &PromptListResponse{
-		Prompts:    listData.Prompts,
-		TotalCount: listData.TotalCount,
-		Scope:      listData.Scope,
-	}, nil
+	return q, nil
 }
 
 func (c *APIClient) GetPrompt(

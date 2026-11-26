@@ -2,6 +2,7 @@ package platform
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -434,6 +435,43 @@ func TestDecodeMcpDetailEnvAndSecretRefs(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.wantSecretRefs, data.Mcp.SecretRefs); diff != "" {
 				t.Errorf("secret_refs mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAgentMcps(t *testing.T) {
+	const list = `{"success":true,"data":{"internal_available":true,"mcps":[
+		{"name":"crm","attached_agents":["bot"],"extra":1},
+		{"name":"mail","attached_agents":["other"]},
+		{"name":"docs","attached_agents":["Bot","bot-2"]},
+		{"name":"idle","attached_agents":[]}]}}`
+	tests := []struct {
+		agent string
+		want  string
+	}{
+		{"bot", `[crm] {"data":{"internal_available":true,` +
+			`"mcps":[{"name":"crm","attached_agents":["bot"],"extra":1}]},"success":true}`},
+		{"Bot", `[docs] {"data":{"internal_available":true,` +
+			`"mcps":[{"name":"docs","attached_agents":["Bot","bot-2"]}]},"success":true}`},
+		{"nobody", `[] {"data":{"internal_available":true,"mcps":[]},"success":true}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.agent, func(t *testing.T) {
+			data, err := decodeSuccess[McpListData]([]byte(list), "list mcps")
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw, err := AgentMcps(&data, []byte(list), tt.agent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var names []string
+			for _, m := range data.Mcps {
+				names = append(names, m.Name)
+			}
+			if got := fmt.Sprintf("%v %s", names, raw); got != tt.want {
+				t.Errorf("got  %s\nwant %s", got, tt.want)
 			}
 		})
 	}

@@ -7,12 +7,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-querystring/query"
 )
 
@@ -1013,5 +1015,35 @@ func TestAgentListQuery(t *testing.T) {
 		if got := q.Encode(); err != nil || got != tt.want {
 			t.Errorf("query.Values(%+v) = %q, %v; want %q", tt.opts, got, err, tt.want)
 		}
+	}
+}
+
+func TestPromptListQuery(t *testing.T) {
+	const filter = `[{"column":"Agents","operator":"any of","type":"arrayOptions","value":["bot"]}]`
+	const input = `{"filter":[],"folder":"prompts","orderBy":{}}`
+	tests := []struct {
+		segment string
+		agent   string
+		want    url.Values
+	}{
+		{"policies", "bot", url.Values{"filter": {filter}}},
+		{"routines", "bot", url.Values{"filter": {filter}}},
+		{"glossaries", "bot", url.Values{"filter": {filter}}},
+		{"policies", "", url.Values{}},
+		{"macros", "bot", url.Values{"agent": {"bot"}}},
+		{"macros", "", url.Values{}},
+		{"", "bot", url.Values{"input": {input}, "agent": {"bot"}}},
+		{"", "", url.Values{"input": {input}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.segment+" agent="+tt.agent, func(t *testing.T) {
+			got, err := promptListQuery(tt.segment, PromptListOptions{Agent: tt.agent})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("query (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
