@@ -12,6 +12,7 @@ Policies are core behavior rules — condition-action pairs that govern agent
 responses (YAML format).`,
 		RouteSegment: "policies",
 		HasSchema:    true,
+		AgentFilter:  true,
 		CreateLong: `Create a new policy in an InteractiveAI project.
 
 Each prompt holds exactly one policy (flat YAML, fields at the root).
@@ -43,6 +44,7 @@ Returns all policies with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.`,
 		ListExample: `  iai policies list
+  iai policies list --agent my-agent
   iai policies list --folder my-folder
   iai policies list --folder my-folder/sub-folder
   iai policies list --page 2 --limit 10`,

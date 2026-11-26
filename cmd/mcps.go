@@ -60,6 +60,7 @@ var (
 
 var (
 	mcpListJSON         bool
+	mcpListAgent        string
 	mcpListYAML         bool
 	mcpDescribeJSON     bool
 	mcpDescribeYAML     bool
@@ -516,6 +517,7 @@ var mcpListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List mcps in a project",
 	Example: `  iai mcps list
+  iai mcps list --agent my-agent
   iai mcps list --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -529,6 +531,15 @@ var mcpListCmd = &cobra.Command{
 		res, raw, err := apiClient.ListMcps(cmd.Context(), pCtx.orgId, pCtx.projectId)
 		if err != nil {
 			return err
+		}
+		agent, err := agentFlag(mcpListAgent, mcpOrganization, mcpProject)
+		if err != nil {
+			return err
+		}
+		if agent != "" {
+			if raw, err = platform.AgentMcps(res, raw, agent); err != nil {
+				return err
+			}
 		}
 
 		if mcpListJSON {
@@ -1149,6 +1160,8 @@ func init() {
 	mcpListCmd.Flags().BoolVar(&mcpListJSON, "json", false, "Output raw API response as JSON")
 	mcpListCmd.Flags().BoolVar(&mcpListYAML, "yaml", false, "Output raw API response as YAML")
 	mcpListCmd.MarkFlagsMutuallyExclusive("json", "yaml")
+	mcpListCmd.Flags().StringVar(&mcpListAgent, "agent", "",
+		"Filter by agent name; defaults to the selected agent")
 	mcpDescribeCmd.Flags().
 		BoolVar(&mcpDescribeJSON, "json", false, "Output raw API response as JSON")
 	mcpDescribeCmd.Flags().

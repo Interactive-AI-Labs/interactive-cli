@@ -18,6 +18,7 @@ iai glossaries list [flags]
 
 ```
   iai glossaries list
+  iai glossaries list --agent my-agent
   iai glossaries list --folder my-folder
   iai glossaries list --folder my-folder/sub-folder
   iai glossaries list --page 2 --limit 10
@@ -26,6 +27,7 @@ iai glossaries list [flags]
 ### Options
 
 ```
+      --agent string          Filter by agent name; defaults to the selected agent
       --folder string         List items in a subfolder of glossaries/ (the glossaries/ prefix is implied)
   -h, --help                  help for list
       --json                  Output response as JSON

@@ -12,6 +12,7 @@ Glossary entries are domain-specific terms with descriptions and synonyms (JSON
 format).`,
 		RouteSegment: "glossaries",
 		HasSchema:    true,
+		AgentFilter:  true,
 		CreateLong: `Create a new glossary definition in an InteractiveAI project.
 
 Content is provided via a JSON file using the --file flag.
@@ -53,6 +54,7 @@ Returns all glossary entries with their name, labels, tags, and last update time
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.`,
 		ListExample: `  iai glossaries list
+  iai glossaries list --agent my-agent
   iai glossaries list --folder my-folder
   iai glossaries list --folder my-folder/sub-folder
   iai glossaries list --page 2 --limit 10`,

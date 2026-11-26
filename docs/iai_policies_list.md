@@ -18,6 +18,7 @@ iai policies list [flags]
 
 ```
   iai policies list
+  iai policies list --agent my-agent
   iai policies list --folder my-folder
   iai policies list --folder my-folder/sub-folder
   iai policies list --page 2 --limit 10
@@ -26,6 +27,7 @@ iai policies list [flags]
 ### Options
 
 ```
+      --agent string          Filter by agent name; defaults to the selected agent
       --folder string         List items in a subfolder of policies/ (the policies/ prefix is implied)
   -h, --help                  help for list
       --json                  Output response as JSON
