@@ -139,6 +139,7 @@ func makeGenericListCmd() *cobra.Command {
 		page    int
 		limit   int
 		folder  string
+		agent   string
 		project string
 		org     string
 		asJSON  bool
@@ -155,6 +156,7 @@ Returns all general-purpose prompts with their name, labels, tags, and last
 update time. Typed prompts (routines, policies, etc.) are excluded.
 Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 		Example: `  iai prompts list
+  iai prompts list --agent my-agent
   iai prompts list --folder my-folder
   iai prompts list --folder my-folder/sub-folder
   iai prompts list --page 2 --limit 10`,
@@ -170,6 +172,9 @@ Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 			opts := platform.PromptListOptions{
 				Page:  page,
 				Limit: limit,
+			}
+			if opts.Agent, err = agentFlag(agent, org, project); err != nil {
+				return err
 			}
 			if folder != "" {
 				opts.Subfolder = strings.TrimSpace(folder)
@@ -205,6 +210,8 @@ Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 	cmd.Flags().IntVar(&page, "page", 0, "Page number for pagination")
 	cmd.Flags().IntVar(&limit, "limit", 0, "Number of items per page (default: 50)")
 	cmd.Flags().StringVar(&folder, "folder", "", "List items inside the given folder path")
+	cmd.Flags().StringVar(&agent, "agent", "",
+		"Filter by agent name; defaults to the selected agent")
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
 	cmd.MarkFlagsMutuallyExclusive("json", "yaml")

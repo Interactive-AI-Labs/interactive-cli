@@ -12,6 +12,7 @@ Macros are reusable template replies, written as YAML with the reply text under
 'text'.`,
 		RouteSegment: "macros",
 		HasSchema:    true,
+		AgentFilter:  true,
 		CreateLong: `Create a new macro in an InteractiveAI project.
 
 Each macro is a YAML mapping with the reply text under 'text'.
@@ -40,6 +41,7 @@ Returns all macros with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.`,
 		ListExample: `  iai macros list
+  iai macros list --agent my-agent
   iai macros list --folder my-folder
   iai macros list --folder my-folder/sub-folder
   iai macros list --page 2 --limit 10`,

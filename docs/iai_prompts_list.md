@@ -18,6 +18,7 @@ iai prompts list [flags]
 
 ```
   iai prompts list
+  iai prompts list --agent my-agent
   iai prompts list --folder my-folder
   iai prompts list --folder my-folder/sub-folder
   iai prompts list --page 2 --limit 10
@@ -26,6 +27,7 @@ iai prompts list [flags]
 ### Options
 
 ```
+      --agent string          Filter by agent name; defaults to the selected agent
       --folder string         List items inside the given folder path
   -h, --help                  help for list
       --json                  Output response as JSON

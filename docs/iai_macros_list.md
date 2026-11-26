@@ -18,6 +18,7 @@ iai macros list [flags]
 
 ```
   iai macros list
+  iai macros list --agent my-agent
   iai macros list --folder my-folder
   iai macros list --folder my-folder/sub-folder
   iai macros list --page 2 --limit 10
@@ -26,6 +27,7 @@ iai macros list [flags]
 ### Options
 
 ```
+      --agent string          Filter by agent name; defaults to the selected agent
       --folder string         List items in a subfolder of macros/ (the macros/ prefix is implied)
   -h, --help                  help for list
       --json                  Output response as JSON
