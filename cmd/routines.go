@@ -12,6 +12,7 @@ Routines are step-by-step conversation flows with branching logic and terminal
 states (YAML format).`,
 		RouteSegment: "routines",
 		HasSchema:    true,
+		AgentFilter:  true,
 		CreateLong: `Create a new routine in an InteractiveAI project.
 
 Content is provided via a YAML file using the --file flag.
@@ -48,6 +49,7 @@ Returns all routines with their name, labels, tags, and last update time.
 Folders are shown with a trailing "/" (colored when stdout is a terminal) and
 can be browsed into with --folder.`,
 		ListExample: `  iai routines list
+  iai routines list --agent my-agent
   iai routines list --folder my-folder
   iai routines list --folder my-folder/sub-folder
   iai routines list --page 2 --limit 10`,

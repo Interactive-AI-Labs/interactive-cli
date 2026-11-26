@@ -30,6 +30,7 @@ type PromptTypeConfig struct {
 	BindPromptConfigFlags func(cmd *cobra.Command) ConfigFlagBuilder
 	// GlobalScope adds a platform-owned scope on the same routes.
 	GlobalScope   bool
+	AgentFilter   bool   // adds --agent to the list subcommand
 	CreateLong    string // long description for the create subcommand
 	ListLong      string // long description for the list subcommand
 	GetLong       string // long description for the describe subcommand
@@ -213,6 +214,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 		page    int
 		limit   int
 		folder  string
+		agent   string
 		project string
 		org     string
 		asJSON  bool
@@ -240,6 +242,11 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 			}
 			if ptCfg.GlobalScope {
 				opts.Scope = platform.ScopeAll
+			}
+			if ptCfg.AgentFilter {
+				if opts.Agent, err = agentFlag(agent, org, project); err != nil {
+					return err
+				}
 			}
 			if folder != "" {
 				opts.Subfolder = strings.TrimSpace(folder)
@@ -277,6 +284,10 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 	cmd.Flags().
 		StringVar(&folder, "folder", "", fmt.Sprintf("List items in a subfolder of %s/ (the %s/ prefix is implied)", ptCfg.Plural, ptCfg.Plural))
 	indexFlag(cmd, "folder", "prefix is implied")
+	if ptCfg.AgentFilter {
+		cmd.Flags().StringVar(&agent, "agent", "",
+			"Filter by agent name; defaults to the selected agent")
+	}
 	cmd.Flags().BoolVar(&asJSON, "json", false, "Output response as JSON")
 	cmd.Flags().BoolVar(&asYAML, "yaml", false, "Output response as YAML")
 	cmd.MarkFlagsMutuallyExclusive("json", "yaml")

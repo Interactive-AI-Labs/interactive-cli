@@ -18,6 +18,7 @@ iai routines list [flags]
 
 ```
   iai routines list
+  iai routines list --agent my-agent
   iai routines list --folder my-folder
   iai routines list --folder my-folder/sub-folder
   iai routines list --page 2 --limit 10
@@ -26,6 +27,7 @@ iai routines list [flags]
 ### Options
 
 ```
+      --agent string          Filter by agent name; defaults to the selected agent
       --folder string         List items in a subfolder of routines/ (the routines/ prefix is implied)
   -h, --help                  help for list
       --json                  Output response as JSON

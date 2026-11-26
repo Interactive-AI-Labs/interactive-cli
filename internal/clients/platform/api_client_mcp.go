@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 )
 
 type McpBackend string
@@ -288,6 +289,34 @@ func RemoteStackMcps(mcps []McpSchema, stackID string) []McpSchema {
 		remote = append(remote, mcp)
 	}
 	return remote
+}
+
+// AgentMcps keeps the MCPs attached to agent in data and in its raw response; the platform has no agent filter.
+func AgentMcps(data *McpListData, raw json.RawMessage, agent string) (json.RawMessage, error) {
+	var envelope, body map[string]json.RawMessage
+	var items []json.RawMessage
+	err := json.Unmarshal(raw, &envelope)
+	if err == nil {
+		err = json.Unmarshal(envelope["data"], &body)
+	}
+	if err == nil {
+		err = json.Unmarshal(body["mcps"], &items)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode list mcps response: %w", err)
+	}
+	attached := func(m McpSchema) bool { return slices.Contains(m.AttachedAgents, agent) }
+	data.Mcps = slices.DeleteFunc(data.Mcps, func(m McpSchema) bool { return !attached(m) })
+	items = slices.DeleteFunc(items, func(item json.RawMessage) bool {
+		var m McpSchema
+		return json.Unmarshal(item, &m) != nil || !attached(m)
+	})
+	if body["mcps"], err = json.Marshal(items); err == nil {
+		if envelope["data"], err = json.Marshal(body); err == nil {
+			return json.Marshal(envelope)
+		}
+	}
+	return nil, err
 }
 
 func (c *APIClient) DescribeMcp(

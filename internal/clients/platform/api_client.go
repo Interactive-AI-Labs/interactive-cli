@@ -1117,6 +1117,7 @@ type PromptListOptions struct {
 	Limit     int
 	Subfolder string // optional user-supplied sub-path for folder browsing
 	Scope     string // ScopeAll lists both scopes, ScopeGlobal only the shared skills
+	Agent     string // typed endpoints only
 }
 
 // PromptGetOptions selects which record to read; the zero value is the server's default.
@@ -1230,6 +1231,16 @@ func (c *APIClient) ListPrompts(
 		}
 		if opts.Limit > 0 {
 			q.Set("limit", fmt.Sprintf("%d", opts.Limit))
+		}
+		if opts.Agent != "" {
+			filter, err := json.Marshal([]map[string]any{{
+				"column": "Agents", "type": "arrayOptions", "operator": "any of",
+				"value": []string{opts.Agent},
+			}})
+			if err != nil {
+				return nil, fmt.Errorf("failed to encode agent filter: %w", err)
+			}
+			q.Set("filter", string(filter))
 		}
 	}
 	if opts.Scope != "" {

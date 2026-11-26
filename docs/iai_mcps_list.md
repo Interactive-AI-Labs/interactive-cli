@@ -10,15 +10,17 @@ iai mcps list [flags]
 
 ```
   iai mcps list
+  iai mcps list --agent my-agent
   iai mcps list --json
 ```
 
 ### Options
 
 ```
-  -h, --help   help for list
-      --json   Output raw API response as JSON
-      --yaml   Output raw API response as YAML
+      --agent string   Filter by agent name; defaults to the selected agent
+  -h, --help           help for list
+      --json           Output raw API response as JSON
+      --yaml           Output raw API response as YAML
 ```
 
 ### Options inherited from parent commands
