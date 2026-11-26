@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	queuesListAgent     string
 	queuesListPage      int
 	queuesListLimit     int
 	queuesListSortBy    string
@@ -61,6 +62,7 @@ var queuesListCmd = &cobra.Command{
 
 Results are sorted by created_at descending unless --sort-by/--sort-order say otherwise.`,
 	Example: `  iai queues list
+  iai queues list --agent my-agent
   iai queues list --page 2 --limit 50
   iai queues list --sort-by name --sort-order asc
   iai queues list --sort-by count_pending_items --sort-order desc
@@ -84,6 +86,7 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 		}
 
 		opts := platform.AnnotationQueueListOptions{
+			Agent:     queuesListAgent,
 			Page:      queuesListPage,
 			Limit:     queuesListLimit,
 			SortBy:    queuesListSortBy,
@@ -324,6 +327,7 @@ This command requires Cookie or Bearer authentication; API keys are rejected by 
 
 func init() {
 	indexJSONShape(queuesCmd, "env")
+	queuesListCmd.Flags().StringVar(&queuesListAgent, "agent", "", "Filter by agent name or id")
 	queuesListCmd.Flags().IntVar(&queuesListPage, "page", 1, "Page number (starts at 1)")
 	queuesListCmd.Flags().IntVar(&queuesListLimit, "limit", 0, "Items per page (max 100)")
 	indexFlag(queuesListCmd, "limit", "max 100")

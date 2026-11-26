@@ -29,6 +29,7 @@ var (
 	scoresScoreIDs      []string
 	scoresUserID        string
 	scoresTraceTags     []string
+	scoresAgent         string
 	scoresValue         string
 	scoresOperator      string
 	scoresColumns       []string
@@ -76,6 +77,7 @@ var scoresListCmd = &cobra.Command{
 Uses the platform API with dual authentication (API key or session).
 If --from-timestamp is not provided, defaults to 7 days ago.`,
 	Example: `  iai scores list
+  iai scores list --agent my-agent
   iai scores list --name accuracy --data-type NUMERIC
   iai scores list --from-timestamp 2026-01-01T00:00:00Z --to-timestamp 2026-02-01T00:00:00Z --limit 50
   iai scores list --trace-id trace-abc123 --json`,
@@ -118,6 +120,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			ScoreIDs:      scoresScoreIDs,
 			UserID:        scoresUserID,
 			TraceTags:     scoresTraceTags,
+			Agent:         scoresAgent,
 			Value:         scoresValue,
 			Operator:      scoresOperator,
 		}
@@ -287,6 +290,7 @@ func init() {
 	scoresListCmd.Flags().StringVar(&scoresUserID, "user-id", "", "Filter by user ID")
 	scoresListCmd.Flags().
 		StringArrayVar(&scoresTraceTags, "trace-tag", nil, "Filter by trace tag (repeatable)")
+	scoresListCmd.Flags().StringVar(&scoresAgent, "agent", "", "Filter by agent name or id")
 	scoresListCmd.Flags().StringVar(&scoresValue, "value", "", "Exact value filter")
 	scoresListCmd.Flags().StringVar(&scoresOperator, "operator", "", "Operator for --value")
 	scoresListCmd.Flags().

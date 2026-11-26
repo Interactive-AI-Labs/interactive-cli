@@ -17,6 +17,7 @@ iai scores list [flags]
 
 ```
   iai scores list
+  iai scores list --agent my-agent
   iai scores list --name accuracy --data-type NUMERIC
   iai scores list --from-timestamp 2026-01-01T00:00:00Z --to-timestamp 2026-02-01T00:00:00Z --limit 50
   iai scores list --trace-id trace-abc123 --json
@@ -25,6 +26,7 @@ iai scores list [flags]
 ### Options
 
 ```
+      --agent string            Filter by agent name or id
       --columns strings         Columns to display for table output only (comma-separated, default: id,name,data_type,value,source,timestamp,trace_id). Cannot be used with --json or --yaml.
                                 Available: id,name,data_type,value,source,timestamp,trace_id,observation_id,session_id,environment,config_id,user_id,comment
       --config-id string        Filter by config ID

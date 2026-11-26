@@ -16,6 +16,7 @@ iai queues list [flags]
 
 ```
   iai queues list
+  iai queues list --agent my-agent
   iai queues list --page 2 --limit 50
   iai queues list --sort-by name --sort-order asc
   iai queues list --sort-by count_pending_items --sort-order desc
@@ -26,6 +27,7 @@ iai queues list [flags]
 ### Options
 
 ```
+      --agent string          Filter by agent name or id
       --columns strings       Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
   -h, --help                  help for list
       --json                  Output raw API response as JSON
