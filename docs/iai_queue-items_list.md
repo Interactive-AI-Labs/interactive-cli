@@ -17,6 +17,7 @@ iai queue-items list [flags]
 ```
   iai queue-items list --queue-id queue-123
   iai queue-items list --queue-id queue-123 --status PENDING
+  iai queue-items list --queue-id queue-123 --agent my-agent
   iai queue-items list --queue-id queue-123 --page 2 --limit 50
   iai queue-items list --queue-id queue-123 --sort-by created_at --sort-order asc
   iai queue-items list --queue-id queue-123 --sort-by status --sort-order desc
@@ -26,6 +27,7 @@ iai queue-items list [flags]
 ### Options
 
 ```
+      --agent string          Filter by agent name or id
       --columns strings       Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
   -h, --help                  help for list
       --json                  Output raw API response as JSON

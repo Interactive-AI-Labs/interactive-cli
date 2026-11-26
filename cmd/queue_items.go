@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	queueItemsListAgent     string
 	queueItemsListQueueID   string
 	queueItemsListStatus    string
 	queueItemsListPage      int
@@ -67,6 +68,7 @@ var queueItemsListCmd = &cobra.Command{
 Results are sorted by created_at descending unless --sort-by/--sort-order say otherwise.`,
 	Example: `  iai queue-items list --queue-id queue-123
   iai queue-items list --queue-id queue-123 --status PENDING
+  iai queue-items list --queue-id queue-123 --agent my-agent
   iai queue-items list --queue-id queue-123 --page 2 --limit 50
   iai queue-items list --queue-id queue-123 --sort-by created_at --sort-order asc
   iai queue-items list --queue-id queue-123 --sort-by status --sort-order desc
@@ -95,6 +97,7 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 		}
 
 		opts := platform.QueueItemListOptions{
+			Agent:     queueItemsListAgent,
 			Status:    queueItemsListStatus,
 			Page:      queueItemsListPage,
 			Limit:     queueItemsListLimit,
@@ -331,6 +334,8 @@ func init() {
 	_ = queueItemsListCmd.MarkFlagRequired("queue-id")
 	addChoiceFlag(queueItemsListCmd, &queueItemsListStatus, "status", "",
 		"Filter by status", queueItemStatuses)
+	queueItemsListCmd.Flags().
+		StringVar(&queueItemsListAgent, "agent", "", "Filter by agent name or id")
 	queueItemsListCmd.Flags().
 		IntVar(&queueItemsListPage, "page", 1, "Page number (starts at 1)")
 	queueItemsListCmd.Flags().IntVar(&queueItemsListLimit, "limit", 0, "Items per page (max 100)")

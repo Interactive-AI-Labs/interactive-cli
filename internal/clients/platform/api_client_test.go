@@ -1001,6 +1001,11 @@ func TestAgentListQuery(t *testing.T) {
 		{TraceListOptions{Agent: "support bot", UserID: "u-1"}, "agent=support+bot&user_id=u-1"},
 		{ObservationSearchOptions{Agent: "support-bot", Model: "m"}, "agent=support-bot&model=m"},
 		{SessionListOptions{Agent: "support-bot", Page: 2}, "agent=support-bot&page=2"},
+		{AnnotationQueueListOptions{Agent: "bot", SortBy: "name"}, "agent=bot&sort_by=name"},
+		{QueueItemListOptions{Agent: "bot", Status: "PENDING"}, "agent=bot&status=PENDING"},
+		{DatasetListOptions{Agent: "bot", Page: 2}, "agent=bot&page=2"},
+		{ScoreListOptions{Agent: "bot", TraceTags: []string{"t"}}, "agent=bot&trace_tag=t"},
+		{MetricsDailyOptions{Agent: "bot", Environment: "e"}, "agent=bot&environment=e"},
 		{SessionListOptions{}, ""},
 	}
 	for _, tt := range tests {

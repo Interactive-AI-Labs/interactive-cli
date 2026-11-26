@@ -618,6 +618,7 @@ type ScoreListOptions struct {
 	ScoreIDs      []string `url:"score_id,omitempty"`
 	UserID        string   `url:"user_id,omitempty"`
 	TraceTags     []string `url:"trace_tag,omitempty"`
+	Agent         string   `url:"agent,omitempty"`
 	Value         string   `url:"value,omitempty"`
 	Operator      string   `url:"operator,omitempty"`
 }
@@ -675,6 +676,7 @@ type MetricsDailyOptions struct {
 	UserID        string   `url:"user_id,omitempty"`
 	Tags          []string `url:"tags,omitempty"`
 	Environment   string   `url:"environment,omitempty"`
+	Agent         string   `url:"agent,omitempty"`
 }
 
 type metricsDailyData struct {

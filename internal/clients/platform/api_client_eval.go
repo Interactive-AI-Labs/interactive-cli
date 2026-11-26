@@ -257,8 +257,9 @@ type DatasetInfo struct {
 }
 
 type DatasetListOptions struct {
-	Page  int `url:"page,omitempty"`
-	Limit int `url:"limit,omitempty"`
+	Agent string `url:"agent,omitempty"`
+	Page  int    `url:"page,omitempty"`
+	Limit int    `url:"limit,omitempty"`
 }
 
 type DatasetCreateBody struct {
@@ -587,6 +588,7 @@ type AnnotationQueueInfo struct {
 }
 
 type AnnotationQueueListOptions struct {
+	Agent     string `url:"agent,omitempty"`
 	Page      int    `url:"page,omitempty"`
 	Limit     int    `url:"limit,omitempty"`
 	SortBy    string `url:"sort_by,omitempty"`
@@ -733,6 +735,7 @@ type QueueItemInfo struct {
 }
 
 type QueueItemListOptions struct {
+	Agent     string `url:"agent,omitempty"`
 	Status    string `url:"status,omitempty"`
 	Page      int    `url:"page,omitempty"`
 	Limit     int    `url:"limit,omitempty"`

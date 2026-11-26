@@ -23,13 +23,23 @@ func TestAgentFlag(t *testing.T) {
 		{obsListCmd, []string{"--agent", "a", "--model", "m"}, ""},
 		{obsListCmd, []string{"--trace-id", "t"}, ""},
 		{obsListCmd, []string{"--agent", "a", "--trace-id", "t"}, "[agent trace-id] were all set"},
+		{queuesListCmd, []string{"--agent", "a", "--sort-by", "name"}, ""},
+		{queueItemsListCmd, []string{"--agent", "a", "--status", "PENDING"}, ""},
+		{datasetsListCmd, []string{"--agent", "a"}, ""},
+		{scoresListCmd, []string{"--agent", "a", "--user-id", "u"}, ""},
+		{metricsListCmd, []string{"--agent", "a", "--environment", "e"}, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.cmd.CommandPath()+" "+strings.Join(tt.args, " "), func(t *testing.T) {
 			t.Cleanup(func() {
 				tracesAgent, tracesUserID, sessionsAgent, sessionsEnvironment = "", "", "", ""
 				obsListAgent, obsListModel, obsTraceID = "", "", ""
-				for _, name := range []string{"agent", "user-id", "environment", "model", "trace-id"} {
+				queuesListAgent, queuesListSortBy, datasetsListAgent = "", "", ""
+				queueItemsListAgent, queueItemsListStatus = "", ""
+				scoresAgent, scoresUserID, metricsListAgent, metricsListEnvironment = "", "", "", ""
+				for _, name := range []string{
+					"agent", "user-id", "environment", "model", "trace-id", "sort-by", "status",
+				} {
 					if f := tt.cmd.Flags().Lookup(name); f != nil {
 						f.Changed = false
 					}

@@ -20,12 +20,14 @@ iai metrics list [flags]
   iai metrics list --daily
   iai metrics list --daily --from-timestamp 2025-01-01T00:00:00Z
   iai metrics list --daily --trace-name my-trace --show-models
+  iai metrics list --daily --agent my-agent
   iai metrics list --daily --json | jq '.data'
 ```
 
 ### Options
 
 ```
+      --agent string            Filter by agent name or id
       --columns strings         Columns to display for table output only (comma-separated, default: date,count_traces,count_observations,total_cost). Cannot be used with --json or --yaml.
                                 Available: date,count_traces,count_observations,total_cost,total_tokens
       --daily                   Aggregate metrics by day (default true)
