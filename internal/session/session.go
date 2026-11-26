@@ -97,12 +97,12 @@ func (s *Session) SelectedAgent(cfgOrg, flagOrg, cfgProject, flagProject string)
 		return "", err
 	}
 
-	if ok, err := s.IsSelectedProject(org, project); err != nil || !ok {
-		return "", err
-	}
 	cfg, err := files.LoadConfig(s.cfgDirName)
 	if err != nil {
 		return "", fmt.Errorf("failed to load selected agent: %w", err)
+	}
+	if !isSelected(cfg, org, project) {
+		return "", nil
 	}
 	return strings.TrimSpace(cfg.SelectedAgent), nil
 }
@@ -113,6 +113,10 @@ func (s *Session) IsSelectedProject(org, project string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("failed to load config: %w", err)
 	}
+	return isSelected(cfg, org, project), nil
+}
+
+func isSelected(cfg *files.Config, org, project string) bool {
 	return strings.EqualFold(org, strings.TrimSpace(cfg.SelectedOrg)) &&
-		strings.EqualFold(project, strings.TrimSpace(cfg.SelectedProject)), nil
+		strings.EqualFold(project, strings.TrimSpace(cfg.SelectedProject))
 }

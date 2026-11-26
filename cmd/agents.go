@@ -432,10 +432,13 @@ project clears the selected agent.`,
 			fmt.Fprintln(out, "Cleared the selected agent")
 			return nil
 		}
-		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		var agentName string
+		if len(args) > 0 {
+			agentName = strings.TrimSpace(args[0])
+		}
+		if agentName == "" {
 			return errors.New("agent name is required: pass the agent name, or --clear")
 		}
-		agentName := strings.TrimSpace(args[0])
 
 		pCtx, _, deployClient, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
