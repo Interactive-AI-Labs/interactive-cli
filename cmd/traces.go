@@ -496,6 +496,7 @@ func init() {
 		StringVarP(&tracesListOrg, "organization", "o", "", "Organization name that owns the project")
 	tracesListCmd.Flags().
 		StringVarP(&tracesListProject, "project", "p", "", "Project name")
+	agentsCmd.AddCommand(agentObservabilityCmd("traces", tracesListCmd, &tracesAgent, "agent"))
 
 	// traces get flags
 	tracesGetCmd.Flags().

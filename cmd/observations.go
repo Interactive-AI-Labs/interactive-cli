@@ -268,6 +268,9 @@ func init() {
 	obsListCmd.Flags().
 		StringVar(&obsListAgent, "agent", "", "Filter by agent name or id (not with --trace-id)")
 	obsListCmd.MarkFlagsMutuallyExclusive("agent", "trace-id")
+	agentsCmd.AddCommand(agentObservabilityCmd(
+		"observations", obsListCmd, &obsListAgent, "agent", "trace-id", "include-io",
+	))
 
 	// observations get flags
 	obsGetCmd.Flags().BoolVar(&obsGetJSON, "json", false, "Output raw API response as JSON")
