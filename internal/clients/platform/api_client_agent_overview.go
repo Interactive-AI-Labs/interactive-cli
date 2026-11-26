@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/google/go-querystring/query"
 )
@@ -219,4 +220,76 @@ func (c *APIClient) ListAgentActivity(
 	return doList[AgentActivity](c, ctx,
 		evalBasePath(orgID, projectID)+"/agents/"+url.PathEscape(agent)+"/activity",
 		opts, "list agent activity")
+}
+
+type AgentAnalyticsOptions struct {
+	TimeRange string `url:"time_range,omitempty"`
+	Step      string `url:"step,omitempty"`
+}
+
+// AgentChart is the chart_data every analytics route returns: each series' value per timestamp.
+type AgentChart struct {
+	ChartData []struct {
+		Timestamp int64              `json:"timestamp"`
+		Values    map[string]float64 `json:"values"`
+	} `json:"chart_data"`
+}
+
+type AgentAnalytics struct {
+	CPUUsage          AgentChart `json:"cpu_usage"`
+	MemoryUsage       AgentChart `json:"memory_usage"`
+	StatusCodes       AgentChart `json:"status_codes"`
+	RequestsPerDomain AgentChart `json:"requests_per_domain"`
+	Latency           AgentChart `json:"latency"`
+}
+
+// GetAgentAnalytics reads the agent's five analytics routes into one object keyed by route.
+func (c *APIClient) GetAgentAnalytics(
+	ctx context.Context,
+	orgID, projectID, agent string,
+	opts AgentAnalyticsOptions,
+) (AgentAnalytics, json.RawMessage, error) {
+	var analytics AgentAnalytics
+	uris, err := agentAnalyticsURIs(orgID, projectID, agent, opts)
+	if err != nil {
+		return analytics, nil, err
+	}
+	charts := map[string]json.RawMessage{}
+	for key, uri := range uris {
+		path, rawQuery, _ := strings.Cut(uri, "?")
+		req, err := c.newRequest(ctx, http.MethodGet, path)
+		if err != nil {
+			return analytics, nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.URL.RawQuery = rawQuery
+		if charts[key], err = c.doAndRead(req, "get agent analytics"); err != nil {
+			return analytics, nil, err
+		}
+	}
+	raw, err := json.Marshal(charts)
+	if err == nil {
+		err = json.Unmarshal(raw, &analytics)
+	}
+	if err != nil {
+		return analytics, nil, fmt.Errorf("failed to decode agent analytics: %w", err)
+	}
+	return analytics, raw, nil
+}
+
+// agentAnalyticsURIs maps each analytics key to its route's request URI.
+func agentAnalyticsURIs(
+	orgID, projectID, agent string, opts AgentAnalyticsOptions,
+) (map[string]string, error) {
+	q, err := query.Values(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode query parameters: %w", err)
+	}
+	uris := map[string]string{}
+	for _, route := range []string{
+		"cpu-usage", "memory-usage", "status-codes", "requests-per-domain", "latency",
+	} {
+		uris[strings.ReplaceAll(route, "-", "_")] = evalBasePath(orgID, projectID) +
+			"/agents/" + url.PathEscape(agent) + "/" + route + "?" + q.Encode()
+	}
+	return uris, nil
 }

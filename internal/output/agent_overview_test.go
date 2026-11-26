@@ -175,3 +175,56 @@ func TestPrintAgentActivity(t *testing.T) {
 		})
 	}
 }
+
+func TestPrintAgentAnalytics(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			"empty",
+			`{"cpu_usage":{"chart_data":[]},"latency":{"chart_data":[{"timestamp":1,"values":{}}]}}`,
+			"No analytics found.\n",
+		},
+		{
+			"latest and peak per series",
+			`{"cpu_usage":{"chart_data":[` +
+				`{"timestamp":1,"values":{"bot":0.012,"bot-db":0.5}},{"timestamp":2,"values":{"bot":0.02}}]},` +
+				`"memory_usage":{"chart_data":[` +
+				`{"timestamp":1,"values":{"bot":104857600}},{"timestamp":2,"values":{"bot":52428800}}]},` +
+				`"status_codes":{"chart_data":[` +
+				`{"timestamp":1,"values":{"2xx":12,"5xx":1}},{"timestamp":2,"values":{"2xx":30.333,"5xx":0}}]},` +
+				`"requests_per_domain":{"chart_data":[` +
+				`{"timestamp":1,"values":{"bot":40}},{"timestamp":2,"values":{"bot":30.333}}]},` +
+				`"latency":{"chart_data":[` +
+				`{"timestamp":1,"values":{"p50":120,"p95":900,"p99":1500}},` +
+				`{"timestamp":2,"values":{"p50":80,"p95":400,"p99":2400}}]}}`,
+			"METRIC         SERIES   LATEST     PEAK\n" +
+				"CPU (cores)    bot      0.020      0.020\n" +
+				"CPU (cores)    bot-db   0.500      0.500\n" +
+				"Memory         bot      50.0 MiB   100.0 MiB\n" +
+				"Requests       bot      30.3       40\n" +
+				"Status codes   2xx      30.3       30.3\n" +
+				"Status codes   5xx      0          1\n" +
+				"Latency        p50      80ms       120ms\n" +
+				"Latency        p95      400ms      900ms\n" +
+				"Latency        p99      2.40s      2.40s\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var a platform.AgentAnalytics
+			if err := json.Unmarshal([]byte(tt.body), &a); err != nil {
+				t.Fatal(err)
+			}
+			var buf bytes.Buffer
+			if err := PrintAgentAnalytics(&buf, a); err != nil {
+				t.Fatal(err)
+			}
+			if got := buf.String(); got != tt.want {
+				t.Errorf("got:\n%s\nwant:\n%s", got, tt.want)
+			}
+		})
+	}
+}

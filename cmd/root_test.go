@@ -75,6 +75,7 @@ func TestHelpGroups(t *testing.T) {
 		"agents overview":             groupAgentObservability,
 		"agents performance":          groupAgentObservability,
 		"agents activity":             groupAgentObservability,
+		"agents analytics":            groupAgentObservability,
 		"agents catalog":              groupAgentReference,
 		"agents compatibility-matrix": groupAgentReference,
 		"agents schema":               groupAgentReference,

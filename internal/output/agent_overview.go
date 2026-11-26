@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
+	"math"
+	"slices"
 	"strconv"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -154,4 +157,42 @@ func PrintAgentActivity(out io.Writer, a platform.AgentActivity) error {
 	}
 	PrintPageMeta(out, a.Meta.Page, a.Meta.TotalPages, a.Meta.TotalItems)
 	return nil
+}
+
+// PrintAgentAnalytics prints each series' latest and peak value, not every time point.
+func PrintAgentAnalytics(out io.Writer, a platform.AgentAnalytics) error {
+	count := func(v float64) string { return strconv.FormatFloat(math.Round(v*10)/10, 'f', -1, 64) }
+	metrics := []struct {
+		name   string
+		chart  platform.AgentChart
+		format func(float64) string
+	}{
+		{"CPU (cores)", a.CPUUsage, func(v float64) string { return fmt.Sprintf("%.3f", v) }},
+		{"Memory", a.MemoryUsage, func(v float64) string { return HumanBytes(int64(v)) }},
+		{"Requests", a.RequestsPerDomain, count},
+		{"Status codes", a.StatusCodes, count},
+		{"Latency", a.Latency, func(v float64) string { return formatLatencyMs(&v) }},
+	}
+	var rows [][]string
+	for _, m := range metrics {
+		latest, peak := map[string]float64{}, map[string]float64{}
+		for _, point := range m.chart.ChartData {
+			for series, v := range point.Values {
+				if p, ok := peak[series]; !ok || v > p {
+					peak[series] = v
+				}
+				latest[series] = v
+			}
+		}
+		for _, series := range slices.Sorted(maps.Keys(latest)) {
+			rows = append(rows, []string{
+				m.name, Printable(series), m.format(latest[series]), m.format(peak[series]),
+			})
+		}
+	}
+	if len(rows) == 0 {
+		_, err := fmt.Fprintln(out, "No analytics found.")
+		return err
+	}
+	return PrintTable(out, []string{"METRIC", "SERIES", "LATEST", "PEAK"}, rows)
 }
