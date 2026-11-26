@@ -121,7 +121,7 @@ func SelectProject(cfgDirName, projectName string) error {
 	}
 
 	newProject := strings.TrimSpace(projectName)
-	if !strings.EqualFold(strings.TrimSpace(cfg.SelectedProject), newProject) {
+	if cfg.SelectedProject != newProject {
 		cfg.SelectedAgent = ""
 	}
 	cfg.SelectedProject = newProject

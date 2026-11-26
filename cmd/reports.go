@@ -460,7 +460,7 @@ func init() {
 	reportsListCmd.Flags().
 		StringVar(&reportsListFolder, "folder", "", "Only reports in this folder; none for reports in no folder")
 	reportsListCmd.Flags().
-		StringVar(&reportsListAgent, "agent", "", "Filter by agent name; defaults to the selected agent")
+		StringVar(&reportsListAgent, "agent", "", "Only reports attached to this agent id; defaults to the selected agent")
 	reportsListCmd.Flags().
 		StringSliceVar(&reportsListColumns, "columns", nil, fmt.Sprintf(
 			"Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml. Available: %s",
