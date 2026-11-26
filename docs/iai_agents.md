@@ -38,6 +38,8 @@ Manage deployment of agents to InteractiveAI projects.
 * [iai agents log-fields](iai_agents_log-fields.md)	 - List available fields in structured logs
 * [iai agents logs](iai_agents_logs.md)	 - Show logs for an agent
 * [iai agents observations](iai_agents_observations.md)	 - List an agent's observations
+* [iai agents overview](iai_agents_overview.md)	 - Show an agent's performance, cost, usage and errors
+* [iai agents performance](iai_agents_performance.md)	 - Show traces, sessions, latency and cost per agent
 * [iai agents port-forward](iai_agents_port-forward.md)	 - Forward a local port to an agent
 * [iai agents replay](iai_agents_replay.md)	 - Test an agent by replaying recorded scenarios and report the verdict
 * [iai agents restart](iai_agents_restart.md)	 - Restart an agent in a project
