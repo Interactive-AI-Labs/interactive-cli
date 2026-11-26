@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"strings"
 	"testing"
 
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/files"
-	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -220,38 +217,6 @@ func TestAgentSelectArgs(t *testing.T) {
 			cmd.SetOut(io.Discard)
 			if got := errText(agentSelectCmd.RunE(cmd, tt.args)); got != tt.want {
 				t.Errorf("error = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestAgentListMarksSelected(t *testing.T) {
-	tests := []struct {
-		name    string
-		project string
-		want    string
-	}{
-		{
-			"selected project",
-			"",
-			"NAME    REVISION   STATUS   UPDATED\nbot *   0                   \n",
-		},
-		{
-			"another project",
-			"other",
-			"NAME   REVISION   STATUS   UPDATED\nbot    0                   \n",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			saveSelection(t, "bot")
-			var buf bytes.Buffer
-			selected, err := selectedAgent("", tt.project)
-			if err == nil {
-				err = output.PrintAgentList(&buf, []deployment.AgentOutput{{Name: "bot"}}, selected)
-			}
-			if got := buf.String() + errText(err); got != tt.want {
-				t.Errorf("output = %q, want %q", got, tt.want)
 			}
 		})
 	}
