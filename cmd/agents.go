@@ -80,9 +80,8 @@ var agentsCmd = &cobra.Command{
 	Aliases: []string{"agent"},
 	Short:   "Deploy AI agents with policies, routines, and tools",
 	GroupID: groupAgents,
-	Long: `Manage deployment of agents to InteractiveAI projects.
-
-See what an agent did:
+	Long:    `Manage deployment of agents to InteractiveAI projects.`,
+	Example: `  # See what an agent did
   iai traces list --agent <agent>
   iai observations list --agent <agent>
   iai sessions list --agent <agent>`,
