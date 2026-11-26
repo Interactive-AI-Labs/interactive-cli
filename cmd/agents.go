@@ -367,7 +367,7 @@ var agentListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List agents in a project",
 	GroupID: groupAgentManage,
-	Long:    `List agents in a specific project.`,
+	Long:    `List agents in a specific project. The selected agent is marked with *.`,
 	Example: `  iai agents list
   iai agents list -p my-project
   iai agents list --json`,

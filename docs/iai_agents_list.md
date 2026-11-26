@@ -4,7 +4,7 @@ List agents in a project
 
 ### Synopsis
 
-List agents in a specific project.
+List agents in a specific project. The selected agent is marked with *.
 
 ```
 iai agents list [flags]
