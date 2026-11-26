@@ -25,7 +25,7 @@ iai agents analytics [agent_name] [flags]
 ```
   -h, --help                  help for analytics
       --json                  Output raw API responses as JSON
-  -o, --organization string   Organization name that owns the project
+  -o, --organization string   Organization name
   -p, --project string        Project name
       --step string           Resolution, e.g. 60s or 5m (defaults by time range)
       --time-range string     Time range: 5m, 15m, 1h, 6h, 24h or 7d (default 1h)

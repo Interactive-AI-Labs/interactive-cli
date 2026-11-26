@@ -1693,36 +1693,19 @@ type AgentDraft struct {
 }
 
 func (c *APIClient) ListAgentDrafts(ctx context.Context, projectID string) ([]AgentDraft, error) {
-	var res struct {
+	res, _, err := getBody[struct {
 		Items []AgentDraft `json:"items"`
-	}
-	err := c.getAgentDrafts(ctx, projectID, "", &res)
+	}](c, ctx, agentDraftsPath(projectID), nil, "list agent drafts")
 	return res.Items, err
 }
 
-func (c *APIClient) GetAgentDraft(
-	ctx context.Context,
-	projectID, name string,
-) (*AgentDraft, error) {
-	var draft AgentDraft
-	if err := c.getAgentDrafts(ctx, projectID, "/"+url.PathEscape(name), &draft); err != nil {
-		return nil, err
-	}
-	return &draft, nil
+func (c *APIClient) GetAgentDraft(ctx context.Context, projectID, name string) (AgentDraft, error) {
+	draft, _, err := getBody[AgentDraft](
+		c, ctx, agentDraftsPath(projectID)+"/"+url.PathEscape(name), nil, "get agent draft",
+	)
+	return draft, err
 }
 
-func (c *APIClient) getAgentDrafts(ctx context.Context, projectID, suffix string, dst any) error {
-	req, err := c.newRequest(ctx, http.MethodGet,
-		"/api/platform/v1/projects/"+url.PathEscape(projectID)+"/build-agent-configs"+suffix)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	body, err := c.doAndRead(req, "get agent drafts")
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(body, dst); err != nil {
-		return fmt.Errorf("failed to decode agent drafts: %w", err)
-	}
-	return nil
+func agentDraftsPath(projectID string) string {
+	return "/api/platform/v1/projects/" + url.PathEscape(projectID) + "/build-agent-configs"
 }

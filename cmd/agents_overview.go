@@ -14,16 +14,12 @@ var (
 	overviewToTimestamp   string
 	overviewJSON          bool
 	overviewYAML          bool
-	overviewOrg           string
-	overviewProject       string
 
 	performanceAgents        []string
 	performanceFromTimestamp string
 	performanceToTimestamp   string
 	performanceJSON          bool
 	performanceYAML          bool
-	performanceOrg           string
-	performanceProject       string
 )
 
 var agentOverviewCmd = &cobra.Command{
@@ -37,14 +33,11 @@ var agentOverviewCmd = &cobra.Command{
   iai agents overview my-agent --window custom --from-timestamp 2026-11-01T00:00:00Z --to-timestamp 2026-11-08T00:00:00Z`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		agent, _, err := agentArg(args, 1, overviewOrg, overviewProject)
+		agent, _, err := agentArg(args, 1, agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
-		if agent, err = agentName(agent); err != nil {
-			return err
-		}
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), overviewOrg, overviewProject)
+		pCtx, apiClient, _, err := resolveProject(cmd.Context(), agentOrganization, agentProject)
 		if err != nil {
 			return err
 		}
@@ -86,8 +79,8 @@ var agentPerformanceCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		agents, err := performanceAgentsOrSelected(
 			performanceAgents,
-			performanceOrg,
-			performanceProject,
+			agentOrganization,
+			agentProject,
 		)
 		if err != nil {
 			return err
@@ -105,7 +98,9 @@ var agentPerformanceCmd = &cobra.Command{
 		if body.ToTimestamp == "" {
 			body.ToTimestamp = time.Now().UTC().Format(time.RFC3339)
 		}
-		pCtx, apiClient, _, err := resolveProject(cmd.Context(), performanceOrg, performanceProject)
+		pCtx, apiClient, _, err := resolveProject(
+			cmd.Context(), agentOrganization, agentProject,
+		)
 		if err != nil {
 			return err
 		}
@@ -169,8 +164,8 @@ func init() {
 		"End of a custom window (ISO 8601)")
 	f.BoolVar(&overviewJSON, "json", false, "Output raw API response as JSON")
 	f.BoolVar(&overviewYAML, "yaml", false, "Output raw API response as YAML")
-	f.StringVarP(&overviewOrg, "organization", "o", "", "Organization name that owns the project")
-	f.StringVarP(&overviewProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 	agentOverviewCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	f = agentPerformanceCmd.Flags()
@@ -184,14 +179,8 @@ func init() {
 	indexFlag(agentPerformanceCmd, "to-timestamp", "default: now")
 	f.BoolVar(&performanceJSON, "json", false, "Output raw API response as JSON")
 	f.BoolVar(&performanceYAML, "yaml", false, "Output raw API response as YAML")
-	f.StringVarP(
-		&performanceOrg,
-		"organization",
-		"o",
-		"",
-		"Organization name that owns the project",
-	)
-	f.StringVarP(&performanceProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentProject, "project", "p", "", "Project name")
+	f.StringVarP(&agentOrganization, "organization", "o", "", "Organization name")
 	agentPerformanceCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 
 	agentsCmd.AddCommand(agentOverviewCmd, agentPerformanceCmd)
