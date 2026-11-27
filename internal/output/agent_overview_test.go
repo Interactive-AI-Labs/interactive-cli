@@ -21,12 +21,12 @@ func TestPrintAgentOverview(t *testing.T) {
 		"0.10",
 	) + `,"deltaPct":30},` +
 		`"interactiveAgent":{"value":` + usd(
-		"0.1",
+		"0.0012",
 	) + `,"previous":` + usd(
-		"0",
+		"0.00",
 	) + `},` +
 		`"llm":{"value":{"kind":"unavailable","reason":"no rate"},"previous":` + usd(
-		"0",
+		"0.00",
 	) + `}`
 	tests := []struct {
 		name string
@@ -42,19 +42,19 @@ func TestPrintAgentOverview(t *testing.T) {
 				`"errors":{"types":[{"observationType":"TOOL","message":"bad file","observationCount":2}],` +
 				`"traces":[{"traceId":"t1","errorCount":2}],"sessions":[{"sessionId":"s1","errorCount":1}]}}`,
 			want: "cigar, 2026-11-19 11:00:00 CET to 2026-11-26 11:00:00 CET\n\n" +
-				"METRIC                 VALUE      PREVIOUS   CHANGE\n" +
-				"Sessions               4          2          100.00%\n" +
-				"Session latency        7.00s      -          -\n" +
-				"Traces                 -          -          -\n" +
-				"Trace latency          750ms      -          -\n" +
-				"Traces per session     1.77       -          -\n" +
-				"Iterations per trace   -          -          -\n" +
-				"Observations           -          -          -\n" +
-				"Scores                 -          -          -\n" +
-				"Total Cost             0.13 USD   0.10 USD   30.00%\n" +
-				"Interactive Agent      0.10 USD   0.00 USD   -\n" +
-				"LLM Cost               -          0.00 USD   -\n" +
-				"Tokens                 38375      -          -\n" +
+				"METRIC                 VALUE        PREVIOUS   CHANGE\n" +
+				"Sessions               4            2          100.00%\n" +
+				"Session latency        7.00s        -          -\n" +
+				"Traces                 -            -          -\n" +
+				"Trace latency          750ms        -          -\n" +
+				"Traces per session     1.77         -          -\n" +
+				"Iterations per trace   -            -          -\n" +
+				"Observations           -            -          -\n" +
+				"Scores                 -            -          -\n" +
+				"Total Cost             0.13 USD     0.10 USD   30.00%\n" +
+				"Interactive Agent      0.0012 USD   0.00 USD   -\n" +
+				"LLM Cost               -            0.00 USD   -\n" +
+				"Tokens                 38375        -          -\n" +
 				"\nUSAGE    NAME       COUNT\n" +
 				"Policy   tone       3\n" +
 				"Tool     read_pdf   1\n" +
@@ -67,18 +67,18 @@ func TestPrintAgentOverview(t *testing.T) {
 			name: "overview without tokens, usage or errors",
 			body: `{` + window + `,` + cost + `}}`,
 			want: "cigar, 2026-11-19 11:00:00 CET to 2026-11-26 11:00:00 CET\n\n" +
-				"METRIC                 VALUE      PREVIOUS   CHANGE\n" +
-				"Sessions               -          -          -\n" +
-				"Session latency        -          -          -\n" +
-				"Traces                 -          -          -\n" +
-				"Trace latency          -          -          -\n" +
-				"Traces per session     -          -          -\n" +
-				"Iterations per trace   -          -          -\n" +
-				"Observations           -          -          -\n" +
-				"Scores                 -          -          -\n" +
-				"Total Cost             0.13 USD   0.10 USD   30.00%\n" +
-				"Interactive Agent      0.10 USD   0.00 USD   -\n" +
-				"LLM Cost               -          0.00 USD   -\n",
+				"METRIC                 VALUE        PREVIOUS   CHANGE\n" +
+				"Sessions               -            -          -\n" +
+				"Session latency        -            -          -\n" +
+				"Traces                 -            -          -\n" +
+				"Trace latency          -            -          -\n" +
+				"Traces per session     -            -          -\n" +
+				"Iterations per trace   -            -          -\n" +
+				"Observations           -            -          -\n" +
+				"Scores                 -            -          -\n" +
+				"Total Cost             0.13 USD     0.10 USD   30.00%\n" +
+				"Interactive Agent      0.0012 USD   0.00 USD   -\n" +
+				"LLM Cost               -            0.00 USD   -\n",
 		},
 	}
 	for _, tt := range tests {

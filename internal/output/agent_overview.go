@@ -16,11 +16,7 @@ func formatFigure(f platform.Figure) string {
 	if f.Money == nil {
 		return "-"
 	}
-	amount, err := strconv.ParseFloat(f.Money.Amount, 64)
-	if err != nil {
-		return f.Money.Amount + " " + f.Money.Currency
-	}
-	return fmt.Sprintf("%.2f %s", amount, f.Money.Currency)
+	return f.Money.Amount + " " + f.Money.Currency // the platform rounds it for display
 }
 
 func PrintAgentOverview(out io.Writer, o platform.AgentOverview) error {

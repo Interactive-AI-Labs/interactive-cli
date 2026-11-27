@@ -17,18 +17,18 @@ iai agents overview [agent_name] [flags]
 ```
   iai agents overview my-agent
   iai agents overview my-agent --window 7d --json
-  iai agents overview my-agent --window custom --from-timestamp 2026-11-01T00:00:00Z --to-timestamp 2026-11-08T00:00:00Z
+  iai agents overview my-agent --from-timestamp 2026-11-01T00:00:00Z --to-timestamp 2026-11-08T00:00:00Z
 ```
 
 ### Options
 
 ```
-      --from-timestamp string   Start of a custom window (ISO 8601)
+      --from-timestamp string   Start of a custom window (ISO 8601); implies --window custom
   -h, --help                    help for overview
       --json                    Output raw API response as JSON
   -o, --organization string     Organization name
   -p, --project string          Project name
-      --to-timestamp string     End of a custom window (ISO 8601)
+      --to-timestamp string     End of a custom window (ISO 8601); implies --window custom
       --window string           Window length: 30m, 1h, 6h, 24h, 3d, 7d, 14d, 1mo, 3mo, all, or custom with --from-timestamp and --to-timestamp (default "24h")
       --yaml                    Output raw API response as YAML
 ```
