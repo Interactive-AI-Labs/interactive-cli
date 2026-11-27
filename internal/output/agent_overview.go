@@ -128,16 +128,19 @@ func PrintAgentActivity(out io.Writer, a platform.AgentActivity) error {
 	return nil
 }
 
-// PrintAgentAnalytics prints each series' latest and peak value, not every time point.
+// PrintAgentAnalytics prints each series' latest and peak value, not every time point, then
+// each workload's CPU and memory quota.
 func PrintAgentAnalytics(out io.Writer, a platform.AgentAnalytics) error {
 	count := func(v float64) string { return strconv.FormatFloat(math.Round(v*10)/10, 'f', -1, 64) }
+	cores := func(v float64) string { return fmt.Sprintf("%.3f", v) }
+	memory := func(v float64) string { return HumanBytes(int64(v)) }
 	metrics := []struct {
 		name   string
 		chart  platform.AgentChart
 		format func(float64) string
 	}{
-		{"CPU (cores)", a.CPUUsage, func(v float64) string { return fmt.Sprintf("%.3f", v) }},
-		{"Memory", a.MemoryUsage, func(v float64) string { return HumanBytes(int64(v)) }},
+		{"CPU (cores)", a.CPUUsage.AgentChart, cores},
+		{"Memory", a.MemoryUsage.AgentChart, memory},
 		{"Requests", a.RequestsPerDomain, count},
 		{"Status codes", a.StatusCodes, count},
 		{"Latency", a.Latency, func(v float64) string { return formatLatencyMs(&v) }},
@@ -159,9 +162,48 @@ func PrintAgentAnalytics(out io.Writer, a platform.AgentAnalytics) error {
 			})
 		}
 	}
-	if len(rows) == 0 {
+
+	optional := func(v *float64, format func(float64) string) string {
+		if v == nil {
+			return "-"
+		}
+		return format(*v)
+	}
+	replicas := func(v float64) string { return strconv.FormatFloat(math.Round(v), 'f', -1, 64) }
+	var quota [][]string
+	for _, q := range a.CPUUsage.Quota {
+		quota = append(quota, []string{
+			"CPU (cores)", Printable(q.Workload), optional(q.Replicas, replicas),
+			optional(q.CPUAllocated, cores), cores(q.CPUUsage),
+			formatFloat(q.CPUUsagePercent, "%"), formatFloat(q.CPUMaxUsagePercent, "%"),
+		})
+	}
+	for _, q := range a.MemoryUsage.Quota {
+		quota = append(quota, []string{
+			"Memory", Printable(q.Workload), optional(q.Replicas, replicas),
+			optional(q.MemoryAllocatedBytes, memory), memory(q.MemoryUsageBytes),
+			formatFloat(q.MemoryUsagePercent, "%"), formatFloat(q.MemoryMaxUsagePercent, "%"),
+		})
+	}
+
+	if len(rows)+len(quota) == 0 {
 		_, err := fmt.Fprintln(out, "No analytics found.")
 		return err
 	}
-	return PrintTable(out, []string{"METRIC", "SERIES", "LATEST", "PEAK"}, rows)
+	if len(rows) > 0 {
+		if err := PrintTable(
+			out,
+			[]string{"METRIC", "SERIES", "LATEST", "PEAK"},
+			rows,
+		); err != nil {
+			return err
+		}
+		if len(quota) == 0 {
+			return nil
+		}
+		fmt.Fprintln(out)
+	}
+	return PrintTable(out, []string{
+		"QUOTA", "WORKLOAD", "REPLICAS", "ALLOCATED", "USAGE", "USAGE %", "MAX USAGE %",
+	}, quota)
 }

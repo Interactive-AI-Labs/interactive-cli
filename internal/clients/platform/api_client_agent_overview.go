@@ -176,12 +176,38 @@ type AgentChart struct {
 	} `json:"chart_data"`
 }
 
+// CPUUsage adds each workload's CPU quota row, in cores, to the chart.
+type CPUUsage struct {
+	AgentChart
+	Quota []struct {
+		Workload           string   `json:"workload"`
+		Replicas           *float64 `json:"replicas"`
+		CPUUsage           float64  `json:"cpu_usage"`
+		CPUAllocated       *float64 `json:"cpu_allocated"`
+		CPUUsagePercent    *float64 `json:"cpu_usage_percent"`
+		CPUMaxUsagePercent *float64 `json:"cpu_max_usage_percent"`
+	} `json:"quota"`
+}
+
+// MemoryUsage adds each workload's memory quota row, in bytes, to the chart.
+type MemoryUsage struct {
+	AgentChart
+	Quota []struct {
+		Workload              string   `json:"workload"`
+		Replicas              *float64 `json:"replicas"`
+		MemoryUsageBytes      float64  `json:"memory_usage_bytes"`
+		MemoryAllocatedBytes  *float64 `json:"memory_allocated_bytes"`
+		MemoryUsagePercent    *float64 `json:"memory_usage_percent"`
+		MemoryMaxUsagePercent *float64 `json:"memory_max_usage_percent"`
+	} `json:"quota"`
+}
+
 type AgentAnalytics struct {
-	CPUUsage          AgentChart `json:"cpu_usage"`
-	MemoryUsage       AgentChart `json:"memory_usage"`
-	StatusCodes       AgentChart `json:"status_codes"`
-	RequestsPerDomain AgentChart `json:"requests_per_domain"`
-	Latency           AgentChart `json:"latency"`
+	CPUUsage          CPUUsage    `json:"cpu_usage"`
+	MemoryUsage       MemoryUsage `json:"memory_usage"`
+	StatusCodes       AgentChart  `json:"status_codes"`
+	RequestsPerDomain AgentChart  `json:"requests_per_domain"`
+	Latency           AgentChart  `json:"latency"`
 }
 
 // GetAgentAnalytics reads the agent's five analytics routes into one object keyed by route.

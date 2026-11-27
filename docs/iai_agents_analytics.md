@@ -4,7 +4,7 @@ Show an agent's CPU, memory, requests, status codes and latency
 
 ### Synopsis
 
-Show an agent's deployment analytics for a time range: the latest and peak value of each CPU, memory, requests, status code and latency series. --json and --yaml print the five raw responses keyed cpu_usage, memory_usage, status_codes, requests_per_domain and latency.
+Show an agent's deployment analytics for a time range: the latest and peak value of each CPU, memory, requests, status code and latency series, then each workload's CPU and memory quota. --json and --yaml print the five raw responses keyed cpu_usage, memory_usage, status_codes, requests_per_domain and latency.
 
 Without agent_name, the selected agent is used (see 'iai agents select').
 

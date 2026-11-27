@@ -151,11 +151,14 @@ func TestPrintAgentAnalytics(t *testing.T) {
 			"No analytics found.\n",
 		},
 		{
-			"latest and peak per series",
+			"latest and peak per series, then quota",
 			`{"cpu_usage":{"chart_data":[` +
-				`{"timestamp":1,"values":{"bot":0.012,"bot-db":0.5}},{"timestamp":2,"values":{"bot":0.02}}]},` +
+				`{"timestamp":1,"values":{"bot":0.012,"bot-db":0.5}},{"timestamp":2,"values":{"bot":0.02}}],` +
+				`"quota":[{"workload":"bot","replicas":2.4,"cpu_usage":0.016,"cpu_allocated":0.5,` +
+				`"cpu_usage_percent":3.2,"cpu_max_usage_percent":4}]},` +
 				`"memory_usage":{"chart_data":[` +
-				`{"timestamp":1,"values":{"bot":104857600}},{"timestamp":2,"values":{"bot":52428800}}]},` +
+				`{"timestamp":1,"values":{"bot":104857600}},{"timestamp":2,"values":{"bot":52428800}}],` +
+				`"quota":[{"workload":"bot","replicas":null,"memory_usage_bytes":78643200}]},` +
 				`"status_codes":{"chart_data":[` +
 				`{"timestamp":1,"values":{"2xx":12,"5xx":1}},{"timestamp":2,"values":{"2xx":30.333,"5xx":0}}]},` +
 				`"requests_per_domain":{"chart_data":[` +
@@ -172,7 +175,16 @@ func TestPrintAgentAnalytics(t *testing.T) {
 				"Status codes   5xx      0          1\n" +
 				"Latency        p50      80ms       120ms\n" +
 				"Latency        p95      400ms      900ms\n" +
-				"Latency        p99      2.40s      2.40s\n",
+				"Latency        p99      2.40s      2.40s\n" +
+				"\nQUOTA         WORKLOAD   REPLICAS   ALLOCATED   USAGE      USAGE %   MAX USAGE %\n" +
+				"CPU (cores)   bot        2          0.500       0.016      3.20%     4.00%\n" +
+				"Memory        bot        -          -           75.0 MiB   -         -\n",
+		},
+		{
+			"quota without chart points",
+			`{"cpu_usage":{"chart_data":[],"quota":[{"workload":"bot","cpu_usage":0}]}}`,
+			"QUOTA         WORKLOAD   REPLICAS   ALLOCATED   USAGE   USAGE %   MAX USAGE %\n" +
+				"CPU (cores)   bot        -          -           0.000   -         -\n",
 		},
 	}
 	for _, tt := range tests {
