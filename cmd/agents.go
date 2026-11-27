@@ -814,6 +814,9 @@ nested JSON values.` + "\n\n" + selectedAgentHelp,
 		}
 
 		if agentLogsSummary {
+			if opts.Since+opts.StartTime+opts.EndTime == "" {
+				opts.Since = "24h" // the platform's Logs page counts the last 24h
+			}
 			summary, err := deployClient.GetAgentLogSummary(
 				ctx, pCtx.orgId, pCtx.projectId, agentName, opts,
 			)
@@ -1393,7 +1396,8 @@ func init() {
 		agentLogsCmd, &agentLogsLevel, "level", "", "JSON log severity", mcpLogLevels,
 	)
 	agentLogsCmd.Flags().
-		BoolVar(&agentLogsSummary, "summary", false, "Print the number of log entries per level instead of the entries")
+		BoolVar(&agentLogsSummary, "summary", false, "Print the number of log entries per level instead of "+
+			"the entries, over the last 24h unless --since, --start-time or --end-time is set")
 	indexFlag(agentLogsCmd, "message", "regular expression")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
