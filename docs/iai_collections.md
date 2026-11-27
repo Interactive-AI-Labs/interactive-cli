@@ -9,7 +9,8 @@ Manage collections within a database.
 A collection is a table of chunks (rows) — each chunk is text plus its vector
 embedding(s) — that you search by meaning or keyword; it's what backs a
 knowledge base. It lives inside an existing pgvector database, so every command
-requires --database. Use 'iai databases create' first to provision the database.
+requires --database ('list' takes --agent instead). Use 'iai databases create'
+first to provision the database.
 
 Run 'iai collections schema' to see the body format for every --file command.
 
@@ -36,7 +37,7 @@ Run 'iai collections schema' to see the body format for every --file command.
 * [iai collections delete](iai_collections_delete.md)	 - Delete a collection and all its data
 * [iai collections describe](iai_collections_describe.md)	 - Describe a collection's configuration
 * [iai collections documents](iai_collections_documents.md)	 - Inspect documents (chunks grouped by documentId)
-* [iai collections list](iai_collections_list.md)	 - List collections in a database
+* [iai collections list](iai_collections_list.md)	 - List collections in a database, or the one an agent searches
 * [iai collections patch](iai_collections_patch.md)	 - Update a collection's mutable config from a file
 * [iai collections schema](iai_collections_schema.md)	 - Show the file schemas for the --file-based collection commands
 * [iai collections search](iai_collections_search.md)	 - Search a collection (single-lane vector search)

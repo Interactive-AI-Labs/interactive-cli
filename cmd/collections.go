@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/deployment"
@@ -16,6 +18,7 @@ var (
 	collProject      string
 	collOrganization string
 	collDatabase     string
+	collListAgent    string
 	collFile         string
 	collJSON         bool
 	collYAML         bool
@@ -32,7 +35,8 @@ var collectionsCmd = &cobra.Command{
 A collection is a table of chunks (rows) — each chunk is text plus its vector
 embedding(s) — that you search by meaning or keyword; it's what backs a
 knowledge base. It lives inside an existing pgvector database, so every command
-requires --database. Use 'iai databases create' first to provision the database.
+requires --database ('list' takes --agent instead). Use 'iai databases create'
+first to provision the database.
 
 Run 'iai collections schema' to see the body format for every --file command.`,
 }
@@ -40,26 +44,57 @@ Run 'iai collections schema' to see the body format for every --file command.`,
 var collListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "List collections in a database",
+	Short:   "List collections in a database, or the one an agent searches",
+	Long: `List every collection in a database (-d), or only the collection an agent's
+manifest searches (--agent, which defaults to the selected agent). With both, the
+list is empty unless the agent's collection lives in that database.`,
 	Example: `  iai collections list -d my-db
-  iai collections list -d my-db --json`,
+  iai collections list -d my-db --json
+  iai collections list --agent my-agent`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		out := cmd.OutOrStdout()
+		ctx := cmd.Context()
 
-		pCtx, _, deployClient, err := resolveProject(cmd.Context(), collOrganization, collProject)
+		name := ""
+		if collDatabase == "" || cmd.Flags().Changed("agent") {
+			if name, err = agentFlag(collListAgent, collOrganization, collProject); err != nil {
+				return err
+			}
+			if name == "" {
+				return errors.New("pass -d or --agent, or select an agent")
+			}
+		}
+
+		pCtx, apiClient, deployClient, err := resolveProject(ctx, collOrganization, collProject)
 		if err != nil {
 			return err
 		}
 
-		collections, err := deployClient.ListCollections(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			collDatabase,
-		)
-		if err != nil {
-			return err
+		database, collection := collDatabase, ""
+		if name != "" {
+			agent, err := describeAgentOrDraft(ctx, apiClient, deployClient, pCtx, name)
+			if err != nil {
+				return err
+			}
+			database, collection = agentCollection(agent.AgentConfig, collDatabase)
+		}
+		collections := []deployment.CollectionSummary{}
+		if database != "" {
+			collections, err = deployClient.ListCollections(
+				ctx,
+				pCtx.orgId,
+				pCtx.projectId,
+				database,
+			)
+			if err != nil {
+				return err
+			}
+		}
+		if collection != "" {
+			collections = slices.DeleteFunc(collections, func(c deployment.CollectionSummary) bool {
+				return c.Name != collection
+			})
 		}
 
 		if collJSON {
@@ -70,6 +105,20 @@ var collListCmd = &cobra.Command{
 		}
 		return output.PrintCollectionList(out, collections)
 	},
+}
+
+// agentCollection is the database and collection the agent's manifest searches, or "" for
+// both when it searches no collection or one outside database.
+func agentCollection(agentConfig any, database string) (string, string) {
+	config, _ := agentConfig.(map[string]any)
+	search, _ := config["search"].(map[string]any)
+	db, _ := search["database"].(string)
+	name, _ := search["collection"].(string)
+	if search["type"] != "collections" || db == "" || name == "" ||
+		database != "" && database != db {
+		return "", ""
+	}
+	return db, name
 }
 
 var collDescribeCmd = &cobra.Command{
@@ -269,10 +318,17 @@ func init() {
 	} {
 		c.Flags().StringVarP(&collOrganization, "organization", "o", "", "Organization name")
 		c.Flags().StringVarP(&collProject, "project", "p", "", "Project name")
+		if c == collListCmd {
+			continue
+		}
 		c.Flags().
 			StringVarP(&collDatabase, "database", "d", "", "Database that holds the collection (required)")
 		_ = c.MarkFlagRequired("database")
 	}
+	collListCmd.Flags().
+		StringVarP(&collDatabase, "database", "d", "", "Database to list; required without --agent or a selected agent")
+	collListCmd.Flags().StringVar(&collListAgent, "agent", "",
+		"Filter by agent name; defaults to the selected agent")
 
 	for _, c := range []*cobra.Command{collListCmd, collDescribeCmd, collStatsCmd} {
 		c.Flags().BoolVar(&collJSON, "json", false, "Output raw API response as JSON")
