@@ -27,6 +27,12 @@ var agentOverviewCmd = &cobra.Command{
   iai agents overview my-agent --from-timestamp 2026-11-01T00:00:00Z --to-timestamp 2026-11-08T00:00:00Z`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if overviewFromTimestamp+overviewToTimestamp != "" && cmd.Flags().Changed("window") &&
+			overviewWindow != "custom" {
+			return errors.New(
+				"--from-timestamp and --to-timestamp need --window custom or no --window",
+			)
+		}
 		agent, _, err := agentArg(args, 1, agentOrganization, agentProject)
 		if err != nil {
 			return err
@@ -40,11 +46,6 @@ var agentOverviewCmd = &cobra.Command{
 		}
 		window := overviewWindow
 		if overviewFromTimestamp+overviewToTimestamp != "" {
-			if cmd.Flags().Changed("window") && window != "custom" {
-				return errors.New(
-					"--from-timestamp and --to-timestamp need --window custom or no --window",
-				)
-			}
 			window = "custom" // the platform ignores from and to in any other window
 		}
 		overview, raw, err := apiClient.GetAgentOverview(

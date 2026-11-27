@@ -117,7 +117,11 @@ func Execute() {
 
 // refuseBlankArgs stops a blank name, such as `agents delete " "`, from reaching the API.
 func refuseBlankArgs(c *cobra.Command) {
-	if validate := c.Args; validate != nil {
+	validate := c.Args
+	if validate == nil && !c.HasSubCommands() {
+		validate = cobra.ArbitraryArgs
+	}
+	if validate != nil {
 		c.Args = func(cmd *cobra.Command, args []string) error {
 			for _, arg := range args {
 				if strings.TrimSpace(arg) == "" {
