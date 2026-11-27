@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 
@@ -34,9 +35,9 @@ var (
 
 var datasetRunsCmd = &cobra.Command{
 	Use:              "dataset-runs",
-	Aliases:          []string{"dataset-run"},
-	Short:            "Run evaluations against datasets",
-	GroupID:          groupEvaluation,
+	Aliases:          []string{"dataset-run", "experiments"},
+	Short:            "Run evaluations against datasets (experiments)",
+	GroupID:          groupImprovement,
 	Long:             `Manage evaluation runs within datasets.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -45,8 +46,8 @@ var datasetRunsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List dataset runs",
-	Long: "List runs for a given dataset. Without --dataset-name, list the runs of an " +
-		"agent's datasets: its experiments, newest first. --page and --limit then apply to each dataset.",
+	Long: "List runs for a given dataset. With --agent, or without --dataset-name, list the " +
+		"runs of an agent's datasets, newest first: its experiments.",
 	Example: `  iai dataset-runs list --dataset-name my-dataset
   iai dataset-runs list --agent my-agent
   iai dataset-runs list --dataset-name my-dataset -o my-org -p my-project
@@ -76,10 +77,9 @@ var datasetRunsListCmd = &cobra.Command{
 		}
 
 		agent := ""
-		if datasetName == "" {
+		if datasetName == "" || cmd.Flags().Changed("agent") {
 			var err error
-			if agent, err = agentFlag(
-				datasetRunsListAgent,
+			if agent, err = agentFlag(cmd, datasetRunsListAgent,
 				datasetRunsListOrg,
 				datasetRunsListProject,
 			); err != nil {
@@ -107,11 +107,16 @@ var datasetRunsListCmd = &cobra.Command{
 			return err
 		}
 
-		list, target := apiClient.ListDatasetRuns, datasetName
+		var runs []platform.DatasetRunInfo
+		var meta platform.PageMeta
+		var rawJSON json.RawMessage
 		if agent != "" {
-			list, target = apiClient.ListAgentDatasetRuns, agent
+			runs, meta, rawJSON, err = apiClient.ListAgentDatasetRuns(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, agent, datasetName, opts)
+		} else {
+			runs, meta, rawJSON, err = apiClient.ListDatasetRuns(
+				cmd.Context(), pCtx.orgId, pCtx.projectId, datasetName, opts)
 		}
-		runs, meta, rawJSON, err := list(cmd.Context(), pCtx.orgId, pCtx.projectId, target, opts)
 		if err != nil {
 			return err
 		}
@@ -220,7 +225,6 @@ func init() {
 		StringVar(&datasetRunsListDataset, "dataset-name", "", "Dataset name")
 	datasetRunsListCmd.Flags().StringVar(&datasetRunsListAgent, "agent", "",
 		"Filter by agent name or id; defaults to the selected agent")
-	datasetRunsListCmd.MarkFlagsMutuallyExclusive("agent", "dataset-name")
 	datasetRunsListCmd.Flags().
 		IntVar(&datasetRunsListPage, "page", 1, "Page number (starts at 1)")
 	datasetRunsListCmd.Flags().IntVar(&datasetRunsListLimit, "limit", 0, "Items per page (max 100)")

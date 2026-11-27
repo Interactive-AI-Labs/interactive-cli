@@ -43,7 +43,7 @@ var observationsCmd = &cobra.Command{
 	Use:              "observations",
 	Aliases:          []string{"obs", "observation"},
 	Short:            "Inspect spans within traces",
-	GroupID:          groupObserve,
+	GroupID:          groupGovernance,
 	Long:             `Manage observations within traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -137,7 +137,7 @@ Uses the platform API with dual authentication (API key or session).`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		agent, err := agentFlag(obsListAgent, obsListOrg, obsListProject)
+		agent, err := agentFlag(cmd, obsListAgent, obsListOrg, obsListProject)
 		if err != nil {
 			return err
 		}

@@ -244,7 +244,7 @@ func makeListCmd(ptCfg PromptTypeConfig) *cobra.Command {
 				opts.Scope = platform.ScopeAll
 			}
 			if ptCfg.AgentFilter {
-				if opts.Agent, err = agentFlag(agent, org, project); err != nil {
+				if opts.Agent, err = agentFlag(cmd, agent, org, project); err != nil {
 					return err
 				}
 			}

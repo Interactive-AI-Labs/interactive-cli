@@ -95,7 +95,7 @@ var reportsCmd = &cobra.Command{
 	Use:     "reports",
 	Aliases: []string{"report"},
 	Short:   "Build and change project reports",
-	GroupID: groupObserve,
+	GroupID: groupGovernance,
 	Long: `Read and change a project's reports. A report is a page of charts, tables and numbers
 over the project's traces, usage and costs, laid out in sections of widgets.
 
@@ -133,7 +133,7 @@ var reportsListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		agent, err := agentFlag(reportsListAgent, reportsOrganization, reportsProject)
+		agent, err := agentFlag(cmd, reportsListAgent, reportsOrganization, reportsProject)
 		if err != nil {
 			return err
 		}

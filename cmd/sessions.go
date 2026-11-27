@@ -45,7 +45,7 @@ var sessionsCmd = &cobra.Command{
 	Use:              "sessions",
 	Aliases:          []string{"session"},
 	Short:            "Browse trace-derived conversation sessions",
-	GroupID:          groupObserve,
+	GroupID:          groupGovernance,
 	Long:             `Manage trace-derived sessions. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -85,7 +85,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		agent, err := agentFlag(sessionsAgent, sessionsListOrg, sessionsListProject)
+		agent, err := agentFlag(cmd, sessionsAgent, sessionsListOrg, sessionsListProject)
 		if err != nil {
 			return err
 		}

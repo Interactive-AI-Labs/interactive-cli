@@ -26,14 +26,11 @@ func TestAgentFlag(t *testing.T) {
 		{queuesListCmd, []string{"--agent", "a", "--sort-by", "name"}, ""},
 		{queueItemsListCmd, []string{"--agent", "a", "--status", "PENDING"}, ""},
 		{datasetRunsListCmd, []string{"--agent", "a"}, ""},
-		{
-			datasetRunsListCmd,
-			[]string{"--agent", "a", "--dataset-name", "d"},
-			"[agent dataset-name] were all set",
-		},
+		{datasetRunsListCmd, []string{"--agent", "a", "--dataset-name", "d"}, ""},
 		{scoresListCmd, []string{"--agent", "a", "--user-id", "u"}, ""},
 		{metricsListCmd, []string{"--agent", "a", "--environment", "e"}, ""},
-		{agentLogsCmd, []string{"--summary", "--level", "error", "--message", "m"}, ""},
+		{agentLogsCmd, []string{"--summary", "--message", "m"}, ""},
+		{agentLogsCmd, []string{"--summary", "--level", "error"}, "[level summary] were all set"},
 		{agentLogsCmd, []string{"--summary", "--follow"}, "[follow summary] were all set"},
 		{agentLogsCmd, []string{"--summary", "--raw"}, "[raw summary] were all set"},
 	}
@@ -145,26 +142,35 @@ func errText(err error) string {
 
 func TestSelectedAgentFallback(t *testing.T) {
 	const noAgent = "accepts 1 arg(s), received 0: pass the agent name or run 'iai agents select'"
+	const blank = "agent name is required"
 	tests := []struct {
 		name     string
 		selected string
 		args     []string
-		flag     string
+		flag     *string
 		project  string
 		want     string
 	}{
-		{"typed agent wins", "sel", []string{"typed"}, "typed", "", "typed typed "},
-		{"typed name sent as typed", "sel", []string{" "}, "", "", " sel "},
-		{"selected agent used", "sel", nil, "", "", "sel sel "},
-		{"no selected agent", "", nil, "", "", "  " + noAgent},
-		{"selected on another project", "sel", nil, "", "other", "  " + noAgent},
-		{"selected project in another case", "sel", nil, "", "PROJ", "sel sel "},
+		{"typed agent wins", "sel", []string{"typed"}, ptr("typed"), "", "typed typed "},
+		{"blank typed name refused", "sel", []string{" "}, ptr(" "), "", "  " + blank + blank},
+		{"empty --agent refused", "sel", []string{""}, ptr(""), "", "  " + blank + blank},
+		{"selected agent used", "sel", nil, nil, "", "sel sel "},
+		{"no selected agent", "", nil, nil, "", "  " + noAgent},
+		{"selected on another project", "sel", nil, nil, "other", "  " + noAgent},
+		{"selected project in another case", "sel", nil, nil, "PROJ", "sel sel "},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			saveSelection(t, tt.selected)
+			cmd := &cobra.Command{}
+			cmd.Flags().String("agent", "", "")
+			value := ""
+			if tt.flag != nil {
+				value = *tt.flag
+				_ = cmd.Flags().Set("agent", value)
+			}
 			arg, _, argErr := agentArg(tt.args, 1, "", tt.project)
-			flag, flagErr := agentFlag(tt.flag, "", tt.project)
+			flag, flagErr := agentFlag(cmd, value, "", tt.project)
 			got := strings.Join([]string{arg, flag, errText(argErr) + errText(flagErr)}, " ")
 			if got != tt.want {
 				t.Errorf("agent, flag, error = %q, want %q", got, tt.want)
@@ -172,6 +178,8 @@ func TestSelectedAgentFallback(t *testing.T) {
 		})
 	}
 }
+
+func ptr(s string) *string { return &s }
 
 func TestSplitAgentArgs(t *testing.T) {
 	tests := []struct {
@@ -182,6 +190,7 @@ func TestSplitAgentArgs(t *testing.T) {
 		want     string
 	}{
 		{"events create typed", []string{"a", "sess"}, 2, "sel", "a [sess] "},
+		{"blank typed agent", []string{" ", "sess"}, 2, "sel", " [sess] agent name is required"},
 		{"events create selected", []string{"sess"}, 2, "sel", "sel [sess] "},
 		{"routines run typed", []string{"a", "billing/refund"}, 2, "sel", "a [billing/refund] "},
 		{"routines run selected", []string{"billing/refund"}, 2, "sel", "sel [billing/refund] "},

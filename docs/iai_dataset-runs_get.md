@@ -41,5 +41,5 @@ iai dataset-runs get <run-name> [flags]
 
 ### SEE ALSO
 
-* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
+* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets (experiments)
 

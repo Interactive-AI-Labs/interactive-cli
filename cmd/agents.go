@@ -1397,14 +1397,15 @@ func init() {
 	)
 	agentLogsCmd.Flags().
 		BoolVar(&agentLogsSummary, "summary", false, "Print the number of log entries per level instead of "+
-			"the entries, over the last 24h unless --since, --start-time or --end-time is set")
+			"the entries, over the last 24h unless --since, --start-time or --end-time is set; "+
+			"total also counts lines without a level")
 	indexFlag(agentLogsCmd, "message", "regular expression")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("raw", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("decode", "all-fields")
 	agentLogsCmd.MarkFlagsMutuallyExclusive("fields", "all-fields")
-	for _, f := range []string{"follow", "raw", "decode", "fields", "all-fields", "timestamps"} {
+	for _, f := range []string{"follow", "raw", "decode", "fields", "all-fields", "timestamps", "level"} {
 		agentLogsCmd.MarkFlagsMutuallyExclusive("summary", f)
 	}
 

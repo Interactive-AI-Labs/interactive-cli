@@ -55,5 +55,5 @@ iai skills update <name> [flags]
 
 ### SEE ALSO
 
-* [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)
+* [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills
 

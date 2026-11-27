@@ -18,13 +18,13 @@ const (
 	sessionFileName    = "session_cookies.json"
 	defaultHTTPTimeout = 30 * time.Second
 
-	groupAuth         = "auth"
-	groupAgents       = "agents"
-	groupContext      = "context"
-	groupIntegrations = "integrations"
-	groupInfra        = "infra"
-	groupObserve      = "observe"
-	groupEvaluation   = "evaluation"
+	groupAuth        = "auth"
+	groupAgents      = "agents"
+	groupContext     = "context"
+	groupConnectors  = "connectors"
+	groupInfra       = "infra"
+	groupGovernance  = "governance"
+	groupImprovement = "improvement"
 )
 
 var (
@@ -142,10 +142,10 @@ func init() {
 		&cobra.Group{ID: groupAuth, Title: "Auth:"},
 		&cobra.Group{ID: groupAgents, Title: "Agents:"},
 		&cobra.Group{ID: groupContext, Title: "Context:"},
-		&cobra.Group{ID: groupIntegrations, Title: "Integrations:"},
+		&cobra.Group{ID: groupConnectors, Title: "Connectors:"},
 		&cobra.Group{ID: groupInfra, Title: "Infrastructure:"},
-		&cobra.Group{ID: groupObserve, Title: "Observability:"},
-		&cobra.Group{ID: groupEvaluation, Title: "Evaluation & Annotation:"},
+		&cobra.Group{ID: groupGovernance, Title: "Governance:"},
+		&cobra.Group{ID: groupImprovement, Title: "Improvement:"},
 	)
 
 	rootCmd.PersistentFlags().StringVar(&hostname, "hostname", hostname, "Hostname for the API")

@@ -77,7 +77,7 @@ var mcpsCmd = &cobra.Command{
 	Use:     "mcps",
 	Aliases: []string{"mcp"},
 	Short:   "Deploy and manage MCP servers",
-	GroupID: groupIntegrations,
+	GroupID: groupConnectors,
 	Long: `Manage MCP servers for a project — self-hosted servers deployed in the
 platform, or remote servers hosted outside the platform: a custom URL or a
 catalog-backed provider whose URL and auth come from the curated catalog.
@@ -532,7 +532,7 @@ var mcpListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		agent, err := agentFlag(mcpListAgent, mcpOrganization, mcpProject)
+		agent, err := agentFlag(cmd, mcpListAgent, mcpOrganization, mcpProject)
 		if err != nil {
 			return err
 		}

@@ -173,7 +173,7 @@ Folders are shown with a trailing "/" and can be browsed into with --folder.`,
 				Page:  page,
 				Limit: limit,
 			}
-			if opts.Agent, err = agentFlag(agent, org, project); err != nil {
+			if opts.Agent, err = agentFlag(cmd, agent, org, project); err != nil {
 				return err
 			}
 			if folder != "" {

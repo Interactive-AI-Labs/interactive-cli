@@ -1,6 +1,6 @@
 ## iai skills
 
-Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)
+Manage Interactive Copilot skills
 
 ### Synopsis
 

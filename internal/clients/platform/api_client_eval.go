@@ -488,41 +488,71 @@ func newestFirst(runs []DatasetRunInfo) {
 	})
 }
 
-// mergePageMeta pages every dataset alike, so the merged page count is the longest one.
-func mergePageMeta(page int, metas []PageMeta) PageMeta {
-	merged := PageMeta{Page: max(page, 1)}
-	for _, m := range metas {
-		merged.Limit = max(merged.Limit, m.Limit)
-		merged.TotalItems += m.TotalItems
-		merged.TotalPages = max(merged.TotalPages, m.TotalPages)
+// defaultRunsLimit is the platform's page size for dataset runs.
+const defaultRunsLimit = 50
+
+// pageOf slices one page out of items, as the platform pages a list.
+func pageOf[T any](items []T, page, limit int) ([]T, PageMeta) {
+	page = max(page, 1)
+	if limit <= 0 {
+		limit = defaultRunsLimit
 	}
-	return merged
+	start := min((page-1)*limit, len(items))
+	return items[start:min(start+limit, len(items))], PageMeta{
+		Page:       page,
+		Limit:      limit,
+		TotalItems: len(items),
+		TotalPages: (len(items) + limit - 1) / limit,
+	}
 }
 
-// ListAgentDatasetRuns lists the runs of an agent's datasets, newest first: its experiments.
-// ponytail: one call per dataset, first 100 datasets; a platform route if agents outgrow that.
+// allPages reads a paged list to its end.
+func allPages[T any](fetch func(page int) ([]T, PageMeta, error)) ([]T, error) {
+	var all []T
+	for page := 1; ; page++ {
+		items, meta, err := fetch(page)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, items...)
+		if len(items) == 0 || page >= meta.TotalPages {
+			return all, nil
+		}
+	}
+}
+
+// ListAgentDatasetRuns lists the runs of an agent's datasets (only dataset, when set), newest first.
+// ponytail: reads every run to page them as one list; a platform route if agents outgrow that.
 func (c *APIClient) ListAgentDatasetRuns(
 	ctx context.Context,
-	orgID, projectID, agent string,
+	orgID, projectID, agent, dataset string,
 	opts DatasetRunListOptions,
 ) ([]DatasetRunInfo, PageMeta, json.RawMessage, error) {
-	datasets, _, _, err := c.ListDatasets(ctx, orgID, projectID,
-		DatasetListOptions{Agent: agent, Limit: 100})
+	datasets, err := allPages(func(page int) ([]DatasetInfo, PageMeta, error) {
+		d, m, _, err := c.ListDatasets(ctx, orgID, projectID,
+			DatasetListOptions{Agent: agent, Page: page, Limit: 100})
+		return d, m, err
+	})
 	if err != nil {
 		return nil, PageMeta{}, nil, err
 	}
 	runs := []DatasetRunInfo{}
-	var metas []PageMeta
 	for _, d := range datasets {
-		page, m, _, err := c.ListDatasetRuns(ctx, orgID, projectID, d.Name, opts)
+		if dataset != "" && d.Name != dataset {
+			continue
+		}
+		page, err := allPages(func(page int) ([]DatasetRunInfo, PageMeta, error) {
+			r, m, _, err := c.ListDatasetRuns(ctx, orgID, projectID, d.Name,
+				DatasetRunListOptions{Page: page, Limit: 100})
+			return r, m, err
+		})
 		if err != nil {
 			return nil, PageMeta{}, nil, err
 		}
 		runs = append(runs, page...)
-		metas = append(metas, m)
 	}
 	newestFirst(runs)
-	meta := mergePageMeta(opts.Page, metas)
+	runs, meta := pageOf(runs, opts.Page, opts.Limit)
 	raw, err := json.Marshal(map[string]any{
 		"success": true,
 		"data":    datasetRunListData{Runs: runs, Meta: meta},

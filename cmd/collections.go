@@ -58,7 +58,12 @@ list is empty unless the agent's collection lives in that database.`,
 
 		name := ""
 		if collDatabase == "" || cmd.Flags().Changed("agent") {
-			if name, err = agentFlag(collListAgent, collOrganization, collProject); err != nil {
+			if name, err = agentFlag(
+				cmd,
+				collListAgent,
+				collOrganization,
+				collProject,
+			); err != nil {
 				return err
 			}
 			if name == "" {

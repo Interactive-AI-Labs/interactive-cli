@@ -50,7 +50,7 @@ var scoreConfigsCmd = &cobra.Command{
 	Use:              "score-configs",
 	Aliases:          []string{"score-config"},
 	Short:            "Define scoring schemas for evaluation",
-	GroupID:          groupObserve,
+	GroupID:          groupImprovement,
 	Long:             `Manage scoring configuration schemas for annotation workflows.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

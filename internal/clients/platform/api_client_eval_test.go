@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -321,21 +322,30 @@ func TestNewestFirst(t *testing.T) {
 	}
 }
 
-func TestMergePageMeta(t *testing.T) {
+func TestPageOf(t *testing.T) {
+	items := []int{1, 2, 3, 4, 5}
 	tests := []struct {
-		page  int
-		metas []PageMeta
-		want  PageMeta
+		page, limit int
+		want        []int
+		meta        PageMeta
 	}{
-		{0, nil, PageMeta{Page: 1}},
-		{2, []PageMeta{
-			{Limit: 50, TotalItems: 120, TotalPages: 3},
-			{Limit: 50, TotalItems: 10, TotalPages: 1},
-		}, PageMeta{Page: 2, Limit: 50, TotalItems: 130, TotalPages: 3}},
+		{0, 2, []int{1, 2}, PageMeta{Page: 1, Limit: 2, TotalItems: 5, TotalPages: 3}},
+		{3, 2, []int{5}, PageMeta{Page: 3, Limit: 2, TotalItems: 5, TotalPages: 3}},
+		{4, 2, []int{}, PageMeta{Page: 4, Limit: 2, TotalItems: 5, TotalPages: 3}},
+		{1, 0, items, PageMeta{Page: 1, Limit: 50, TotalItems: 5, TotalPages: 1}},
 	}
 	for _, tt := range tests {
-		if got := mergePageMeta(tt.page, tt.metas); got != tt.want {
-			t.Errorf("mergePageMeta(%d, %v) = %+v, want %+v", tt.page, tt.metas, got, tt.want)
+		got, meta := pageOf(items, tt.page, tt.limit)
+		if !slices.Equal(got, tt.want) || meta != tt.meta {
+			t.Errorf(
+				"pageOf(%d, %d) = %v %+v, want %v %+v",
+				tt.page,
+				tt.limit,
+				got,
+				meta,
+				tt.want,
+				tt.meta,
+			)
 		}
 	}
 }

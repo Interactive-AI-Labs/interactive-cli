@@ -67,7 +67,7 @@ var tracesCmd = &cobra.Command{
 	Use:              "traces",
 	Aliases:          []string{"trace"},
 	Short:            "Browse agent decision traces with full attribution",
-	GroupID:          groupObserve,
+	GroupID:          groupGovernance,
 	Long:             `Manage traces. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -119,7 +119,7 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		agent, err := agentFlag(tracesAgent, tracesListOrg, tracesListProject)
+		agent, err := agentFlag(cmd, tracesAgent, tracesListOrg, tracesListProject)
 		if err != nil {
 			return err
 		}

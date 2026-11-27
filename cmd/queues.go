@@ -47,9 +47,9 @@ var (
 
 var queuesCmd = &cobra.Command{
 	Use:              "queues",
-	Aliases:          []string{"queue"},
+	Aliases:          []string{"queue", "annotations"},
 	Short:            "Annotation queues for human review workflows",
-	GroupID:          groupEvaluation,
+	GroupID:          groupImprovement,
 	Long:             `Manage annotation queues for review workflows.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -85,7 +85,7 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 			}
 		}
 
-		agent, err := agentFlag(queuesListAgent, queuesListOrg, queuesListProject)
+		agent, err := agentFlag(cmd, queuesListAgent, queuesListOrg, queuesListProject)
 		if err != nil {
 			return err
 		}
