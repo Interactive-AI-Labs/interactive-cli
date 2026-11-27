@@ -55,9 +55,9 @@ func splitAgentArgs(args []string, n int, selected string) (string, []string, er
 	return selected, args, nil
 }
 
-// agentFlag returns the --agent value, or the selected agent when it is not passed.
+// agentFlag returns the --agent value (or the name an agents subcommand set), else the selected agent.
 func agentFlag(cmd *cobra.Command, agent, org, project string) (string, error) {
-	if cmd.Flags().Changed("agent") {
+	if agent != "" || cmd.Flags().Changed("agent") {
 		return agentName(agent)
 	}
 	return selectedAgent(org, project)

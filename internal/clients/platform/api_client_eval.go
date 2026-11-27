@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
@@ -491,55 +492,62 @@ func newestFirst(runs []DatasetRunInfo) {
 // defaultRunsLimit is the platform's page size for dataset runs.
 const defaultRunsLimit = 50
 
-// pageOf slices one page out of items, as the platform pages a list.
-func pageOf[T any](items []T, page, limit int) ([]T, PageMeta) {
-	page = max(page, 1)
-	if limit <= 0 {
-		limit = defaultRunsLimit
-	}
-	totalPages := len(items) / limit
-	if len(items)%limit != 0 {
+// pageOf slices one page out of the newest items of a list of total items.
+func pageOf[T any](items []T, total, page, limit int) ([]T, PageMeta) {
+	totalPages := total / limit
+	if total%limit != 0 {
 		totalPages++
 	}
 	start := len(items)
 	if page <= totalPages {
-		start = (page - 1) * limit
+		start = min((page-1)*limit, len(items))
 	}
 	return items[start : start+min(limit, len(items)-start)], PageMeta{
 		Page:       page,
 		Limit:      limit,
-		TotalItems: len(items),
+		TotalItems: total,
 		TotalPages: totalPages,
 	}
 }
 
-// maxPages bounds allPages against a mis-reported TotalPages.
+// maxPages bounds readPages against a mis-reported TotalPages.
 const maxPages = 100
 
-// allPages reads a paged list to its end.
-func allPages[T any](fetch func(page int) ([]T, PageMeta, error)) ([]T, error) {
+// readPages reads a paged list until it holds want items or ends, and returns its total.
+func readPages[T any](
+	want int,
+	fetch func(page int) ([]T, PageMeta, error),
+) ([]T, int, error) {
 	var all []T
 	for page := 1; page <= maxPages; page++ {
 		items, meta, err := fetch(page)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		all = append(all, items...)
-		if len(items) == 0 || page >= meta.TotalPages {
-			return all, nil
+		if len(items) == 0 || page >= meta.TotalPages || len(all) >= want {
+			return all, meta.TotalItems, nil
 		}
 	}
-	return nil, fmt.Errorf("list has more than %d pages", maxPages)
+	return nil, 0, fmt.Errorf("list has more than %d pages", maxPages)
 }
 
 // ListAgentDatasetRuns lists the runs of an agent's datasets (only dataset, when set), newest first.
-// ponytail: reads every run to page them as one list; a platform route if agents outgrow that.
+// The platform returns each dataset's runs newest first, so page × limit runs per dataset suffice.
 func (c *APIClient) ListAgentDatasetRuns(
 	ctx context.Context,
 	orgID, projectID, agent, dataset string,
 	opts DatasetRunListOptions,
 ) ([]DatasetRunInfo, PageMeta, json.RawMessage, error) {
-	datasets, err := allPages(func(page int) ([]DatasetInfo, PageMeta, error) {
+	page, limit := max(opts.Page, 1), opts.Limit
+	if limit <= 0 {
+		limit = defaultRunsLimit
+	}
+	want := math.MaxInt
+	if page <= math.MaxInt/limit {
+		want = page * limit
+	}
+	datasets, _, err := readPages(math.MaxInt, func(page int) ([]DatasetInfo, PageMeta, error) {
 		d, m, _, err := c.ListDatasets(ctx, orgID, projectID,
 			DatasetListOptions{Agent: agent, Page: page, Limit: 100})
 		return d, m, err
@@ -547,12 +555,12 @@ func (c *APIClient) ListAgentDatasetRuns(
 	if err != nil {
 		return nil, PageMeta{}, nil, err
 	}
-	runs := []DatasetRunInfo{}
+	runs, total := []DatasetRunInfo{}, 0
 	for _, d := range datasets {
 		if dataset != "" && d.Name != dataset {
 			continue
 		}
-		page, err := allPages(func(page int) ([]DatasetRunInfo, PageMeta, error) {
+		newest, n, err := readPages(want, func(page int) ([]DatasetRunInfo, PageMeta, error) {
 			r, m, _, err := c.ListDatasetRuns(ctx, orgID, projectID, d.Name,
 				DatasetRunListOptions{Page: page, Limit: 100})
 			return r, m, err
@@ -560,10 +568,10 @@ func (c *APIClient) ListAgentDatasetRuns(
 		if err != nil {
 			return nil, PageMeta{}, nil, err
 		}
-		runs = append(runs, page...)
+		runs, total = append(runs, newest...), total+n
 	}
 	newestFirst(runs)
-	runs, meta := pageOf(runs, opts.Page, opts.Limit)
+	runs, meta := pageOf(runs, total, page, limit)
 	raw, err := json.Marshal(map[string]any{
 		"success": true,
 		"data":    datasetRunListData{Runs: runs, Meta: meta},

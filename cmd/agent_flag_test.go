@@ -181,6 +181,15 @@ func TestSelectedAgentFallback(t *testing.T) {
 
 func ptr(s string) *string { return &s }
 
+func TestAgentFlagKeepsPositionalName(t *testing.T) {
+	saveSelection(t, "sel")
+	// agents traces sets the name without an --agent flag.
+	got, err := agentFlag(&cobra.Command{}, "typed", "", "")
+	if got != "typed" || err != nil {
+		t.Errorf("agentFlag = %q, %v, want typed", got, err)
+	}
+}
+
 func TestSplitAgentArgs(t *testing.T) {
 	tests := []struct {
 		name     string

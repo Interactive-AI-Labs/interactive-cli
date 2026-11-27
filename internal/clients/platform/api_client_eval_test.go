@@ -325,61 +325,56 @@ func TestNewestFirst(t *testing.T) {
 }
 
 func TestPageOf(t *testing.T) {
-	items := []int{1, 2, 3, 4, 5}
+	newest := []int{1, 2, 3, 4}
 	tests := []struct {
-		page, limit int
-		want        []int
-		meta        PageMeta
+		total, page, limit int
+		want               []int
+		meta               PageMeta
 	}{
-		{0, 2, []int{1, 2}, PageMeta{Page: 1, Limit: 2, TotalItems: 5, TotalPages: 3}},
-		{3, 2, []int{5}, PageMeta{Page: 3, Limit: 2, TotalItems: 5, TotalPages: 3}},
-		{4, 2, []int{}, PageMeta{Page: 4, Limit: 2, TotalItems: 5, TotalPages: 3}},
-		{1, 0, items, PageMeta{Page: 1, Limit: 50, TotalItems: 5, TotalPages: 1}},
+		{4, 1, 2, []int{1, 2}, PageMeta{Page: 1, Limit: 2, TotalItems: 4, TotalPages: 2}},
+		{9, 2, 2, []int{3, 4}, PageMeta{Page: 2, Limit: 2, TotalItems: 9, TotalPages: 5}},
+		{4, 3, 2, []int{}, PageMeta{Page: 3, Limit: 2, TotalItems: 4, TotalPages: 2}},
 		{
+			4,
 			math.MaxInt,
-			0,
+			50,
 			[]int{},
-			PageMeta{Page: math.MaxInt, Limit: 50, TotalItems: 5, TotalPages: 1},
+			PageMeta{Page: math.MaxInt, Limit: 50, TotalItems: 4, TotalPages: 1},
 		},
 		{
+			4,
 			2,
 			math.MaxInt,
 			[]int{},
-			PageMeta{Page: 2, Limit: math.MaxInt, TotalItems: 5, TotalPages: 1},
+			PageMeta{Page: 2, Limit: math.MaxInt, TotalItems: 4, TotalPages: 1},
 		},
 	}
 	for _, tt := range tests {
-		got, meta := pageOf(items, tt.page, tt.limit)
+		got, meta := pageOf(newest, tt.total, tt.page, tt.limit)
 		if !slices.Equal(got, tt.want) || meta != tt.meta {
-			t.Errorf(
-				"pageOf(%d, %d) = %v %+v, want %v %+v",
-				tt.page,
-				tt.limit,
-				got,
-				meta,
-				tt.want,
-				tt.meta,
-			)
+			t.Errorf("pageOf(%d, %d, %d) = %v %+v, want %v %+v",
+				tt.total, tt.page, tt.limit, got, meta, tt.want, tt.meta)
 		}
 	}
 }
 
-func TestAllPages(t *testing.T) {
+func TestReadPages(t *testing.T) {
 	tests := []struct {
-		name       string
-		totalPages int
-		want       string
+		name             string
+		want, totalPages int
+		got              string
 	}{
-		{"stops at TotalPages", 3, "3 <nil>"},
-		{"stops at maxPages", math.MaxInt, "0 list has more than 100 pages"},
+		{"stops at TotalPages", math.MaxInt, 3, "3 1000 <nil>"},
+		{"stops at want", 2, math.MaxInt, "2 1000 <nil>"},
+		{"stops at maxPages", math.MaxInt, math.MaxInt, "0 0 list has more than 100 pages"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			all, err := allPages(func(int) ([]int, PageMeta, error) {
-				return []int{1}, PageMeta{TotalPages: tt.totalPages}, nil
+			items, total, err := readPages(tt.want, func(int) ([]int, PageMeta, error) {
+				return []int{1}, PageMeta{TotalPages: tt.totalPages, TotalItems: 1000}, nil
 			})
-			if got := fmt.Sprint(len(all), " ", err); got != tt.want {
-				t.Errorf("got %q, want %q", got, tt.want)
+			if got := fmt.Sprint(len(items), " ", total, " ", err); got != tt.got {
+				t.Errorf("got %q, want %q", got, tt.got)
 			}
 		})
 	}
