@@ -9,6 +9,17 @@ commands can use it without specifying the agent each time. Commands that create
 change or remove an agent still take the name. Selecting another organization or
 project clears the selected agent.
 
+The platform's agent pages, in order, and the commands that default to the selected agent:
+  Overview     agents overview, agents activity, metrics
+  Config       agents describe
+  Context      policies, routines, macros, prompts, glossaries
+  Tools        mcps
+  Sessions     sessions
+  Traces       traces, observations
+  Logs         agents logs
+  Improvement  queues, queue-items, dataset-runs, scores
+  Reports      reports
+
 ```
 iai agents select [agent_name] [flags]
 ```
