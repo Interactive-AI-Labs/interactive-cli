@@ -50,7 +50,7 @@ iai agents logs [agent_name] [flags]
       --raw                   Output exact server JSON lines without formatting
       --since string          Relative duration to look back (max 72h, e.g. 30m, 1h, 3d); default 1h; mutually exclusive with --start-time and --end-time
       --start-time string     Absolute RFC3339 start timestamp (e.g. 2026-02-24T10:00:00Z); mutually exclusive with --since; max 72h window
-      --summary               Print the number of log entries per level instead of the entries
+      --summary               Print the number of log entries per level instead of the entries, over the last 24h unless --since, --start-time or --end-time is set
       --timestamps            Include platform log timestamps
 ```
 
