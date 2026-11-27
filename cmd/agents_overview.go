@@ -22,7 +22,7 @@ var agentOverviewCmd = &cobra.Command{
 		"with the previous window of the same length.\n\n" + selectedAgentHelp,
 	Example: `  iai agents overview my-agent
   iai agents overview my-agent --window 7d --json
-  iai agents overview my-agent --window custom --from-timestamp 2026-11-01T00:00:00Z --to-timestamp 2026-11-08T00:00:00Z`,
+  iai agents overview my-agent --from-timestamp 2026-11-01T00:00:00Z --to-timestamp 2026-11-08T00:00:00Z`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		agent, _, err := agentArg(args, 1, agentOrganization, agentProject)
@@ -36,10 +36,14 @@ var agentOverviewCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		window := overviewWindow
+		if !cmd.Flags().Changed("window") && overviewFromTimestamp+overviewToTimestamp != "" {
+			window = "custom" // the platform ignores from and to in any other window
+		}
 		overview, raw, err := apiClient.GetAgentOverview(
 			cmd.Context(), pCtx.orgId, pCtx.projectId, agent,
 			platform.AgentOverviewOptions{
-				Window: overviewWindow,
+				Window: window,
 				From:   overviewFromTimestamp,
 				To:     overviewToTimestamp,
 				Groups: true,
@@ -69,9 +73,9 @@ func init() {
 	)
 	indexFlag(agentOverviewCmd, "window", "30m, 1h, 6h, 24h, 3d, 7d, 14d, 1mo, 3mo, all, or custom")
 	f.StringVar(&overviewFromTimestamp, "from-timestamp", "",
-		"Start of a custom window (ISO 8601)")
+		"Start of a custom window (ISO 8601); implies --window custom")
 	f.StringVar(&overviewToTimestamp, "to-timestamp", "",
-		"End of a custom window (ISO 8601)")
+		"End of a custom window (ISO 8601); implies --window custom")
 	f.BoolVar(&overviewJSON, "json", false, "Output raw API response as JSON")
 	f.BoolVar(&overviewYAML, "yaml", false, "Output raw API response as YAML")
 	f.StringVarP(&agentProject, "project", "p", "", "Project name")
