@@ -426,7 +426,18 @@ var agentSelectCmd = &cobra.Command{
 	Long: `Select an agent by name and store it in the local CLI configuration so other
 commands can use it without specifying the agent each time. Commands that create,
 change or remove an agent still take the name. Selecting another organization or
-project clears the selected agent.`,
+project clears the selected agent.
+
+The platform's agent pages, in order, and the commands that default to the selected agent:
+  Overview     agents overview, agents activity, metrics
+  Config       agents describe
+  Context      policies, routines, macros, prompts, glossaries
+  Tools        mcps
+  Sessions     sessions
+  Traces       traces, observations
+  Logs         agents logs
+  Improvement  queues, queue-items, dataset-runs, scores
+  Reports      reports`,
 	Example: `  iai agents select my-agent
   iai agents select --clear`,
 	Args: cobra.MaximumNArgs(1),
