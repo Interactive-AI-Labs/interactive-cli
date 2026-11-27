@@ -25,7 +25,12 @@ func TestAgentFlag(t *testing.T) {
 		{obsListCmd, []string{"--agent", "a", "--trace-id", "t"}, "[agent trace-id] were all set"},
 		{queuesListCmd, []string{"--agent", "a", "--sort-by", "name"}, ""},
 		{queueItemsListCmd, []string{"--agent", "a", "--status", "PENDING"}, ""},
-		{datasetsListCmd, []string{"--agent", "a"}, ""},
+		{datasetRunsListCmd, []string{"--agent", "a"}, ""},
+		{
+			datasetRunsListCmd,
+			[]string{"--agent", "a", "--dataset-name", "d"},
+			"[agent dataset-name] were all set",
+		},
 		{scoresListCmd, []string{"--agent", "a", "--user-id", "u"}, ""},
 		{metricsListCmd, []string{"--agent", "a", "--environment", "e"}, ""},
 		{agentLogsCmd, []string{"--summary", "--level", "error", "--message", "m"}, ""},
@@ -37,14 +42,15 @@ func TestAgentFlag(t *testing.T) {
 			t.Cleanup(func() {
 				tracesAgent, tracesUserID, sessionsAgent, sessionsEnvironment = "", "", "", ""
 				obsListAgent, obsListModel, obsTraceID = "", "", ""
-				queuesListAgent, queuesListSortBy, datasetsListAgent = "", "", ""
+				queuesListAgent, queuesListSortBy = "", ""
+				datasetRunsListAgent, datasetRunsListDataset = "", ""
 				queueItemsListAgent, queueItemsListStatus = "", ""
 				scoresAgent, scoresUserID, metricsListAgent, metricsListEnvironment = "", "", "", ""
 				agentLogsSummary, agentLogsFollow, agentLogsRaw = false, false, false
 				agentLogsLevel, agentLogsMessage = "", ""
 				for _, name := range []string{
 					"agent", "user-id", "environment", "model", "trace-id", "sort-by", "status",
-					"summary", "follow", "raw", "level", "message",
+					"summary", "follow", "raw", "level", "message", "dataset-name",
 				} {
 					if f := tt.cmd.Flags().Lookup(name); f != nil {
 						f.Changed = false

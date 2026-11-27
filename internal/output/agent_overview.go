@@ -105,33 +105,6 @@ func PrintAgentOverview(out io.Writer, o platform.AgentOverview) error {
 	return PrintTable(out, []string{"ERRORS", "COUNT", "NAME"}, rows)
 }
 
-func PrintAgentPerformance(out io.Writer, p platform.AgentPerformance) error {
-	costs := map[string]platform.Figure{}
-	for _, c := range p.AgentCosts {
-		costs[c.AgentID] = c.Total
-	}
-	rows := make([][]string, 0, len(p.Agents))
-	for _, a := range p.Agents {
-		rows = append(rows, []string{
-			Printable(a.Name),
-			formatInt(a.Traces),
-			formatInt(a.Sessions),
-			formatLatencyMs(a.TraceLatency),
-			formatLatencyMs(a.SessionLatency),
-			formatFigure(costs[a.AgentID]),
-		})
-	}
-	if err := PrintTable(
-		out,
-		[]string{"NAME", "TRACES", "SESSIONS", "TRACE LATENCY", "SESSION LATENCY", "COST"},
-		rows,
-	); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintf(out, "\nTotal Cost: %s\n", formatFigure(p.CostTotal))
-	return err
-}
-
 func PrintAgentActivity(out io.Writer, a platform.AgentActivity) error {
 	if len(a.Activity) == 0 {
 		_, err := fmt.Fprintln(out, "No activity found.")

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -11,6 +12,7 @@ import (
 
 var (
 	datasetRunsListDataset string
+	datasetRunsListAgent   string
 	datasetRunsListPage    int
 	datasetRunsListLimit   int
 	datasetRunsListColumns []string
@@ -43,8 +45,10 @@ var datasetRunsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List dataset runs",
-	Long:    `List runs for a given dataset.`,
+	Long: "List runs for a given dataset. Without --dataset-name, list the runs of an " +
+		"agent's datasets: its experiments, newest first. --page and --limit then apply to each dataset.",
 	Example: `  iai dataset-runs list --dataset-name my-dataset
+  iai dataset-runs list --agent my-agent
   iai dataset-runs list --dataset-name my-dataset -o my-org -p my-project
   iai dataset-runs list --dataset-name my-dataset --page 2 --limit 50 --columns name,status
   iai dataset-runs list --dataset-name my-dataset --json`,
@@ -71,6 +75,21 @@ var datasetRunsListCmd = &cobra.Command{
 			}
 		}
 
+		agent := ""
+		if datasetName == "" {
+			var err error
+			if agent, err = agentFlag(
+				datasetRunsListAgent,
+				datasetRunsListOrg,
+				datasetRunsListProject,
+			); err != nil {
+				return err
+			}
+			if agent == "" {
+				return errors.New("pass --dataset-name or --agent, or select an agent")
+			}
+		}
+
 		opts := platform.DatasetRunListOptions{
 			Page:  datasetRunsListPage,
 			Limit: datasetRunsListLimit,
@@ -88,13 +107,11 @@ var datasetRunsListCmd = &cobra.Command{
 			return err
 		}
 
-		runs, meta, rawJSON, err := apiClient.ListDatasetRuns(
-			cmd.Context(),
-			pCtx.orgId,
-			pCtx.projectId,
-			datasetName,
-			opts,
-		)
+		list, target := apiClient.ListDatasetRuns, datasetName
+		if agent != "" {
+			list, target = apiClient.ListAgentDatasetRuns, agent
+		}
+		runs, meta, rawJSON, err := list(cmd.Context(), pCtx.orgId, pCtx.projectId, target, opts)
 		if err != nil {
 			return err
 		}
@@ -200,8 +217,10 @@ var datasetRunsDeleteCmd = &cobra.Command{
 func init() {
 	indexJSONShape(datasetRunsCmd, "env")
 	datasetRunsListCmd.Flags().
-		StringVar(&datasetRunsListDataset, "dataset-name", "", "Dataset name (required)")
-	_ = datasetRunsListCmd.MarkFlagRequired("dataset-name")
+		StringVar(&datasetRunsListDataset, "dataset-name", "", "Dataset name")
+	datasetRunsListCmd.Flags().StringVar(&datasetRunsListAgent, "agent", "",
+		"List the runs of this agent's datasets; defaults to the selected agent")
+	datasetRunsListCmd.MarkFlagsMutuallyExclusive("agent", "dataset-name")
 	datasetRunsListCmd.Flags().
 		IntVar(&datasetRunsListPage, "page", 1, "Page number (starts at 1)")
 	datasetRunsListCmd.Flags().IntVar(&datasetRunsListLimit, "limit", 0, "Items per page (max 100)")

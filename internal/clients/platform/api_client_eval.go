@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients"
 	"github.com/google/go-querystring/query"
@@ -478,6 +480,33 @@ func (c *APIClient) ListDatasetRuns(
 		return nil, PageMeta{}, nil, err
 	}
 	return data.Runs, data.Meta, raw, nil
+}
+
+// ListAgentDatasetRuns lists the runs of an agent's datasets, newest first: its experiments.
+// ponytail: one call per dataset, first 100 datasets; a platform route if agents outgrow that.
+func (c *APIClient) ListAgentDatasetRuns(
+	ctx context.Context,
+	orgID, projectID, agent string,
+	opts DatasetRunListOptions,
+) ([]DatasetRunInfo, PageMeta, json.RawMessage, error) {
+	datasets, _, _, err := c.ListDatasets(ctx, orgID, projectID,
+		DatasetListOptions{Agent: agent, Limit: 100})
+	if err != nil {
+		return nil, PageMeta{}, nil, err
+	}
+	runs := []DatasetRunInfo{}
+	for _, d := range datasets {
+		page, _, _, err := c.ListDatasetRuns(ctx, orgID, projectID, d.Name, opts)
+		if err != nil {
+			return nil, PageMeta{}, nil, err
+		}
+		runs = append(runs, page...)
+	}
+	slices.SortStableFunc(runs, func(a, b DatasetRunInfo) int {
+		return strings.Compare(b.CreatedAt, a.CreatedAt)
+	})
+	raw, err := json.Marshal(map[string]any{"runs": runs})
+	return runs, PageMeta{Page: 1, TotalPages: 1, TotalItems: len(runs)}, raw, err
 }
 
 func (c *APIClient) GetDatasetRun(
