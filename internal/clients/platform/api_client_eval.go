@@ -482,6 +482,12 @@ func (c *APIClient) ListDatasetRuns(
 	return data.Runs, data.Meta, raw, nil
 }
 
+func newestFirst(runs []DatasetRunInfo) {
+	slices.SortStableFunc(runs, func(a, b DatasetRunInfo) int {
+		return strings.Compare(b.CreatedAt, a.CreatedAt)
+	})
+}
+
 // ListAgentDatasetRuns lists the runs of an agent's datasets, newest first: its experiments.
 // ponytail: one call per dataset, first 100 datasets; a platform route if agents outgrow that.
 func (c *APIClient) ListAgentDatasetRuns(
@@ -502,9 +508,7 @@ func (c *APIClient) ListAgentDatasetRuns(
 		}
 		runs = append(runs, page...)
 	}
-	slices.SortStableFunc(runs, func(a, b DatasetRunInfo) int {
-		return strings.Compare(b.CreatedAt, a.CreatedAt)
-	})
+	newestFirst(runs)
 	raw, err := json.Marshal(map[string]any{"runs": runs})
 	return runs, PageMeta{Page: 1, TotalPages: 1, TotalItems: len(runs)}, raw, err
 }

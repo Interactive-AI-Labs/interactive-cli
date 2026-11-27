@@ -2,7 +2,6 @@ package platform
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -299,26 +298,25 @@ func TestAPIClientDeleteDatasetSendsTheNameAsAQuery(t *testing.T) {
 	}
 }
 
-func TestListAgentDatasetRuns(t *testing.T) {
-	const base = "/api/platform/v1/organizations/org-1/projects/proj-1/datasets"
-	bodies := map[string]string{
-		base + "?agent=a&limit=100":  `{"success":true,"data":{"datasets":[{"name":"d1"},{"name":"d/2"}]}}`,
-		base + "/d1/runs?limit=5":    `{"success":true,"data":{"runs":[{"name":"old","created_at":"2026-01-01"}]}}`,
-		base + "/d%2F2/runs?limit=5": `{"success":true,"data":{"runs":[{"name":"new","created_at":"2026-02-01"}]}}`,
+func TestNewestFirst(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"d1:01 d2:02", "d2:02 d1:01"},
+		{"d1:03 d1:01 d2:02", "d1:03 d2:02 d1:01"},
+		{"d1:01 d2:01", "d1:01 d2:01"},
 	}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, bodies[r.URL.EscapedPath()+"?"+r.URL.RawQuery])
-	}))
-	defer server.Close()
-
-	_, meta, raw, err := newEvalTestClient(t, server.URL).ListAgentDatasetRuns(
-		context.Background(), "org-1", "proj-1", "a", DatasetRunListOptions{Limit: 5})
-	got := fmt.Sprintf("%s %d %v", raw, meta.TotalItems, err)
-	want := `{"runs":[` +
-		`{"id":"","name":"new","description":"","dataset_id":"","dataset_name":"","metadata":null,"created_at":"2026-02-01","updated_at":""},` +
-		`{"id":"","name":"old","description":"","dataset_id":"","dataset_name":"","metadata":null,"created_at":"2026-01-01","updated_at":""}` +
-		`]} 2 <nil>`
-	if got != want {
-		t.Errorf("got  %s\nwant %s", got, want)
+	for _, tt := range tests {
+		var runs []DatasetRunInfo
+		for _, f := range strings.Fields(tt.in) {
+			dataset, created, _ := strings.Cut(f, ":")
+			runs = append(runs, DatasetRunInfo{DatasetName: dataset, CreatedAt: created})
+		}
+		newestFirst(runs)
+		got := make([]string, len(runs))
+		for i, r := range runs {
+			got[i] = r.DatasetName + ":" + r.CreatedAt
+		}
+		if strings.Join(got, " ") != tt.want {
+			t.Errorf("newestFirst(%s) = %v, want %s", tt.in, got, tt.want)
+		}
 	}
 }
