@@ -15,13 +15,13 @@ iai reports list [flags]
 ```
   iai reports list
   iai reports list --folder Operations
-  iai reports list --agent <agent-name> --json
+  iai reports list --agent my-agent --json
 ```
 
 ### Options
 
 ```
-      --agent string      Only reports attached to this agent; defaults to the selected agent
+      --agent string      Filter by agent name; defaults to the selected agent
       --columns strings   Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml. Available: id, name, description, folder, agents, default_range, updated_at, updated_by, updated_via, created_at
       --folder string     Only reports in this folder; none for reports in no folder
   -h, --help              help for list
