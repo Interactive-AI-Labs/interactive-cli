@@ -107,3 +107,37 @@ func titles(groups []*cobra.Group) string {
 	}
 	return strings.Join(out, " ")
 }
+
+func TestRefuseBlankArgs(t *testing.T) {
+	tests := []struct {
+		args []string
+		want string
+	}{
+		{[]string{"a"}, ""},
+		{[]string{" "}, "arguments cannot be blank"},
+		{[]string{""}, "arguments cannot be blank"},
+		{[]string{"a", "b"}, "accepts 1 arg(s), received 2"},
+	}
+	for _, tt := range tests {
+		t.Run(strings.Join(tt.args, ","), func(t *testing.T) {
+			root := &cobra.Command{Use: "root"}
+			root.AddCommand(
+				&cobra.Command{
+					Use:  "delete",
+					Args: cobra.ExactArgs(1),
+					RunE: func(*cobra.Command, []string) error { return nil },
+				},
+			)
+			refuseBlankArgs(root)
+			root.SetArgs(append([]string{"delete"}, tt.args...))
+			root.SilenceErrors, root.SilenceUsage = true, true
+			got := ""
+			if err := root.Execute(); err != nil {
+				got = err.Error()
+			}
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

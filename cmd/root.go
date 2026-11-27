@@ -101,6 +101,7 @@ var chainRootPersistentPreRun = func(cmd *cobra.Command, args []string) {
 var updateMessage = make(chan string, 1)
 
 func Execute() {
+	refuseBlankArgs(rootCmd)
 	err := rootCmd.Execute()
 
 	select {
@@ -111,6 +112,23 @@ func Execute() {
 
 	if err != nil {
 		os.Exit(1)
+	}
+}
+
+// refuseBlankArgs stops a blank name, such as `agents delete " "`, from reaching the API.
+func refuseBlankArgs(c *cobra.Command) {
+	if validate := c.Args; validate != nil {
+		c.Args = func(cmd *cobra.Command, args []string) error {
+			for _, arg := range args {
+				if strings.TrimSpace(arg) == "" {
+					return fmt.Errorf("arguments cannot be blank")
+				}
+			}
+			return validate(cmd, args)
+		}
+	}
+	for _, sub := range c.Commands() {
+		refuseBlankArgs(sub)
 	}
 }
 
