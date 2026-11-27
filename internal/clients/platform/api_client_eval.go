@@ -543,6 +543,9 @@ func (c *APIClient) ListAgentDatasetRuns(
 	if limit <= 0 {
 		limit = defaultRunsLimit
 	}
+	if limit > 100 {
+		return nil, PageMeta{}, nil, fmt.Errorf("limit must be at most 100, got %d", limit)
+	}
 	want := math.MaxInt
 	if page <= math.MaxInt/limit {
 		want = page * limit
