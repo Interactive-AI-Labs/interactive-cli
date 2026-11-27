@@ -488,6 +488,17 @@ func newestFirst(runs []DatasetRunInfo) {
 	})
 }
 
+// mergePageMeta pages every dataset alike, so the merged page count is the longest one.
+func mergePageMeta(page int, metas []PageMeta) PageMeta {
+	merged := PageMeta{Page: max(page, 1)}
+	for _, m := range metas {
+		merged.Limit = max(merged.Limit, m.Limit)
+		merged.TotalItems += m.TotalItems
+		merged.TotalPages = max(merged.TotalPages, m.TotalPages)
+	}
+	return merged
+}
+
 // ListAgentDatasetRuns lists the runs of an agent's datasets, newest first: its experiments.
 // ponytail: one call per dataset, first 100 datasets; a platform route if agents outgrow that.
 func (c *APIClient) ListAgentDatasetRuns(
@@ -501,17 +512,17 @@ func (c *APIClient) ListAgentDatasetRuns(
 		return nil, PageMeta{}, nil, err
 	}
 	runs := []DatasetRunInfo{}
-	meta := PageMeta{Page: max(opts.Page, 1), Limit: opts.Limit}
+	var metas []PageMeta
 	for _, d := range datasets {
 		page, m, _, err := c.ListDatasetRuns(ctx, orgID, projectID, d.Name, opts)
 		if err != nil {
 			return nil, PageMeta{}, nil, err
 		}
 		runs = append(runs, page...)
-		meta.TotalItems += m.TotalItems
-		meta.TotalPages = max(meta.TotalPages, m.TotalPages)
+		metas = append(metas, m)
 	}
 	newestFirst(runs)
+	meta := mergePageMeta(opts.Page, metas)
 	raw, err := json.Marshal(map[string]any{
 		"success": true,
 		"data":    datasetRunListData{Runs: runs, Meta: meta},

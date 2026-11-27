@@ -320,3 +320,22 @@ func TestNewestFirst(t *testing.T) {
 		}
 	}
 }
+
+func TestMergePageMeta(t *testing.T) {
+	tests := []struct {
+		page  int
+		metas []PageMeta
+		want  PageMeta
+	}{
+		{0, nil, PageMeta{Page: 1}},
+		{2, []PageMeta{
+			{Limit: 50, TotalItems: 120, TotalPages: 3},
+			{Limit: 50, TotalItems: 10, TotalPages: 1},
+		}, PageMeta{Page: 2, Limit: 50, TotalItems: 130, TotalPages: 3}},
+	}
+	for _, tt := range tests {
+		if got := mergePageMeta(tt.page, tt.metas); got != tt.want {
+			t.Errorf("mergePageMeta(%d, %v) = %+v, want %+v", tt.page, tt.metas, got, tt.want)
+		}
+	}
+}
