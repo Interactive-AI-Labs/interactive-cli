@@ -43,7 +43,8 @@ func agentArg(args []string, n int, org, project string) (string, []string, erro
 // splitAgentArgs holds agentArg's decision: all n args means the first is the agent.
 func splitAgentArgs(args []string, n int, selected string) (string, []string, error) {
 	if len(args) == n {
-		return strings.TrimSpace(args[0]), args[1:], nil
+		name, err := agentName(args[0])
+		return name, args[1:], err
 	}
 	if selected == "" {
 		return "", nil, fmt.Errorf(
@@ -55,9 +56,9 @@ func splitAgentArgs(args []string, n int, selected string) (string, []string, er
 }
 
 // agentFlag returns the --agent value, or the selected agent when it is not passed.
-func agentFlag(agent, org, project string) (string, error) {
-	if agent != "" {
-		return agent, nil
+func agentFlag(cmd *cobra.Command, agent, org, project string) (string, error) {
+	if cmd.Flags().Changed("agent") {
+		return agentName(agent)
 	}
 	return selectedAgent(org, project)
 }

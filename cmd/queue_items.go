@@ -54,7 +54,7 @@ var queueItemsCmd = &cobra.Command{
 	Use:              "queue-items",
 	Aliases:          []string{"queue-item"},
 	Short:            "Manage items in annotation queues",
-	GroupID:          groupEvaluation,
+	GroupID:          groupImprovement,
 	Long:             `Manage items within annotation queues.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -96,7 +96,7 @@ Results are sorted by created_at descending unless --sort-by/--sort-order say ot
 			}
 		}
 
-		agent, err := agentFlag(queueItemsListAgent, queueItemsListOrg, queueItemsListProject)
+		agent, err := agentFlag(cmd, queueItemsListAgent, queueItemsListOrg, queueItemsListProject)
 		if err != nil {
 			return err
 		}

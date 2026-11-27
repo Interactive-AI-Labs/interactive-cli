@@ -1,6 +1,6 @@
 ## iai dataset-runs
 
-Run evaluations against datasets
+Run evaluations against datasets (experiments)
 
 ### Synopsis
 

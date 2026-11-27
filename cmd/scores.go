@@ -63,7 +63,7 @@ var scoresCmd = &cobra.Command{
 	Use:              "scores",
 	Aliases:          []string{"score"},
 	Short:            "Read and write evaluation scores",
-	GroupID:          groupObserve,
+	GroupID:          groupImprovement,
 	Long:             `Manage observability scores. Read commands work with API key or session login; write commands are API key only.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -103,11 +103,16 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		agent := scoresAgent
+		agent := ""
 		var err error
-		if scoresTraceID == "" && scoresObservationID == "" && scoresSessionID == "" &&
-			len(scoresScoreIDs) == 0 {
-			if agent, err = agentFlag(scoresAgent, scoresListOrg, scoresListProject); err != nil {
+		if cmd.Flags().Changed("agent") || scoresTraceID == "" && scoresObservationID == "" &&
+			scoresSessionID == "" && len(scoresScoreIDs) == 0 {
+			if agent, err = agentFlag(
+				cmd,
+				scoresAgent,
+				scoresListOrg,
+				scoresListProject,
+			); err != nil {
 				return err
 			}
 		}

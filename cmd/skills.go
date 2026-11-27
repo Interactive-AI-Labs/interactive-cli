@@ -8,7 +8,7 @@ func init() {
 		Plural:   "skills",
 		Aliases:  []string{"skill"},
 		GroupID:  groupAgents,
-		Short:    "Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)",
+		Short:    "Manage Interactive Copilot skills",
 		Long: `Manage Interactive Copilot skills for the interactive-copilot service.
 
 IMPORTANT: These are Interactive Copilot skills, not to be confused with

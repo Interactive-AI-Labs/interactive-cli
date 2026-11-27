@@ -40,7 +40,7 @@ var datasetsCmd = &cobra.Command{
 	Use:              "datasets",
 	Aliases:          []string{"dataset"},
 	Short:            "Create, list and delete evaluation datasets",
-	GroupID:          groupEvaluation,
+	GroupID:          groupImprovement,
 	Long:             `Manage evaluation datasets. Works with API key or session login; delete needs the session login.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }

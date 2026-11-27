@@ -33,7 +33,7 @@ var metricsCmd = &cobra.Command{
 	Use:              "metrics",
 	Aliases:          []string{"metric"},
 	Short:            "Query aggregated observability metrics",
-	GroupID:          groupObserve,
+	GroupID:          groupGovernance,
 	Long:             `Access observability metrics. Works with API key (--api-key or INTERACTIVE_API_KEY) or session from 'iai login'.`,
 	PersistentPreRun: chainRootPersistentPreRun,
 }
@@ -78,7 +78,7 @@ Use --daily to get metrics aggregated by day (default).`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		agent, err := agentFlag(metricsListAgent, metricsListOrg, metricsListProject)
+		agent, err := agentFlag(cmd, metricsListAgent, metricsListOrg, metricsListProject)
 		if err != nil {
 			return err
 		}

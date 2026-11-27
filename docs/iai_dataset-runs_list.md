@@ -4,7 +4,7 @@ List dataset runs
 
 ### Synopsis
 
-List runs for a given dataset. Without --dataset-name, list the runs of an agent's datasets: its experiments, newest first. --page and --limit then apply to each dataset.
+List runs for a given dataset. With --agent, or without --dataset-name, list the runs of an agent's datasets, newest first: its experiments.
 
 ```
 iai dataset-runs list [flags]
@@ -46,5 +46,5 @@ iai dataset-runs list [flags]
 
 ### SEE ALSO
 
-* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
+* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets (experiments)
 

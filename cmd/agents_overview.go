@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -37,7 +39,12 @@ var agentOverviewCmd = &cobra.Command{
 			return err
 		}
 		window := overviewWindow
-		if !cmd.Flags().Changed("window") && overviewFromTimestamp+overviewToTimestamp != "" {
+		if overviewFromTimestamp+overviewToTimestamp != "" {
+			if cmd.Flags().Changed("window") && window != "custom" {
+				return errors.New(
+					"--from-timestamp and --to-timestamp need --window custom or no --window",
+				)
+			}
 			window = "custom" // the platform ignores from and to in any other window
 		}
 		overview, raw, err := apiClient.GetAgentOverview(

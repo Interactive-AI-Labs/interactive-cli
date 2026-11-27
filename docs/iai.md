@@ -92,7 +92,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai completion](iai_completion.md)	 - Generate the autocompletion script for the specified shell
 * [iai databases](iai_databases.md)	 - PostgreSQL instances with extension support, including pgvector
 * [iai dataset-items](iai_dataset-items.md)	 - Manage items in evaluation datasets
-* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets
+* [iai dataset-runs](iai_dataset-runs.md)	 - Run evaluations against datasets (experiments)
 * [iai datasets](iai_datasets.md)	 - Create, list and delete evaluation datasets
 * [iai files](iai_files.md)	 - Manage documents stored in a project
 * [iai glossaries](iai_glossaries.md)	 - Domain vocabularies for consistent term interpretation
@@ -120,7 +120,7 @@ Prompt resources (`prompts`, `routines`, `policies`, `variables`, `glossaries`, 
 * [iai secrets](iai_secrets.md)	 - Encrypted key-value pairs for services, agents, jobs, and MCPs
 * [iai services](iai_services.md)	 - Deploy and manage HTTP services
 * [iai sessions](iai_sessions.md)	 - Browse trace-derived conversation sessions
-* [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills (not to be confused with context items that configure the Interactive Agent)
+* [iai skills](iai_skills.md)	 - Manage Interactive Copilot skills
 * [iai stacks](iai_stacks.md)	 - Declarative resource sync from config files
 * [iai traces](iai_traces.md)	 - Browse agent decision traces with full attribution
 * [iai update](iai_update.md)	 - Update iai to the latest version
