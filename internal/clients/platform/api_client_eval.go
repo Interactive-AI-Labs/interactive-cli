@@ -501,16 +501,22 @@ func (c *APIClient) ListAgentDatasetRuns(
 		return nil, PageMeta{}, nil, err
 	}
 	runs := []DatasetRunInfo{}
+	meta := PageMeta{Page: max(opts.Page, 1), Limit: opts.Limit}
 	for _, d := range datasets {
-		page, _, _, err := c.ListDatasetRuns(ctx, orgID, projectID, d.Name, opts)
+		page, m, _, err := c.ListDatasetRuns(ctx, orgID, projectID, d.Name, opts)
 		if err != nil {
 			return nil, PageMeta{}, nil, err
 		}
 		runs = append(runs, page...)
+		meta.TotalItems += m.TotalItems
+		meta.TotalPages = max(meta.TotalPages, m.TotalPages)
 	}
 	newestFirst(runs)
-	raw, err := json.Marshal(map[string]any{"runs": runs})
-	return runs, PageMeta{Page: 1, TotalPages: 1, TotalItems: len(runs)}, raw, err
+	raw, err := json.Marshal(map[string]any{
+		"success": true,
+		"data":    datasetRunListData{Runs: runs, Meta: meta},
+	})
+	return runs, meta, raw, err
 }
 
 func (c *APIClient) GetDatasetRun(
