@@ -23,7 +23,7 @@ var agentActivityCmd = &cobra.Command{
 		"most recent first.\n\n" + selectedAgentHelp,
 	Example: `  iai agents activity my-agent
   iai agents activity my-agent --search deploy --limit 50
-  iai agents activity my-agent --actor user:123 --actor api_key:iai_ab --json`,
+  iai agents activity my-agent --actors user:123 --actors api_key:iai_ab --json`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		agent, _, err := agentArg(args, 1, agentOrganization, agentProject)
@@ -70,9 +70,9 @@ func init() {
 	indexFlag(agentActivityCmd, "search", "max 200 characters")
 	f.StringArrayVar(
 		&activityActors,
-		"actor",
+		"actors",
 		nil,
-		"Filter by actor: user:<id>, api_key:<prefix> or system:<component> (repeatable; --json lists them under actors)",
+		"Filter by actor: user:<id>, api_key:<prefix> or system:<component> (repeatable)",
 	)
 	f.BoolVar(&activityJSON, "json", false, "Output raw API response as JSON")
 	f.BoolVar(&activityYAML, "yaml", false, "Output raw API response as YAML")
