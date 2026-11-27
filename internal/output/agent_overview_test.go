@@ -3,7 +3,6 @@ package output
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"testing"
 
 	"github.com/Interactive-AI-Labs/interactive-cli/internal/clients/platform"
@@ -30,14 +29,12 @@ func TestPrintAgentOverview(t *testing.T) {
 		"0",
 	) + `}`
 	tests := []struct {
-		name  string
-		print func(io.Writer, []byte) error
-		body  string
-		want  string
+		name string
+		body string
+		want string
 	}{
 		{
-			name:  "overview with usage and errors",
-			print: printOverview,
+			name: "overview with usage and errors",
 			body: `{` + window + `,"performance":{"sessions":{"value":4,"previous":2,"deltaPct":100},` +
 				`"sessionLatencyMs":{"value":7000},"traceLatencyMs":{"value":750.4},` +
 				`"avgTracesPerSession":{"value":1.775}},` + cost + `,"tokens":{"rated":38375}},` +
@@ -67,9 +64,8 @@ func TestPrintAgentOverview(t *testing.T) {
 				"Session       1       s1\n",
 		},
 		{
-			name:  "overview without tokens, usage or errors",
-			print: printOverview,
-			body:  `{` + window + `,` + cost + `}}`,
+			name: "overview without tokens, usage or errors",
+			body: `{` + window + `,` + cost + `}}`,
 			want: "cigar, 2026-11-19 11:00:00 CET to 2026-11-26 11:00:00 CET\n\n" +
 				"METRIC                 VALUE      PREVIOUS   CHANGE\n" +
 				"Sessions               -          -          -\n" +
@@ -87,8 +83,12 @@ func TestPrintAgentOverview(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var o platform.AgentOverview
+			if err := json.Unmarshal([]byte(tt.body), &o); err != nil {
+				t.Fatal(err)
+			}
 			var buf bytes.Buffer
-			if err := tt.print(&buf, []byte(tt.body)); err != nil {
+			if err := PrintAgentOverview(&buf, o); err != nil {
 				t.Fatal(err)
 			}
 			if got := buf.String(); got != tt.want {
@@ -96,14 +96,6 @@ func TestPrintAgentOverview(t *testing.T) {
 			}
 		})
 	}
-}
-
-func printOverview(out io.Writer, body []byte) error {
-	var o platform.AgentOverview
-	if err := json.Unmarshal(body, &o); err != nil {
-		return err
-	}
-	return PrintAgentOverview(out, o)
 }
 
 func TestPrintAgentActivity(t *testing.T) {

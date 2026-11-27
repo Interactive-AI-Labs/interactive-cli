@@ -219,7 +219,7 @@ func init() {
 	datasetRunsListCmd.Flags().
 		StringVar(&datasetRunsListDataset, "dataset-name", "", "Dataset name")
 	datasetRunsListCmd.Flags().StringVar(&datasetRunsListAgent, "agent", "",
-		"List the runs of this agent's datasets; defaults to the selected agent")
+		"Filter by agent name or id; defaults to the selected agent")
 	datasetRunsListCmd.MarkFlagsMutuallyExclusive("agent", "dataset-name")
 	datasetRunsListCmd.Flags().
 		IntVar(&datasetRunsListPage, "page", 1, "Page number (starts at 1)")

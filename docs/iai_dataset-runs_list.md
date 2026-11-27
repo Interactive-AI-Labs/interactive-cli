@@ -23,7 +23,7 @@ iai dataset-runs list [flags]
 ### Options
 
 ```
-      --agent string          List the runs of this agent's datasets; defaults to the selected agent
+      --agent string          Filter by agent name or id; defaults to the selected agent
       --columns strings       Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
       --dataset-name string   Dataset name
   -h, --help                  help for list

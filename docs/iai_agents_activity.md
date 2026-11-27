@@ -17,13 +17,13 @@ iai agents activity [agent_name] [flags]
 ```
   iai agents activity my-agent
   iai agents activity my-agent --search deploy --limit 50
-  iai agents activity my-agent --actor user:123 --actor api_key:iai_ab --json
+  iai agents activity my-agent --actors user:123 --actors api_key:iai_ab --json
 ```
 
 ### Options
 
 ```
-      --actor stringArray     Filter by actor: user:<id>, api_key:<prefix> or system:<component> (repeatable; --json lists them under actors)
+      --actors stringArray    Filter by actor: user:<id>, api_key:<prefix> or system:<component> (repeatable)
   -h, --help                  help for activity
       --json                  Output raw API response as JSON
       --limit int             Items per page (max 100)
