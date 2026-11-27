@@ -103,9 +103,13 @@ If --from-timestamp is not provided, defaults to 7 days ago.`,
 			fromTS = time.Now().UTC().Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 		}
 
-		agent, err := agentFlag(scoresAgent, scoresListOrg, scoresListProject)
-		if err != nil {
-			return err
+		agent := scoresAgent
+		var err error
+		if scoresTraceID == "" && scoresObservationID == "" && scoresSessionID == "" &&
+			len(scoresScoreIDs) == 0 {
+			if agent, err = agentFlag(scoresAgent, scoresListOrg, scoresListProject); err != nil {
+				return err
+			}
 		}
 
 		opts := platform.ScoreListOptions{
@@ -296,7 +300,7 @@ func init() {
 	scoresListCmd.Flags().
 		StringArrayVar(&scoresTraceTags, "trace-tag", nil, "Filter by trace tag (repeatable)")
 	scoresListCmd.Flags().
-		StringVar(&scoresAgent, "agent", "", "Filter by agent name or id; defaults to the selected agent")
+		StringVar(&scoresAgent, "agent", "", "Filter by agent name or id; defaults to the selected agent unless an ID filter is set")
 	scoresListCmd.Flags().StringVar(&scoresValue, "value", "", "Exact value filter")
 	scoresListCmd.Flags().StringVar(&scoresOperator, "operator", "", "Operator for --value")
 	scoresListCmd.Flags().

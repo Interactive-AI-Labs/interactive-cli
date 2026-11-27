@@ -11,12 +11,12 @@ project clears the selected agent.
 
 The platform's agent pages, in order, and the commands that default to the selected agent:
   Overview     agents overview, agents activity, metrics
-  Config       agents describe
+  Config       agents describe, agents revisions, agents diff
   Context      policies, routines, macros, prompts, glossaries
   Tools        mcps
   Sessions     sessions
   Traces       traces, observations
-  Logs         agents logs
+  Logs         agents logs, agents log-fields
   Improvement  queues, queue-items, dataset-runs, scores
   Reports      reports
 
