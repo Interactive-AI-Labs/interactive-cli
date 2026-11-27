@@ -112,7 +112,7 @@ var reportsListCmd = &cobra.Command{
 	Long:    "List a project's reports with their folder, agents and last change.",
 	Example: `  iai reports list
   iai reports list --folder Operations
-  iai reports list --agent <agent-name> --json`,
+  iai reports list --agent my-agent --json`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
@@ -460,7 +460,7 @@ func init() {
 	reportsListCmd.Flags().
 		StringVar(&reportsListFolder, "folder", "", "Only reports in this folder; none for reports in no folder")
 	reportsListCmd.Flags().
-		StringVar(&reportsListAgent, "agent", "", "Only reports attached to this agent; defaults to the selected agent")
+		StringVar(&reportsListAgent, "agent", "", "Filter by agent name; defaults to the selected agent")
 	reportsListCmd.Flags().
 		StringSliceVar(&reportsListColumns, "columns", nil, fmt.Sprintf(
 			"Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml. Available: %s",
