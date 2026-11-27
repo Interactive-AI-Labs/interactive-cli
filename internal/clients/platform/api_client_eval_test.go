@@ -2,7 +2,9 @@ package platform
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -333,6 +335,18 @@ func TestPageOf(t *testing.T) {
 		{3, 2, []int{5}, PageMeta{Page: 3, Limit: 2, TotalItems: 5, TotalPages: 3}},
 		{4, 2, []int{}, PageMeta{Page: 4, Limit: 2, TotalItems: 5, TotalPages: 3}},
 		{1, 0, items, PageMeta{Page: 1, Limit: 50, TotalItems: 5, TotalPages: 1}},
+		{
+			math.MaxInt,
+			0,
+			[]int{},
+			PageMeta{Page: math.MaxInt, Limit: 50, TotalItems: 5, TotalPages: 1},
+		},
+		{
+			2,
+			math.MaxInt,
+			[]int{},
+			PageMeta{Page: 2, Limit: math.MaxInt, TotalItems: 5, TotalPages: 1},
+		},
 	}
 	for _, tt := range tests {
 		got, meta := pageOf(items, tt.page, tt.limit)
@@ -347,5 +361,26 @@ func TestPageOf(t *testing.T) {
 				tt.meta,
 			)
 		}
+	}
+}
+
+func TestAllPages(t *testing.T) {
+	tests := []struct {
+		name       string
+		totalPages int
+		want       string
+	}{
+		{"stops at TotalPages", 3, "3 <nil>"},
+		{"stops at maxPages", math.MaxInt, "0 list has more than 100 pages"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			all, err := allPages(func(int) ([]int, PageMeta, error) {
+				return []int{1}, PageMeta{TotalPages: tt.totalPages}, nil
+			})
+			if got := fmt.Sprint(len(all), " ", err); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

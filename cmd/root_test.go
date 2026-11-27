@@ -113,23 +113,22 @@ func TestRefuseBlankArgs(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"a"}, ""},
-		{[]string{" "}, "arguments cannot be blank"},
-		{[]string{""}, "arguments cannot be blank"},
-		{[]string{"a", "b"}, "accepts 1 arg(s), received 2"},
+		{[]string{"delete", "a"}, ""},
+		{[]string{"delete", " "}, "arguments cannot be blank"},
+		{[]string{"delete", ""}, "arguments cannot be blank"},
+		{[]string{"delete", "a", "b"}, "accepts 1 arg(s), received 2"},
+		{[]string{"nil-args", " "}, "arguments cannot be blank"},
 	}
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, ","), func(t *testing.T) {
 			root := &cobra.Command{Use: "root"}
+			run := func(*cobra.Command, []string) error { return nil }
 			root.AddCommand(
-				&cobra.Command{
-					Use:  "delete",
-					Args: cobra.ExactArgs(1),
-					RunE: func(*cobra.Command, []string) error { return nil },
-				},
+				&cobra.Command{Use: "delete", Args: cobra.ExactArgs(1), RunE: run},
+				&cobra.Command{Use: "nil-args", RunE: run},
 			)
 			refuseBlankArgs(root)
-			root.SetArgs(append([]string{"delete"}, tt.args...))
+			root.SetArgs(tt.args)
 			root.SilenceErrors, root.SilenceUsage = true, true
 			got := ""
 			if err := root.Execute(); err != nil {

@@ -497,19 +497,29 @@ func pageOf[T any](items []T, page, limit int) ([]T, PageMeta) {
 	if limit <= 0 {
 		limit = defaultRunsLimit
 	}
-	start := min((page-1)*limit, len(items))
-	return items[start:min(start+limit, len(items))], PageMeta{
+	totalPages := len(items) / limit
+	if len(items)%limit != 0 {
+		totalPages++
+	}
+	start := len(items)
+	if page <= totalPages {
+		start = (page - 1) * limit
+	}
+	return items[start : start+min(limit, len(items)-start)], PageMeta{
 		Page:       page,
 		Limit:      limit,
 		TotalItems: len(items),
-		TotalPages: (len(items) + limit - 1) / limit,
+		TotalPages: totalPages,
 	}
 }
+
+// maxPages bounds allPages against a mis-reported TotalPages.
+const maxPages = 100
 
 // allPages reads a paged list to its end.
 func allPages[T any](fetch func(page int) ([]T, PageMeta, error)) ([]T, error) {
 	var all []T
-	for page := 1; ; page++ {
+	for page := 1; page <= maxPages; page++ {
 		items, meta, err := fetch(page)
 		if err != nil {
 			return nil, err
@@ -519,6 +529,7 @@ func allPages[T any](fetch func(page int) ([]T, PageMeta, error)) ([]T, error) {
 			return all, nil
 		}
 	}
+	return nil, fmt.Errorf("list has more than %d pages", maxPages)
 }
 
 // ListAgentDatasetRuns lists the runs of an agent's datasets (only dataset, when set), newest first.
