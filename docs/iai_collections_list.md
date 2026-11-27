@@ -1,6 +1,12 @@
 ## iai collections list
 
-List collections in a database
+List collections in a database, or the one an agent searches
+
+### Synopsis
+
+List every collection in a database (-d), or only the collection an agent's
+manifest searches (--agent, which defaults to the selected agent). With both, the
+list is empty unless the agent's collection lives in that database.
 
 ```
 iai collections list [flags]
@@ -11,12 +17,14 @@ iai collections list [flags]
 ```
   iai collections list -d my-db
   iai collections list -d my-db --json
+  iai collections list --agent my-agent
 ```
 
 ### Options
 
 ```
-  -d, --database string       Database that holds the collection (required)
+      --agent string          Filter by agent name; defaults to the selected agent
+  -d, --database string       Database to list; required without --agent or a selected agent
   -h, --help                  help for list
       --json                  Output raw API response as JSON
   -o, --organization string   Organization name
