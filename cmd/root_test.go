@@ -73,7 +73,6 @@ func TestHelpGroups(t *testing.T) {
 		"agents trace-sessions":       groupAgentObservability,
 		"agents traces":               groupAgentObservability,
 		"agents overview":             groupAgentObservability,
-		"agents performance":          groupAgentObservability,
 		"agents activity":             groupAgentObservability,
 		"agents analytics":            groupAgentObservability,
 		"agents catalog":              groupAgentReference,

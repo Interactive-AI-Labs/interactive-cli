@@ -4,7 +4,7 @@ List dataset runs
 
 ### Synopsis
 
-List runs for a given dataset.
+List runs for a given dataset. Without --dataset-name, list the runs of an agent's datasets: its experiments, newest first. --page and --limit then apply to each dataset.
 
 ```
 iai dataset-runs list [flags]
@@ -14,6 +14,7 @@ iai dataset-runs list [flags]
 
 ```
   iai dataset-runs list --dataset-name my-dataset
+  iai dataset-runs list --agent my-agent
   iai dataset-runs list --dataset-name my-dataset -o my-org -p my-project
   iai dataset-runs list --dataset-name my-dataset --page 2 --limit 50 --columns name,status
   iai dataset-runs list --dataset-name my-dataset --json
@@ -22,8 +23,9 @@ iai dataset-runs list [flags]
 ### Options
 
 ```
+      --agent string          List the runs of this agent's datasets; defaults to the selected agent
       --columns strings       Columns to display for table output only (comma-separated). Cannot be used with --json or --yaml
-      --dataset-name string   Dataset name (required)
+      --dataset-name string   Dataset name
   -h, --help                  help for list
       --json                  Output raw API response as JSON
       --limit int             Items per page (max 100)

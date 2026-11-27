@@ -13,7 +13,7 @@ func usd(amount string) string {
 	return `{"kind":"amount","money":{"amount":"` + amount + `","currency":"USD"}}`
 }
 
-func TestPrintAgentOverviewAndPerformance(t *testing.T) {
+func TestPrintAgentOverview(t *testing.T) {
 	t.Setenv("TZ", "Europe/Madrid")
 	window := `"displayName":"cigar","window":{"key":"7d","from":"2026-11-19T10:00:00Z","to":"2026-11-26T10:00:00Z"}`
 	cost := `"cost":{"agent":{"value":` + usd(
@@ -84,27 +84,6 @@ func TestPrintAgentOverviewAndPerformance(t *testing.T) {
 				"Interactive Agent      0.10 USD   0.00 USD   -\n" +
 				"LLM Cost               -          0.00 USD   -\n",
 		},
-		{
-			name:  "performance prices each agent by id",
-			print: printPerformance,
-			body: `{"agents":[{"agent_id":"a","name":"A","traces":3,"sessions":2,"trace_latency":1500,"session_latency":900},` +
-				`{"agent_id":"b","name":"B"}],` +
-				`"agentCosts":[{"agent_id":"b","total":` + usd(
-				"0.131878207",
-			) + `}],"costTotal":` + usd(
-				"0.1319",
-			) + `}`,
-			want: "NAME   TRACES   SESSIONS   TRACE LATENCY   SESSION LATENCY   COST\n" +
-				"A      3        2          1.50s           900ms             -\n" +
-				"B      -        -          -               -                 0.13 USD\n" +
-				"\nTotal Cost: 0.13 USD\n",
-		},
-		{
-			name:  "performance without agents",
-			print: printPerformance,
-			body:  `{"agents":[],"costTotal":` + usd("0") + `}`,
-			want:  "NAME   TRACES   SESSIONS   TRACE LATENCY   SESSION LATENCY   COST\n\nTotal Cost: 0.00 USD\n",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -125,14 +104,6 @@ func printOverview(out io.Writer, body []byte) error {
 		return err
 	}
 	return PrintAgentOverview(out, o)
-}
-
-func printPerformance(out io.Writer, body []byte) error {
-	var p platform.AgentPerformance
-	if err := json.Unmarshal(body, &p); err != nil {
-		return err
-	}
-	return PrintAgentPerformance(out, p)
 }
 
 func TestPrintAgentActivity(t *testing.T) {
